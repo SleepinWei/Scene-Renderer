@@ -1,0 +1,8 @@
+Demo.*
+build/
+asset/
+dll/
+lib/
+.vs/
+.vscode/
+x64/
