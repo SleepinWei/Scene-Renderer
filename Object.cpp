@@ -26,7 +26,7 @@ void Sphere::changeGeometry(int pointNum) {
 void Sphere::initGeometry() {
 	float delta = 2 * PI * 1.0 / pointNum; // delta of angle
 	float R = 1;
-	int overallPointNum = pointNum * pointNum / 2 - pointNum + 2;
+	int overallPointNum = (pointNum/2-1) * (pointNum + 1) + 2;
 	std::vector<float>(overallPointNum * 3,0).swap(m_vertices);
 	std::vector<float>(overallPointNum * 3, 0).swap(m_normals);
 	std::vector<float>(overallPointNum * 2, 0).swap(m_TexCoords);
@@ -37,7 +37,7 @@ void Sphere::initGeometry() {
 	m_vertices[0] = 0;
 	m_vertices[1] = R; 
 	m_vertices[2] = 0;
-	m_TexCoords[0] = 0; 
+	m_TexCoords[0] = 0.5; 
 	m_TexCoords[1] = 0;
 	int index = 1;
 	for (int i = 0; i < pointNum / 2 - 1; i++) {
@@ -55,7 +55,7 @@ void Sphere::initGeometry() {
 	m_vertices[3 * index] = 0;
 	m_vertices[3 * index + 1] = -R;
 	m_vertices[3 * index + 2] = 0;
-	m_TexCoords[2 * index] = 0; 
+	m_TexCoords[2 * index] = 0.5; 
 	m_TexCoords[2 * index + 1] = 1; 
 	// set indices; 
 	index = 0; 
@@ -64,9 +64,8 @@ void Sphere::initGeometry() {
 		m_indices[index++] = i + 1;
 		m_indices[index++] = i + 2; 
 	}
-	m_indices[3 * (pointNum-1) + 2] = 1;
 	for (int i = 0; i < pointNum/2-2; i++) {
-		int basicPointIndex = i * pointNum + 1;
+		int basicPointIndex = i * (pointNum+1) + 1;
 		for (int j = 0; j < pointNum; j++) {
 			int curPoint = basicPointIndex + j; 
 			//int nextPoint =(j != pointNum -1 ? curPoint + 1 : basicPointIndex); 
@@ -79,7 +78,7 @@ void Sphere::initGeometry() {
 			m_indices[index++] = nextPoint;
 		}
 	}
-	int basicPointIndex = (pointNum / 2 - 2) * pointNum + 1;
+	int basicPointIndex = (pointNum / 2 - 2) * (pointNum+1) + 1;
 	for (int i = 0; i < pointNum; i++) {
 		int curPoint = basicPointIndex + i;
 		//int nextPoint = (i != pointNum - 1 ? curPoint + 1 : basicPointIndex);

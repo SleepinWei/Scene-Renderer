@@ -27,9 +27,9 @@ public:
 
 		ImGui::Begin("Info");
 		ImGui::Text("Light Position");
-		ImGui::SliderFloat("X", &lightPos.x, 0.0f, 8.0f);
+		ImGui::SliderFloat("X", &lightPos.x, -8.0f, 8.0f);
 		ImGui::SliderFloat("Y", &lightPos.y, 0.0f, 8.0f);
-		ImGui::SliderFloat("Z", &lightPos.z, 0.0f, 8.0f);
+		ImGui::SliderFloat("Z", &lightPos.z, -8.0f, 8.0f);
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		ImGui::End();
 
