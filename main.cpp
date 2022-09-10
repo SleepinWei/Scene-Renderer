@@ -137,9 +137,12 @@ void test() {
 	model = glm::scale(model, glm::vec3(0.2));
 	test_print(model);
 }
+
+#include"PathTracing.h"
 int main() {
 	// 
-	render();
+	//render();
 	//test();
+	PT::render();
 	return 0; 
 }
