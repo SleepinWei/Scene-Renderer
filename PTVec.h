@@ -17,6 +17,8 @@ namespace PT {
 		vec3 operator+ (vec3 v);
 		vec3 operator- (vec3 v);
 		vec3 operator-(void);
+		vec3 operator* (vec3& v);
+		vec3 operator/ (vec3& v);
 
 		inline static vec3 random();
 		inline static vec3 random(double min, double max);
@@ -29,6 +31,8 @@ namespace PT {
 	vec3 cross(vec3 a, vec3 b);
 	vec3 normalize(vec3 v);
 	double length(vec3 v);
+
+	vec3 reflect(vec3& v, vec3& n);
 
 	vec3 random_direction(); 
 }

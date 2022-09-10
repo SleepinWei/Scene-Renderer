@@ -3,44 +3,11 @@
 #include"PTCamera.h"
 #include<iostream>
 #include"PTrandom.h"
+#include"PTMaterial.h"
+#include"hittable.h"
 
-PT::Sphere::Sphere(vec3 center,double radius):
-	center(center),radius(radius) {
-	
-}
+class PT::Material;
 
-PT::Sphere::~Sphere() {
-
-}
-
-bool PT::Sphere::hit(Ray& r,double t_min,double t_max,hitRecord& rec){
-	double t = -1.0f;
-	vec3 ooc = r.orig - center; 
-	double a = dot(r.dir, r.dir);
-	double b = 2.0f * dot(ooc, r.dir);
-	double c = dot(ooc, ooc) - radius * radius;
-
-	double delta = b * b - 4 * a * c;
-	if (delta < 1e-6) {
-		return false; 
-	}
-	double sqrtdelta = sqrt(delta);
-	double root = (-b - sqrtdelta) / (2.0 * a);
-	if (root < t_min || t_max < root) {
-		root = (- b + sqrtdelta) / (2.0 * a);
-		if (root < t_min || t_max < root) {
-			return false;
-		}
-	}
-	rec.t = root;
-	rec.p = r.at(rec.t);
-	vec3 outward_normal = (rec.p - center) / radius; 
-	rec.set_face_normal(r, outward_normal);
-	rec.T = normalize(vec3(-rec.p.y, rec.p.x, 0));
-	rec.B = normalize(cross(rec.normal, rec.T));
-
-	return true;
-}
 
 PT::vec3 TBN(PT::vec3 v, PT::vec3& T, PT::vec3& B, PT::vec3& N) {
 	return PT::vec3(
@@ -50,13 +17,6 @@ PT::vec3 TBN(PT::vec3 v, PT::vec3& T, PT::vec3& B, PT::vec3& N) {
 	);
 }
 
-PT::vec3 random_in_hemisphere(PT::vec3& normal) {
-	PT::vec3 random_dir = PT::random_direction();
-	if (dot(random_dir, normal) > 0.0) {
-		return random_dir;
-	}
-	return -random_dir;
-}
 
 PT::vec3 PT::rayColor(Ray r,hittable& world,int depth) {
 	hitRecord rec;
@@ -67,19 +27,20 @@ PT::vec3 PT::rayColor(Ray r,hittable& world,int depth) {
 
 	bool isHit = world.hit(r,0,infinity,rec);
 	if (isHit) {
-		vec3 new_ray_dir = random_in_hemisphere(rec.normal);
+		Ray scattered;
+		vec3 attenuation;
 		//new_ray_dir = TBN(new_ray_dir, rec.T, rec.B, rec.normal);
-		return 0.5 * rayColor(Ray(rec.p, new_ray_dir), world, depth - 1);
+		if (rec.mat_ptr->scatter(r, rec, attenuation, scattered)) {
+			vec3 color = rayColor(scattered, world, depth - 1);
+			return attenuation * color;
+		}
+		return vec3(0, 0, 0);
 	}
 	vec3 unit_direction = normalize(r.dir);
 	auto t = 0.5 * (unit_direction.y + 1.0);
 	return (1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
 }
 
-void PT::hitRecord::set_face_normal(Ray& r, vec3& outward_normal) {
-	this->front_face = dot(r.dir, outward_normal) < 0;
-	this->normal = front_face ? outward_normal : -outward_normal;
-}
 
 
 void write_color(PT::vec3 color, int samples_per_pixel) {
@@ -99,7 +60,6 @@ void write_color(PT::vec3 color, int samples_per_pixel) {
 }
 void PT::render() {
 	freopen("./out.ppm", "w", stdout);
-	Sphere sphere(vec3(0, 0, -10), 5);
 
 	// image plane  
 	Camera camera;
@@ -108,10 +68,20 @@ void PT::render() {
 
 	// world 
 	hittable_list world;
-	Sphere s1(vec3(0, 0, -1), 0.5);
-	Sphere s2(vec3(0, -100.5, -1), 100);
+
+	auto material_ground = Lambertian(vec3(0.8, 0.8, 0.0));
+	auto material_center = Lambertian(vec3(0.7, 0.3, 0.3));
+	auto material_left = Metal(vec3(0.8, 0.8, 0.8));
+	auto material_right = Metal(vec3(0.8, 0.6, 0.2));
+
+	Sphere s1(vec3(0.0, -100.5, -1.0), 100.0, &material_ground);
+	Sphere s2(vec3(0.0, 0.0, -1.0), 0.5, &material_center);
+	Sphere s3(vec3(-1.0, 0.0, -1.0), 0.5, &material_left);
+	Sphere s4(vec3(1.0, 0.0, -1.0), 0.5, &material_right);
 	world.add(&s1);
 	world.add(&s2);
+	world.add(&s3);
+	world.add(&s4);
 
 	int samples_per_pixel = 20;
 	int max_depth = 10;
@@ -134,30 +104,3 @@ void PT::render() {
 	fclose(stdout);
 }
 
-PT::hittable_list::hittable_list(hittable* object) {
-	add(object);
-}
-
-void PT::hittable_list::clear() {
-	objects.clear();
-}
-
-void PT::hittable_list::add(hittable* object) {
-	objects.push_back(object);
-}
-
-bool PT::hittable_list::hit(Ray& r, double t_min, double t_max, hitRecord& rec) {
-	hitRecord temp_rec; 
-	bool hit_anything = false;
-	auto closest = t_max;
-	for (hittable* object : objects) {
-		if (object->hit(r, t_min, closest, temp_rec)) {
-			// if the ray hits anything and t is smaller than 
-			// the current closest. 
-			hit_anything = true;
-			closest = temp_rec.t;
-			rec = temp_rec;
-		}
-	}
-	return hit_anything;
-}

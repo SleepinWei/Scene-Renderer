@@ -71,3 +71,14 @@ PT::vec3 PT::cross(vec3 a, vec3 b) {
 		a.x * b.y - a.y * b.x
 	);
 }
+PT::vec3 PT::reflect(vec3& v, vec3& n) {
+	return v - 2 * dot(v, n) * n;
+}
+
+PT::vec3 PT::vec3::operator*(vec3& v) {
+	return vec3(x * v.x, y * v.y, z * v.z);
+}
+PT::vec3 PT::vec3::operator/ (vec3& v) {
+	return vec3(x / v.x, y / v.y, z / v.z);
+}
+
