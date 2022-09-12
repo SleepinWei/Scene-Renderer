@@ -8,21 +8,21 @@ PT::Sphere::~Sphere() {
 
 }
 
-bool PT::Sphere::hit(Ray& r,double t_min,double t_max,hitRecord& rec){
+bool PT::Sphere::hit(const Ray& r,double t_min,double t_max,hitRecord& rec)const {
 	double t = -1.0f;
 	vec3 ooc = r.orig - center; 
 	double a = dot(r.dir, r.dir);
-	double b = 2.0f * dot(ooc, r.dir);
+	double half_b = dot(ooc, r.dir);
 	double c = dot(ooc, ooc) - radius * radius;
 
-	double delta = b * b - 4 * a * c;
-	if (delta < 1e-6) {
+	double delta = half_b * half_b - a * c;
+	if (delta < 0) {
 		return false; 
 	}
 	double sqrtdelta = sqrt(delta);
-	double root = (-b - sqrtdelta) / (2.0 * a);
+	double root = (-half_b - sqrtdelta) / a;
 	if (root < t_min || t_max < root) {
-		root = (- b + sqrtdelta) / (2.0 * a);
+		root = (- half_b + sqrtdelta) / a;
 		if (root < t_min || t_max < root) {
 			return false;
 		}
@@ -38,7 +38,7 @@ bool PT::Sphere::hit(Ray& r,double t_min,double t_max,hitRecord& rec){
 	return true;
 }
 
-void PT::hitRecord::set_face_normal(Ray& r, vec3& outward_normal) {
+void PT::hitRecord::set_face_normal(const Ray& r, const vec3& outward_normal) {
 	this->front_face = dot(r.dir, outward_normal) < 0;
 	this->normal = front_face ? outward_normal : -outward_normal;
 }
@@ -54,7 +54,7 @@ void PT::hittable_list::add(hittable* object) {
 	objects.push_back(object);
 }
 
-bool PT::hittable_list::hit(Ray& r, double t_min, double t_max, hitRecord& rec) {
+bool PT::hittable_list::hit(const Ray& r, double t_min, double t_max, hitRecord& rec) const {
 	hitRecord temp_rec; 
 	bool hit_anything = false;
 	auto closest = t_max;

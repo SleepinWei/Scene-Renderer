@@ -7,7 +7,7 @@ namespace PT{
 		~Ray();
 		Ray(vec3 origin, vec3 direction);
 
-		vec3 at(double t);
+		vec3 at(double t)const ;
 
 	public:
 		vec3 orig;

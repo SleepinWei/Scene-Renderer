@@ -9,23 +9,23 @@
 class PT::Material;
 
 
-PT::vec3 TBN(PT::vec3 v, PT::vec3& T, PT::vec3& B, PT::vec3& N) {
-	return PT::vec3(
-		v.x * T.x + v.y * B.x + v.z * N.x,
-		v.x * T.y + v.y * B.y + v.z * N.y,
-		v.x * T.z + v.y * B.z + v.z * N.z
-	);
-}
+//PT::vec3 TBN(PT::vec3 v, PT::vec3& T, PT::vec3& B, PT::vec3& N) {
+//	return PT::vec3(
+//		v.x * T.x + v.y * B.x + v.z * N.x,
+//		v.x * T.y + v.y * B.y + v.z * N.y,
+//		v.x * T.z + v.y * B.z + v.z * N.z
+//	);
+//}
 
 
-PT::vec3 PT::rayColor(Ray r,hittable& world,int depth) {
+PT::vec3 PT::rayColor(const Ray& r,const hittable& world,int depth) {
 	hitRecord rec;
 
 	if (depth <= 0) {
 		return vec3(0, 0, 0);
 	}
 
-	bool isHit = world.hit(r,0,infinity,rec);
+	bool isHit = world.hit(r,0.001,infinity,rec);
 	if (isHit) {
 		Ray scattered;
 		vec3 attenuation;
@@ -43,7 +43,7 @@ PT::vec3 PT::rayColor(Ray r,hittable& world,int depth) {
 
 
 
-void write_color(PT::vec3 color, int samples_per_pixel) {
+void write_color(const PT::vec3& color, int samples_per_pixel) {
 	auto r = color.x; 
 	auto g = color.y;
 	auto b = color.z;
@@ -53,6 +53,9 @@ void write_color(PT::vec3 color, int samples_per_pixel) {
 	r = sqrt(scale * r);
 	g = sqrt(scale * g);
 	b = sqrt(scale * b);
+	//r = scale * r;
+	//g = scale * g;
+	//b = scale * b;
 
 	std::cout << int(256 * clamp(r, 0.0, 0.999)) << ' '
 		<< int(256 * clamp(g, 0.0, 0.999)) << ' '
@@ -62,29 +65,33 @@ void PT::render() {
 	freopen("./out.ppm", "w", stdout);
 
 	// image plane  
-	Camera camera;
+	double aspect_ratio = 16.0 / 9.0;
+	Camera camera(vec3(-2,2,1),vec3(0,0,-1),vec3(0,1,0),90.0,aspect_ratio);
 	int h = 450;
 	int w= int(camera.aspect_ratio * h);
 
 	// world 
+	auto R = cos(PI / 4);
 	hittable_list world;
 
 	auto material_ground = Lambertian(vec3(0.8, 0.8, 0.0));
-	auto material_center = Lambertian(vec3(0.7, 0.3, 0.3));
-	auto material_left = Metal(vec3(0.8, 0.8, 0.8));
-	auto material_right = Metal(vec3(0.8, 0.6, 0.2));
+	auto material_center = Lambertian(vec3(0.1,0.2,0.5));
+	auto material_left = Dielectric(1.5);
+	auto material_right = Metal(vec3(0.8, 0.6, 0.2),0.0);
 
 	Sphere s1(vec3(0.0, -100.5, -1.0), 100.0, &material_ground);
 	Sphere s2(vec3(0.0, 0.0, -1.0), 0.5, &material_center);
-	Sphere s3(vec3(-1.0, 0.0, -1.0), 0.5, &material_left);
+	Sphere s5(vec3(-1.0, 0.0, -1.0), 0.5, &material_left);
+	Sphere s3(vec3(-1.0, 0.0, -1.0), -0.45, &material_left);
 	Sphere s4(vec3(1.0, 0.0, -1.0), 0.5, &material_right);
 	world.add(&s1);
 	world.add(&s2);
 	world.add(&s3);
 	world.add(&s4);
+	world.add(&s5);
 
-	int samples_per_pixel = 20;
-	int max_depth = 10;
+	int samples_per_pixel = 50;
+	int max_depth =10;
 
 	std::cout << "P3\n" << w << ' ' << h << "\n255\n";
 

@@ -4,8 +4,14 @@
 namespace PT {
     class Camera {
     public:
-        Camera();
-        Ray get_ray(double u, double v);
+        Camera(
+            vec3 lookfrom,
+            vec3 lookat,
+            vec3 up,
+            double fov,
+            double aspect_ratio
+        );
+        Ray get_ray(double u, double v)const;
 
     public:
         vec3 origin;

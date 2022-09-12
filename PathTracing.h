@@ -9,7 +9,7 @@
 namespace PT {
 	const double infinity = std::numeric_limits<double>::infinity();
 	
-	vec3 rayColor(Ray r,hittable& world,int depth);
+	vec3 rayColor(const Ray& r,const hittable& world,int depth);
 
 	void render();
 }

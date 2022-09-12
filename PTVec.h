@@ -10,29 +10,36 @@ namespace PT {
 		~vec3() = default;
 
 		double x, y, z;
-		vec3 operator* (double t);
-		vec3 operator+ (double t);
-		vec3 operator- (double t);
-		vec3 operator/ (double t);
-		vec3 operator+ (vec3 v);
-		vec3 operator- (vec3 v);
-		vec3 operator-(void);
-		vec3 operator* (vec3& v);
-		vec3 operator/ (vec3& v);
+		vec3 operator* (double t)const;
+		vec3 operator+ (double t)const;
+		vec3 operator- (double t)const;
+		vec3 operator/ (double t)const;
+		vec3 operator+ (const vec3& v)const;
+		vec3 operator- (const vec3& v)const;
+		vec3 operator- (void)const;
+		vec3 operator* (const vec3& v)const;
+		vec3 operator/ (const vec3& v)const;
 
 		inline static vec3 random();
 		inline static vec3 random(double min, double max);
 	};
-	vec3 operator* (double t, PT::vec3 v);
-	vec3 operator+ (double t, PT::vec3 v);
-	vec3 operator- (double t, PT::vec3 v);
+	vec3 operator* (double t, const PT::vec3& v);
+	vec3 operator+ (double t, const PT::vec3& v);
+	vec3 operator- (double t, const PT::vec3& v);
 
-	double dot(vec3 a, vec3 b);
-	vec3 cross(vec3 a, vec3 b);
-	vec3 normalize(vec3 v);
-	double length(vec3 v);
+	double dot(const vec3& a, const vec3& b);
+	vec3 cross(const vec3& a, const vec3& b);
+	vec3 normalize(const vec3& v);
+	double length(const vec3& v);
+	double length_squared(const vec3& v);
 
-	vec3 reflect(vec3& v, vec3& n);
+	vec3 reflect(const vec3& v, const vec3& n);
+	vec3 refract(const vec3& uv, const vec3& n, double etai_over_etat);
 
 	vec3 random_direction(); 
+	vec3 random_in_hemisphere(const PT::vec3& normal);
+	vec3 random_in_unit_sphere();
+	bool nearZero(const vec3& v);
+
+	double radians(double degree);
 }

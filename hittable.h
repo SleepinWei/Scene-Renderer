@@ -16,11 +16,11 @@ namespace PT {
 		//vec3 T;
 		//vec3 B;
 
-		inline void set_face_normal(Ray& r, vec3& outward_normal);
+		inline void set_face_normal(const Ray& r, const vec3& outward_normal);
 	};
 	class hittable {
 	public:
-		virtual bool hit(Ray& r, double t_min, double t_max, hitRecord& rec)=0;
+		virtual bool hit(const Ray& r, double t_min, double t_max, hitRecord& rec)const =0;
 	};
 
 	class hittable_list : public hittable {
@@ -30,7 +30,7 @@ namespace PT {
 
 		void clear(); 
 		void add(hittable* object);
-		virtual bool hit(Ray& r, double t_min, double t_max, hitRecord& rec) override;
+		virtual bool hit(const Ray& r, double t_min, double t_max, hitRecord& rec) const override;
 
 	public:
 		std::vector<hittable*> objects;
@@ -41,7 +41,7 @@ namespace PT {
 		Sphere(const vec3& center, double radius,Material* m);
 		~Sphere();
 
-		virtual bool hit(Ray& r, double t_min, double t_max, hitRecord& rec) override;
+		virtual bool hit(const Ray& r, double t_min, double t_max, hitRecord& rec) const override;
 
 	public:
 		vec3 center;
