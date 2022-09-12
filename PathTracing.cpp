@@ -61,6 +61,7 @@ void write_color(const PT::vec3& color, int samples_per_pixel) {
 		<< int(256 * clamp(g, 0.0, 0.999)) << ' '
 		<< int(256 * clamp(b, 0.0, 0.999)) << '\n';
 }
+#include<memory>
 void PT::render() {
 	freopen("./out.ppm", "w", stdout);
 
@@ -74,21 +75,21 @@ void PT::render() {
 	auto R = cos(PI / 4);
 	hittable_list world;
 
-	auto material_ground = Lambertian(vec3(0.8, 0.8, 0.0));
-	auto material_center = Lambertian(vec3(0.1,0.2,0.5));
-	auto material_left = Dielectric(1.5);
-	auto material_right = Metal(vec3(0.8, 0.6, 0.2),0.0);
+	auto material_ground = std::make_shared<Lambertian>(vec3(0.8, 0.8, 0.0));
+	auto material_center = std::make_shared<Lambertian>(vec3(0.1,0.2,0.5));
+	auto material_left = std::make_shared<Dielectric>(1.5);
+	auto material_right = std::make_shared<Metal>(vec3(0.8, 0.6, 0.2),0.0);
 
-	Sphere s1(vec3(0.0, -100.5, -1.0), 100.0, &material_ground);
-	Sphere s2(vec3(0.0, 0.0, -1.0), 0.5, &material_center);
-	Sphere s5(vec3(-1.0, 0.0, -1.0), 0.5, &material_left);
-	Sphere s3(vec3(-1.0, 0.0, -1.0), -0.45, &material_left);
-	Sphere s4(vec3(1.0, 0.0, -1.0), 0.5, &material_right);
-	world.add(&s1);
-	world.add(&s2);
-	world.add(&s3);
-	world.add(&s4);
-	world.add(&s5);
+	Sphere s1(vec3(0.0, -100.5, -1.0), 100.0, material_ground);
+	Sphere s2(vec3(0.0, 0.0, -1.0), 0.5, material_center);
+	Sphere s5(vec3(-1.0, 0.0, -1.0), 0.5, material_left);
+	Sphere s3(vec3(-1.0, 0.0, -1.0), -0.45,material_left);
+	Sphere s4(vec3(1.0, 0.0, -1.0), 0.5, material_right);
+	world.add(std::make_shared<Sphere>(s1));
+	world.add(std::make_shared<Sphere>(s2));
+	world.add(std::make_shared<Sphere>(s3));
+	world.add(std::make_shared<Sphere>(s4));
+	world.add(std::make_shared<Sphere>(s5));
 
 	int samples_per_pixel = 50;
 	int max_depth =10;

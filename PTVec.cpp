@@ -113,3 +113,13 @@ double PT::radians(double degree) {
 	return degree / 180.0 * PI;
 }
 
+double PT::vec3::operator[](unsigned int index)const {
+	switch (index)
+	{
+	case 0: return x; 
+	case 1: return y; 
+	case 2: return z; 
+	default:
+		break;
+	}
+}

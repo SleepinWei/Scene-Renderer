@@ -15,4 +15,7 @@ inline double clamp(double x, double min, double max) {
 	return x;
 	//return (x < min ? min : (x > max ? max : x));
 }
+inline int random_int(int min, int max) {
+	return int(random_double(min, max + 1));
+}
 

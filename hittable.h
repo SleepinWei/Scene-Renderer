@@ -1,6 +1,8 @@
 #pragma once
 #include"PTVec.h"
 #include"PTRay.h"
+#include"PTAABB.h"
+#include<memory>
 //#include"PTMaterial.h"
 
 namespace PT {
@@ -12,7 +14,7 @@ namespace PT {
 		vec3 normal;
 		double t;
 		bool front_face;
-		Material* mat_ptr; // pointer of material
+		std::shared_ptr<Material> mat_ptr; // pointer of material
 		//vec3 T;
 		//vec3 B;
 
@@ -21,32 +23,34 @@ namespace PT {
 	class hittable {
 	public:
 		virtual bool hit(const Ray& r, double t_min, double t_max, hitRecord& rec)const =0;
+		virtual bool bounding_box(double time0, double time1, AABB& output_box)const = 0;
 	};
 
 	class hittable_list : public hittable {
 	public:
 		hittable_list() = default;
-		hittable_list(hittable* object); 
+		hittable_list(std::shared_ptr<hittable> object); 
 
 		void clear(); 
-		void add(hittable* object);
+		void add(std::shared_ptr<hittable> object);
 		virtual bool hit(const Ray& r, double t_min, double t_max, hitRecord& rec) const override;
+		virtual bool bounding_box(double time0, double time1, AABB& output_box)const override;
 
 	public:
-		std::vector<hittable*> objects;
+		std::vector<std::shared_ptr<hittable>> objects;
 	};
 
 	class Sphere : public hittable{
 	public:
-		Sphere(const vec3& center, double radius,Material* m);
+		Sphere(const vec3& center, double radius,std::shared_ptr<Material> m);
 		~Sphere();
 
 		virtual bool hit(const Ray& r, double t_min, double t_max, hitRecord& rec) const override;
-
+		virtual bool bounding_box(double time0, double time1, AABB& output_box)const;
 	public:
 		vec3 center;
 		double radius;
-		Material* mat_ptr;
+		std::shared_ptr<Material> mat_ptr;
 	};
 
 }

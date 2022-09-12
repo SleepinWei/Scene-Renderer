@@ -19,6 +19,7 @@ namespace PT {
 		vec3 operator- (void)const;
 		vec3 operator* (const vec3& v)const;
 		vec3 operator/ (const vec3& v)const;
+		double operator[] (unsigned int index) const;
 
 		inline static vec3 random();
 		inline static vec3 random(double min, double max);
