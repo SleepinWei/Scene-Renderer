@@ -18,6 +18,10 @@ public:
         const char *fragmentPath, 
         const char *geometryPath = nullptr
         ); 
+    Shader(const char* vertexPath,
+        const char* tessControlPath,
+        const char* tessEvaluationPath,
+        const char* fragmentPath);
     // activate the shader
     // ------------------------------------------------------------------------
     void use();

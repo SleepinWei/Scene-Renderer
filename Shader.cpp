@@ -170,3 +170,91 @@ void Shader::checkCompileErrors(GLuint shader, std::string type)
         }
     }
 }
+
+Shader::Shader(const char* vertexPath, const char* tessControlPath, const char* tessEvaluationPath, const char* fragmentPath)
+{
+    // 1. retrieve the vertex/fragment source code from filePath
+    std::string vertexCode;
+    std::string fragmentCode;
+    std::string tessCCode;
+    std::string tessECode;
+
+    std::ifstream vShaderFile;
+    std::ifstream fShaderFile;
+    std::ifstream tessCFile;
+    std::ifstream tessEFile;
+    // ensure ifstream objects can throw exceptions:
+    vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    tessCFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    tessEFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    try
+    {
+        // open files
+        vShaderFile.open(vertexPath);
+        fShaderFile.open(fragmentPath);
+        tessCFile.open(tessControlPath);
+        tessEFile.open(tessEvaluationPath);
+        std::stringstream vShaderStream, fShaderStream,tessEStream,tessCStream;
+        // read file's buffer contents into streams
+        vShaderStream << vShaderFile.rdbuf();
+        fShaderStream << fShaderFile.rdbuf();
+        tessCStream << tessCFile.rdbuf();
+        tessEStream << tessEFile.rdbuf();
+        // close file handlers
+        vShaderFile.close();
+        fShaderFile.close();
+        tessCFile.close();
+        tessEFile.close();
+        // convert stream into string
+        vertexCode = vShaderStream.str();
+        fragmentCode = fShaderStream.str();
+        tessCCode = tessCStream.str();
+        tessECode = tessEStream.str();
+        // if geometry shader path is present, also load a geometry shader
+    }
+    catch (std::ifstream::failure& e)
+    {
+        std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << std::endl;
+    }
+    const char* vShaderCode = vertexCode.c_str();
+    const char* fShaderCode = fragmentCode.c_str();
+    const char* tessCShaderCode = tessCCode.c_str();
+    const char* tessEShaderCode = tessECode.c_str();
+    // 2. compile shaders
+    unsigned int vertex, fragment,tessC,tessE;
+    // vertex shader
+    vertex = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertex, 1, &vShaderCode, NULL);
+    glCompileShader(vertex);
+    checkCompileErrors(vertex, "VERTEX");
+    // fragment Shader
+    fragment = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragment, 1, &fShaderCode, NULL);
+    glCompileShader(fragment);
+    checkCompileErrors(fragment, "FRAGMENT");
+    // tess control
+    tessC = glCreateShader(GL_TESS_CONTROL_SHADER);
+    glShaderSource(tessC, 1, &tessCShaderCode, NULL);
+    glCompileShader(tessC);
+    checkCompileErrors(tessC, "TESS CONTROL");
+
+    tessE = glCreateShader(GL_TESS_EVALUATION_SHADER);
+    glShaderSource(tessE, &tessEShaderCode, NULL);
+    glCompileShader(tessE);
+    checkCompileErrors(tessE, "TESS EVALUATION");
+    
+    // shader Program
+    ID = glCreateProgram();
+    glAttachShader(ID, vertex);
+    glAttachShader(ID, tessC);
+    glAttachShader(ID, tessE);
+    glAttachShader(ID, fragment);
+    glLinkProgram(ID);
+    checkCompileErrors(ID, "PROGRAM");
+    // delete the shaders as they're linked into our program now and no longer necessery
+    glDeleteShader(vertex);
+    glDeleteShader(fragment);
+    glDeleteShader(tessC);
+    glDeleteShader(tessE);
+}
