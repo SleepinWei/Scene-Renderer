@@ -77,7 +77,7 @@ bool PT::Sphere::bounding_box(double time0, double time1, AABB& output_box)const
 	);
 	return true;
 }
-bool PT::hittable_list::bounding_box(double time0, double time1, AABB& output_box)const override{
+bool PT::hittable_list::bounding_box(double time0, double time1, AABB& output_box)const{
 	if (objects.empty()) return false;
 
 	AABB temp_box;

@@ -8,6 +8,7 @@
 #include"Object.h"
 #include"GUI.h"
 #include"SkyBox.h"
+#include"Terrain.h"
 
 const unsigned int  SCR_WIDTH = 1600;
 const unsigned int SCR_HEIGHT = 1200;
@@ -43,6 +44,7 @@ void render() {
 	//Shader testShader("./shader/test.vs", "./shader/test.fs");
 	Shader lightShader("./shader/light.vs", "./shader/light.fs");
 	Shader skyboxShader("./shader/skybox.vs", "./shader/skybox.fs");
+	Shader terrainShader("./shader/terrain.vs", "./shader/terrain.fs");
 	skyboxShader.setInt("skybox", 0);
 
 	unsigned int cubeVAO;
@@ -52,6 +54,7 @@ void render() {
 	Plane plane;
 	SkyBox skybox("./asset/skybox/");
 	PointLight light;
+	Terrain terrain("./asset/heightmap/iceland_heightmap.png");
 
 	while (!glfwWindowShouldClose(window)) {
 		gui.window(light.lightPos);
@@ -102,6 +105,12 @@ void render() {
 		sphere.render(pbrShader);
 		//sphere.render(testShader);
 
+		// terrain 
+		terrainShader.use();
+		terrainShader.setMat4("projection", projection);
+		terrainShader.setMat4("view", view);
+		terrain.render(terrainShader);
+
 		view = glm::mat4(glm::mat3(camera.GetViewMatrix()));
 		skyboxShader.use();
 		skyboxShader.setMat4("view", view);
@@ -141,8 +150,8 @@ void test() {
 #include"PathTracing.h"
 int main() {
 	// 
-	//render();
+	render();
 	//test();
-	PT::render();
+	//PT::render();
 	return 0; 
 }
