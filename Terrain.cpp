@@ -128,18 +128,25 @@ Terrain::~Terrain() {
 	glDeleteBuffers(1,&VBO);
 	glDeleteVertexArrays(1,&VAO);
 	glDeleteTextures(1, &texture);
+	if (material)
+		delete material;
 }
 
 void Terrain::render(Shader& shader) {
 	shader.use();
+	if (material) {
+		material->bindShader(shader);
+		material->bindTexture();
+	}
+	
 	shader.setFloat("yShift", yShift);
 	shader.setFloat("yScale", yScale);
-	glActiveTexture(GL_TEXTURE0);
+	glActiveTexture(GL_TEXTURE5);
 	glBindTexture(GL_TEXTURE_2D, texture);
-	shader.setInt("heightMap", 0);
-	glActiveTexture(GL_TEXTURE1);
+	shader.setInt("heightMap", 5);
+	glActiveTexture(GL_TEXTURE6);
 	glBindTexture(GL_TEXTURE_2D, normalTexture);
-	shader.setInt("normalMap", 1);
+	shader.setInt("normalMap", 6);
 	shader.setMat4("model", model);
 
 	glBindVertexArray(VAO);
@@ -150,7 +157,12 @@ void Terrain::render(Shader& shader) {
 	glEnable(GL_CULL_FACE);
 }
 
-Terrain::Terrain(const std::string& path,const std::string& normalPath):NUM_PATCH_PTS(4) {
-	initGeometry(path,normalPath);
+Terrain::Terrain(const std::string& heightPath,const std::string& normalPath,const std::string& materialPath):NUM_PATCH_PTS(4) {
+	initGeometry(heightPath,normalPath);
 	initVertexObject();
+	initMaterial(materialPath);
+}
+
+void Terrain::initMaterial(const std::string& path) {
+	material = new PBRMaterial(path);
 }

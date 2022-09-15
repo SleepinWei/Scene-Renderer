@@ -20,7 +20,7 @@ public:
 		ImGui_ImplGlfw_Shutdown();
 		ImGui::DestroyContext();
 	}
-	void window(glm::vec3& lightPos) {
+	void window(glm::vec3& lightPos,float& lightColor) {
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
@@ -30,6 +30,8 @@ public:
 		ImGui::SliderFloat("X", &lightPos.x, -8.0f, 8.0f);
 		ImGui::SliderFloat("Y", &lightPos.y, -8.0f, 8.0f);
 		ImGui::SliderFloat("Z", &lightPos.z, -8.0f, 8.0f);
+		ImGui::Text("Light Intensity");
+		ImGui::SliderFloat("Intensity", &lightColor, 0.5f, 20.0f);
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		ImGui::End();
 

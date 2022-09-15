@@ -44,7 +44,7 @@ void render() {
 	//Shader testShader("./shader/test.vs", "./shader/test.fs");
 	Shader lightShader("./shader/light.vs", "./shader/light.fs");
 	Shader skyboxShader("./shader/skybox.vs", "./shader/skybox.fs");
-	Shader terrainShader("./shader/terrain.vs", "./shader/terrain.fs", nullptr, "./shader/terrain.tesc", "./shader/terrain.tese");
+	Shader terrainShader("./shader/terrain.vs", "./shader/pbr.fs", nullptr, "./shader/terrain.tesc", "./shader/terrain.tese");
 	skyboxShader.use();
 	skyboxShader.setInt("skybox", 0);
 	
@@ -55,10 +55,12 @@ void render() {
 	Plane plane;
 	SkyBox skybox("./asset/skybox/");
 	PointLight light;
-	Terrain terrain("./asset/heightmap/iceland.png","./asset/heightmap/iceland_normal.png");
+	Terrain terrain("./asset/heightmap/iceland.png","./asset/heightmap/iceland_normal.png",
+		"./asset/pbr/sand/");
 
+	float lightColor = 1.0; 
 	while (!glfwWindowShouldClose(window)) {
-		gui.window(light.lightPos);
+		gui.window(light.lightPos,lightColor);
 
 		float currentFrame = static_cast<float>(glfwGetTime());
 		deltaTime = currentFrame - lastFrame;
@@ -70,7 +72,7 @@ void render() {
 		processInput(window);
 		glm::mat4 projection, view; 
 
-		glm::vec3 lightColor = glm::vec3(1.0, 1.0, 1.0);
+		//glm::vec3 lightColor = glm::vec3(1.0, 1.0, 1.0);
 
 		view = camera.GetViewMatrix();
 		projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
@@ -90,7 +92,7 @@ void render() {
 		lightShader.use();
 		lightShader.setMat4("view", view);
 		lightShader.setMat4("projection", projection);
-		lightShader.setVec3("lightColor", lightColor);
+		lightShader.setFloat("lightColor", lightColor);
 		light.render(lightShader);
 
 		//pbrShader.use();
@@ -105,8 +107,8 @@ void render() {
 		terrainShader.use();
 		terrainShader.setMat4("projection", projection);
 		terrainShader.setMat4("view", view);
-		terrainShader.setVec3("light.Pos", light.lightPos);
-		terrainShader.setVec3("light.Color", lightColor);
+		terrainShader.setVec3("light.Position", light.lightPos);
+		terrainShader.setFloat("light.Color", lightColor);
 		terrainShader.setVec3("viewPos", camera.Position);
 		terrain.render(terrainShader);
 

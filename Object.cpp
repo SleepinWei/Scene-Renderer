@@ -102,7 +102,7 @@ void Sphere::initGeometry() {
 	//std::cout << (index == overallTriangles * 3 ? "Yes" : "No") << '\n';
 }
 
-void Sphere::initMaterial(std::string path) {
+void Sphere::initMaterial(const std::string& path) {
 	material = new PBRMaterial(path);
 }
 

@@ -28,13 +28,12 @@ public:
 
 	int pointNum; 
 
-GLuint VAO, VBO,EBO;
-	GLuint texture;
+	GLuint VAO, VBO,EBO;
 
 	Sphere(std::string materialPath);
 	void initGeometry();
 	void initVertexObject();
-	void initMaterial(std::string path);
+	void initMaterial(const std::string& path);
 	void changeGeometry(int pointNum);
 	void render(Shader& shader);
 	void destroy();

@@ -9,8 +9,13 @@ uniform mat4 projection;
 uniform float yScale;
 uniform float yShift;
 
-out vec3 FragPos;
-out vec3 Normal;
+// out vec3 FragPos;
+// out vec3 Normal;
+out struct Object{
+    vec3 Position; 
+    vec3 Normal; 
+    vec2 TexCoords;
+} object;
 
 in vec2 TextureCoord[];
 
@@ -18,6 +23,7 @@ void main()
 {
     float u = gl_TessCoord.x;
     float v = gl_TessCoord.y;
+    object.TexCoords = vec2(u,v);
 
     vec2 t00 = TextureCoord[0];
     vec2 t01 = TextureCoord[1];
@@ -50,6 +56,7 @@ void main()
     gl_Position = projection * view * model * p;
     tNorm.x = tNorm.x / model[0][0];
     tNorm.z = tNorm.z / model[2][2];
-    Normal = normalize(tNorm);
-    FragPos = vec3(model * p);
+    object.Normal = normalize(tNorm);
+    object.Position = vec3(model * p);
+    // object.TexCoords = texCoord;
 }
