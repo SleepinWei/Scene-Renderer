@@ -44,9 +44,10 @@ void render() {
 	//Shader testShader("./shader/test.vs", "./shader/test.fs");
 	Shader lightShader("./shader/light.vs", "./shader/light.fs");
 	Shader skyboxShader("./shader/skybox.vs", "./shader/skybox.fs");
-	Shader terrainShader("./shader/terrain.vs", "./shader/terrain.fs");
+	Shader terrainShader("./shader/terrain.vs", "./shader/terrain.fs", nullptr, "./shader/terrain.tesc", "./shader/terrain.tese");
+	skyboxShader.use();
 	skyboxShader.setInt("skybox", 0);
-
+	
 	unsigned int cubeVAO;
 	cubeVAO = createCube();
 
@@ -54,7 +55,7 @@ void render() {
 	Plane plane;
 	SkyBox skybox("./asset/skybox/");
 	PointLight light;
-	Terrain terrain("./asset/heightmap/iceland_heightmap.png");
+	Terrain terrain("./asset/heightmap/iceland.png","./asset/heightmap/iceland_normal.png");
 
 	while (!glfwWindowShouldClose(window)) {
 		gui.window(light.lightPos);
@@ -72,18 +73,18 @@ void render() {
 		glm::vec3 lightColor = glm::vec3(1.0, 1.0, 1.0);
 
 		view = camera.GetViewMatrix();
-		projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+		projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
 		glm::vec3 planeColor = glm::vec3(0.3f, .5f, 0.2f);
 
-		//plane
-		simpleShader.use();
-		simpleShader.setMat4("view", view);
-		simpleShader.setMat4("projection", projection);
-		simpleShader.setVec3("light.Color",lightColor);
-		simpleShader.setVec3("light.Pos",light.lightPos);
-		simpleShader.setVec3("viewPos", camera.Position);
-		simpleShader.setVec3("objectColor", planeColor);
-		plane.render(simpleShader);
+		////plane
+		//simpleShader.use();
+		//simpleShader.setMat4("view", view);
+		//simpleShader.setMat4("projection", projection);
+		//simpleShader.setVec3("light.Color",lightColor);
+		//simpleShader.setVec3("light.Pos",light.lightPos);
+		//simpleShader.setVec3("viewPos", camera.Position);
+		//simpleShader.setVec3("objectColor", planeColor);
+		//plane.render(simpleShader);
 
 		// light cube 
 		lightShader.use();
@@ -92,23 +93,21 @@ void render() {
 		lightShader.setVec3("lightColor", lightColor);
 		light.render(lightShader);
 
-		pbrShader.use();
-		pbrShader.setMat4("projection", projection);
-		pbrShader.setMat4("view", view);
-		pbrShader.setVec3("light.Color", lightColor);
-		pbrShader.setVec3("light.Position", light.lightPos);
-		pbrShader.setVec3("camPos", camera.Position);
-		//testShader.use();
-		//testShader.setMat4("view", view);
-		//testShader.setMat4("projection", projection);
-
-		sphere.render(pbrShader);
-		//sphere.render(testShader);
+		//pbrShader.use();
+		//pbrShader.setMat4("projection", projection);
+		//pbrShader.setMat4("view", view);
+		//pbrShader.setVec3("light.Color", lightColor);
+		//pbrShader.setVec3("light.Position", light.lightPos);
+		//pbrShader.setVec3("camPos", camera.Position);
+		//sphere.render(pbrShader);
 
 		// terrain 
 		terrainShader.use();
 		terrainShader.setMat4("projection", projection);
 		terrainShader.setMat4("view", view);
+		terrainShader.setVec3("light.Pos", light.lightPos);
+		terrainShader.setVec3("light.Color", lightColor);
+		terrainShader.setVec3("viewPos", camera.Position);
 		terrain.render(terrainShader);
 
 		view = glm::mat4(glm::mat3(camera.GetViewMatrix()));

@@ -1,43 +1,109 @@
 #include<glad/glad.h>
 #include"Terrain.h"
 #include<stb/stb_image.h>
+#include<glm/gtc/matrix_transform.hpp>
+#include"src/Utils.h"
 
-void Terrain::initGeometry(const std::string& path) {
-	int width, height, nChannel; 
-	unsigned char* data = stbi_load(path.c_str(), &width, &height, &nChannel, 0);
-	vertices = std::vector<float>(3 * height * width, 0);
-	yScale = 0.5f / 256.0f;
-	yShift = -1.0f; 
-	xzScale = 10.0f;
-	int index = 0; 
-	// vertices
-	for (int i = 0; i < height; i++) {
-		for (int j = 0; j < width; j++) {
-			unsigned char* texel = data + (j + width * i) * nChannel;
-			unsigned char y = texel[0]; 
-			vertices[3 * index] = (- height / 2.0f + i) *1.0/ height *xzScale;
-			vertices[3 * index + 1] = (int)y * yScale - yShift;
-			vertices[3 * index + 2] = (-width / 2.0f + j) *1.0 / width *xzScale;
-			index++; 
-		}
+void Terrain::initGeometry(const std::string& path,const std::string& normalPath) {
+
+	int width, height, nrChannels; 
+	yScale = 1.0f;
+	yShift = 1.0f; 
+	//xzScale = 10.0f;
+	model = glm::mat4(1);
+	glGenTextures(1, &texture);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
+	// set the texture wrapping parameters
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	// set texture filtering parameters
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	unsigned char* data = stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
+	if (data)
+	{
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+		//std::cout << "Loaded heightmap of size " << height << " x " << width << std::endl;
+	}
+	else
+	{
+		std::cout << "Failed to load texture" << std::endl;
 	}
 	stbi_image_free(data);
-	// indices
-	indices = std::vector<unsigned int>((height - 1) * width * 2);
-	index = 0;
-	for (unsigned int i = 0; i < height - 1; i++)       // for each row a.k.a. each strip
+	//std::cerr << "Heightmap done" << '\n';
+
+	glGenTextures(1, &normalTexture);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, normalTexture); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
+	// set the texture wrapping parameters
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	// set texture filtering parameters
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	int nwidth, nheight, nnrChannels;
+	unsigned char *ndata = stbi_load(normalPath.c_str(), &nwidth, &nheight, &nnrChannels, 0);
+	if (data)
 	{
-		for (unsigned int j = 0; j < width; j++)      // for each column
+		GLenum format;
+		if (nnrChannels == 4) {
+			format = GL_RGBA;
+		}
+		else if (nnrChannels == 3) {
+			format = GL_RGB;
+		}
+		glTexImage2D(GL_TEXTURE_2D, 0, format, nwidth, nheight, 0, format, GL_UNSIGNED_BYTE, ndata);
+		glGenerateMipmap(GL_TEXTURE_2D);
+		//std::cout << "Loaded heightmap of size " << height << " x " << width << std::endl;
+	}
+	else
+	{
+		std::cout << "Failed to load texture" << std::endl;
+	}
+	stbi_image_free(ndata);
+	//std::cerr << "Texture Done" << '\n';
+		
+	// indices
+	float xzScale = 20.0f/std::max(width,height);
+	//float xzScale = 1.0f;
+	model[0][0] = xzScale;//x scale
+	model[2][2] = xzScale; //z scale
+
+	rez = 40;
+	vertices = std::vector<float>(20 * rez * rez, 0);
+	for (unsigned i = 0; i <= rez - 1; i++)
+	{
+		for (unsigned j = 0; j <= rez - 1; j++)
 		{
-			for (unsigned int k = 0; k < 2; k++)      // for each side of the strip
-			{
-				indices[index] = j + width * (i + k);
-				index++;
-			}
+			int index = 20 * (i * rez + j);
+			vertices[index] = - width / 2.0f + width * i / (float)rez; // v.x
+			vertices[index+1] = 0.0f; // v.y
+			vertices[index + 2] = (-height / 2.0f + height * j / (float)rez); // v.z
+			vertices[index + 3] = (i / (float)rez); // u
+			vertices[index + 4] =  (j / (float)rez); // v
+
+			vertices[index + 5] = (-width / 2.0f + width * (i + 1) / (float)rez); // v.x
+			vertices[index + 6] = (0.0f); // v.y
+			vertices[index + 7] = (-height / 2.0f + height * j / (float)rez); // v.z
+			vertices[index+8] = ((i + 1) / (float)rez); // u
+			vertices[index+9] = (j / (float)rez); // v
+
+			vertices[index+10] = (-width / 2.0f + width * i / (float)rez); // v.x
+			vertices[index+11] = (0.0f); // v.y
+			vertices[index+12] = (-height / 2.0f + height * (j + 1) / (float)rez); // v.z
+			vertices[index+13] = (i / (float)rez); // u
+			vertices[index+14] = ((j + 1) / (float)rez); // v
+
+			vertices[index+15] = (-width / 2.0f + width * (i + 1) / (float)rez); // v.x
+			vertices[index+16] = (0.0f); // v.y
+			vertices[index+17] = (-height / 2.0f + height * (j + 1) / (float)rez); // v.z
+			vertices[index+18] = ((i + 1) / (float)rez); // u
+			vertices[index+19] = ((j + 1) / (float)rez); // v
 		}
 	}
-	NUM_STRIPS = height - 1;
-	NUM_VERTS_PER_STRIP = width * 2;
+	//std::cerr << "Vertices Done" << '\n';
 }
 
 void Terrain::initVertexObject() {
@@ -49,42 +115,42 @@ void Terrain::initVertexObject() {
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), &vertices[0], GL_STATIC_DRAW);
 
 	//position attribute
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
 
-	glGenBuffers(1, &EBO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-		indices.size() * sizeof(unsigned int),
-		&indices[0], GL_STATIC_DRAW);
+	//std::cerr << "Done1" << '\n';
+	glPatchParameteri(GL_PATCH_VERTICES, NUM_PATCH_PTS);
 }
 
 Terrain::~Terrain() {
-
+	glDeleteBuffers(1,&VBO);
+	glDeleteVertexArrays(1,&VAO);
+	glDeleteTextures(1, &texture);
 }
 
 void Terrain::render(Shader& shader) {
 	shader.use();
-	shader.setFloat("shift", yShift);
-	shader.setFloat("scale", yScale);
+	shader.setFloat("yShift", yShift);
+	shader.setFloat("yScale", yScale);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	shader.setInt("heightMap", 0);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, normalTexture);
+	shader.setInt("normalMap", 1);
+	shader.setMat4("model", model);
 
 	glBindVertexArray(VAO);
-	//glDisable(GL_CULL_FACE);
-	glFrontFace(GL_CW);
-	for (unsigned int strip = 0; strip < NUM_STRIPS; ++strip)
-	{
-		glDrawElements(GL_TRIANGLE_STRIP,   // primitive type
-			NUM_VERTS_PER_STRIP, // number of indices to render
-			GL_UNSIGNED_INT,     // index data type
-			(void*)(sizeof(unsigned int)
-				* NUM_VERTS_PER_STRIP
-				* strip)); // offset to starting index
-	}
-	glFrontFace(GL_CCW);
-	//glEnable(GL_CULL_FACE);
+	glDisable(GL_CULL_FACE);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	glDrawArrays(GL_PATCHES, 0, NUM_PATCH_PTS * rez * rez);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glEnable(GL_CULL_FACE);
 }
 
-Terrain::Terrain(const std::string& path) {
-	initGeometry(path);
+Terrain::Terrain(const std::string& path,const std::string& normalPath):NUM_PATCH_PTS(4) {
+	initGeometry(path,normalPath);
 	initVertexObject();
 }

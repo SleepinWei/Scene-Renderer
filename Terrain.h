@@ -6,20 +6,21 @@
 
 class Terrain {
 public:
-	Terrain(const std::string& path);
+	Terrain(const std::string& path,const std::string& normalPath);
 	~Terrain();
-	void initGeometry(const std::string& path);
+	void initGeometry(const std::string& path,const std::string& normalPath);
 	void initVertexObject();
 	void render(Shader& shader);
 
 public:
 	std::vector<float> vertices;
-	std::vector<unsigned int> indices;
-	int NUM_STRIPS;
-	int NUM_VERTS_PER_STRIP;
 	float yScale; 
 	float yShift;
-	float xzScale;	
+	//float xzScale;	
+	glm::mat4 model;
 
-	GLuint VAO, VBO, EBO;
+	GLuint VAO, VBO;
+	GLuint texture,normalTexture;
+	unsigned int rez; // number of patches
+	const int NUM_PATCH_PTS ; 
 };

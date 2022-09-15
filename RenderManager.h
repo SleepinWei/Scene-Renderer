@@ -13,5 +13,5 @@
 //		PBR
 //	};
 //
-//	static void render();
+//	void render();
 //};
