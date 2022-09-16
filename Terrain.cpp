@@ -79,7 +79,7 @@ Terrain::~Terrain() {
 	glDeleteVertexArrays(1,&VAO);
 }
 void Terrain::registerShader(ShaderType st){
-	renderManager.registerShader(st);
+	shader = renderManager.registerShader(st);
 	for (auto material:materials){
 		material->registerShader(st);
 	}
@@ -108,7 +108,7 @@ void Terrain::render() {
 Terrain::Terrain(TEX_TYPE tex1,TEX_TYPE tex2, ShaderType st):NUM_PATCH_PTS(4) {
 	initGeometry();
 	initVertexObject();
-	materials.push_back(std::static_pointer_cast<Material>(resourceManager.registerResource(tex1)));
-	materials.push_back(std::static_pointer_cast<Material>(resourceManager.registerResource(tex2)));
+	materials.push_back(resourceManager.registerResource(tex1));
+	materials.push_back(resourceManager.registerResource(tex2));
 	registerShader(st);
 }

@@ -21,10 +21,10 @@ class Material;
 class ResourceManager {
 public:
 	// textures are also renderables
-	std::vector <std::shared_ptr<Renderable>> resource;
+	std::vector <std::shared_ptr<Material>> resource;
 	// std::vector<int> resourceCnt; 
 
-	std::shared_ptr<Renderable> registerResource(TEX_TYPE type);
+	std::shared_ptr<Material> registerResource(TEX_TYPE type);
 	static std::shared_ptr<Material> generateResource(TEX_TYPE type);
 
 public:

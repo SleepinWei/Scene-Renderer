@@ -66,7 +66,7 @@ void render() {
 	std::shared_ptr<Terrain> terrain= std::make_shared<Terrain>(TEX_TYPE::SAND,
 		TEX_TYPE::HEIGHT,ShaderType::TERRAIN);
 	std::vector<std::shared_ptr<Renderable>> objects; 
-	objects.push_back(std::static_pointer_cast<Renderable>(terrain));
+	objects.push_back(terrain);
 
 	float lightColor = 1.0; 
 	while (!glfwWindowShouldClose(window)) {
@@ -124,7 +124,7 @@ void render() {
 		terrain.render(terrainShader);*/
 		renderManager.updateShader(camera);
 
-		renderManager.render(objects);
+		renderManager.render(objects,light.lightPos,glm::vec3(lightColor));
 
 		view = glm::mat4(glm::mat3(camera.GetViewMatrix()));
 		skyboxShader.use();

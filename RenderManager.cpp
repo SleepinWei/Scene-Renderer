@@ -1,7 +1,7 @@
 #include"RenderManager.h"
 
 RenderManager::RenderManager() {
-	m_shader = std::vector<std::shared_ptr<Shader>>(ShaderTypeNum);
+	m_shader = std::vector<std::shared_ptr<Shader>>(ShaderTypeNum,nullptr);
 	// m_shaderCnt = std::vector<int>(ShaderTypeNum);
 }
 RenderManager::~RenderManager() {
@@ -26,9 +26,13 @@ void RenderManager::updateShader(const Camera& camera) {
 	}
 }
 
-void RenderManager::render(std::vector<std::shared_ptr<Renderable>>& objects) {
+void RenderManager::render(std::vector<std::shared_ptr<Renderable>>& objects,glm::vec3 lightPos,glm::vec3 lightColor) {
 	for (auto object : objects) {
+		//std::cerr << object->shader << '\n';
 		object->shader->use();
+		object->shader->setVec3("light.Color", lightColor);
+		object->shader->setVec3("light.Position", lightPos);
+		object->shader->setVec3("camPos", camera.Position);
 		object->render();
 	}
 }
@@ -81,5 +85,5 @@ std::shared_ptr<Shader> RenderManager::generateShader(ShaderType type) {
 			std::cerr << "No such shader type" << '\n';
 			break;
 	}
-	return std::make_shared<Shader>(nullptr, nullptr, nullptr, nullptr, nullptr);
+	//return std::make_shared<Shader>(nullptr, nullptr, nullptr, nullptr, nullptr);
 }

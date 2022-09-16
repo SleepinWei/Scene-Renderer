@@ -55,7 +55,7 @@ PBRMaterial::~PBRMaterial() {
 	destroy();
 }
 
-std::shared_ptr<Renderable> ResourceManager::registerResource(TEX_TYPE type) {
+std::shared_ptr<Material> ResourceManager::registerResource(TEX_TYPE type) {
 	int index = static_cast<int>(type);
 	if (!resource[index]) {
 		resource[index] = ResourceManager::generateResource(type);
@@ -89,7 +89,7 @@ std::shared_ptr<Material> ResourceManager::generateResource(TEX_TYPE type) {
 }
 
 ResourceManager::ResourceManager() {
-	resource = std::vector<std::shared_ptr<Renderable>>(maxlen);
+	resource = std::vector<std::shared_ptr<Material>>(maxlen,nullptr);
 }
 ResourceManager::~ResourceManager() {
 }
