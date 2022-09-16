@@ -4,13 +4,11 @@ const float PI = 3.1415926f;
 #include<glm/gtc/matrix_transform.hpp>
 #include<iostream>
 
-Sphere::Sphere(std::string materialPath) {
+Sphere::Sphere(enum class TEX_TYPE type) {
 	pointNum = 64; 
 	initGeometry();
 	initVertexObject();
-	if (materialPath.compare("") != 0) {
-		initMaterial(materialPath);
-	}
+	material = resourceManager.registerResource(type);
 	model = glm::mat4(1); 
 	position = glm::vec3(0,3,0);
 	scale = glm::vec3(0.5, 0.5, 0.5);
@@ -102,8 +100,8 @@ void Sphere::initGeometry() {
 	//std::cout << (index == overallTriangles * 3 ? "Yes" : "No") << '\n';
 }
 
-void Sphere::initMaterial(const std::string& path) {
-	material = new PBRMaterial(path);
+void Sphere::addMaterial(TEX_TYPE mType) {
+	material = resourceManager.registerResource(mType);
 }
 
 void Sphere::initVertexObject() {
@@ -132,28 +130,34 @@ void Sphere::initVertexObject() {
 	glBindVertexArray(0);
 }
 
-void Sphere::render(Shader& shader) {
-	shader.use(); 
-	material->bindShader(shader);
-	material->bindTexture();
+void Sphere::render() {
+	std::shared_ptr<Material> M_Material = std::static_pointer_cast<Material>(material);
+	M_Material->setBeginIndex(0);
+	M_Material->render();
 	
 	model = glm::mat4(1);
 	model = glm::translate(model, position);
 	model = glm::scale(model, scale);
-	shader.setMat4("model", model);
+
+	shader->setMat4("model", model);
+
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT, 0);
 	//glDrawArrays(GL_TRIANGLES, 0,m_vertices.size());
 	glBindVertexArray(0);
 }
 
+void Sphere::registerShader(ShaderType type){
+	registerShader(type);
+	if (material) {
+		material->registerShader(type);
+	}
+}
+
 void Sphere::destroy() {
 	glDeleteVertexArrays(1, &VAO);
 	glDeleteBuffers(1, &VBO);
 	glDeleteBuffers(1, &EBO);
-	if (material != nullptr) {
-		delete material;
-	}
 }
 
 Sphere::~Sphere() {

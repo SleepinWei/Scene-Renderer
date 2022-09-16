@@ -4,26 +4,28 @@
 #include<glfw/glfw3.h>
 #include<shader/Shader.h>
 #include"Material.h"
+#include"RenderManager.h"
 
-class Terrain {
+extern class ResourceManager resourceManager;
+
+class Terrain :public Renderable {
 public:
-	Terrain(const std::string& path,const std::string& normalPath,const std::string& materialPath);
+	Terrain(TEX_TYPE tex1,TEX_TYPE tex2,ShaderType st);
 	~Terrain();
-	void initGeometry(const std::string& path,const std::string& normalPath);
+	void initGeometry();
 	void initVertexObject();
-	void initMaterial(const std::string& path);
-	void render(Shader& shader);
+	virtual void render() override;
+	virtual void registerShader(ShaderType st) override;
 
 public:
 	std::vector<float> vertices;
-	float yScale; 
+	float yScale;
 	float yShift;
 	//float xzScale;	
 	glm::mat4 model;
-	PBRMaterial* material;
+	std::vector<std::shared_ptr<Material>> materials;
 
 	GLuint VAO, VBO;
-	GLuint texture,normalTexture;
 	unsigned int rez; // number of patches
-	const int NUM_PATCH_PTS ; 
+	const int NUM_PATCH_PTS;
 };

@@ -5,16 +5,62 @@
 #include<string>
 #include<vector>
 #include<shader/Shader.h>
+#include<memory>
+#include<map>
+#include"RenderManager.h"
 
-class PBRMaterial {
+enum class TEX_TYPE {
+	RUST=0,
+	GRASS,
+	ROCK,
+	METAL,
+	SAND,
+	HEIGHT
+};
+class Material;
+class ResourceManager {
 public:
-	PBRMaterial(std::string path);
-	~PBRMaterial();
+	// textures are also renderables
+	std::vector <std::shared_ptr<Renderable>> resource;
+	// std::vector<int> resourceCnt; 
 
+	std::shared_ptr<Renderable> registerResource(TEX_TYPE type);
+	static std::shared_ptr<Material> generateResource(TEX_TYPE type);
+
+public:
+	const int maxlen = 10; 
+	ResourceManager();
+	~ResourceManager();
+};
+
+class Material :public Renderable {
+public:
+	int beginIndex;
+	int materialCnt;
+	void setBeginIndex(int index);
+	int getMaterialCount()const;
+};
+
+class PBRMaterial:public Material{
+private:
+	void initTexture(const std::string& path);
+public:
+	PBRMaterial(const std::string& path);
+	~PBRMaterial();
 	GLuint albedoMap, normalMap, metallicMap, roughnessMap, aoMap;
 
-	void bindTexture();
-	void bindShader(Shader& shader);
+	//void bindShader(Shader& shader);
+	virtual void render() override;
 	void destroy();
-	void initTexture(std::string path);
+};
+
+class HeightMaterial :public Material {
+public:
+	HeightMaterial(const std::string& path);
+	~HeightMaterial();
+	void initTexture(const std::string& path);
+	virtual void render()override; 
+	virtual void registerShader(ShaderType st)override;
+public:
+	GLuint texture, normalTexture;
 };

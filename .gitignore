@@ -6,3 +6,4 @@ lib/
 .vs/
 .vscode/
 x64/
+.cache/

@@ -5,15 +5,9 @@
 #include<glfw/glfw3.h>
 #include<shader/Shader.h>
 #include"Material.h"
+#include"global.h"
 
-
-class Object {
-public:
-	//functions
-	// variables
-};
-
-class Sphere {
+class Sphere :public Renderable{
 public:
 	std::vector<float> m_vertices; 
 	std::vector<float> m_normals; 
@@ -24,18 +18,20 @@ public:
 	glm::vec3 position;
 	glm::vec3 scale; 
 
-	PBRMaterial* material; 
+	std::shared_ptr<Renderable> material; 
 
 	int pointNum; 
 
 	GLuint VAO, VBO,EBO;
 
-	Sphere(std::string materialPath);
+public:
+	Sphere(enum class TEX_TYPE type);
 	void initGeometry();
 	void initVertexObject();
-	void initMaterial(const std::string& path);
+	void addMaterial(enum TEX_TYPE mType);
 	void changeGeometry(int pointNum);
-	void render(Shader& shader);
+	virtual void render() override;
+	virtual void registerShader(ShaderType type) override;
 	void destroy();
 	~Sphere();
 };

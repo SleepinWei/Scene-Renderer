@@ -4,67 +4,17 @@
 #include<glm/gtc/matrix_transform.hpp>
 #include"src/Utils.h"
 
-void Terrain::initGeometry(const std::string& path,const std::string& normalPath) {
-
+void Terrain::initGeometry( ){
+	const std::string& path = "./asset/heightmap/iceland/";
 	int width, height, nrChannels; 
 	yScale = 1.0f;
 	yShift = 1.0f; 
 	//xzScale = 10.0f;
 	model = glm::mat4(1);
-	glGenTextures(1, &texture);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, texture); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
 	// set the texture wrapping parameters
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	// set texture filtering parameters
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	unsigned char* data = stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
-	if (data)
-	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-		glGenerateMipmap(GL_TEXTURE_2D);
-		//std::cout << "Loaded heightmap of size " << height << " x " << width << std::endl;
-	}
-	else
-	{
-		std::cout << "Failed to load texture" << std::endl;
-	}
+	unsigned char* data = stbi_load((path+"heightmap.png").c_str(), &width, &height, &nrChannels, 0);
 	stbi_image_free(data);
-	//std::cerr << "Heightmap done" << '\n';
 
-	glGenTextures(1, &normalTexture);
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, normalTexture); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
-	// set the texture wrapping parameters
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	// set texture filtering parameters
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	int nwidth, nheight, nnrChannels;
-	unsigned char *ndata = stbi_load(normalPath.c_str(), &nwidth, &nheight, &nnrChannels, 0);
-	if (data)
-	{
-		GLenum format;
-		if (nnrChannels == 4) {
-			format = GL_RGBA;
-		}
-		else if (nnrChannels == 3) {
-			format = GL_RGB;
-		}
-		glTexImage2D(GL_TEXTURE_2D, 0, format, nwidth, nheight, 0, format, GL_UNSIGNED_BYTE, ndata);
-		glGenerateMipmap(GL_TEXTURE_2D);
-		//std::cout << "Loaded heightmap of size " << height << " x " << width << std::endl;
-	}
-	else
-	{
-		std::cout << "Failed to load texture" << std::endl;
-	}
-	stbi_image_free(ndata);
-	//std::cerr << "Texture Done" << '\n';
-		
 	// indices
 	float xzScale = 20.0f/std::max(width,height);
 	//float xzScale = 1.0f;
@@ -127,27 +77,25 @@ void Terrain::initVertexObject() {
 Terrain::~Terrain() {
 	glDeleteBuffers(1,&VBO);
 	glDeleteVertexArrays(1,&VAO);
-	glDeleteTextures(1, &texture);
-	if (material)
-		delete material;
+}
+void Terrain::registerShader(ShaderType st){
+	renderManager.registerShader(st);
+	for (auto material:materials){
+		material->registerShader(st);
+	}
 }
 
-void Terrain::render(Shader& shader) {
-	shader.use();
-	if (material) {
-		material->bindShader(shader);
-		material->bindTexture();
+void Terrain::render() {
+	shader->setFloat("yShift", yShift);
+	shader->setFloat("yScale", yScale);
+	int beginIndex = 0;
+	for (auto material : materials) {
+		material->setBeginIndex(beginIndex);
+		material->render();
+		beginIndex += material->getMaterialCount();
 	}
-	
-	shader.setFloat("yShift", yShift);
-	shader.setFloat("yScale", yScale);
-	glActiveTexture(GL_TEXTURE5);
-	glBindTexture(GL_TEXTURE_2D, texture);
-	shader.setInt("heightMap", 5);
-	glActiveTexture(GL_TEXTURE6);
-	glBindTexture(GL_TEXTURE_2D, normalTexture);
-	shader.setInt("normalMap", 6);
-	shader.setMat4("model", model);
+
+	shader->setMat4("model", model);
 
 	glBindVertexArray(VAO);
 	glDisable(GL_CULL_FACE);
@@ -157,12 +105,10 @@ void Terrain::render(Shader& shader) {
 	glEnable(GL_CULL_FACE);
 }
 
-Terrain::Terrain(const std::string& heightPath,const std::string& normalPath,const std::string& materialPath):NUM_PATCH_PTS(4) {
-	initGeometry(heightPath,normalPath);
+Terrain::Terrain(TEX_TYPE tex1,TEX_TYPE tex2, ShaderType st):NUM_PATCH_PTS(4) {
+	initGeometry();
 	initVertexObject();
-	initMaterial(materialPath);
-}
-
-void Terrain::initMaterial(const std::string& path) {
-	material = new PBRMaterial(path);
+	materials.push_back(std::static_pointer_cast<Material>(resourceManager.registerResource(tex1)));
+	materials.push_back(std::static_pointer_cast<Material>(resourceManager.registerResource(tex2)));
+	registerShader(st);
 }

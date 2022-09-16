@@ -9,9 +9,10 @@
 #include"GUI.h"
 #include"SkyBox.h"
 #include"Terrain.h"
+#include"Material.h"
 
 const unsigned int  SCR_WIDTH = 1600;
-const unsigned int SCR_HEIGHT = 1200;
+const unsigned int SCR_HEIGHT = 900;
 
 Camera camera(glm::vec3(.0f, .0f, 0.f));
 float lastX;
@@ -21,6 +22,10 @@ bool firstMouse;
 // time 
 float deltaTime;
 float lastFrame;
+
+// manager
+RenderManager renderManager;
+ResourceManager resourceManager;
 
 //cubes 
 
@@ -39,24 +44,29 @@ void render() {
 	glEnable(GL_PROGRAM_POINT_SIZE);
 	Gui gui(window);
 
-	Shader simpleShader("./shader/simple.vs", "./shader/simple.fs");
-	Shader pbrShader("./shader/pbr.vs", "./shader/pbr.fs");
-	//Shader testShader("./shader/test.vs", "./shader/test.fs");
+	//Shader simpleShader("./shader/simple.vs", "./shader/simple.fs");
+	//Shader pbrShader("./shader/pbr.vs", "./shader/pbr.fs");
+	Shader testShader("./shader/test.vs", "./shader/test.fs");
 	Shader lightShader("./shader/light.vs", "./shader/light.fs");
 	Shader skyboxShader("./shader/skybox.vs", "./shader/skybox.fs");
-	Shader terrainShader("./shader/terrain.vs", "./shader/pbr.fs", nullptr, "./shader/terrain.tesc", "./shader/terrain.tese");
+	//Shader terrainShader("./shader/terrain.vs", "./shader/pbr.fs", nullptr, "./shader/terrain.tesc", "./shader/terrain.tese");
 	skyboxShader.use();
 	skyboxShader.setInt("skybox", 0);
 	
 	unsigned int cubeVAO;
 	cubeVAO = createCube();
 
-	Sphere sphere("./asset/pbr/rust/");
+	Sphere sphere(TEX_TYPE::METAL);
 	Plane plane;
 	SkyBox skybox("./asset/skybox/");
 	PointLight light;
-	Terrain terrain("./asset/heightmap/iceland.png","./asset/heightmap/iceland_normal.png",
-		"./asset/pbr/sand/");
+	//Terrain terrain("./asset/heightmap/iceland.png","./asset/heightmap/iceland_normal.png",
+		//"./asset/pbr/sand/");
+
+	std::shared_ptr<Terrain> terrain= std::make_shared<Terrain>(TEX_TYPE::SAND,
+		TEX_TYPE::HEIGHT,ShaderType::TERRAIN);
+	std::vector<std::shared_ptr<Renderable>> objects; 
+	objects.push_back(std::static_pointer_cast<Renderable>(terrain));
 
 	float lightColor = 1.0; 
 	while (!glfwWindowShouldClose(window)) {
@@ -75,7 +85,8 @@ void render() {
 		//glm::vec3 lightColor = glm::vec3(1.0, 1.0, 1.0);
 
 		view = camera.GetViewMatrix();
-		projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
+		//projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
+		projection = camera.GetPerspective();
 		glm::vec3 planeColor = glm::vec3(0.3f, .5f, 0.2f);
 
 		////plane
@@ -104,13 +115,16 @@ void render() {
 		//sphere.render(pbrShader);
 
 		// terrain 
-		terrainShader.use();
+		/*terrainShader.use();
 		terrainShader.setMat4("projection", projection);
 		terrainShader.setMat4("view", view);
 		terrainShader.setVec3("light.Position", light.lightPos);
 		terrainShader.setFloat("light.Color", lightColor);
 		terrainShader.setVec3("viewPos", camera.Position);
-		terrain.render(terrainShader);
+		terrain.render(terrainShader);*/
+		renderManager.updateShader(camera);
+
+		renderManager.render(objects);
 
 		view = glm::mat4(glm::mat3(camera.GetViewMatrix()));
 		skyboxShader.use();

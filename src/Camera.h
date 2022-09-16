@@ -42,16 +42,25 @@ public:
     float MouseSensitivity;
     float Zoom;
 
+    // view options
+    float aspect_ratio;
+    float zNear;
+    float zFar; 
+
     // constructor with vectors
     Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), 
         glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), 
-        float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM)
+        float yaw = YAW, float pitch = PITCH,
+        float aspect = 16.0/9.0) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM)
     {
         Position = position;
         WorldUp = up;
         Yaw = yaw;
         Pitch = pitch;
         updateCameraVectors();
+        aspect_ratio = aspect; 
+        zNear = 0.1f;
+        zFar = 1000.0f;
     }
     // constructor with scalar values
     Camera(float posX, 
@@ -61,19 +70,27 @@ public:
         float upY, 
         float upZ, 
         float yaw, 
-        float pitch) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM)
+        float pitch,
+        float aspect = 16.0/9.0) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM)
     {
         Position = glm::vec3(posX, posY, posZ);
         WorldUp = glm::vec3(upX, upY, upZ);
         Yaw = yaw;
         Pitch = pitch;
         updateCameraVectors();
+        aspect_ratio = aspect; 
+        zNear = 0.1f;
+        zFar = 1000.0f;
     }
 
     // returns the view matrix calculated using Euler Angles and the LookAt Matrix
-    glm::mat4 GetViewMatrix()
+    glm::mat4 GetViewMatrix ()const
     {
         return glm::lookAt(Position, Position + Front, Up);
+    }
+
+    glm::mat4 GetPerspective()const{
+        return glm::perspective(glm::radians(Zoom), aspect_ratio, 0.1f, 1000.0f);
     }
 
     // processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
