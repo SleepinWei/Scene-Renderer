@@ -93,16 +93,19 @@ void Terrain::render() {
 		material->setBeginIndex(beginIndex);
 		material->render();
 		beginIndex += material->getMaterialCount();
+		//std::cerr << "Done" << '\n';
 	}
 
 	shader->setMat4("model", model);
 
+	//std::cout << VAO << '\n';
 	glBindVertexArray(VAO);
 	glDisable(GL_CULL_FACE);
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glDrawArrays(GL_PATCHES, 0, NUM_PATCH_PTS * rez * rez);
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glEnable(GL_CULL_FACE);
+	//std::cerr << "Terrain Done" << "\n";
 }
 
 Terrain::Terrain(TEX_TYPE tex1,TEX_TYPE tex2, ShaderType st):NUM_PATCH_PTS(4) {

@@ -16,6 +16,7 @@ void RenderManager::updateShader(const Camera& camera) {
 	for (int i = 0; i < m_shader.size(); i++) {
 		if (m_shader[i] == nullptr)
 			continue;
+		m_shader[i]->use();
 		m_shader[i]->setMat4("projection", projection);
 		if (i == static_cast<int>(ShaderType::SKYBOX)) {
 			m_shader[i]->setMat4("view", skyboxView);
@@ -26,9 +27,9 @@ void RenderManager::updateShader(const Camera& camera) {
 	}
 }
 
-void RenderManager::render(std::vector<std::shared_ptr<Renderable>>& objects,glm::vec3 lightPos,glm::vec3 lightColor) {
+void RenderManager::render(std::vector<std::shared_ptr<Renderable>>& objects,const glm::vec3& lightPos,const glm::vec3& lightColor) {
 	for (auto object : objects) {
-		//std::cerr << object->shader << '\n';
+		object->registerShader(ShaderType::PBR);
 		object->shader->use();
 		object->shader->setVec3("light.Color", lightColor);
 		object->shader->setVec3("light.Position", lightPos);

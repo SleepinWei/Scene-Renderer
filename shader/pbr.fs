@@ -4,7 +4,7 @@ out vec4 FragColor;
 
 struct Light{
     // vec3 Color;
-    float Color;
+    vec3 Color;
     vec3 Position; 
 };
 uniform Light light; 
@@ -95,7 +95,6 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 
 void main(){
     // change material -> albedo
-    vec3 lightColor = vec3(light.Color);
     vec3 albedo = pow(texture(material.albedo,object.TexCoords).rgb,vec3(2.2));
     // vec3 albedo = vec3(object.TexCoords,1.0);
     float metallic = texture(material.metallic,object.TexCoords).r;
@@ -115,7 +114,7 @@ void main(){
     vec3 L = normalize(light.Position - object.Position);
     vec3 H = normalize(V+L);
     float attenuation = calculateAtten(object.Position,light.Position);
-    vec3 radiance = lightColor * attenuation; 
+    vec3 radiance = light.Color * attenuation; 
 
     // cook-tolerance brdf
     float NDF = DistributionGGX(N,H,roughness);

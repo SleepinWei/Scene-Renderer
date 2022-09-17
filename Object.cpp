@@ -131,7 +131,7 @@ void Sphere::initVertexObject() {
 }
 
 void Sphere::render() {
-	std::shared_ptr<Material> M_Material = std::static_pointer_cast<Material>(material);
+	std::shared_ptr<Material> M_Material = material;
 	M_Material->setBeginIndex(0);
 	M_Material->render();
 	
@@ -148,7 +148,7 @@ void Sphere::render() {
 }
 
 void Sphere::registerShader(ShaderType type){
-	registerShader(type);
+	shader = renderManager.registerShader(type);
 	if (material) {
 		material->registerShader(type);
 	}

@@ -24,7 +24,7 @@ int Material::getMaterialCount()const{
 }
 
 void PBRMaterial::render() {
-
+	//std::cerr << "PBR" << '\n';
 	glActiveTexture(GL_TEXTURE0 + beginIndex);
 	glBindTexture(GL_TEXTURE_2D, albedoMap);
 	glActiveTexture(GL_TEXTURE1 + beginIndex);
@@ -41,6 +41,9 @@ void PBRMaterial::render() {
 	shader->setInt("material.metallic", 2 + beginIndex);
 	shader->setInt("material.roughness", 3 + beginIndex);
 	shader->setInt("material.ao", 4 + beginIndex);
+}
+void PBRMaterial::registerShader(ShaderType st) {
+	shader = renderManager.registerShader(st);
 }
 
 void PBRMaterial::destroy() {
@@ -67,22 +70,22 @@ std::shared_ptr<Material> ResourceManager::generateResource(TEX_TYPE type) {
 	switch (type)
 	{
 	case TEX_TYPE::RUST:
-		return std::make_shared<Material>(PBRMaterial("./asset/pbr/rust/"));
+		return std::make_shared<PBRMaterial>("./asset/pbr/rust/");
 		break;
 	case TEX_TYPE::GRASS:
-		return std::make_shared<Material>(PBRMaterial("./asset/pbr/grass/"));
+		return std::make_shared<PBRMaterial>("./asset/pbr/grass/");
 		break;
 	case TEX_TYPE::ROCK:
-		return std::make_shared<Material>(PBRMaterial("./asset/pbr/riverrock/"));
+		return std::make_shared<PBRMaterial>("./asset/pbr/riverrock/");
 		break;
 	case TEX_TYPE::METAL:
-		return std::make_shared<Material>(PBRMaterial("./asset/pbr/metal/"));
+		return std::make_shared<PBRMaterial>("./asset/pbr/metal/");
 		break;
 	case TEX_TYPE::SAND:
-		return std::make_shared<Material>(PBRMaterial("./asset/pbr/sand/"));
+		return std::make_shared<PBRMaterial>("./asset/pbr/sand/");
 		break;
 	case TEX_TYPE::HEIGHT:
-		return std::make_shared<Material>(HeightMaterial("./asset/heightmap/iceland/"));
+		return std::make_shared<HeightMaterial>("./asset/heightmap/iceland/");
 	default:
 		break;
 	}
@@ -153,9 +156,10 @@ void HeightMaterial::initTexture(const std::string& path) {
 }
 
 void HeightMaterial::registerShader(ShaderType st) {
-	renderManager.registerShader(st);
+	shader = renderManager.registerShader(st);
 }
 void HeightMaterial::render() {
+	//std::cerr << "heightmap" << '\n';
 	glActiveTexture(GL_TEXTURE0 + beginIndex);
 	glBindTexture(GL_TEXTURE_2D, texture);
 	glActiveTexture(GL_TEXTURE1 + beginIndex);
@@ -163,6 +167,7 @@ void HeightMaterial::render() {
 
 	shader->setInt("heightMap", 0 + beginIndex);
 	shader->setInt("normalMap", 1 + beginIndex);
+	//std::cerr << "Done Height" << '\n';
 }
 HeightMaterial::HeightMaterial(const std::string& path) {
 	initTexture(path);

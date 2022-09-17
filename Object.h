@@ -18,7 +18,7 @@ public:
 	glm::vec3 position;
 	glm::vec3 scale; 
 
-	std::shared_ptr<Renderable> material; 
+	std::shared_ptr<Material> material; 
 
 	int pointNum; 
 

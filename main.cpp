@@ -46,7 +46,6 @@ void render() {
 
 	//Shader simpleShader("./shader/simple.vs", "./shader/simple.fs");
 	//Shader pbrShader("./shader/pbr.vs", "./shader/pbr.fs");
-	Shader testShader("./shader/test.vs", "./shader/test.fs");
 	Shader lightShader("./shader/light.vs", "./shader/light.fs");
 	Shader skyboxShader("./shader/skybox.vs", "./shader/skybox.fs");
 	//Shader terrainShader("./shader/terrain.vs", "./shader/pbr.fs", nullptr, "./shader/terrain.tesc", "./shader/terrain.tese");
@@ -56,17 +55,18 @@ void render() {
 	unsigned int cubeVAO;
 	cubeVAO = createCube();
 
-	Sphere sphere(TEX_TYPE::METAL);
+	//Sphere sphere(TEX_TYPE::METAL);
 	Plane plane;
 	SkyBox skybox("./asset/skybox/");
 	PointLight light;
 	//Terrain terrain("./asset/heightmap/iceland.png","./asset/heightmap/iceland_normal.png",
 		//"./asset/pbr/sand/");
 
-	std::shared_ptr<Terrain> terrain= std::make_shared<Terrain>(TEX_TYPE::SAND,
-		TEX_TYPE::HEIGHT,ShaderType::TERRAIN);
+	//std::shared_ptr<Terrain> terrain= std::make_shared<Terrain>(TEX_TYPE::SAND,
+		//TEX_TYPE::HEIGHT,ShaderType::TERRAIN);
+	std::shared_ptr<Sphere> sphere = std::make_shared<Sphere>(TEX_TYPE::METAL);
 	std::vector<std::shared_ptr<Renderable>> objects; 
-	objects.push_back(terrain);
+	objects.push_back(sphere);
 
 	float lightColor = 1.0; 
 	while (!glfwWindowShouldClose(window)) {
@@ -89,11 +89,11 @@ void render() {
 		projection = camera.GetPerspective();
 		glm::vec3 planeColor = glm::vec3(0.3f, .5f, 0.2f);
 
-		////plane
+		//plane
 		//simpleShader.use();
 		//simpleShader.setMat4("view", view);
 		//simpleShader.setMat4("projection", projection);
-		//simpleShader.setVec3("light.Color",lightColor);
+		//simpleShader.setVec3("light.Color",glm::vec3(lightColor));
 		//simpleShader.setVec3("light.Pos",light.lightPos);
 		//simpleShader.setVec3("viewPos", camera.Position);
 		//simpleShader.setVec3("objectColor", planeColor);

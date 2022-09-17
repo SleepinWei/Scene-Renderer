@@ -51,6 +51,7 @@ public:
 
 	//void bindShader(Shader& shader);
 	virtual void render() override;
+	virtual void registerShader(ShaderType st) override;
 	void destroy();
 };
 

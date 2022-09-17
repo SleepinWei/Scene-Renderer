@@ -25,7 +25,7 @@ public:
 	void updateShader(const Camera& camera);
 //test
 	void render(std::vector<std::shared_ptr<Renderable>>& objects,
-		glm::vec3,glm::vec3);
+		const glm::vec3 & ,const glm::vec3&);
 	std::shared_ptr<Shader> registerShader(ShaderType type);
 
 	std::shared_ptr<Shader> getShader(ShaderType type); 
