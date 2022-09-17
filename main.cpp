@@ -64,9 +64,10 @@ void render() {
 
 	//std::shared_ptr<Terrain> terrain= std::make_shared<Terrain>(TEX_TYPE::SAND,
 		//TEX_TYPE::HEIGHT,ShaderType::TERRAIN);
-	std::shared_ptr<Sphere> sphere = std::make_shared<Sphere>(TEX_TYPE::METAL);
+	//std::shared_ptr<Sphere> sphere = std::make_shared<Sphere>(TEX_TYPE::METAL);
+	std::shared_ptr<Terrain> terrain = std::make_shared<Terrain>(TEX_TYPE::SAND, TEX_TYPE::HEIGHT, ShaderType::TERRAIN);
 	std::vector<std::shared_ptr<Renderable>> objects; 
-	objects.push_back(sphere);
+	objects.push_back(terrain);
 
 	float lightColor = 1.0; 
 	while (!glfwWindowShouldClose(window)) {

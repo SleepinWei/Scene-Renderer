@@ -3,27 +3,34 @@
 #include <memory>
 #include<stb/stb_image.h>
 
-void PBRMaterial::initTexture(const std::string& path) {
+
+PBRMaterialBuffer::PBRMaterialBuffer(const std::string& path) {
 	albedoMap = loadTexture((path + "albedo.png").c_str());
 	normalMap = loadTexture((path + "normal.png").c_str());
 	metallicMap = loadTexture((path + "metallic.png").c_str());
 	roughnessMap = loadTexture((path + "roughness.png").c_str());
 	aoMap = loadTexture((path + "ao.png").c_str());
+	
+	materialCnt = 5; 
 }
 
-PBRMaterial::PBRMaterial(const std::string& path) {
-	initTexture(path);
-	materialCnt = 5; 
-	beginIndex = 0;
-}
 void Material::setBeginIndex(int index) {
 	beginIndex = index;
 }
-int Material::getMaterialCount()const{
-	return materialCnt;
+
+Material::Material(TEX_TYPE type) {
+	materialBuffer = resourceManager.registerResource(type);
 }
 
-void PBRMaterial::render() {
+void Material::render() {
+	materialBuffer->render(shader, beginIndex);
+}
+
+void Material::registerShader(ShaderType st) {
+	shader = renderManager.registerShader(st);
+}
+
+void PBRMaterialBuffer::render(std::shared_ptr<Shader> shader,int beginIndex) {
 	//std::cerr << "PBR" << '\n';
 	glActiveTexture(GL_TEXTURE0 + beginIndex);
 	glBindTexture(GL_TEXTURE_2D, albedoMap);
@@ -42,11 +49,8 @@ void PBRMaterial::render() {
 	shader->setInt("material.roughness", 3 + beginIndex);
 	shader->setInt("material.ao", 4 + beginIndex);
 }
-void PBRMaterial::registerShader(ShaderType st) {
-	shader = renderManager.registerShader(st);
-}
 
-void PBRMaterial::destroy() {
+void PBRMaterialBuffer::destroy() {
 	glDeleteTextures(1, &albedoMap);
 	glDeleteTextures(1, &normalMap);
 	glDeleteTextures(1, &metallicMap);
@@ -54,11 +58,11 @@ void PBRMaterial::destroy() {
 	glDeleteTextures(1, &aoMap);
 }
 
-PBRMaterial::~PBRMaterial() {
+PBRMaterialBuffer::~PBRMaterialBuffer() {
 	destroy();
 }
 
-std::shared_ptr<Material> ResourceManager::registerResource(TEX_TYPE type) {
+std::shared_ptr<MaterialBufferBase> ResourceManager::registerResource(TEX_TYPE type) {
 	int index = static_cast<int>(type);
 	if (!resource[index]) {
 		resource[index] = ResourceManager::generateResource(type);
@@ -66,39 +70,39 @@ std::shared_ptr<Material> ResourceManager::registerResource(TEX_TYPE type) {
 	return resource[index];
 }
 
-std::shared_ptr<Material> ResourceManager::generateResource(TEX_TYPE type) {
+std::shared_ptr<MaterialBufferBase> ResourceManager::generateResource(TEX_TYPE type) {
 	switch (type)
 	{
 	case TEX_TYPE::RUST:
-		return std::make_shared<PBRMaterial>("./asset/pbr/rust/");
+		return std::make_shared<PBRMaterialBuffer>("./asset/pbr/rust/");
 		break;
 	case TEX_TYPE::GRASS:
-		return std::make_shared<PBRMaterial>("./asset/pbr/grass/");
+		return std::make_shared<PBRMaterialBuffer>("./asset/pbr/grass/");
 		break;
 	case TEX_TYPE::ROCK:
-		return std::make_shared<PBRMaterial>("./asset/pbr/riverrock/");
+		return std::make_shared<PBRMaterialBuffer>("./asset/pbr/riverrock/");
 		break;
 	case TEX_TYPE::METAL:
-		return std::make_shared<PBRMaterial>("./asset/pbr/metal/");
+		return std::make_shared<PBRMaterialBuffer>("./asset/pbr/metal/");
 		break;
 	case TEX_TYPE::SAND:
-		return std::make_shared<PBRMaterial>("./asset/pbr/sand/");
+		return std::make_shared<PBRMaterialBuffer>("./asset/pbr/sand/");
 		break;
 	case TEX_TYPE::HEIGHT:
-		return std::make_shared<HeightMaterial>("./asset/heightmap/iceland/");
+		return std::make_shared<HeightMaterialBuffer>("./asset/heightmap/iceland/");
 	default:
 		break;
 	}
 }
 
 ResourceManager::ResourceManager() {
-	resource = std::vector<std::shared_ptr<Material>>(maxlen,nullptr);
+	resource = std::vector<std::shared_ptr<MaterialBufferBase>>(maxlen,nullptr);
 }
 ResourceManager::~ResourceManager() {
 }
 
 
-void HeightMaterial::initTexture(const std::string& path) {
+HeightMaterialBuffer::HeightMaterialBuffer(const std::string& path) {
 	int width, height, nrChannels; 
 	//xzScale = 10.0f;
 	glGenTextures(1, &texture);
@@ -125,7 +129,7 @@ void HeightMaterial::initTexture(const std::string& path) {
 	//std::cerr << "Heightmap done" << '\n';
 
 	glGenTextures(1, &normalTexture);
-	glActiveTexture(GL_TEXTURE1);
+	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, normalTexture); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
 	// set the texture wrapping parameters
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
@@ -153,12 +157,11 @@ void HeightMaterial::initTexture(const std::string& path) {
 		std::cout << "Failed to load texture" << std::endl;
 	}
 	stbi_image_free(ndata);
+
+	this->materialCnt = 2;
 }
 
-void HeightMaterial::registerShader(ShaderType st) {
-	shader = renderManager.registerShader(st);
-}
-void HeightMaterial::render() {
+void HeightMaterialBuffer::render(std::shared_ptr<Shader> shader,int beginIndex) {
 	//std::cerr << "heightmap" << '\n';
 	glActiveTexture(GL_TEXTURE0 + beginIndex);
 	glBindTexture(GL_TEXTURE_2D, texture);
@@ -169,15 +172,18 @@ void HeightMaterial::render() {
 	shader->setInt("normalMap", 1 + beginIndex);
 	//std::cerr << "Done Height" << '\n';
 }
-HeightMaterial::HeightMaterial(const std::string& path) {
-	initTexture(path);
-	this->materialCnt = 2; 
-}
-HeightMaterial::~HeightMaterial() {
+
+HeightMaterialBuffer::~HeightMaterialBuffer() {
 	if (texture) {
 		glDeleteTextures(1, &texture);
 	}
 	if (normalTexture) {
 		glDeleteTextures(1, &normalTexture);
 	}
+}
+int Material::getMaterialCount() {
+	if (materialBuffer) {
+		return materialBuffer->getMaterialCount();
+	}
+	return 0;
 }

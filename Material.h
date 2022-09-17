@@ -18,50 +18,64 @@ enum class TEX_TYPE {
 	HEIGHT
 };
 class Material;
+
+class MaterialBufferBase {
+public:
+	// 
+public:
+	MaterialBufferBase():materialCnt(0){};
+	int materialCnt;
+	int getMaterialCount()const {
+		return materialCnt;
+	};
+	virtual void render(std::shared_ptr<Shader> shader,int beginIndex) {};
+};
+
+class PBRMaterialBuffer :public MaterialBufferBase {
+private:
+	void destroy();
+public:
+	PBRMaterialBuffer(const std::string& path);
+	virtual ~PBRMaterialBuffer();
+	GLuint albedoMap, normalMap, metallicMap, roughnessMap, aoMap;
+	virtual void render(std::shared_ptr<Shader> shader,int beginIndex) override;
+};
+
+class HeightMaterialBuffer :public MaterialBufferBase {
+public:
+	HeightMaterialBuffer(const std::string& path);
+	virtual ~HeightMaterialBuffer();
+	virtual void render(std::shared_ptr<Shader> shader, int beginIndex)override;
+public:
+	GLuint texture, normalTexture;
+};
+
 class ResourceManager {
 public:
 	// textures are also renderables
-	std::vector <std::shared_ptr<Material>> resource;
+	std::vector <std::shared_ptr<MaterialBufferBase>> resource;
 	// std::vector<int> resourceCnt; 
 
-	std::shared_ptr<Material> registerResource(TEX_TYPE type);
-	static std::shared_ptr<Material> generateResource(TEX_TYPE type);
+	std::shared_ptr<MaterialBufferBase> registerResource(TEX_TYPE type);
+	static std::shared_ptr<MaterialBufferBase> generateResource(TEX_TYPE type);
 
 public:
 	const int maxlen = 10; 
 	ResourceManager();
 	~ResourceManager();
 };
+extern ResourceManager resourceManager;
 
 class Material :public Renderable {
 public:
-	int beginIndex;
-	int materialCnt;
+	Material(TEX_TYPE type);
 	void setBeginIndex(int index);
-	int getMaterialCount()const;
-};
-
-class PBRMaterial:public Material{
-private:
-	void initTexture(const std::string& path);
-public:
-	PBRMaterial(const std::string& path);
-	~PBRMaterial();
-	GLuint albedoMap, normalMap, metallicMap, roughnessMap, aoMap;
-
-	//void bindShader(Shader& shader);
 	virtual void render() override;
 	virtual void registerShader(ShaderType st) override;
-	void destroy();
+	int getMaterialCount();
+public:
+	int beginIndex;
+	std::shared_ptr<MaterialBufferBase> materialBuffer; 
 };
 
-class HeightMaterial :public Material {
-public:
-	HeightMaterial(const std::string& path);
-	~HeightMaterial();
-	void initTexture(const std::string& path);
-	virtual void render()override; 
-	virtual void registerShader(ShaderType st)override;
-public:
-	GLuint texture, normalTexture;
-};
+

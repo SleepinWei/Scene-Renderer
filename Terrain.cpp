@@ -111,7 +111,7 @@ void Terrain::render() {
 Terrain::Terrain(TEX_TYPE tex1,TEX_TYPE tex2, ShaderType st):NUM_PATCH_PTS(4) {
 	initGeometry();
 	initVertexObject();
-	materials.push_back(resourceManager.registerResource(tex1));
-	materials.push_back(resourceManager.registerResource(tex2));
+	materials.push_back(std::make_shared<Material>(tex1));
+	materials.push_back(std::make_shared<Material>(tex2));
 	registerShader(st);
 }

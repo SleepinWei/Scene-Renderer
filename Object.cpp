@@ -8,7 +8,8 @@ Sphere::Sphere(enum class TEX_TYPE type) {
 	pointNum = 64; 
 	initGeometry();
 	initVertexObject();
-	material = resourceManager.registerResource(type);
+	addMaterial(type);
+
 	model = glm::mat4(1); 
 	position = glm::vec3(0,3,0);
 	scale = glm::vec3(0.5, 0.5, 0.5);
@@ -101,7 +102,7 @@ void Sphere::initGeometry() {
 }
 
 void Sphere::addMaterial(TEX_TYPE mType) {
-	material = resourceManager.registerResource(mType);
+	material = std::make_shared<Material>(mType);
 }
 
 void Sphere::initVertexObject() {
@@ -131,9 +132,8 @@ void Sphere::initVertexObject() {
 }
 
 void Sphere::render() {
-	std::shared_ptr<Material> M_Material = material;
-	M_Material->setBeginIndex(0);
-	M_Material->render();
+	material->setBeginIndex(0);
+	material->render();
 	
 	model = glm::mat4(1);
 	model = glm::translate(model, position);

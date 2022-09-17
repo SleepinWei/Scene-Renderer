@@ -29,7 +29,6 @@ void RenderManager::updateShader(const Camera& camera) {
 
 void RenderManager::render(std::vector<std::shared_ptr<Renderable>>& objects,const glm::vec3& lightPos,const glm::vec3& lightColor) {
 	for (auto object : objects) {
-		object->registerShader(ShaderType::PBR);
 		object->shader->use();
 		object->shader->setVec3("light.Color", lightColor);
 		object->shader->setVec3("light.Position", lightPos);
