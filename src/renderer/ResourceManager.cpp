@@ -15,11 +15,14 @@ ResourceManager::~ResourceManager() {
 }
 
 std::shared_ptr<Texture> ResourceManager::getResource(const std::string& file_path) {
-	std::shared_ptr<Texture> tex = getResource(file_path);
-	if (!tex) {
-		tex = Texture::loadFromFile(file_path);
+	//std::shared_ptr<Texture> tex = Texture::loadFromFile(file_path);
+	auto iter = resourceMap.find(file_path);
+	if (iter == resourceMap.end()) {
+		// can't find
+		auto tex = Texture::loadFromFile(file_path);
 		resource.push_back(tex);
-		resourceMap.insert(std::make_pair(tex->type,tex));
+		resourceMap.insert(std::make_pair(tex->name,tex));
+		return tex;
 	}
-	return tex; 
+	return iter->second;
 }

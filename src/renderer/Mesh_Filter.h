@@ -14,7 +14,9 @@ const int MAX_BONE_INFLUENCE = 4;
 
 enum class SHAPE {
 	SPHERE,
-	PLANE
+	PLANE,
+	POINT,
+	CUBE
 };
 
 class MeshFilter :public Component {
@@ -31,7 +33,7 @@ public:
 		float m_Weights[MAX_BONE_INFLUENCE];
 	};
 
-	MeshFilter()=default;
+	MeshFilter();
 	MeshFilter(SHAPE type);
 	MeshFilter(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::shared_ptr<Material>);
 	void addMaterial(std::shared_ptr<Material> material);
@@ -43,6 +45,8 @@ public:
 private:
 	void initSphere(int pointNum); 
 	void initPlane();
+	void initPoint(); 
+	void initCube();
 
 public:
     std::vector<Vertex> vertices;

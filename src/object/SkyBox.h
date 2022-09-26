@@ -1,19 +1,28 @@
 #pragma once
-#include<glad/glad.h>
-#include<glfw/glfw3.h>
 #include<string>
 #include<vector>
 #include<shader/Shader.h>
+#include<memory>
+#include"../component/GameObject.h"
 
-unsigned int loadCubemap(std::vector<std::string>& faces);
+class RenderManager;
+class Material;
+enum class ShaderType;
 
 
-class SkyBox {
+class SkyBox:public GameObject {
 public:
-	GLuint VAO, VBO, texture;
+	unsigned int VAO, VBO;
+	std::shared_ptr<Material> material;
 	std::vector<std::string> faces;
+	std::shared_ptr<Shader> shader;
 
-	SkyBox(const std::string path);
+public:
+	SkyBox(); 
 	~SkyBox();
-	void render(Shader& shader);
+	std::shared_ptr<SkyBox> addShader(ShaderType st);
+	std::shared_ptr<SkyBox> addMaterial(const std::string& path);
+	void init();
+	
+	void render();
 };

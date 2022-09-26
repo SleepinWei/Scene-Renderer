@@ -12,18 +12,18 @@ enum class MatType {
 	TERRAIN
 };
 
-class Material {
+class Material:public std::enable_shared_from_this<Material> {
 public:
 	Material()=default;
-	Material(MatType type, const std::string& folder);
 	Material(std::vector<std::shared_ptr<Texture>>& textures) {
 		this->textures = textures;
 	}
 	~Material();
 
-	void addTexture(std::shared_ptr<Texture> tex);
-	void loadPBR(const std::string& folder);
-	void loadTerrain(const std::string& folder); 
+	std::shared_ptr<Material> addTexture(std::shared_ptr<Texture> tex);
+	static std::shared_ptr<Material> loadPBR(const std::string& folder);
+	static std::shared_ptr<Material> loadTerrain(const std::string& folder); 
+	static std::shared_ptr<Material> loadCubeMap(const std::string& folder);
 
 public:
 	//std::shared_ptr<Shader> 

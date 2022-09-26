@@ -33,7 +33,7 @@ void MeshRenderer::setDrawMode(GLenum drawMode_) {
 }
 
 MeshRenderer::MeshRenderer():drawMode(GL_TRIANGLES),polyMode(GL_FILL) {
-
+	name = "MeshRenderer";
 }
 
 void MeshRenderer::render() {

@@ -33,6 +33,7 @@ std::shared_ptr<Component> GameObject::addComponent(std::string component_type_n
 	else if (component_type_name == "MeshRenderer") {
 		component = std::make_shared<MeshRenderer>(); 
 	}
+	component->setGameObject(shared_from_this());
 
 	if (component_type_instance_map.find(component_type_name) == component_type_instance_map.end()) {
 		std::vector<std::shared_ptr<Component>> component_vec;

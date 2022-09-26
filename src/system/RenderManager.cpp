@@ -1,6 +1,8 @@
 #include"RenderManager.h"
 #include"../renderer/Mesh_Renderer.h"
 #include"../object/Terrain.h"
+#include"../object/SkyBox.h"
+#include"../renderer/RenderScene.h"
 
 RenderManager::RenderManager() {
 	m_shader = std::vector<std::shared_ptr<Shader>>(ShaderTypeNum,nullptr);
@@ -29,22 +31,23 @@ void RenderManager::updateShader(const Camera& camera) {
 	}
 }
 
-void RenderManager::render(std::vector<std::shared_ptr<GameObject>>& objects,const glm::vec3& lightPos,const glm::vec3& lightColor) {
-	for (auto object : objects) {
-		if (object->name == "Terrain") {
-			// how to improve this part? 
-			auto t = std::dynamic_pointer_cast<Terrain>(object);
-			t->shader->setVec3("light.Position", lightPos);
-			t->shader->setVec3("light.Color", lightColor);
-			t->render();
-		}
-		else {
-			std::shared_ptr<MeshRenderer> renderer = std::dynamic_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
-			renderer->shader->setVec3("light.Position", lightPos);
-			renderer->shader->setVec3("light.Color", lightColor);
-			renderer->render();
-		}
+void RenderManager::render(std::shared_ptr<RenderScene> renderScene) {
+	for (auto object : renderScene->objects) {
+		std::shared_ptr<MeshRenderer> renderer = std::dynamic_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
+		//renderer->shader->setVec3("light.Position", lightPos);
+		//renderer->shader->setVec3("light.Color", lightColor);
+		renderer->shader->use();
+		renderer->render();
 	}
+	// render Terrain 
+	auto terrain = renderScene->terrain;
+	terrain->shader->use();
+	terrain->render();
+
+	// render skybox 
+	auto skybox = renderScene->skybox;
+	skybox->shader->use();
+	skybox->render();
 }
 
 std::shared_ptr<Shader> RenderManager::getShader(ShaderType type) {
@@ -60,24 +63,24 @@ std::shared_ptr<Shader> RenderManager::generateShader(ShaderType type) {
 	switch (type) {
 		case ShaderType::LIGHT:
 			return std::make_shared<Shader>(
-				"./shader/light.vs", "./shader/light.fs", nullptr,
+				"./src/shader/light.vs", "./src/shader/light.fs", nullptr,
 				nullptr, nullptr
 				);
 			break;
 		case ShaderType::PBR:
 			return std::make_shared<Shader>(
-				"./shader/pbr.vs", "./shader/pbr.fs", nullptr,
+				"./src/shader/pbr.vs", "./src/shader/pbr.fs", nullptr,
 				nullptr, nullptr
 				);
 			break;
 		case ShaderType::SIMPLE:
 			return std::make_shared<Shader>(
-				"./shader/simple.vs", "./shader/simple.fs"
+				"./src/shader/simple.vs", "./src/shader/simple.fs"
 				);
 			break;
 		case ShaderType::SKYBOX:
 			return std::make_shared<Shader>(
-				"./shader/skybox.vs", "./shader/skybox.fs"
+				"./src/shader/skybox.vs", "./src/shader/skybox.fs"
 				);
 			break;
 		case ShaderType::TERRAIN:

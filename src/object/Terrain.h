@@ -1,21 +1,22 @@
 #pragma once
 #include<string>
 #include<vector>
-#include<glfw/glfw3.h>
+// #include<glfw/glfw3.h>
 #include<shader/Shader.h>
 #include"../renderer/Material.h"
 #include"../system/RenderManager.h"
 #include"../component/GameObject.h"
+#include<memory>
 
 extern class ResourceManager resourceManager;
 
-class Terrain:public GameObject {
+class Terrain:public GameObject{
 public:
 	Terrain();
 	~Terrain();
-	void loadHeightmap(const std::string& folder);
-	void addShader(ShaderType st);
-	void addMaterial(std::shared_ptr<Material> material); // append 
+	std::shared_ptr<Terrain>loadHeightmap(const std::string& folder);
+	std::shared_ptr<Terrain> addShader(ShaderType st);
+	std::shared_ptr<Terrain> addMaterial(std::shared_ptr<Material> material); // append 
 
 	void render();
 private:
@@ -32,7 +33,7 @@ public:
 
 	std::shared_ptr<Shader> shader;
 
-	GLuint VAO, VBO;
+	unsigned int VAO, VBO;
 	unsigned int rez; // number of patches
 	const int NUM_PATCH_PTS;
 };

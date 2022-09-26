@@ -10,6 +10,7 @@
 //}
 
 Transform::Transform() :position(0.f), rotation(0.f), scale(1.0f) {
+	name = "Transform";
 
 }
 Transform::~Transform() {

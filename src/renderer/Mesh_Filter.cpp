@@ -7,8 +7,12 @@
 //	.constructor<>()(rttr::policy::ctor::as_std_shared_ptr);
 //	//.constructor<>()(rttr::policy::ctor::as_raw_ptr);
 //}
+MeshFilter::MeshFilter() {
+	name = "MeshFilter";
+}
 
 MeshFilter::MeshFilter(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::shared_ptr<Material> material){
+	name = "MeshFilter";
 	this->vertices = vertices;
 	this->indices = indices;
 	this->material = material;
@@ -108,7 +112,51 @@ void MeshFilter::initPlane() {
 	vertices[3].Normal = { 0.0,1.0,0.0 };
 }
 
+void MeshFilter::initPoint() {
+	vertices = std::vector<Vertex>(1);
+	vertices[0].Position = { 0,0,0 };
+	indices = std::vector<unsigned int>{ 0 };
+}
+
+void MeshFilter::initCube() {
+	vertices = std::vector<Vertex>(8);
+	vertices[0].Position = { 1.0f,1.0f,1.0f };
+	vertices[1].Position = { 1.0f,1.0f,-1.0f };
+	vertices[2].Position = { -1.0f,1.0f,-1.0f };
+	vertices[3].Position = { -1.0f,1.0f,1.0f };
+	vertices[4].Position = { 1.0f,-1.0f,1.0f };
+	vertices[5].Position = { 1.0f,-1.0f,-1.0f };
+	vertices[6].Position = { -1.0f,-1.0f,-1.0f };
+	vertices[7].Position = { -1.0f,-1.0f,1.0f };
+
+	vertices[0].Normal= { 1.0f,1.0f,1.0f };
+	vertices[1].Normal= { 1.0f,1.0f,-1.0f };
+	vertices[2].Normal= { -1.0f,1.0f,-1.0f };
+	vertices[3].Normal= { -1.0f,1.0f,1.0f };
+	vertices[4].Normal= { 1.0f,-1.0f,1.0f };
+	vertices[5].Normal= { 1.0f,-1.0f,-1.0f };
+	vertices[6].Normal= { -1.0f,-1.0f,-1.0f };
+	vertices[7].Normal= { -1.0f,-1.0f,1.0f };
+
+	indices = std::vector<unsigned int>{
+		0,4,1,
+		1,4,5,
+		0,3,4,
+		3,7,4,
+		3,2,7,
+		2,6,7,
+		0,2,1,
+		5,6,1,
+		0,2,3,
+		1,2,0,
+		4,6,5,
+		4,7,6
+	};
+
+}
+
 MeshFilter::MeshFilter(SHAPE shape) {
+	name = "MeshFilter";
 	switch (shape)
 	{
 	case SHAPE::SPHERE:
@@ -116,6 +164,12 @@ MeshFilter::MeshFilter(SHAPE shape) {
 		break;
 	case SHAPE::PLANE:
 		initPlane();
+		break;
+	case SHAPE::CUBE:
+		initCube();
+		break;
+	case SHAPE::POINT:
+		initPoint();
 		break;
 	default:
 		break;

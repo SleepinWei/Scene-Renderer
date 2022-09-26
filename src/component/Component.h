@@ -1,6 +1,7 @@
 #pragma once
 #include<glm/glm.hpp>
 #include<memory>
+#include<string>
 
 class GameObject; 
 
@@ -13,5 +14,6 @@ public:
 	}
 public:
 	std::shared_ptr<GameObject> gameObject;
+	std::string name; 
 };
 

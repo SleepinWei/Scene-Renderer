@@ -1,7 +1,7 @@
 #pragma once
 #include<memory>
 #include<glm/glm.hpp>
-#include<glfw/glfw3.h>
+// #include<glfw/glfw3.h>
 #include"../component/Component.h"
 #include<shader/Shader.h>
 #include"../system/RenderManager.h"

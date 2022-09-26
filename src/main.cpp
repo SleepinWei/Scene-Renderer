@@ -1,5 +1,5 @@
-#define STB_IMAGE_IMPLEMENTATION
 #include<glad/glad.h>
+#define STB_IMAGE_IMPLEMENTATION
 #include<iostream>
 #include<glfw/glfw3.h>
 #include<glm/glm.hpp>
@@ -47,23 +47,25 @@ void render() {
 	Gui gui(window);
 
 	Shader lightShader("./src/shader/light.vs", "./src/shader/light.fs");
-	Shader skyboxShader("./src/shader/skybox.vs", "./src/shader/skybox.fs");
-	skyboxShader.use();
-	skyboxShader.setInt("skybox", 0);
+	//Shader skyboxShader("./src/shader/skybox.vs", "./src/shader/skybox.fs");
+	//skyboxShader.use();
+	//skyboxShader.setInt("skybox", 0);
 	
 	unsigned int cubeVAO;
 	cubeVAO = createCube();
 
 	//Sphere sphere(TEX_TYPE::METAL);
 	//Plane plane;
-	SkyBox skybox("./asset/skybox/");
+	std::shared_ptr<SkyBox> skybox = std::make_shared<SkyBox>();
+	skybox->addShader(ShaderType::SKYBOX)
+		->addMaterial("./asset/skybox/");
+		
 	PointLight light;
 	//Terrain terrain("./asset/heightmap/iceland.png","./asset/heightmap/iceland_normal.png",
 		//"./asset/pbr/sand/");
 	std::shared_ptr<Terrain> terrain = std::make_shared<Terrain>();
 	terrain->loadHeightmap("./asset/heightmap/iceland/");
-	std::shared_ptr<Material> terrainMaterial = std::make_shared<Material>();
-	terrainMaterial->loadPBR("./asset/pbr/sand/");
+	auto terrainMaterial = Material::loadPBR("./asset/pbr/sand/");
 	terrain->addMaterial(terrainMaterial);
 	terrain->addShader(ShaderType::TERRAIN);
 
@@ -129,10 +131,10 @@ void render() {
 		renderManager.render(objects,light.lightPos,glm::vec3(lightColor));
 
 		view = glm::mat4(glm::mat3(camera.GetViewMatrix()));
-		skyboxShader.use();
-		skyboxShader.setMat4("view", view);
-		skyboxShader.setMat4("projection", projection);
-		skybox.render(skyboxShader);
+		//skyboxShader.use();
+		//skyboxShader.setMat4("view", view);
+		//skyboxShader.setMat4("projection", projection);
+		skybox->render();
 		
 		gui.render();
 		glfwSwapBuffers(window);

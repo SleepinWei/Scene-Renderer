@@ -1,5 +1,4 @@
 #pragma once
-#include<glad/glad.h>
 #include<memory>
 #include<iostream>
 #include<stb/stb_image.h>
@@ -17,5 +16,5 @@ public:
 	int width, height;
 	std::string type; // shader 中对应名称 (diffuse, metallic, height, ..) 
 	std::string name; // 唯一id，path
-	GLuint id;
+	unsigned int id;
 };

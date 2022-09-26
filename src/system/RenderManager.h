@@ -16,16 +16,15 @@ enum class ShaderType{
 };
 
 class RenderManager;
-extern class RenderManager renderManager;
+class RenderScene;
 
 class RenderManager {
 public:
 	RenderManager();
 	~RenderManager();
-	void updateShader(const Camera& camera);
-//test
-	void render(std::vector<std::shared_ptr<GameObject>>& objects,
-		const glm::vec3 & ,const glm::vec3&);
+	void updateShader(const Camera& camera); 
+
+	void render(std::shared_ptr<RenderScene> renderScene);
 
 	std::shared_ptr<Shader> getShader(ShaderType type); 
 
@@ -35,5 +34,7 @@ private:
 public:
 	const int ShaderTypeNum = 5;
 	std::vector<std::shared_ptr<Shader>> m_shader;
+
+	// Render Pass
 };
 

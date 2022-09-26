@@ -7,7 +7,7 @@
 #include"../renderer/ResourceManager.h"
 extern class ResourceManager resourceManager;
 
-void Terrain::loadHeightmap(const std::string& path){
+std::shared_ptr<Terrain> Terrain::loadHeightmap(const std::string& path){
 	int width, height, nrChannels; 
 	yScale = 1.0f;
 	yShift = 1.0f; 
@@ -60,6 +60,7 @@ void Terrain::loadHeightmap(const std::string& path){
 	//std::cerr << "Vertices Done" << '\n';
 
 	initVertexObject();
+	return std::dynamic_pointer_cast<Terrain> (shared_from_this());
 }
 
 void Terrain::initVertexObject() {
@@ -84,13 +85,15 @@ Terrain::~Terrain() {
 	glDeleteBuffers(1,&VBO);
 	glDeleteVertexArrays(1,&VAO);
 }
-void Terrain::addShader(ShaderType st){
+std::shared_ptr<Terrain> Terrain::addShader(ShaderType st){
 	shader = renderManager.getShader(st);
+	return std::dynamic_pointer_cast<Terrain>(shared_from_this());
 }
 
-void Terrain::addMaterial(std::shared_ptr<Material> mat) {
+std::shared_ptr<Terrain>Terrain::addMaterial(std::shared_ptr<Material> mat) {
 	// push back materials
 	this->material = mat;
+	return  std::dynamic_pointer_cast<Terrain>(shared_from_this());
 }
 
 void Terrain::render() {

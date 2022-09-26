@@ -1,49 +1,29 @@
+#include<glad/glad.h>
 #include<stb/stb_image.h>
 #include"SkyBox.h"
-unsigned int loadCubemap(std::vector<std::string>& faces)
-{
-	unsigned int textureID;
-	glGenTextures(1, &textureID);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+#include"../renderer/Texture.h"
+#include"../system/RenderManager.h"
+#include"../renderer/Material.h"
 
-	int width, height, nrChannels;
-	for (unsigned int i = 0; i < faces.size(); i++)
-	{
-		unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
-		if (data)
-		{
-			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-				0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
-			);
-			stbi_image_free(data);
-		}
-		else
-		{
-			std::cout << "Cubemap tex failed to load at path: " << faces[i] << std::endl;
-			stbi_image_free(data);
-		}
-	}
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
-	return textureID;
+extern class RenderManager renderManager;
+std::shared_ptr<SkyBox> SkyBox::addShader(ShaderType st) {
+	shader = renderManager.getShader(st);
+	return std::dynamic_pointer_cast<SkyBox> (shared_from_this());
 }
-SkyBox::SkyBox(const std::string path){
-	glGenTextures(1, &texture);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
-	std:: vector<std::string> faces
-	{
-		path + "right.jpg",
-		path + "left.jpg",
-		path + "top.jpg",
-		path + "bottom.jpg",
-		path + "front.jpg",
-		path + "back.jpg"
-	};
-	texture = loadCubemap(faces);
+
+std::shared_ptr<SkyBox> SkyBox::addMaterial(const std::string& path) {
+	material = Material::loadCubeMap(path);
+	return std::dynamic_pointer_cast<SkyBox> (shared_from_this());
+}
+
+SkyBox::SkyBox() {
+	name = "Skybox";
+	VAO = VBO = 0;
+	init();
+}
+
+
+void SkyBox::init(){
 	float skyboxVertices[] = {
 		// positions          
 		-1.0f,  1.0f, -1.0f,
@@ -100,16 +80,15 @@ SkyBox::SkyBox(const std::string path){
 SkyBox::~SkyBox() {
 	glDeleteBuffers(1, &VBO);
 	glDeleteVertexArrays(1, &VAO);
-	glDeleteTextures(1, &texture);
 }
 
-void SkyBox::render(Shader& shader){
+void SkyBox::render(){
 	glDepthFunc(GL_LEQUAL);
-	shader.use();
 
 	glBindVertexArray(VAO);
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, material->textures[0]->id);
+	shader->setInt("skybox", 0);
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 	glBindVertexArray(0);
 
