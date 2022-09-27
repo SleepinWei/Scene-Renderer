@@ -1,11 +1,12 @@
 #pragma once
 #include<memory>
 #include<vector>
-#include<shader/Shader.h>
-#include"../utils/Camera.h"
-#include"../component/GameObject.h"
 
-extern Camera camera;
+class Camera;
+class UniformBuffer;
+class GameObject;
+class RenderScene;
+class Shader;
 
 enum class ShaderType{
 	SIMPLE=0,
@@ -15,16 +16,15 @@ enum class ShaderType{
 	SKYBOX
 };
 
-class RenderManager;
-class RenderScene;
 
 class RenderManager {
 public:
 	RenderManager();
 	~RenderManager();
-	void updateShader(const Camera& camera); 
+	void prepareVPData(const std::shared_ptr<RenderScene>& renderScene); 
+	void prepareLightData(const std::shared_ptr<RenderScene>& renderScene);
 
-	void render(std::shared_ptr<RenderScene> renderScene);
+	void render(const std::shared_ptr<RenderScene>& renderScene);
 
 	std::shared_ptr<Shader> getShader(ShaderType type); 
 
@@ -34,6 +34,12 @@ private:
 public:
 	const int ShaderTypeNum = 5;
 	std::vector<std::shared_ptr<Shader>> m_shader;
+
+	// frame buffer 
+
+	// uniform buffer
+	std::shared_ptr<UniformBuffer> uniformVPBuffer;
+	bool shaderVPdirty;
 
 	// Render Pass
 };

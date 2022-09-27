@@ -4,13 +4,13 @@ layout(quads, fractional_odd_spacing, ccw) in;
 uniform sampler2D heightMap;
 uniform sampler2D normalMap;
 uniform mat4 model;
-uniform mat4 view;
-uniform mat4 projection;
+layout(std140) uniform VP{
+    mat4 projection;
+    mat4 view;
+};
 uniform float yScale;
 uniform float yShift;
 
-// out vec3 FragPos;
-// out vec3 Normal;
 out struct Object{
     vec3 Position; 
     vec3 Normal; 

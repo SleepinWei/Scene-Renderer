@@ -9,7 +9,9 @@
 #include"Material.h"
 #include"Mesh_Filter.h"
 #include"Texture.h"
-#include<shader/Shader.h>
+#include <memory>
+// #include<shader/Shader.h>
+#include"../utils/Shader.h"
 #include"../component/GameObject.h"
 #include"../component/transform.h"
 
@@ -36,12 +38,13 @@ MeshRenderer::MeshRenderer():drawMode(GL_TRIANGLES),polyMode(GL_FILL) {
 	name = "MeshRenderer";
 }
 
-void MeshRenderer::render() {
-	auto component_transform = gameObject->GetComponent("Transform");
-	auto transform = std::dynamic_pointer_cast<Transform>(component_transform);
+void MeshRenderer::render(){
+	const std::shared_ptr<Transform>& transform = std::dynamic_pointer_cast<Transform>(gameObject->GetComponent("Transform"));
+
 	if (!transform) {
 		return;
 	}
+
 	glm::mat4 trans = glm::translate(transform->position);
 	auto rotation = transform->rotation;
 	glm::mat4 eulerAngleYXZ = glm::eulerAngleYXZ(glm::radians(rotation.y), glm::radians(rotation.x), glm::radians(rotation.z));

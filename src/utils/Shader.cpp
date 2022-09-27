@@ -1,4 +1,5 @@
-#include<shader/Shader.h>
+// #include<shader/Shader.h>
+#include"../utils/Shader.h"
 Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath,const char* tessControlPath,const char* tessEvalPath)
 {
     // 1. retrieve the vertex/fragment source code from filePath
@@ -211,4 +212,10 @@ void Shader::checkCompileErrors(GLuint shader, std::string type)
             std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
         }
     }
+}
+
+void Shader::setUniformBuffer(const std::string& name, int binding)const {
+    glUniformBlockBinding(ID,
+        glGetUniformBlockIndex(ID, name.c_str()),binding
+    );
 }

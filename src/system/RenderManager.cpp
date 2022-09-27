@@ -3,51 +3,70 @@
 #include"../object/Terrain.h"
 #include"../object/SkyBox.h"
 #include"../renderer/RenderScene.h"
+#include"../buffer/UniformBuffer.h"
+#include"../utils/Camera.h"
+#include"../component/GameObject.h"
+#include"../utils/Shader.h"
+
+#include<glm/gtc/type_ptr.hpp>
 
 RenderManager::RenderManager() {
 	m_shader = std::vector<std::shared_ptr<Shader>>(ShaderTypeNum,nullptr);
-	// m_shaderCnt = std::vector<int>(ShaderTypeNum);
+
+	// VP buffer
+	uniformVPBuffer = std::make_shared<UniformBuffer>(
+			2 * sizeof(glm::mat4)
+		);
+	uniformVPBuffer->setBinding(0);
+	shaderVPdirty = true; 
 }
 RenderManager::~RenderManager() {
 
 }
 
-void RenderManager::updateShader(const Camera& camera) {
-	glm::mat4 projection = camera.GetPerspective();
-	glm::mat4 view = camera.GetViewMatrix();
-	glm::mat4 skyboxView = glm::mat4(glm::mat3(view));
+void RenderManager::prepareVPData(const std::shared_ptr<RenderScene>& renderScene) {
+	const std::shared_ptr<Camera>& camera = renderScene->main_camera;
 
-	for (int i = 0; i < m_shader.size(); i++) {
-		if (m_shader[i] == nullptr)
-			continue;
-		m_shader[i]->use();
-		m_shader[i]->setMat4("projection", projection);
-		if (i == static_cast<int>(ShaderType::SKYBOX)) {
-			m_shader[i]->setMat4("view", skyboxView);
+	const glm::mat4& projection = camera->GetPerspective();
+	const glm::mat4& view = camera->GetViewMatrix();
+	//glm::mat4 skyboxView = glm::mat4(glm::mat3(view));
+	
+	if (uniformVPBuffer) {
+		uniformVPBuffer->bindBuffer();
+		GLuint UBO = uniformVPBuffer->UBO;
+		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(projection));
+		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4),sizeof(glm::mat4), glm::value_ptr(view));
+	}
+	if (shaderVPdirty) {
+		//if dirty, set shader bindings of UBO
+		for (std::shared_ptr<Shader>& shader : m_shader) {
+			shader->setUniformBuffer("VP", uniformVPBuffer->binding);
 		}
-		else {
-			m_shader[i]->setMat4("view", view);
-		}
+		shaderVPdirty = false; 
 	}
 }
 
-void RenderManager::render(std::shared_ptr<RenderScene> renderScene) {
+void RenderManager::render(const std::shared_ptr<RenderScene>& renderScene) {
 	for (auto object : renderScene->objects) {
-		std::shared_ptr<MeshRenderer> renderer = std::dynamic_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
-		//renderer->shader->setVec3("light.Position", lightPos);
-		//renderer->shader->setVec3("light.Color", lightColor);
-		renderer->shader->use();
-		renderer->render();
+		std::shared_ptr<MeshRenderer>& renderer = std::dynamic_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
+		if (renderer) {
+			renderer->shader->use();
+			renderer->render();
+		}
 	}
 	// render Terrain 
-	auto terrain = renderScene->terrain;
-	terrain->shader->use();
-	terrain->render();
+	std::shared_ptr<Terrain>& terrain = renderScene->terrain;
+	if (terrain) {
+		terrain->shader->use();
+		terrain->render();
+	}
 
 	// render skybox 
-	auto skybox = renderScene->skybox;
-	skybox->shader->use();
-	skybox->render();
+	std::shared_ptr<SkyBox>& skybox = renderScene->skybox;
+	if (skybox) {
+		skybox->shader->use();
+		skybox->render();
+	}
 }
 
 std::shared_ptr<Shader> RenderManager::getShader(ShaderType type) {

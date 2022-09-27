@@ -1,8 +1,8 @@
 #pragma once
 #include<vector>
 #include<glm/glm.hpp>
-//#include<glfw/glfw3.h>
-#include<shader/Shader.h>
+#include<memory>
+#include"../utils/Shader.h"
 // #include<meta/meta.hpp>
 #include<unordered_map>
 #include<string>

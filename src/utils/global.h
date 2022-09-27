@@ -5,4 +5,3 @@
 
 extern class ResourceManager resourceManager;
 extern class RenderManager renderManager;
-extern class Camera camera;

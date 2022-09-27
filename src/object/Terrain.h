@@ -2,7 +2,8 @@
 #include<string>
 #include<vector>
 // #include<glfw/glfw3.h>
-#include<shader/Shader.h>
+// #include<shader/Shader.h>
+#include"../utils/Shader.h"
 #include"../renderer/Material.h"
 #include"../system/RenderManager.h"
 #include"../component/GameObject.h"

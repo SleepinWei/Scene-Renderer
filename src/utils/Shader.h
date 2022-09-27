@@ -45,6 +45,8 @@ public:
     // ------------------------------------------------------------------------
     void setMat4(const std::string &name, const glm::mat4 &mat) const;
 
+    void setUniformBuffer(const std::string& name, int binding) const;
+
 private:
     // utility function for checking shader compilation/linking errors.
     // ------------------------------------------------------------------------

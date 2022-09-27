@@ -1,6 +1,7 @@
 #pragma once
 #include<glm/glm.hpp>
-#include<shader/Shader.h>
+// #include<shader/Shader.h>
+#include"../utils/Shader.h"
 #include<glfw/glfw3.h>
 #include<memory>
 #include"../component/Component.h"

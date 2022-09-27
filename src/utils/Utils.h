@@ -17,7 +17,7 @@
 //#include<imgui/imgui_impl_opengl3.h>
 #include<cmath>
 //#include<imgui/imgui_impl_opengl3_loader.h>
-#include<shader/Shader.h>
+#include"../utils/Shader.h"
 
 /*******************************
 * extern variables 

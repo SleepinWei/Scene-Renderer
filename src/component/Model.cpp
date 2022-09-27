@@ -125,7 +125,7 @@ void Model::loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::share
 		aiString str;
 		mat->GetTexture(type, i, &str);
 		std::string mat_path(str.C_Str());
-		std::shared_ptr<Texture> tex = resourceManager.getResource(mat_path);
+		const std::shared_ptr<Texture>& tex = resourceManager.getResource(mat_path);
 
 		material->textures.push_back(tex);
 	}

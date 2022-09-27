@@ -3,8 +3,13 @@ layout(location=0) in vec3 aPos;
 
 out vec3 TexCoords;
 
-uniform mat4 projection; 
-uniform mat4 view; 
+// uniform mat4 projection; 
+layout(std140) uniform VP{
+   mat4 projection; 
+   mat4 view_; 
+};
+
+uniform mat4 view;  // not the same view as view_ 
 
 void main(){
     TexCoords = aPos; 

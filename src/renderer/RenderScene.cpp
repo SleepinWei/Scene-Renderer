@@ -7,7 +7,7 @@
 std::shared_ptr<RenderScene> RenderScene::addObject(std::shared_ptr<GameObject> object) {
 	objects.push_back(object);
 	if (object->GetComponent("Light")) {
-		std::shared_ptr<Light> light = std::dynamic_pointer_cast<Light> (object->GetComponent("Light"));
+		const std::shared_ptr<Light>& light = std::dynamic_pointer_cast<Light> (object->GetComponent("Light"));
 		switch (light->type)
 		{
 		case LightType::POINT:

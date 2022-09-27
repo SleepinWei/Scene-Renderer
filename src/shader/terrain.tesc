@@ -3,7 +3,11 @@
 layout(vertices=4) out;
 
 uniform mat4 model;
-uniform mat4 view; 
+// uniform mat4 view; 
+layout(std140) uniform VP{
+    mat4 projection;
+    mat4 view;
+};
 
 in vec2 TexCoord[];
 out vec2 TextureCoord[]; 
