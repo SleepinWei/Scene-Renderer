@@ -1,4 +1,10 @@
+#include<glad/glad.h>
+#include<glfw/glfw3.h>
 #include"Utils.h"
+#include"../system/InputManager.h"
+#include<memory>
+
+extern std::unique_ptr<InputManager> inputManager;
 
 int gladInit() {
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -30,6 +36,7 @@ int createWindow(GLFWwindow*& window,
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
+    glfwSetKeyCallback(window, key_callback);
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     return 0;
@@ -37,66 +44,10 @@ int createWindow(GLFWwindow*& window,
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS){
+        inputManager->keyStatus[ESC_PRESSED] = PRESSED;
         glfwSetWindowShouldClose(window, GL_TRUE);
-
-    if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS)
-    {
-        camera.fixed = !camera.fixed;
     }
-}
-
-void processInput(GLFWwindow* window)
-{
-    static bool enableCursor = false;
-
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
-
-    //glfwSetKeyCallback(window, key_callback);
-
-    //if (!camera.fixed)
-    //{
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		camera.ProcessKeyboard(FORWARD, 1 * deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		camera.ProcessKeyboard(BACKWARD, 1 * deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		camera.ProcessKeyboard(LEFT, 1 * deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-        camera.ProcessKeyboard(RIGHT, 1 * deltaTime);
-    }
-	//if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-	//{
-	//	if (!enableCursor)
-	//	{
-	//		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-	//		glfwSetCursorPosCallback(window, NULL);
-	//	}
-	//	else {
-	//		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	//		glfwSetCursorPosCallback(window, mouse_callback);
-	//	}
-	//	enableCursor = !enableCursor;
-	//}
-    //}
-    
-    //if(camera.fixed)
-    //{
-        //glm::vec3 pos = camera.Position;
-    //    glm::vec3 front = camera.Front;
-
-    //    double x = pos.x, y = pos.y, z = pos.z;
-    //    double tox = front.x, toy = front.y, toz = front.z;
-    //    double len = sqrt(tox * tox + toz * toz);
-    //    x += 10 * tox / len; z -= 10 * toz / len;
-    //    camera.Position = glm::vec3(x, y + 2.0f, z);
-    //    camera.Front = glm::vec3(-tox, -0.05f, toz);
-    //    camera.Up = glm::vec3(0.0f, 1.0f, 0.0f);
-    //    camera.Right = glm::vec3(toz, 0.0f, -tox);
-    //    camera.WorldUp = glm::vec3(0.0f, 1.0f, 0.0f);
-    //}
-    
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -116,26 +67,27 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     static int currentState = GLFW_RELEASE;
     currentState = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
     if (currentState == GLFW_PRESS) {
-        if (camera.fixed) return;
+        //if (camera->fixed) return;
         if (currentState != prevState)
         {
-            lastX = xpos;
-            lastY = ypos;
+            // disable cursor
+            inputManager->cursorEnbaled = false; 
+            inputManager->lastX = xpos;
+            inputManager->lastY = ypos;
 			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         }
-        //if (firstMouse){
-        //    firstMouse = false;
-        //}
 
-        float xoffset = xpos - lastX;
-        float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+        // TODO: move this part to camera class
+        inputManager->deltaX = xpos - inputManager->lastX;
+        inputManager->deltaY = inputManager->lastY - ypos; // reversed since y-coordinates go from bottom to top
 
-        lastX = xpos;
-        lastY = ypos;
+        inputManager->lastX = xpos;
+        inputManager->lastY = ypos;
 
-        camera.ProcessMouseMovement(xoffset, yoffset);
+        //camera.ProcessMouseMovement(xoffset, yoffset);
     }
     else if(currentState != prevState) {
+        inputManager->cursorEnbaled = true;
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
     prevState = currentState;
@@ -145,7 +97,10 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 // ----------------------------------------------------------------------
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    camera.ProcessMouseScroll(yoffset);
+    inputManager->keyStatus[MOUSE_SCROLL] = PRESSED;
+    inputManager->mouseScrollX = xoffset;
+    inputManager->mouseScrollY = yoffset;
+    //camera.ProcessMouseScroll(yoffset);
 }
 
 // utility function for loading a 2D texture from file
