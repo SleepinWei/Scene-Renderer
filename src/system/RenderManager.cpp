@@ -26,12 +26,15 @@ void RenderManager::initVPbuffer() {
 void RenderManager::initPointLightBuffer() {
 	// TODO: 
 	const int maxLight = 10; 
-	int lightBufferSize = maxLight * (64); // maximum 10 point lights, std140 layout
+	int lightBufferSize = maxLight * (32) + 16; // maximum 10 point lights, std140 layout
 
 	uniformPointLightBuffer = std::make_shared<UniformBuffer>(lightBufferSize);
 }
 void RenderManager::initDirectionLightBuffer() {
 	// TODO:
+	const int maxLight = 10; 
+	int lightBufferSize = maxLight * (48) + 16; 
+	uniformDirectionLightBuffer = std::make_shared<UniformBuffer>(lightBufferSize);
 }
 RenderManager::~RenderManager() {
 
@@ -59,43 +62,78 @@ void RenderManager::prepareVPData(const std::shared_ptr<RenderScene>& renderScen
 	}
 }
 
-void RenderManager::prepareLightData(const std::shared_ptr<RenderScene>& scene) {
+void RenderManager::preparePointLightData(const std::shared_ptr<RenderScene>& scene) {
 	// TODO: test the consfusing offset
 	// point light
-		if (uniformPointLightBuffer) {
+	if (uniformPointLightBuffer->dirty) {
+		uniformPointLightBuffer->dirty = false;
 		uniformPointLightBuffer->bindBuffer();
 		unsigned int UBO = uniformPointLightBuffer->UBO;
 		int lightNum = scene->pointLights.size();
+		int dataSize = 32; // data size for a single light (under std140 layout)
 		for (int i = 0; i < lightNum; i++) {
 			PointLightData& data = scene->pointLights[i]->data; 
-			int dataSize = 64; // data size for a single light (under std140 layout)
 			glBufferSubData(GL_UNIFORM_BUFFER, 
 				0 + i * dataSize, 
-				sizeof(glm::vec3), glm::value_ptr(data.ambient)); // ambient
+				sizeof(glm::vec3), glm::value_ptr(data.color)); // ambient
 			glBufferSubData(GL_UNIFORM_BUFFER, 
 				16 + i * dataSize, 
-				sizeof(glm::vec3), glm::value_ptr(data.diffuse)); //
-			glBufferSubData(GL_UNIFORM_BUFFER, 
+				sizeof(glm::vec3), glm::value_ptr(data.position)); //
+			/*glBufferSubData(GL_UNIFORM_BUFFER, 
 				32 + i * dataSize, 
 				sizeof(glm::vec3), glm::value_ptr(data.specular));
 			glBufferSubData(GL_UNIFORM_BUFFER, 
-				44 + i * dataSize, 
+				48 + i * dataSize, 
 				sizeof(float), &data.constant);
 			glBufferSubData(GL_UNIFORM_BUFFER, 
-				48 + i * dataSize, 
+				52 + i * dataSize, 
 				sizeof(float), &data.linear);
 			glBufferSubData(GL_UNIFORM_BUFFER, 
-				52 + i * dataSize, 
-				sizeof(float), &data.quadratic);
+				56 + i * dataSize, 
+				sizeof(float), &data.quadratic);*/
 		}
+		// add the number of lights to UBO
+		glBufferSubData(GL_UNIFORM_BUFFER,
+			dataSize * lightNum, sizeof(int), &lightNum);
 	}
 	uniformPointLightBuffer->bindBuffer();
 }
 
+void RenderManager::prepareDirectionLightData(const std::shared_ptr<RenderScene>& scene) {
+	// update light data only when dirty 
+	if (uniformDirectionLightBuffer->dirty) {
+		uniformDirectionLightBuffer->dirty = false;
+		uniformDirectionLightBuffer->bindBuffer();
+		unsigned int UBO = uniformDirectionLightBuffer->UBO;
+		int lightNum = scene->directionLights.size();
+		int dataSize = 48; // data size for a single light (under std140 layout)
+		for (int i = 0; i < lightNum; i++) {
+			DirectionLightData& data = scene->directionLights[i]->data; 
+			glBufferSubData(GL_UNIFORM_BUFFER, 
+				0 + i * dataSize, 
+				sizeof(glm::vec3), glm::value_ptr(data.color)); // ambient
+			glBufferSubData(GL_UNIFORM_BUFFER, 
+				16 + i * dataSize, 
+				sizeof(glm::vec3), glm::value_ptr(data.position)); //
+			glBufferSubData(GL_UNIFORM_BUFFER, 
+				32 + i * dataSize, 
+				sizeof(glm::vec3), glm::value_ptr(data.direction));
+			//glBufferSubData(GL_UNIFORM_BUFFER, 
+				//48 + i * dataSize, 
+				//sizeof(glm::vec3), glm::value_ptr(data.direction));
+		}
+		glBufferSubData(GL_UNIFORM_BUFFER, lightNum * dataSize, 
+			sizeof(int), &lightNum);
+	}
+	uniformPointLightBuffer->bindBuffer();
+}
+
+
 void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	// TODO: wrap up this function to be Scene rendering pass
 	prepareVPData(scene);
-	prepareLightData(scene);
+	preparePointLightData(scene);
+	prepareDirectionLightData(scene);
 
 	for (auto object : scene->objects) {
 		std::shared_ptr<MeshRenderer>& renderer = std::dynamic_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));

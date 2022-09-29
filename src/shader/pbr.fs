@@ -1,14 +1,27 @@
-#version 410 
-
+#version 430 compatibility
 
 out vec4 FragColor;
 
-struct Light{
+struct PointLight{
     // vec3 Color;
     vec3 Color;
     vec3 Position; 
 };
-uniform Light light; 
+layout(std140) uniform PointLightBuffer {
+    PointLight pointLights[10];
+    int pLightNum; 
+};
+
+struct DirectionLight{
+    vec3 Color;
+    vec3 Position;
+    vec3 Direction;
+};
+
+layout(std140) uniform DirectionLightBuffer{
+    DirectionLight directionLights[10]; 
+    int dLightNum;
+};
 
 in struct Object{
     vec3 Position; 
@@ -94,8 +107,7 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
     return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
-void main(){
-    // change material -> albedo
+vec3 computePointShading(Object object,PointLight light,Material material){
     vec3 albedo = pow(texture(material.albedo,object.TexCoords).rgb,vec3(2.2));
     // vec3 albedo = vec3(object.TexCoords,1.0);
     float metallic = texture(material.metallic,object.TexCoords).r;
@@ -110,8 +122,6 @@ void main(){
     F0 = mix(F0,albedo,metallic);
 
     vec3 Lo = vec3(0.0); 
-
-    // radiance; 
     vec3 L = normalize(light.Position - object.Position);
     vec3 H = normalize(V+L);
     float attenuation = calculateAtten(object.Position,light.Position);
@@ -136,9 +146,66 @@ void main(){
 
     vec3 ambient = vec3(0.03) * albedo * ao; 
     vec3 color = ambient + Lo; 
+    return color; 
+}
 
+vec3 computeDirectionShading(Object object,DirectionLight light,Material material){
+    vec3 albedo = pow(texture(material.albedo,object.TexCoords).rgb,vec3(2.2));
+    // vec3 albedo = vec3(object.TexCoords,1.0);
+    float metallic = texture(material.metallic,object.TexCoords).r;
+    float roughness = texture(material.roughness,object.TexCoords).r;
+    float ao = texture(material.ao,object.TexCoords).r; 
+
+    vec3 N = getNormalFromMap();
+    vec3 V = normalize(camPos - object.Position);
+
+    // F0 : plastic, albedo : metallic 
+    vec3 F0 = vec3(0.04);
+    F0 = mix(F0,albedo,metallic);
+
+    vec3 Lo = vec3(0.0); 
+    //--- modify mark
+    vec3 L = normalize(light.Direction);
+    vec3 H = normalize(V+L);
+    // float attenuation = calculateAtten(object.Position,light.Position);
+    // --- modify mark
+    vec3 radiance = light.Color; 
+
+    // cook-tolerance brdf
+    float NDF = DistributionGGX(N,H,roughness);
+    float G =GeometrySmith(N,V,L,roughness) ;
+    vec3 F = fresnelSchlick(max(dot(H,V),0.0),F0);
+
+    vec3 numerator= NDF*G*F;
+    float denominator= 4.0 * max(dot(N,V),0.0)*max(dot(N,L),0.0) + 0.0001;
+    vec3 specular = numerator / denominator; 
+
+    vec3 kS = F;
+    vec3 kD = vec3(1.0) - kS;
+    kD *= (1.0 - metallic);
+
+    float NdotL = max(dot(N,L),0.0);
+
+    Lo += (kD * albedo / PI + specular) * radiance * NdotL;
+
+    vec3 ambient = vec3(0.03) * albedo * ao; 
+    vec3 color = ambient + Lo; 
+    return color; 
+}
+
+void main(){
+    // radiance; 
+    vec3 finalColor = vec3(0.0f);
+    // point lights
+    for(int i=0;i<pLightNum;i++){
+        finalColor += computePointShading(object,pointLights[i],material);
+    }
+    //directional lights
+    for(int i =0;i<dLightNum;i++){
+        finalColor += computeDirectionShading(object,directionLights[i],material);
+    }
     // HDR tone mapping 
-    color = color / (color + vec3(1.0));
-    color = pow(color,vec3(1.0/2.2));
-    FragColor = vec4(color,1.0);
+    finalColor = finalColor / (finalColor + vec3(1.0));
+    finalColor = pow(finalColor,vec3(1.0/2.2));
+    FragColor = vec4(finalColor,1.0);
 }

@@ -22,7 +22,8 @@ public:
 	RenderManager();
 	~RenderManager();
 	void prepareVPData(const std::shared_ptr<RenderScene>& renderScene); 
-	void prepareLightData(const std::shared_ptr<RenderScene>& renderScene);
+	void preparePointLightData(const std::shared_ptr<RenderScene>& renderScene);
+	void prepareDirectionLightData(const std::shared_ptr<RenderScene>& renderScene);
 
 	void render(const std::shared_ptr<RenderScene>& scene);
 
@@ -43,6 +44,7 @@ public:
 	// uniform buffer
 	std::shared_ptr<UniformBuffer> uniformVPBuffer;
 	std::shared_ptr<UniformBuffer> uniformPointLightBuffer;
+	std::shared_ptr<UniformBuffer> uniformDirectionLightBuffer;
 
 	// Render Pass
 };

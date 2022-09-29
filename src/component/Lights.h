@@ -30,6 +30,10 @@ public:
 	//CUBEMAP
 //};
 struct PointLightData{
+	glm::vec3 color; 
+	glm::vec3 position;
+
+	// not used
 	glm::vec3 ambient; 
 	glm::vec3 diffuse; 
 	glm::vec3 specular; 
@@ -58,13 +62,20 @@ public:
 	float aspect; 
 };
 
+struct DirectionLightData {
+	glm::vec3 color; 
+	glm::vec3 position;
+	glm::vec3 direction;
+
+	// not used
+	glm::vec3 ambient; 
+	glm::vec3 diffuse;
+	glm::vec3 specular; 
+};
+
 class DirectionLight : public Light {
 public:
-	glm::vec3 diffuse; 
-	glm::vec3 specular; 
-	glm::vec3 ambient; 
-
-	glm::vec3 direction;
+	DirectionLightData data;
 
 	float near; 
 	float far;

@@ -17,12 +17,15 @@ PointLight::PointLight() {
 	Light::dirty = true;
 
 	data = {
-		glm::vec3(1.0f),
-		glm::vec3(1.0f),
-		glm::vec3(1.0f),
-		1,
-		0,
-		0 
+		glm::vec3(1.0f),//color
+		glm::vec3(0.0f),//position
+
+		glm::vec3(1.0f),//ambient
+		glm::vec3(1.0f),//diffuse
+		glm::vec3(1.0f), //specular
+		1, //constant
+		0, //linear
+		0  //quadratic
 	};
 
 	//mode = POINTLIGHT::SINGLE;
@@ -39,13 +42,8 @@ PointLight::PointLight() {
 //}
 
 std::vector<glm::mat4> PointLight::getLightMatrix() {
-	// get transform; 
-	const std::shared_ptr<Transform>& transform = std::dynamic_pointer_cast<Transform>(Component::gameObject->GetComponent("Transform"));
-	if (transform == nullptr) {
-		std::cerr << "In PointLight: No Transform Component" << '\n';
-		return lightTransforms;
-	}
-	glm::vec3 lightPos = transform->position;
+
+	glm::vec3 lightPos = data.position;
 
 	if (Light:: dirty) {
 		glm::mat4 proj = glm::perspective(glm::radians(fov), aspect, near, far);
@@ -79,6 +77,15 @@ DirectionLight::DirectionLight() {
 
 	near = 0.1f;
 	far = 7.5f;
+
+	data = {
+		glm::vec3(1.0f), // color
+		glm::vec3(0.0f),//position
+		glm::vec3(0.0f,-1.0f,0.0f), // direction
+		glm::vec3(1.0f),//ambient
+		glm::vec3(1.0f),//diffuse
+		glm::vec3(1.0f)//specular
+	};
 }
 
 DirectionLight::~DirectionLight() {
@@ -87,10 +94,9 @@ DirectionLight::~DirectionLight() {
 
 glm::mat4 DirectionLight::getLightMatrix() {
 	if (Light::dirty) {
-		const std::shared_ptr<Transform>& trans = std::dynamic_pointer_cast<Transform> (gameObject->GetComponent("Transform"));
-		glm::vec3 lightPos = trans->position;
+		glm::vec3 lightPos = data.position;
 		glm::mat4 proj = glm::ortho(-10.0f, 10.f, -10.0f, 10.0f, near, far);
-		glm::mat4 view = glm::lookAt(lightPos, lightPos + direction, glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::mat4 view = glm::lookAt(lightPos, lightPos + data.direction, glm::vec3(0.0f, 1.0f, 0.0f));
 		lightTransforms = proj * view; 
 
 		Light::dirty = true;
@@ -99,7 +105,7 @@ glm::mat4 DirectionLight::getLightMatrix() {
 }
 
 std::shared_ptr<DirectionLight> DirectionLight::setDirection(const glm::vec3& dir) {
-	direction = dir; 
+	data.direction = dir; 
 	return std::dynamic_pointer_cast<DirectionLight>(shared_from_this());
 }
 
