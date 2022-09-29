@@ -1,7 +1,8 @@
-#include"Model.h"
-// #include<rttr/registration.h>
 #include<iostream>
+#include"Model.h"
 #include"../renderer/ResourceManager.h"
+#include"../renderer/Material.h"
+#include"../renderer/Mesh_Filter.h"
 
 std::optional<std::vector<std::shared_ptr<MeshFilter>>> Model::loadModel(const std:: string& path) {
 	std::vector<std::shared_ptr<MeshFilter>> meshes; 
@@ -15,9 +16,10 @@ std::optional<std::vector<std::shared_ptr<MeshFilter>>> Model::loadModel(const s
 
 	// process ASSIMP's root node recursively
 	processNode(meshes,scene->mRootNode, scene);
+	return meshes;
 }
 
-void Model::processNode(std::vector<std::shared_ptr<MeshFilter>> meshes,aiNode* node, const aiScene* scene)
+void Model::processNode(std::vector<std::shared_ptr<MeshFilter>>& meshes,aiNode* node, const aiScene* scene)
 {
 	// process each mesh located at the current node
 	for (unsigned int i = 0; i < node->mNumMeshes; i++)
@@ -118,14 +120,14 @@ std::shared_ptr<MeshFilter> Model::processMesh(aiMesh* mesh, const aiScene* scen
 
 // checks all material textures of a given type and loads the textures if they're not loaded yet.
 // the required info is returned as a Texture struct.
-void Model::loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::shared_ptr<Material> material)
+void Model::loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::shared_ptr<Material>& material)
 {
 	for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
 	{
 		aiString str;
 		mat->GetTexture(type, i, &str);
 		std::string mat_path(str.C_Str());
-		const std::shared_ptr<Texture>& tex = resourceManager.getResource(mat_path);
+		const std::shared_ptr<Texture>& tex = resourceManager->getResource(mat_path);
 
 		material->textures.push_back(tex);
 	}

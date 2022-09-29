@@ -6,19 +6,13 @@
 
 std::shared_ptr<RenderScene> RenderScene::addObject(std::shared_ptr<GameObject> object) {
 	objects.push_back(object);
-	if (object->GetComponent("Light")) {
-		const std::shared_ptr<Light>& light = std::dynamic_pointer_cast<Light> (object->GetComponent("Light"));
-		switch (light->type)
-		{
-		case LightType::POINT:
-			this->pointLights.push_back(light);
-			break;
-		case LightType::DIRECTIONAL:
-			this->directionLights.push_back(light);
-			break;
-		default:
-			break;
-		}
+	if (object->GetComponent("PointLight")) {
+		std::shared_ptr<PointLight>& light = std::dynamic_pointer_cast<PointLight> (object->GetComponent("PointLight"));
+		this->pointLights.push_back(light);
+	}
+	if (object->GetComponent("DirectionLight")) {
+		std::shared_ptr<DirectionLight>& light = std::dynamic_pointer_cast<DirectionLight> (object->GetComponent("DirectionLight"));
+		this->directionLights.push_back(light);
 	}
 	return shared_from_this();
 }
@@ -30,8 +24,4 @@ std::shared_ptr<RenderScene> RenderScene::addSkyBox(std::shared_ptr<SkyBox>skybo
 	this->skybox = skybox;
 	return shared_from_this();
 }
-//std::shared_ptr<RenderScene> RenderScene::addLight(std::shared_ptr<Light> light) {
-	//lights.push_back(light);
-	//return shared_from_this();
-//}
 

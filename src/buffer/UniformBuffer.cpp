@@ -7,8 +7,13 @@ UniformBuffer::UniformBuffer(int size) {
 	glGenBuffers(1, &UBO);
 	glBindBuffer(GL_UNIFORM_BUFFER, UBO);
 	glBufferData(GL_UNIFORM_BUFFER, size, NULL, GL_STATIC_DRAW);
+	this->binding = -1; 
+	this->dirty = true;
 }
 
+void UniformBuffer::setDirtyFlag(bool flag) {
+	this->dirty = flag;
+}
 
 
 UniformBuffer::~UniformBuffer() {

@@ -1,8 +1,6 @@
 #pragma once
 
-#include <glad/glad.h>
 #include <glm/glm.hpp>
-
 #include <string>
 #include<fstream>
 #include <iostream>
@@ -50,6 +48,6 @@ public:
 private:
     // utility function for checking shader compilation/linking errors.
     // ------------------------------------------------------------------------
-    void checkCompileErrors(GLuint shader, std::string type);
+    void checkCompileErrors(unsigned int shader, std::string type);
 };
 

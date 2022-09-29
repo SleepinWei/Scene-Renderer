@@ -5,9 +5,9 @@
 #include<memory>
 #include<glm/glm.hpp>
 #include<vector>
-#include"Texture.h"
-#include"Material.h"
-#include<rttr/registration.h>
+
+class Material;
+class Texture; 
 
 const int MAX_BONE_INFLUENCE = 4;
 //const double PI = 3.1415926; 

@@ -1,5 +1,4 @@
 #include<glad/glad.h>
-// #include<rttr/registration.h>
 #include<glm/gtc/matrix_transform.hpp>
 #include<glm/glm.hpp>
 #include<glm/gtx/transform2.hpp>
@@ -9,6 +8,7 @@
 #include"Material.h"
 #include"Mesh_Filter.h"
 #include"Texture.h"
+#include"../utils/Shader.h"
 #include <memory>
 // #include<shader/Shader.h>
 #include"../utils/Shader.h"
@@ -27,7 +27,7 @@ MeshRenderer::~MeshRenderer() {
 }
 
 void MeshRenderer::setShader(ShaderType type) {
-	shader = renderManager.getShader(type);
+	shader = renderManager->getShader(type);
 }
 
 void MeshRenderer::setDrawMode(GLenum drawMode_) {

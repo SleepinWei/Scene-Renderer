@@ -6,6 +6,7 @@ public:
 	unsigned int UBO;
 	int size; 
 	int binding;
+	bool dirty; // dirty flag, reset shader's ubo bindings if dirty
 
 public:
 	UniformBuffer(int size);
@@ -13,5 +14,6 @@ public:
 
 	void bindBuffer();
 	void setBinding(int binding);
+	void setDirtyFlag(bool flag);
 };
 

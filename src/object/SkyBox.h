@@ -25,5 +25,5 @@ public:
 	std::shared_ptr<SkyBox> addMaterial(const std::string& path);
 	void init();
 	
-	void render();
+	void render() const;
 };

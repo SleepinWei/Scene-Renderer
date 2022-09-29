@@ -5,9 +5,9 @@
 #include"../system/RenderManager.h"
 #include"../renderer/Material.h"
 
-extern class RenderManager renderManager;
+extern std::unique_ptr<RenderManager> renderManager;
 std::shared_ptr<SkyBox> SkyBox::addShader(ShaderType st) {
-	shader = renderManager.getShader(st);
+	shader = renderManager->getShader(st);
 	return std::dynamic_pointer_cast<SkyBox> (shared_from_this());
 }
 
@@ -21,7 +21,6 @@ SkyBox::SkyBox() {
 	VAO = VBO = 0;
 	init();
 }
-
 
 void SkyBox::init(){
 	float skyboxVertices[] = {
@@ -82,7 +81,8 @@ SkyBox::~SkyBox() {
 	glDeleteVertexArrays(1, &VAO);
 }
 
-void SkyBox::render(){
+void SkyBox::render()const {
+	// TODO: add a render grass pass;
 	glDepthFunc(GL_LEQUAL);
 
 	glBindVertexArray(VAO);

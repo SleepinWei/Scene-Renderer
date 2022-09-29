@@ -1,5 +1,7 @@
-// #include<shader/Shader.h>
+#include<glad/glad.h>
 #include"../utils/Shader.h"
+#include<glfw/glfw3.h>
+
 Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath,const char* tessControlPath,const char* tessEvalPath)
 {
     // 1. retrieve the vertex/fragment source code from filePath
@@ -190,7 +192,7 @@ void Shader::setMat4(const std::string& name, const glm::mat4& mat) const
 
 // utility function for checking shader compilation/linking errors.
 // ------------------------------------------------------------------------
-void Shader::checkCompileErrors(GLuint shader, std::string type)
+void Shader::checkCompileErrors(unsigned int shader, std::string type)
 {
     GLint success;
     GLchar infoLog[1024];

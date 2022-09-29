@@ -24,12 +24,15 @@ public:
 	void prepareVPData(const std::shared_ptr<RenderScene>& renderScene); 
 	void prepareLightData(const std::shared_ptr<RenderScene>& renderScene);
 
-	void render(const std::shared_ptr<RenderScene>& renderScene);
+	void render(const std::shared_ptr<RenderScene>& scene);
 
 	std::shared_ptr<Shader> getShader(ShaderType type); 
 
 private:
 	static std::shared_ptr<Shader> generateShader(ShaderType type);
+	void initVPbuffer(); 
+	void initPointLightBuffer(); 
+	void initDirectionLightBuffer();
 
 public:
 	const int ShaderTypeNum = 5;
@@ -39,7 +42,7 @@ public:
 
 	// uniform buffer
 	std::shared_ptr<UniformBuffer> uniformVPBuffer;
-	bool shaderVPdirty;
+	std::shared_ptr<UniformBuffer> uniformPointLightBuffer;
 
 	// Render Pass
 };

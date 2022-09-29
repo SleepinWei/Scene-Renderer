@@ -1,30 +1,30 @@
 #include<glad/glad.h>
 #include"Material.h"
-// #include<shader/Shader.h>
 #include"../utils/Shader.h"
 #include<utility>
 #include"Texture.h"
+#include<memory>
 #include"../renderer/ResourceManager.h"
 
-extern ResourceManager resourceManager;
+extern std::unique_ptr<ResourceManager> resourceManager;
 
 Material::~Material() {
 }
 
 std::shared_ptr<Material> Material::loadPBR(const std::string& folder) {
 	auto material = std::make_shared<Material>();
-	material->addTexture(resourceManager.getResource(folder + "albedo.png"))
-		->addTexture(resourceManager.getResource(folder + "metallic.png"))
-		->addTexture(resourceManager.getResource(folder + "roughness.png"))
-		->addTexture(resourceManager.getResource(folder + "normal.png"))
-		->addTexture(resourceManager.getResource(folder + "ao.png"));
+	material->addTexture(resourceManager->getResource(folder + "albedo.png"))
+		->addTexture(resourceManager->getResource(folder + "metallic.png"))
+		->addTexture(resourceManager->getResource(folder + "roughness.png"))
+		->addTexture(resourceManager->getResource(folder + "normal.png"))
+		->addTexture(resourceManager->getResource(folder + "ao.png"));
 	return material;
 }
 
 std::shared_ptr<Material> Material::loadTerrain(const std::string& folder){
 	auto material = std::make_shared<Material>(); 
-	material->addTexture(resourceManager.getResource(folder + "heightMap.png"))
-		->addTexture(resourceManager.getResource(folder + "normalMap.png"));
+	material->addTexture(resourceManager->getResource(folder + "heightMap.png"))
+		->addTexture(resourceManager->getResource(folder + "normalMap.png"));
 	return material;
 }
 

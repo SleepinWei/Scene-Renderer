@@ -1,4 +1,7 @@
 #include"Mesh_Filter.h"
+#include"Material.h"
+#include"Texture.h"
+#include<glfw/glfw3.h>
 
 #define PI 3.1415926
 //using namespace rttr;
@@ -8,11 +11,11 @@
 //	//.constructor<>()(rttr::policy::ctor::as_raw_ptr);
 //}
 MeshFilter::MeshFilter() {
-	name = "MeshFilter";
+	Component::name = "MeshFilter";
 }
 
 MeshFilter::MeshFilter(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::shared_ptr<Material> material){
-	name = "MeshFilter";
+	Component::name = "MeshFilter";
 	this->vertices = vertices;
 	this->indices = indices;
 	this->material = material;

@@ -7,18 +7,31 @@
 #include"../utils/Camera.h"
 #include"../component/GameObject.h"
 #include"../utils/Shader.h"
+#include"../component/Lights.h"
 
 #include<glm/gtc/type_ptr.hpp>
 
 RenderManager::RenderManager() {
 	m_shader = std::vector<std::shared_ptr<Shader>>(ShaderTypeNum,nullptr);
-
-	// VP buffer
+	initVPbuffer();
+	initPointLightBuffer();
+}
+void RenderManager::initVPbuffer() {
+	// initialize a UBO for VP matrices
 	uniformVPBuffer = std::make_shared<UniformBuffer>(
 			2 * sizeof(glm::mat4)
 		);
 	uniformVPBuffer->setBinding(0);
-	shaderVPdirty = true; 
+}
+void RenderManager::initPointLightBuffer() {
+	// TODO: 
+	const int maxLight = 10; 
+	int lightBufferSize = maxLight * (64); // maximum 10 point lights, std140 layout
+
+	uniformPointLightBuffer = std::make_shared<UniformBuffer>(lightBufferSize);
+}
+void RenderManager::initDirectionLightBuffer() {
+	// TODO:
 }
 RenderManager::~RenderManager() {
 
@@ -37,17 +50,54 @@ void RenderManager::prepareVPData(const std::shared_ptr<RenderScene>& renderScen
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(projection));
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4),sizeof(glm::mat4), glm::value_ptr(view));
 	}
-	if (shaderVPdirty) {
+	if (uniformVPBuffer->dirty) {
 		//if dirty, set shader bindings of UBO
 		for (std::shared_ptr<Shader>& shader : m_shader) {
 			shader->setUniformBuffer("VP", uniformVPBuffer->binding);
 		}
-		shaderVPdirty = false; 
+		uniformVPBuffer->setDirtyFlag(false);
 	}
 }
 
-void RenderManager::render(const std::shared_ptr<RenderScene>& renderScene) {
-	for (auto object : renderScene->objects) {
+void RenderManager::prepareLightData(const std::shared_ptr<RenderScene>& scene) {
+	// TODO: test the consfusing offset
+	// point light
+		if (uniformPointLightBuffer) {
+		uniformPointLightBuffer->bindBuffer();
+		unsigned int UBO = uniformPointLightBuffer->UBO;
+		int lightNum = scene->pointLights.size();
+		for (int i = 0; i < lightNum; i++) {
+			PointLightData& data = scene->pointLights[i]->data; 
+			int dataSize = 64; // data size for a single light (under std140 layout)
+			glBufferSubData(GL_UNIFORM_BUFFER, 
+				0 + i * dataSize, 
+				sizeof(glm::vec3), glm::value_ptr(data.ambient)); // ambient
+			glBufferSubData(GL_UNIFORM_BUFFER, 
+				16 + i * dataSize, 
+				sizeof(glm::vec3), glm::value_ptr(data.diffuse)); //
+			glBufferSubData(GL_UNIFORM_BUFFER, 
+				32 + i * dataSize, 
+				sizeof(glm::vec3), glm::value_ptr(data.specular));
+			glBufferSubData(GL_UNIFORM_BUFFER, 
+				44 + i * dataSize, 
+				sizeof(float), &data.constant);
+			glBufferSubData(GL_UNIFORM_BUFFER, 
+				48 + i * dataSize, 
+				sizeof(float), &data.linear);
+			glBufferSubData(GL_UNIFORM_BUFFER, 
+				52 + i * dataSize, 
+				sizeof(float), &data.quadratic);
+		}
+	}
+	uniformPointLightBuffer->bindBuffer();
+}
+
+void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
+	// TODO: wrap up this function to be Scene rendering pass
+	prepareVPData(scene);
+	prepareLightData(scene);
+
+	for (auto object : scene->objects) {
 		std::shared_ptr<MeshRenderer>& renderer = std::dynamic_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
 		if (renderer) {
 			renderer->shader->use();
@@ -55,14 +105,14 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& renderScene) {
 		}
 	}
 	// render Terrain 
-	std::shared_ptr<Terrain>& terrain = renderScene->terrain;
+	std::shared_ptr<Terrain>& terrain = scene->terrain;
 	if (terrain) {
 		terrain->shader->use();
 		terrain->render();
 	}
 
 	// render skybox 
-	std::shared_ptr<SkyBox>& skybox = renderScene->skybox;
+	std::shared_ptr<SkyBox>& skybox = scene->skybox;
 	if (skybox) {
 		skybox->shader->use();
 		skybox->render();

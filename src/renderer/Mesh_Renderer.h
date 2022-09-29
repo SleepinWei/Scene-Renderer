@@ -1,17 +1,18 @@
 #pragma once
+#include<glad/glad.h>
+#include<glfw/glfw3.h>
 #include<memory>
 #include<glm/glm.hpp>
-// #include<glfw/glfw3.h>
 #include"../component/Component.h"
-#include<shader/Shader.h>
 #include"../system/RenderManager.h"
 #include<rttr/registration.h>
 
 class Material; 
 class MeshFilter; 
 class Texture; 
+class Shader;
 
-extern RenderManager renderManager;
+extern std::unique_ptr<RenderManager> renderManager;
 
 class MeshRenderer :public Component {
 public:

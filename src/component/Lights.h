@@ -1,8 +1,8 @@
 #pragma once
 #include<glm/glm.hpp>
-// #include<shader/Shader.h>
 #include"../utils/Shader.h"
 #include<glfw/glfw3.h>
+#include<vector>
 #include<memory>
 #include"../component/Component.h"
 
@@ -29,6 +29,14 @@ public:
 	//SINGLE,
 	//CUBEMAP
 //};
+struct PointLightData{
+	glm::vec3 ambient; 
+	glm::vec3 diffuse; 
+	glm::vec3 specular; 
+	float constant;
+	float linear; 
+	float quadratic; 
+};
 class PointLight: public Light{
 
 public:
@@ -38,17 +46,11 @@ public:
 	std::vector<glm::mat4> getLightMatrix();
 
 public:
-	glm::vec3 diffuse;
-	glm::vec3 specular;
-	glm::vec3 ambient;
-
-	float constant; 
-	float linear; 
-	float quadratic; 
+	PointLightData data; 
 
 	//POINTLIGHT mode; 
 
-	std::vector <glm::mat4> lightTransforms; 
+	std::vector <glm::mat4> lightTransforms; // 6 faces, 6 view transforms (for shadow map) 
 
 	float near; 
 	float far; 

@@ -12,24 +12,20 @@
 #include"renderer/Material.h"
 #include"component/Lights.h"
 #include"renderer/ResourceManager.h"
+#include"system/InputManager.h"
+extern "C" __declspec(dllexport) long long NvOptimusEnablement = 0x00000001;
+extern "C" __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 0x00000001;
 
 const unsigned int  SCR_WIDTH = 1600;
 const unsigned int SCR_HEIGHT = 900;
 
-Camera camera(glm::vec3(.0f, .0f, 0.f));
-float lastX;
-float lastY;
-bool firstMouse;
-
-// time 
-float deltaTime;
-float lastFrame;
-
 // manager
-RenderManager renderManager;
-ResourceManager resourceManager;
+std::unique_ptr<RenderManager> renderManager;
+std::unique_ptr<ResourceManager> resourceManager;
+std::unique_ptr<InputManager> inputManager;
 
-//cubes 
+#define TEST
+#ifndef TEST
 
 void render() {
 	glfwInit();
@@ -147,6 +143,7 @@ void render() {
 	glfwTerminate();
 
 }
+#endif
 
 void test_print(glm::mat4& model) {
 	for (int i = 0; i < 4; i++) {
@@ -157,13 +154,29 @@ void test_print(glm::mat4& model) {
 	}
 }
 void test() {
+	struct Data {
+		glm::vec3 a;
+		glm::vec3 b;
+		glm::vec3 c;
+		float d;
+		float e;
+		float f;
+	};
+	std::cout << "Hello" << '\n';
+	std::cout << sizeof(Data) << '\n';
+	std::cout << offsetof(Data, a) << '\n';
+	std::cout << offsetof(Data, b) << '\n';
+	std::cout << offsetof(Data, c) << '\n';
+	std::cout << offsetof(Data, d) << '\n';
+	std::cout << offsetof(Data, e) << '\n';
+	std::cout << offsetof(Data, f) << '\n';
 }
 
 //#include"PathTracing.h"
 int main() {
 	// 
-	render();
-	//test();
+	//render();
+	test();
 	//PT::render();
 	return 0; 
 }

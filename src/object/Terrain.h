@@ -9,8 +9,6 @@
 #include"../component/GameObject.h"
 #include<memory>
 
-extern class ResourceManager resourceManager;
-
 class Terrain:public GameObject{
 public:
 	Terrain();
@@ -19,7 +17,7 @@ public:
 	std::shared_ptr<Terrain> addShader(ShaderType st);
 	std::shared_ptr<Terrain> addMaterial(std::shared_ptr<Material> material); // append 
 
-	void render();
+	void render()const;
 private:
 	void initVertexObject();
 

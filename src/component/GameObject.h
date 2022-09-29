@@ -14,7 +14,7 @@ public:
 	GameObject(std::string name);
 	virtual ~GameObject();
 
-	std::shared_ptr<Component> addComponent(std::string component_type_name);
+	//std::shared_ptr<Component> addComponent(std::string component_type_name);
 
 	template<class T>
 	std::shared_ptr<T> addComponent() {
