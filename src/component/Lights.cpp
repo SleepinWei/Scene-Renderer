@@ -70,9 +70,9 @@ PointLight::~PointLight() {
 }
 
 DirectionLight::DirectionLight() {
-	Component::name = "PointLight";
+	Component::name = "DirectionLight";
 	Light::type = LightType::DIRECTIONAL;
-	Light:: castShadow = true;
+	Light::castShadow = true;
 	Light::dirty = true;
 
 	near = 0.1f;

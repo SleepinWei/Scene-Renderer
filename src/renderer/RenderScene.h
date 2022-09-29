@@ -11,7 +11,7 @@ class Camera;
 class PointLight;
 class DirectionLight;
 
-class RenderScene : std::enable_shared_from_this<RenderScene> {
+class RenderScene : public std::enable_shared_from_this<RenderScene> {
 	// scene objects
 public:
 	std::shared_ptr<Terrain> terrain; 
@@ -23,10 +23,10 @@ public:
 	std::shared_ptr<Camera> main_camera;
 
 public:
+	RenderScene() = default;
 	std::shared_ptr<RenderScene> addObject(std::shared_ptr<GameObject> object);
 	std::shared_ptr<RenderScene> addTerrain(std::shared_ptr<Terrain>terrain);
 	std::shared_ptr<RenderScene> addSkyBox(std::shared_ptr<SkyBox>skybox);
-	//std::shared_ptr<RenderScene> addLight(std::shared_ptr<Light> light);
 };
 
 //namespace RenderPass {

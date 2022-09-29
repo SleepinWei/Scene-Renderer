@@ -27,8 +27,10 @@ void Camera::tick() {
     }
 
 	// scroll
-	if (inputManager->getKeyStatus(MOUSE_SCROLL) == PRESSED) {
-		ProcessMouseScroll(inputManager->mouseScrollY);
+	if (inputManager->scrollMove) {
+		if (inputManager->getKeyStatus(MOUSE_SCROLL) == PRESSED) {
+			ProcessMouseScroll(inputManager->mouseScrollY);
+		}
 	}
 
 	// Rotation

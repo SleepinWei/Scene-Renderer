@@ -2,9 +2,11 @@
 #include<glfw/glfw3.h>
 
 void InputManager::reset() {
-	for (int i = 0; i < keyStatus.size(); i++) {
-		keyStatus[i] = RELEASED;
-	}
+	//for (int i = 0; i < keyStatus.size(); i++) {
+		//keyStatus[i] = RELEASED;
+	//}
+	mouseMove = false;
+	scrollMove = false;
 }
 
 InputManager::InputManager() {
@@ -18,12 +20,14 @@ InputManager::InputManager() {
 
 	mouseScrollX = 0;
 	mouseScrollY = 0;
+	mouseMove = false;
+	scrollMove = false;
 
 	lastFrame = 0;
 	deltaFrame = 0;
 }
 
-void InputManager::setFrame() {
+void InputManager::tick() {
 	float currentFrame = static_cast<float>(glfwGetTime());
 	deltaFrame = currentFrame - lastFrame;
 	lastFrame = currentFrame;

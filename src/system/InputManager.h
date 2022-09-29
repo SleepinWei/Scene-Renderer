@@ -10,7 +10,7 @@ public:
 	void reset(); 
 	void setMousePos(float x, float y);
 	void setMouseScroll(float x, float y);
-	void setFrame();//TODO
+	void tick();
 	int getKeyStatus(int key);
 
 public:	
@@ -23,6 +23,9 @@ public:
 	float lastY;
 	float deltaX;
 	float deltaY;
+	bool mouseMove; 
+	bool scrollMove;
+
 	double mouseScrollY; 
 	double mouseScrollX;
 

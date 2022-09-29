@@ -21,7 +21,7 @@ public:
 		std::shared_ptr<T> component = std::make_shared<T>();
 		//rttr::type t = rttr::type::get(*component);
 		std::string component_type_name = component->name; 
-		component->set_game_object(shared_from_this());
+		component->Component::setGameObject(shared_from_this());
 		if (component_type_instance_map.find(component_type_name) == component_type_instance_map.end()) {
 			std::vector<std::shared_ptr<Component>> component_vec;
 			component_vec.push_back(component);

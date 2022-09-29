@@ -4,6 +4,7 @@
 #include <imgui/imgui_impl_opengl3.h>
 // #include<glfw/glfw3.h>
 #include<glm/glm.hpp>
+#include"renderer/RenderScene.h"
 
 class Gui {
 public:
@@ -20,18 +21,24 @@ public:
 		ImGui_ImplGlfw_Shutdown();
 		ImGui::DestroyContext();
 	}
-	void window(glm::vec3& lightPos,float& lightColor) {
+	void window(std::shared_ptr<RenderScene>& scene) {
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
 		ImGui::Begin("Info");
-		ImGui::Text("Light Position");
-		ImGui::SliderFloat("X", &lightPos.x, -8.0f, 8.0f);
-		ImGui::SliderFloat("Y", &lightPos.y, -8.0f, 8.0f);
-		ImGui::SliderFloat("Z", &lightPos.z, -8.0f, 8.0f);
+		auto& lights = scene->pointLights;
+		for (int i = 0; i < lights.size(); i++) {
+			char title[] = "Lighti Position";
+			title[4] = '0' + i;
+			ImGui::Text(title);
+			auto& light = lights[i]; 
+			ImGui::SliderFloat("X", &light->data.position.x, -8.0f, 8.0f);
+			ImGui::SliderFloat("Y", &light->data.position.y, -8.0f, 8.0f);
+			ImGui::SliderFloat("Z", &light->data.position.z, -8.0f, 8.0f);
+		}
 		ImGui::Text("Light Intensity");
-		ImGui::SliderFloat("Intensity", &lightColor, 0.5f, 20.0f);
+		//ImGui::SliderFloat("Intensity", &lightColor, 0.5f, 20.0f);
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		ImGui::End();
 

@@ -90,7 +90,8 @@ void MeshRenderer::render(){
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
-	shader->use(); 
+	if(shader)
+		shader->use(); 
 	{
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);

@@ -134,6 +134,7 @@ void mouse_button_callback(GLFWwindow* window, int key, int action,int mods){
 // ----------------------------------------------------------------------
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
+    inputManager->scrollMove = true;
     inputManager->keyStatus[MOUSE_SCROLL] = PRESSED;
     inputManager->mouseScrollX = xoffset;
     inputManager->mouseScrollY = yoffset;
