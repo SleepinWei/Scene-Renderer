@@ -32,7 +32,7 @@ void Camera::tick() {
 	}
 
 	// Rotation
-	if (!inputManager->cursorEnbaled) {
+	if (!inputManager->cursorEnbaled && inputManager->mouseMove) {
 		// if the cursor is not enabled
 		ProcessMouseMovement(inputManager->deltaX, inputManager->deltaY);
 	}

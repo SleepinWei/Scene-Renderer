@@ -35,6 +35,7 @@ int createWindow(GLFWwindow*& window,
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
     glfwSetScrollCallback(window, scroll_callback);
     glfwSetKeyCallback(window, key_callback);
 
@@ -44,9 +45,43 @@ int createWindow(GLFWwindow*& window,
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS){
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
         inputManager->keyStatus[ESC_PRESSED] = PRESSED;
         glfwSetWindowShouldClose(window, GL_TRUE);
+    }
+	if (action == GLFW_PRESS) {
+		if (key == GLFW_KEY_W) {
+			inputManager->keyStatus[KEY_W] = PRESSED;
+		}
+
+		if (key == GLFW_KEY_A) {
+			inputManager->keyStatus[KEY_A] = PRESSED;
+		}
+
+		if (key == GLFW_KEY_S) {
+			inputManager->keyStatus[KEY_S] = PRESSED;
+		}
+
+		if (key == GLFW_KEY_D) {
+			inputManager->keyStatus[KEY_D] = PRESSED;
+		}
+	}
+    else if (action == GLFW_RELEASE) {
+        if (key == GLFW_KEY_W) {
+			inputManager->keyStatus[KEY_W] = RELEASED;
+		}
+
+		if (key == GLFW_KEY_A) {
+			inputManager->keyStatus[KEY_A] = RELEASED;
+		}
+
+		if (key == GLFW_KEY_S) {
+			inputManager->keyStatus[KEY_S] = RELEASED;
+		}
+
+		if (key == GLFW_KEY_D) {
+			inputManager->keyStatus[KEY_D] = RELEASED;
+		}
     }
 }
 
@@ -61,36 +96,38 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
 // glfw: whenever the mouse moves, this callback is called
 // -------------------------------------------------------
+bool clicked = false;
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
-    static int prevState = GLFW_RELEASE;
-    static int currentState = GLFW_RELEASE;
-    currentState = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
-    if (currentState == GLFW_PRESS) {
-        //if (camera->fixed) return;
-        if (currentState != prevState)
-        {
-            // disable cursor
-            inputManager->cursorEnbaled = false; 
-            inputManager->lastX = xpos;
-            inputManager->lastY = ypos;
-			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        }
-
-        // TODO: move this part to camera class
+    inputManager->mouseMove = true;
+    if (clicked) {
         inputManager->deltaX = xpos - inputManager->lastX;
         inputManager->deltaY = inputManager->lastY - ypos; // reversed since y-coordinates go from bottom to top
-
         inputManager->lastX = xpos;
         inputManager->lastY = ypos;
 
         //camera.ProcessMouseMovement(xoffset, yoffset);
     }
-    else if(currentState != prevState) {
+}
+void mouse_button_callback(GLFWwindow* window, int key, int action,int mods){
+    if(key == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS){
+        double xpos, ypos; 
+        glfwGetCursorPos(window, &xpos, &ypos);
+        clicked = true;
+        inputManager->cursorEnbaled = false;
+        inputManager->lastX = xpos;
+        inputManager->lastY = ypos;
+        inputManager->deltaX = 0;
+        inputManager->deltaY = 0;
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    }
+    else if (key == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE){
+        clicked = false;
         inputManager->cursorEnbaled = true;
+        inputManager->deltaX = 0;
+        inputManager->deltaY = 0;
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
-    prevState = currentState;
 }
 
 // glfw: whenever the mouse scroll wheel scrolls, this callback is called
