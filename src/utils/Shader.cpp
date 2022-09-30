@@ -125,6 +125,47 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geo
     if (tessEvalPath != nullptr)
         glDeleteShader(tessEval);
 }
+
+Shader::Shader(const char* computePath)
+{
+    // 1. retrieve the vertex/fragment source code from filePath
+    std::string computeCode;
+    std::ifstream computeShaderFile;
+    // ensure ifstream objects can throw exceptions:
+    computeShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    try
+    {
+        // open files
+        computeShaderFile.open(computePath);
+        std::stringstream computeShaderStream;
+        // read file's buffer contents into streams
+        computeShaderStream << computeShaderFile.rdbuf();
+        // close file handlers
+        computeShaderFile.close();
+        // convert stream into string
+        computeCode= computeShaderStream.str();
+    }
+    catch (std::ifstream::failure& e)
+    {
+        std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << std::endl;
+    }
+    const char* computeShaderCode = computeCode.c_str();
+    // 2. compile shaders
+    unsigned int compute;
+    // vertex shader
+    compute = glCreateShader(GL_COMPUTE_SHADER);
+    glShaderSource(compute, 1, &computeShaderCode, NULL);
+    glCompileShader(compute);
+    checkCompileErrors(compute, "COMPUTE");
+    // shader Program
+    ID = glCreateProgram();
+    glAttachShader(ID, compute);
+    glLinkProgram(ID);
+    checkCompileErrors(ID, "PROGRAM");
+    // delete the shaders as they're linked into our program now and no longer necessery
+    glDeleteShader(compute);
+}
+
 // activate the shader
 // ------------------------------------------------------------------------
 void Shader::use()

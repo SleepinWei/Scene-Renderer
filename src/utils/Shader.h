@@ -18,6 +18,7 @@ public:
         const char *tessControlPath=nullptr,
         const char* tessEvaluationPath=nullptr
         ); 
+    Shader(const char* controlPath);
     // activate the shader
     // ------------------------------------------------------------------------
     void use();
