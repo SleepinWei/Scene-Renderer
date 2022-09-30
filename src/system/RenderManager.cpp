@@ -91,78 +91,75 @@ void RenderManager::preparePointLightData(const std::shared_ptr<RenderScene>& sc
 	// update at the first time
 	if (uniformPointLightBuffer->dirty) {
 		uniformPointLightBuffer->dirty = false;
-		uniformPointLightBuffer->bindBuffer();
-		unsigned int UBO = uniformPointLightBuffer->UBO;
-		int lightNum = scene->pointLights.size();
-		//std::cout << lightNum << '\n';
-		int dataSize = 32; // data size for a single light (under std140 layout)
-		for (int i = 0; i < lightNum; i++) {
-			PointLightData& data = scene->pointLights[i]->data; 
-			glBufferSubData(GL_UNIFORM_BUFFER, 
-				0 + i * dataSize, 
-				sizeof(glm::vec3), glm::value_ptr(data.color)); // ambient
-			glBufferSubData(GL_UNIFORM_BUFFER, 
-				16 + i * dataSize, 
-				sizeof(glm::vec3), glm::value_ptr(data.position)); //
-			/*glBufferSubData(GL_UNIFORM_BUFFER, 
-				32 + i * dataSize, 
-				sizeof(glm::vec3), glm::value_ptr(data.specular));
-			glBufferSubData(GL_UNIFORM_BUFFER, 
-				48 + i * dataSize, 
-				sizeof(float), &data.constant);
-			glBufferSubData(GL_UNIFORM_BUFFER, 
-				52 + i * dataSize, 
-				sizeof(float), &data.linear);
-			glBufferSubData(GL_UNIFORM_BUFFER, 
-				56 + i * dataSize, 
-				sizeof(float), &data.quadratic);*/
-		}
-		// add the number of lights to UBO
-		glBufferSubData(GL_UNIFORM_BUFFER,
-			dataSize * 10, sizeof(int), &lightNum);
 		for (std::shared_ptr<Shader>& shader : m_shader) {
 			if (shader) {
 				shader->use();
 				shader->setUniformBuffer("PointLightBuffer", uniformPointLightBuffer->binding);
 			}
 		}
-
 	}
 	uniformPointLightBuffer->bindBuffer();
+	unsigned int UBO = uniformPointLightBuffer->UBO;
+	int lightNum = scene->pointLights.size();
+	int dataSize = 32; // data size for a single light (under std140 layout)
+	for (int i = 0; i < lightNum; i++) {
+		auto& light = scene->pointLights[i]; 
+		if (!light->dirty) {
+			// if not dirty, then pass
+			continue;
+		}
+		PointLightData& data = scene->pointLights[i]->data; 
+		glBufferSubData(GL_UNIFORM_BUFFER, 
+			0 + i * dataSize, 
+			sizeof(glm::vec3), glm::value_ptr(data.color)); //color 
+		glBufferSubData(GL_UNIFORM_BUFFER, 
+			16 + i * dataSize, 
+			sizeof(glm::vec3), glm::value_ptr(data.position)); //position
+		light->setDirtyFlag(false); // ?
+	}
+	// add the number of lights to UBO
+	glBufferSubData(GL_UNIFORM_BUFFER,
+		dataSize * 10, sizeof(int), &lightNum);
+
+	//uniformPointLightBuffer->bindBuffer();
 }
 
 void RenderManager::prepareDirectionLightData(const std::shared_ptr<RenderScene>& scene) {
 	// update light data only when dirty 
 	if (uniformDirectionLightBuffer->dirty) {
 		uniformDirectionLightBuffer->dirty = false;
-		uniformDirectionLightBuffer->bindBuffer();
-		unsigned int UBO = uniformDirectionLightBuffer->UBO;
-		int lightNum = scene->directionLights.size();
-		int dataSize = 48; // data size for a single light (under std140 layout)
-		for (int i = 0; i < lightNum; i++) {
-			DirectionLightData& data = scene->directionLights[i]->data; 
-			glBufferSubData(GL_UNIFORM_BUFFER, 
-				0 + i * dataSize, 
-				sizeof(glm::vec3), glm::value_ptr(data.color)); // ambient
-			glBufferSubData(GL_UNIFORM_BUFFER, 
-				16 + i * dataSize, 
-				sizeof(glm::vec3), glm::value_ptr(data.position)); //
-			glBufferSubData(GL_UNIFORM_BUFFER, 
-				32 + i * dataSize, 
-				sizeof(glm::vec3), glm::value_ptr(data.direction));
-			//glBufferSubData(GL_UNIFORM_BUFFER, 
-				//48 + i * dataSize, 
-				//sizeof(glm::vec3), glm::value_ptr(data.direction));
-		}
-		glBufferSubData(GL_UNIFORM_BUFFER, 10 * dataSize, 
-			sizeof(int), &lightNum);
 		for (std::shared_ptr<Shader>& shader : m_shader) {
 			if (shader) {
 				shader->setUniformBuffer("DirectionLightBuffer", uniformDirectionLightBuffer->binding);
 			}
 		}
 	}
-	uniformPointLightBuffer->bindBuffer();
+	uniformDirectionLightBuffer->bindBuffer();
+	unsigned int UBO = uniformDirectionLightBuffer->UBO;
+	int lightNum = scene->directionLights.size();
+	int dataSize = 48; // data size for a single light (under std140 layout)
+	for (int i = 0; i < lightNum; i++) {
+		auto& light = scene->directionLights[i];
+		if (!light->dirty) {
+			continue;
+		}
+		DirectionLightData& data = scene->directionLights[i]->data; 
+		glBufferSubData(GL_UNIFORM_BUFFER, 
+			0 + i * dataSize, 
+			sizeof(glm::vec3), glm::value_ptr(data.color)); // ambient
+		glBufferSubData(GL_UNIFORM_BUFFER, 
+			16 + i * dataSize, 
+			sizeof(glm::vec3), glm::value_ptr(data.position)); //
+		glBufferSubData(GL_UNIFORM_BUFFER, 
+			32 + i * dataSize, 
+			sizeof(glm::vec3), glm::value_ptr(data.direction));
+		//glBufferSubData(GL_UNIFORM_BUFFER, 
+			//48 + i * dataSize, 
+			//sizeof(glm::vec3), glm::value_ptr(data.direction));
+		light->setDirtyFlag(false);
+	}
+	glBufferSubData(GL_UNIFORM_BUFFER, 10 * dataSize, 
+		sizeof(int), &lightNum);
 }
 
 

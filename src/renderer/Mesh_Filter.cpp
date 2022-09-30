@@ -18,7 +18,6 @@ MeshFilter::MeshFilter(std::vector<Vertex> vertices, std::vector<unsigned int> i
 	Component::name = "MeshFilter";
 	this->vertices = vertices;
 	this->indices = indices;
-	this->material = material;
 }
 
 void MeshFilter::loadMesh(std::string path) {
@@ -27,9 +26,6 @@ void MeshFilter::loadMesh(std::string path) {
 
 MeshFilter::~MeshFilter() {
 
-}
-void MeshFilter::addMaterial(std::shared_ptr<Material> material) {
-	material = material;
 }
 
 void MeshFilter::initSphere(int pointNum) {
@@ -158,8 +154,7 @@ void MeshFilter::initCube() {
 
 }
 
-MeshFilter::MeshFilter(SHAPE shape) {
-	name = "MeshFilter";
+void MeshFilter::loadShape(SHAPE shape) {
 	switch (shape)
 	{
 	case SHAPE::SPHERE:

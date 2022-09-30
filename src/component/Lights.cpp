@@ -10,6 +10,10 @@ Light::~Light() {
 
 }
 
+void Light::setDirtyFlag(bool dirty) {
+	this->dirty = dirty;
+}
+
 PointLight::PointLight() {
 	Component::name = "PointLight";
 	Light::type = LightType::POINT;
@@ -60,7 +64,6 @@ std::vector<glm::mat4> PointLight::getLightMatrix() {
 			proj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, -1.0, 0.0)));
 		lightTransforms.push_back(
 			proj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0)));
-		Light::dirty = false;
 	}
 	return lightTransforms;
 }
@@ -98,8 +101,6 @@ glm::mat4 DirectionLight::getLightMatrix() {
 		glm::mat4 proj = glm::ortho(-10.0f, 10.f, -10.0f, 10.0f, near, far);
 		glm::mat4 view = glm::lookAt(lightPos, lightPos + data.direction, glm::vec3(0.0f, 1.0f, 0.0f));
 		lightTransforms = proj * view; 
-
-		Light::dirty = true;
 	}
 	return lightTransforms; 
 }

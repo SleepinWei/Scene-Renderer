@@ -14,6 +14,7 @@ class Light :public Component, public std::enable_shared_from_this<Light> {
 public:
 	Light();
 	virtual ~Light();
+	void setDirtyFlag(bool dirty);
 
 public:
 
@@ -22,7 +23,8 @@ public:
 	const int SHADOW_WIDTH = 1024;
 	const int SHADOW_HEIGHT = 1024; 
 	
-	bool dirty; 
+	bool dirty; //if position of light changes, this flag turns true
+	// light 是否 dirty 要交给 prepare light data 统一设置
 };
 
 //enum class POINTLIGHT {

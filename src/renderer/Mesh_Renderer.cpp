@@ -26,9 +26,15 @@ MeshRenderer::~MeshRenderer() {
 
 }
 
-void MeshRenderer::setShader(ShaderType type) {
+std::shared_ptr<MeshRenderer> MeshRenderer::setShader(ShaderType type) {
 	shader = renderManager->getShader(type);
+	return shared_from_this();
 }
+
+std::shared_ptr<MeshRenderer> MeshRenderer::setMaterial(std::shared_ptr<Material> material) { 
+	this->material = material; 
+	return shared_from_this();
+};
 
 void MeshRenderer::setDrawMode(GLenum drawMode_) {
 	drawMode = drawMode_;
@@ -36,6 +42,9 @@ void MeshRenderer::setDrawMode(GLenum drawMode_) {
 
 MeshRenderer::MeshRenderer():drawMode(GL_TRIANGLES),polyMode(GL_FILL) {
 	name = "MeshRenderer";
+	VAO = 0;
+	VBO = 0;
+	EBO = 0;
 }
 
 void MeshRenderer::render(){
@@ -73,8 +82,8 @@ void MeshRenderer::render(){
 		glBindVertexArray(VAO); 
 		{
 			glBindBuffer(GL_ARRAY_BUFFER, VBO);
-			glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(MeshFilter::Vertex), (void*)0);
-			glVertexAttribPointer(1, 3, GL_FLOAT, false, sizeof(MeshFilter::Vertex), (void*)offsetof(MeshFilter::Vertex,Position));
+			glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(MeshFilter::Vertex), (void*)offsetof(MeshFilter::Vertex,Position));
+			glVertexAttribPointer(1, 3, GL_FLOAT, false, sizeof(MeshFilter::Vertex), (void*)offsetof(MeshFilter::Vertex,Normal));
 			glVertexAttribPointer(2, 2, GL_FLOAT, false, sizeof(MeshFilter::Vertex), (void*)offsetof(MeshFilter::Vertex,TexCoords));
 			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(MeshFilter::Vertex), (void*)offsetof(MeshFilter::Vertex, Tangent));
 			glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(MeshFilter::Vertex), (void*)offsetof(MeshFilter::Vertex, Bitangent));
@@ -91,17 +100,17 @@ void MeshRenderer::render(){
 	}
 
 	if(shader)
-		shader->use(); 
 	{
-		glEnable(GL_DEPTH_TEST);
-		glEnable(GL_CULL_FACE);
-		shader->setMat4("projection", projection);
-		shader->setMat4("view", view);
+		shader->use(); 
+		//glEnable(GL_DEPTH_TEST);
+		//glEnable(GL_CULL_FACE);
+		//shader->setMat4("projection", projection);
+		//shader->setMat4("view", view);
 		shader->setMat4("model", model);
 
 		// bind textures 
 		//TODO:
-		std::vector<std::shared_ptr<Texture>> textures = material->textures;
+		std::vector<std::shared_ptr<Texture>>& textures = material->textures;
 		for (int texture_index = 0; texture_index < textures.size(); ++texture_index) {
 			//激活纹理单元0
 			glActiveTexture(GL_TEXTURE0 + texture_index);
@@ -113,13 +122,13 @@ void MeshRenderer::render(){
 
 		glBindVertexArray(VAO);
 		{
-			if (polyMode == GL_LINE) {
-				glPolygonMode(GL_FRONT_AND_BACK, polyMode);
-			}
+			//if (polyMode == GL_LINE) {
+			//	glPolygonMode(GL_FRONT_AND_BACK, polyMode);
+			//}
 			glDrawElements(drawMode, mesh_filter->indices.size(), GL_UNSIGNED_INT, 0);
-			if (polyMode == GL_FILL) {
-				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-			}
+			//if (polyMode == GL_FILL) {
+				//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			//}
 		}
 		glBindVertexArray(0);
 	}

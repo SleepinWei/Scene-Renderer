@@ -3,17 +3,27 @@
 #include<iostream>
 #include<glfw/glfw3.h>
 #include<glm/glm.hpp>
+//utils
 #include"utils/Utils.h"
 #include"utils/Camera.h"
+//components
 #include"component/GameObject.h"
-#include"GUI.h"
+#include"component/transform.h"
+#include"component/Lights.h"
+#include"./component/Model.h"
+//object
 #include"object/SkyBox.h"
 #include"object/Terrain.h"
+//renderer
 #include"renderer/Material.h"
-#include"component/Lights.h"
 #include"renderer/ResourceManager.h"
-#include"system/InputManager.h"
+#include"./renderer/Mesh_Filter.h"
+#include"renderer/Mesh_Renderer.h"
 #include"./renderer/RenderScene.h"
+//system
+#include"system/InputManager.h"
+#include"./system/RenderManager.h"
+#include"GUI.h"
 extern "C" __declspec(dllexport) long long NvOptimusEnablement = 0x00000001;
 extern "C" __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 0x00000001;
 
@@ -66,8 +76,8 @@ void render() {
 		std::shared_ptr<Terrain> terrain = std::make_shared<Terrain>();
 		terrain->loadHeightmap("./asset/heightmap/iceland/");
 		auto terrainMaterial = Material::loadPBR("./asset/pbr/sand/");
-		terrain->addMaterial(terrainMaterial);
-		terrain->addShader(ShaderType::TERRAIN);
+		terrain->addMaterial(terrainMaterial)
+			->addShader(ShaderType::TERRAIN);
 		scene->addTerrain(terrain);
 	}
 
@@ -87,7 +97,19 @@ void render() {
 
 	// object
 	{
+		std::shared_ptr<GameObject> sphere = std::make_shared<GameObject>();
+		auto& transform = sphere->addComponent<Transform>();
+		transform->position = glm::vec3(0.0f, 1.0f, 0.0f);
 
+		auto& mesh = sphere->addComponent<MeshFilter>();
+		mesh->loadShape(SHAPE::SPHERE);
+
+		auto& renderer = sphere->addComponent<MeshRenderer>();
+		renderer->setShader(ShaderType::PBR)
+			->setMaterial(Material::loadPBR("./asset/pbr/riverrock/"));
+		// std::cout << resourceManager->resource.size() << '\n';
+
+		scene->addObject(sphere);
 	}
 
 	while (!glfwWindowShouldClose(window)) {

@@ -5,6 +5,7 @@
 // #include<glfw/glfw3.h>
 #include<glm/glm.hpp>
 #include"renderer/RenderScene.h"
+#include"./component/Lights.h"
 
 class Gui {
 public:
@@ -36,6 +37,7 @@ public:
 			ImGui::SliderFloat("X", &light->data.position.x, -8.0f, 8.0f);
 			ImGui::SliderFloat("Y", &light->data.position.y, -8.0f, 8.0f);
 			ImGui::SliderFloat("Z", &light->data.position.z, -8.0f, 8.0f);
+			light->setDirtyFlag(true);
 		}
 		ImGui::Text("Light Intensity");
 		//ImGui::SliderFloat("Intensity", &lightColor, 0.5f, 20.0f);

@@ -7,6 +7,7 @@ public:
 	int size; 
 	int binding;
 	bool dirty; // dirty flag, reset shader's ubo bindings if dirty
+	//this flag only indicates when to reset UBO bindings in shaders, not UBO data.
 
 public:
 	UniformBuffer(int size);

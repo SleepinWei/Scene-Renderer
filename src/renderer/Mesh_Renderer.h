@@ -14,7 +14,7 @@ class Shader;
 
 extern std::unique_ptr<RenderManager> renderManager;
 
-class MeshRenderer :public Component {
+class MeshRenderer :public Component, public std::enable_shared_from_this<MeshRenderer>{
 public:
 
 	MeshRenderer();
@@ -23,10 +23,10 @@ public:
 	void render(); 
 
 	//void setShader(std::shared_ptr<Shader> shader) { this->shader = shader; };
-	void setShader(ShaderType type);
-	void setMaterial(std::shared_ptr<Material> material) { material = material; };
-	void setView(glm::mat4 view) { view = view; };
-	void setProjection(glm::mat4 projection) { projection = projection; };
+	std::shared_ptr<MeshRenderer> setShader(ShaderType type);
+	std::shared_ptr<MeshRenderer> setMaterial(std::shared_ptr<Material> material);
+	//void setView(glm::mat4 view) { view = view; };
+	//void setProjection(glm::mat4 projection) { projection = projection; };
 	void setDrawMode(GLenum drawMode_);
 
 public:
@@ -34,8 +34,8 @@ public:
 	GLenum drawMode;
 	GLenum polyMode;
 
-	glm::mat4 view; 
-	glm::mat4 projection; 
+	//glm::mat4 view; 
+	//glm::mat4 projection; 
 	std::shared_ptr<Material> material;
 
 	std::shared_ptr<Shader> shader; 

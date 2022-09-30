@@ -34,12 +34,11 @@ public:
 	};
 
 	MeshFilter();
-	MeshFilter(SHAPE type);
 	MeshFilter(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::shared_ptr<Material>);
-	void addMaterial(std::shared_ptr<Material> material);
 
 	~MeshFilter();
 
+	void loadShape(SHAPE type);
 	void loadMesh(std::string path);
 
 private:
@@ -51,6 +50,5 @@ private:
 public:
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
-	std::shared_ptr<Material> material;
 };
 
