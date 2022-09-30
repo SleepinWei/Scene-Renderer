@@ -14,6 +14,7 @@
 #include"../utils/Shader.h"
 #include"../component/GameObject.h"
 #include"../component/transform.h"
+#include"../component/Lights.h"
 
 //using namespace rttr;
 
@@ -110,14 +111,16 @@ void MeshRenderer::render(){
 
 		// bind textures 
 		//TODO:
-		std::vector<std::shared_ptr<Texture>>& textures = material->textures;
-		for (int texture_index = 0; texture_index < textures.size(); ++texture_index) {
-			//激活纹理单元0
-			glActiveTexture(GL_TEXTURE0 + texture_index);
-			//将加载的图片纹理句柄，绑定到纹理单元0的Texture2D上。
-			glBindTexture(GL_TEXTURE_2D, textures[texture_index]->id);
-			//设置Shader程序从纹理单元0读取颜色数据
-			shader->setInt(("material."+textures[texture_index]->type).c_str(), texture_index);
+		if (material) {
+			std::vector<std::shared_ptr<Texture>>& textures = material->textures;
+			for (int texture_index = 0; texture_index < textures.size(); ++texture_index) {
+				//激活纹理单元0
+				glActiveTexture(GL_TEXTURE0 + texture_index);
+				//将加载的图片纹理句柄，绑定到纹理单元0的Texture2D上。
+				glBindTexture(GL_TEXTURE_2D, textures[texture_index]->id);
+				//设置Shader程序从纹理单元0读取颜色数据
+				shader->setInt(("material." + textures[texture_index]->type).c_str(), texture_index);
+			}
 		}
 
 		glBindVertexArray(VAO);

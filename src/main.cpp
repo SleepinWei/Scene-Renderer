@@ -85,8 +85,38 @@ void render() {
 	{
 		std::shared_ptr<GameObject> pLight = std::make_shared<GameObject>();
 		std::shared_ptr<PointLight>& light = pLight->addComponent<PointLight>(); 
-		light->data.position = glm::vec3(0.0f, 2.0f, 0.0f);
+
+		auto& transform = pLight->addComponent<Transform>(); 
+		transform->scale = glm::vec3(0.1);
+		transform->position = glm::vec3(0.5f, 5.0f, -1.0f);
+
+		auto& mesh = pLight->addComponent<MeshFilter>();
+		mesh->loadShape(SHAPE::POINT);
+		
+		auto& renderer = pLight->addComponent <MeshRenderer>();
+		renderer->setShader(ShaderType::LIGHT)
+			->setDrawMode(GL_POINTS);
+
 		scene->addObject(pLight);
+	}
+	{
+		std::shared_ptr<GameObject> dLight = std::make_shared<GameObject>();
+
+		auto& transform = dLight->addComponent<Transform>(); 
+		transform->scale = glm::vec3(0.1);
+		transform->position = glm::vec3(1.0f, 2.0f, -1.0f);
+
+		std::shared_ptr<DirectionLight>& light = dLight->addComponent<DirectionLight>(); 
+		light->data.direction = -transform->position;
+
+		auto& mesh = dLight->addComponent<MeshFilter>();
+		mesh->loadShape(SHAPE::POINT);
+		
+		auto& renderer = dLight->addComponent <MeshRenderer>();
+		renderer->setShader(ShaderType::LIGHT)
+			->setDrawMode(GL_POINTS);
+
+		scene->addObject(dLight);
 	}
 
 	// Camera
@@ -100,6 +130,7 @@ void render() {
 		std::shared_ptr<GameObject> sphere = std::make_shared<GameObject>();
 		auto& transform = sphere->addComponent<Transform>();
 		transform->position = glm::vec3(0.0f, 1.0f, 0.0f);
+		transform->scale = glm::vec3(0.2);
 
 		auto& mesh = sphere->addComponent<MeshFilter>();
 		mesh->loadShape(SHAPE::SPHERE);

@@ -22,7 +22,7 @@ PointLight::PointLight() {
 
 	data = {
 		glm::vec3(1.0f),//color
-		glm::vec3(0.0f),//position
+		//glm::vec3(0.0f),//position
 
 		glm::vec3(1.0f),//ambient
 		glm::vec3(1.0f),//diffuse
@@ -47,7 +47,9 @@ PointLight::PointLight() {
 
 std::vector<glm::mat4> PointLight::getLightMatrix() {
 
-	glm::vec3 lightPos = data.position;
+	//glm::vec3 lightPos = data.position;
+	glm::vec3 lightPos = std::dynamic_pointer_cast<Transform>(
+		gameObject->GetComponent("Transform"))->position;
 
 	if (Light:: dirty) {
 		glm::mat4 proj = glm::perspective(glm::radians(fov), aspect, near, far);
@@ -83,7 +85,7 @@ DirectionLight::DirectionLight() {
 
 	data = {
 		glm::vec3(1.0f), // color
-		glm::vec3(0.0f),//position
+		//glm::vec3(0.0f),//position
 		glm::vec3(0.0f,-1.0f,0.0f), // direction
 		glm::vec3(1.0f),//ambient
 		glm::vec3(1.0f),//diffuse
@@ -97,7 +99,10 @@ DirectionLight::~DirectionLight() {
 
 glm::mat4 DirectionLight::getLightMatrix() {
 	if (Light::dirty) {
-		glm::vec3 lightPos = data.position;
+		//glm::vec3 lightPos = data.position;
+		glm::vec3 lightPos = std::dynamic_pointer_cast<Transform>(
+			gameObject->GetComponent("Transform")
+			)->position;
 		glm::mat4 proj = glm::ortho(-10.0f, 10.f, -10.0f, 10.0f, near, far);
 		glm::mat4 view = glm::lookAt(lightPos, lightPos + data.direction, glm::vec3(0.0f, 1.0f, 0.0f));
 		lightTransforms = proj * view; 

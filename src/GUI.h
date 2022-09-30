@@ -31,13 +31,28 @@ public:
 		auto& lights = scene->pointLights;
 		for (int i = 0; i < lights.size(); i++) {
 			char title[] = "Lighti Position";
-			title[4] = '0' + i;
+			title[5] = '0' + 0;
 			ImGui::Text(title);
-			auto& light = lights[i]; 
-			ImGui::SliderFloat("X", &light->data.position.x, -8.0f, 8.0f);
-			ImGui::SliderFloat("Y", &light->data.position.y, -8.0f, 8.0f);
-			ImGui::SliderFloat("Z", &light->data.position.z, -8.0f, 8.0f);
-			light->setDirtyFlag(true);
+			//auto& light = lights[0]; 
+			auto lightTrans = std::dynamic_pointer_cast<Transform>(
+				lights[i]->gameObject->GetComponent("Transform"));
+			ImGui::SliderFloat("X", &(lightTrans->position.x), -8.0f, 8.0f);
+			ImGui::SliderFloat("Y", &(lightTrans->position.y), -8.0f, 8.0f);
+			ImGui::SliderFloat("Z", &(lightTrans->position.z), -8.0f, 8.0f);
+			lights[i]->setDirtyFlag(true);
+		}
+		auto& dlights = scene->directionLights;
+		for (int i = 0; i < dlights.size(); i++) {
+			char title[] = "Direction Lighti Position";
+			title[15] = '0' + 0;
+			ImGui::Text(title);
+			//auto& light = lights[0]; 
+			auto lightTrans = std::dynamic_pointer_cast<Transform>(
+				dlights[i]->gameObject->GetComponent("Transform"));
+			ImGui::SliderFloat("X", &(lightTrans->position.x), -8.0f, 8.0f);
+			ImGui::SliderFloat("Y", &(lightTrans->position.y), -8.0f, 8.0f);
+			ImGui::SliderFloat("Z", &(lightTrans->position.z), -8.0f, 8.0f);
+			dlights[i]->setDirtyFlag(true);
 		}
 		ImGui::Text("Light Intensity");
 		//ImGui::SliderFloat("Intensity", &lightColor, 0.5f, 20.0f);

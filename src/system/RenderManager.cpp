@@ -8,6 +8,7 @@
 #include"../component/GameObject.h"
 #include"../utils/Shader.h"
 #include"../component/Lights.h"
+#include"../component/transform.h"
 
 #include<glm/gtc/type_ptr.hpp>
 
@@ -109,12 +110,14 @@ void RenderManager::preparePointLightData(const std::shared_ptr<RenderScene>& sc
 			continue;
 		}
 		PointLightData& data = scene->pointLights[i]->data; 
+		std::shared_ptr<Transform>& transform = std::dynamic_pointer_cast<Transform>(
+			scene->pointLights[i]->gameObject->GetComponent("Transform"));
 		glBufferSubData(GL_UNIFORM_BUFFER, 
 			0 + i * dataSize, 
 			sizeof(glm::vec3), glm::value_ptr(data.color)); //color 
 		glBufferSubData(GL_UNIFORM_BUFFER, 
 			16 + i * dataSize, 
-			sizeof(glm::vec3), glm::value_ptr(data.position)); //position
+			sizeof(glm::vec3), glm::value_ptr(transform->position)); //position
 		light->setDirtyFlag(false); // ?
 	}
 	// add the number of lights to UBO
@@ -140,6 +143,9 @@ void RenderManager::prepareDirectionLightData(const std::shared_ptr<RenderScene>
 	int dataSize = 48; // data size for a single light (under std140 layout)
 	for (int i = 0; i < lightNum; i++) {
 		auto& light = scene->directionLights[i];
+		std::shared_ptr<Transform>& transform = std::dynamic_pointer_cast<Transform>(
+			scene->directionLights[i]->gameObject->GetComponent("Transform"));
+
 		if (!light->dirty) {
 			continue;
 		}
@@ -149,7 +155,7 @@ void RenderManager::prepareDirectionLightData(const std::shared_ptr<RenderScene>
 			sizeof(glm::vec3), glm::value_ptr(data.color)); // ambient
 		glBufferSubData(GL_UNIFORM_BUFFER, 
 			16 + i * dataSize, 
-			sizeof(glm::vec3), glm::value_ptr(data.position)); //
+			sizeof(glm::vec3), glm::value_ptr(transform->position)); //
 		glBufferSubData(GL_UNIFORM_BUFFER, 
 			32 + i * dataSize, 
 			sizeof(glm::vec3), glm::value_ptr(data.direction));

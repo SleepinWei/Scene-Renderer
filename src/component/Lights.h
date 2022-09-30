@@ -33,7 +33,7 @@ public:
 //};
 struct PointLightData{
 	glm::vec3 color; 
-	glm::vec3 position;
+	//glm::vec3 position;
 
 	// not used
 	glm::vec3 ambient; 
@@ -66,7 +66,7 @@ public:
 
 struct DirectionLightData {
 	glm::vec3 color; 
-	glm::vec3 position;
+	//glm::vec3 position;
 	glm::vec3 direction;
 
 	// not used

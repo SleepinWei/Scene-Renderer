@@ -125,11 +125,13 @@ void Terrain::render() const{
 
 	//std::cout << VAO << '\n';
 	glBindVertexArray(VAO);
-	glDisable(GL_CULL_FACE);
+	//glDisable(GL_CULL_FACE);
+	glCullFace(GL_FRONT);
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glDrawArrays(GL_PATCHES, 0, NUM_PATCH_PTS * rez * rez);
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	glEnable(GL_CULL_FACE);
+	//glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
 	//std::cerr << "Terrain Done" << "\n";
 }
 
