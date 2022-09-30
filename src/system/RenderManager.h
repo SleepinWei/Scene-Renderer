@@ -7,15 +7,23 @@ class UniformBuffer;
 class GameObject;
 class RenderScene;
 class Shader;
+class HDRPass;
+class BasePass;
 
 enum class ShaderType{
 	SIMPLE=0,
 	LIGHT,
 	PBR,
 	TERRAIN,
-	SKYBOX
+	SKYBOX,
+	HDR,
+	
+	KIND_COUNT
 };
 
+struct RenderSetting {
+	bool enableHDR;
+};
 
 class RenderManager {
 public:
@@ -30,22 +38,27 @@ public:
 	std::shared_ptr<Shader> getShader(ShaderType type); 
 
 private:
+	// shader 
 	static std::shared_ptr<Shader> generateShader(ShaderType type);
+	// buffer
 	void initVPbuffer(); 
 	void initPointLightBuffer(); 
 	void initDirectionLightBuffer();
 
 public:
-	const int ShaderTypeNum = 5;
+	// shaders
 	std::vector<std::shared_ptr<Shader>> m_shader;
 
-	// frame buffer 
+	// setting
+	RenderSetting setting;
+
+	// RenderPass
+	std::shared_ptr<HDRPass> hdrPass;
+	std::shared_ptr<BasePass> basePass;
 
 	// uniform buffer
 	std::shared_ptr<UniformBuffer> uniformVPBuffer;
 	std::shared_ptr<UniformBuffer> uniformPointLightBuffer;
 	std::shared_ptr<UniformBuffer> uniformDirectionLightBuffer;
-
-	// Render Pass
 };
 

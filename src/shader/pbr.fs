@@ -112,7 +112,6 @@ vec3 computePointShading(Object object,PointLight light,Material material){
     // vec3 albedo = vec3(object.TexCoords,1.0);
     float metallic = texture(material.metallic,object.TexCoords).r;
     float roughness = texture(material.roughness,object.TexCoords).r;
-    float ao = texture(material.ao,object.TexCoords).r; 
 
     vec3 N = getNormalFromMap();
     vec3 V = normalize(camPos - object.Position);
@@ -144,17 +143,13 @@ vec3 computePointShading(Object object,PointLight light,Material material){
 
     Lo += (kD * albedo / PI + specular) * radiance * NdotL;
 
-    vec3 ambient = vec3(0.03) * albedo * ao; 
-    vec3 color = ambient + Lo; 
-    return color; 
+    return Lo; 
 }
 
 vec3 computeDirectionShading(Object object,DirectionLight light,Material material){
     vec3 albedo = pow(texture(material.albedo,object.TexCoords).rgb,vec3(2.2));
-    // vec3 albedo = vec3(object.TexCoords,1.0);
     float metallic = texture(material.metallic,object.TexCoords).r;
     float roughness = texture(material.roughness,object.TexCoords).r;
-    float ao = texture(material.ao,object.TexCoords).r; 
 
     vec3 N = getNormalFromMap();
     vec3 V = normalize(camPos - object.Position);
@@ -188,9 +183,7 @@ vec3 computeDirectionShading(Object object,DirectionLight light,Material materia
 
     Lo += (kD * albedo / PI + specular) * radiance * NdotL;
 
-    vec3 ambient = vec3(0.03) * albedo * ao; 
-    vec3 color = ambient + Lo; 
-    return color; 
+    return Lo; 
 }
 
 void main(){
@@ -204,8 +197,15 @@ void main(){
     for(int i =0;i<dLightNum;i++){
         finalColor += computeDirectionShading(object,directionLights[i],material);
     }
+    vec3 albedo = pow(texture(material.albedo,object.TexCoords).rgb,vec3(2.2));
+    float ao = texture(material.ao,object.TexCoords).r; 
+    vec3 ambient = vec3(0.03) * albedo * ao; 
+
+    finalColor += ambient; 
+
     // HDR tone mapping 
-    finalColor = finalColor / (finalColor + vec3(1.0));
-    finalColor = pow(finalColor,vec3(1.0/2.2));
-    FragColor = vec4(finalColor,1.0);
+    // finalColor = finalColor / (finalColor + vec3(1.0));
+    // finalColor = pow(finalColor,vec3(1.0/2.2));
+    // FragColor = vec4(finalColor,1.0);
+    FragColor = vec4(finalColor,1.0f);
 }

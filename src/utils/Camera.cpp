@@ -38,6 +38,10 @@ void Camera::tick() {
 		// if the cursor is not enabled
 		ProcessMouseMovement(inputManager->deltaX, inputManager->deltaY);
 	}
+	
+	// view port change 
+	if (inputManager->viewPortChange)
+		aspect_ratio = inputManager->width * 1.0 / inputManager->height; 
 }
 
 // constructor with vectors

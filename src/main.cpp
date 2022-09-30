@@ -75,7 +75,7 @@ void render() {
 	{
 		std::shared_ptr<Terrain> terrain = std::make_shared<Terrain>();
 		terrain->loadHeightmap("./asset/heightmap/iceland/");
-		auto terrainMaterial = Material::loadPBR("./asset/pbr/sand/");
+		auto terrainMaterial = Material::loadPBR("./asset/pbr/grass/");
 		terrain->addMaterial(terrainMaterial)
 			->addShader(ShaderType::TERRAIN);
 		scene->addTerrain(terrain);
@@ -85,6 +85,7 @@ void render() {
 	{
 		std::shared_ptr<GameObject> pLight = std::make_shared<GameObject>();
 		std::shared_ptr<PointLight>& light = pLight->addComponent<PointLight>(); 
+		light->data.color = glm::vec3(5.0f);
 
 		auto& transform = pLight->addComponent<Transform>(); 
 		transform->scale = glm::vec3(0.1);
@@ -144,8 +145,8 @@ void render() {
 	}
 
 	while (!glfwWindowShouldClose(window)) {
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glClearColor(0.6, 0.6, 0.6, 1.0);
+		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		//glClearColor(0.6, 0.6, 0.6, 1.0);
 
 		gui.window(scene);
 		glfwPollEvents();
@@ -154,10 +155,6 @@ void render() {
 		
 		// camera tick
 		scene->main_camera->tick();
-
-		renderManager->prepareVPData(scene); // 重新设计为 uniform buffer object
-		renderManager->preparePointLightData(scene);
-		renderManager->prepareDirectionLightData(scene);
 
 		renderManager->render(scene);
 

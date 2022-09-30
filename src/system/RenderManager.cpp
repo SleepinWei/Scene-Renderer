@@ -9,15 +9,31 @@
 #include"../utils/Shader.h"
 #include"../component/Lights.h"
 #include"../component/transform.h"
+#include"../renderer/RenderPass.h"
 
 #include<glm/gtc/type_ptr.hpp>
 
 RenderManager::RenderManager() {
+	int ShaderTypeNum = static_cast<int>(ShaderType::KIND_COUNT);
 	m_shader = std::vector<std::shared_ptr<Shader>>(ShaderTypeNum,nullptr);
+
+	// setting
+	setting = RenderSetting{
+		true // enableHDR
+	};
+
+	// UBOs 
 	initVPbuffer();
 	initPointLightBuffer();
 	initDirectionLightBuffer();
+
+	// render Pass initialization 
+	hdrPass = std::make_shared<HDRPass>(); 
+	// 不能将设置shader的步骤合并到构造函数中，会导致引用一个nullptr
+	hdrPass->hdrShader = getShader(ShaderType::HDR);
+	basePass = std::make_shared<BasePass>();
 }
+
 void RenderManager::initVPbuffer() {
 	// initialize a UBO for VP matrices
 	uniformVPBuffer = std::make_shared<UniformBuffer>(
@@ -26,6 +42,7 @@ void RenderManager::initVPbuffer() {
 	// set binding point
 	uniformVPBuffer->setBinding(0);
 }
+
 void RenderManager::initPointLightBuffer() {
 	// TODO: 
 	const int maxLight = 10; 
@@ -34,6 +51,7 @@ void RenderManager::initPointLightBuffer() {
 	// set binding point
 	uniformPointLightBuffer->setBinding(1);
 }
+
 void RenderManager::initDirectionLightBuffer() {
 	const int maxLight = 10; 
 	int lightBufferSize = maxLight * (48) + 16; 
@@ -41,6 +59,7 @@ void RenderManager::initDirectionLightBuffer() {
 	// set binding point
 	uniformDirectionLightBuffer->setBinding(2);
 }
+
 RenderManager::~RenderManager() {
 
 }
@@ -168,32 +187,23 @@ void RenderManager::prepareDirectionLightData(const std::shared_ptr<RenderScene>
 		sizeof(int), &lightNum);
 }
 
-
 void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	// TODO: wrap up this function to be Scene rendering pass
 	prepareVPData(scene);
 	preparePointLightData(scene);
 	prepareDirectionLightData(scene);
 
-	for (auto object : scene->objects) {
-		std::shared_ptr<MeshRenderer>& renderer = std::dynamic_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
-		if (renderer && renderer->shader) {
-			renderer->shader->use();
-			renderer->render();
-		}
-	}
-	// render Terrain 
-	std::shared_ptr<Terrain>& terrain = scene->terrain;
-	if (terrain && terrain->shader) {
-		terrain->shader->use();
-		terrain->render();
-	}
+	// shadow pass
 
-	// render skybox 
-	std::shared_ptr<SkyBox>& skybox = scene->skybox;
-	if (skybox && skybox->shader) {
-		skybox->shader->use();
-		skybox->render();
+	// base pass 
+	if (setting.enableHDR) {
+		hdrPass->bindBuffer();
+	}
+	basePass->render(scene);
+
+	// hdr pass 
+	if (setting.enableHDR) {
+		hdrPass->render();
 	}
 }
 
@@ -236,6 +246,10 @@ std::shared_ptr<Shader> RenderManager::generateShader(ShaderType type) {
 				"./src/shader/terrain.tesc", "./src/shader/terrain.tese"
 				);
 			break;
+		case ShaderType::HDR:
+			return std::make_shared<Shader>(
+				"./src/shader/hdr.vs","./src/shader/hdr.fs"
+				);
 		default:
 			std::cerr << "No such shader type" << '\n';
 			break;

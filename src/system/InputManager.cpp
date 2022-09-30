@@ -7,6 +7,7 @@ void InputManager::reset() {
 	//}
 	mouseMove = false;
 	scrollMove = false;
+	viewPortChange = false;
 }
 
 InputManager::InputManager() {
@@ -25,6 +26,10 @@ InputManager::InputManager() {
 
 	lastFrame = 0;
 	deltaFrame = 0;
+
+	width = 1600;
+	height = 900;
+	viewPortChange = false;
 }
 
 void InputManager::tick() {

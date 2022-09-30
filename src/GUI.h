@@ -6,6 +6,7 @@
 #include<glm/glm.hpp>
 #include"renderer/RenderScene.h"
 #include"./component/Lights.h"
+#include"./component/Transform.h"
 
 class Gui {
 public:

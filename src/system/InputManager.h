@@ -29,6 +29,12 @@ public:
 	double mouseScrollY; 
 	double mouseScrollX;
 
+	// frame (time) 
 	float lastFrame; 
 	float deltaFrame;
+
+	// viewport 
+	int width; 
+	int height; 
+	bool viewPortChange; 
 };

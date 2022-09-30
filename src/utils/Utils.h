@@ -32,5 +32,6 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 unsigned int loadTexture(const char *path);
 int createWindow(GLFWwindow*& window, int width, int height, std::string title = "Demo");
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
-unsigned int createCube();
+void renderCube();
+void renderQuad();
 int gladInit();
