@@ -85,7 +85,7 @@ std::shared_ptr<Terrain> Terrain::loadHeightmap(const std::string& path){
 	terrainMaterial->addTexture(Texture::loadFromFile(path+"normalMap.png"));
 	//resourceManager.getResource();
 	// indices
-	float xzScale = 20.0f;
+	float xzScale = 50.0f;
 	//float xzScale = 1.0f;
 	model[0][0] = xzScale;//x scale
 	model[2][2] = xzScale; //z scale
