@@ -29,7 +29,8 @@ void UniformBuffer::bindBuffer() {
 void UniformBuffer::setBinding(int binding) {
 	if(UBO){
 		this->binding = binding;
-		glBindBufferRange(GL_UNIFORM_BUFFER, binding, UBO, 0, size);
+		//glBindBufferRange(GL_UNIFORM_BUFFER, binding, UBO, 0, size);
+		glBindBufferBase(GL_UNIFORM_BUFFER, binding, UBO);
 	}
 	else {
 		std::cout << "In UniformBuffer:setBinding, no UBO created" << '\n';

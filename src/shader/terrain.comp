@@ -1,0 +1,185 @@
+#version 430 core 
+#define MIN_LEVEL 0
+#define MAX_LEVEL 3
+#define MIN_DISTANCE 2
+// #define MAX_DISTANCE 10
+#define TESS_PER_CHUNK 4
+// #define MAX_DISTANCE 50
+
+layout(local_size_x=1,local_size_y=1,local_size_z=1) in;
+
+// in uint gl_LocalInvocationIndex ;
+
+layout(std430, binding=1) buffer Vertices{
+    // uint vertexCnt;
+    vec4 vertices[]; // all generated vertices
+};
+
+layout(std430, binding=2) buffer Indices{
+    // uint indexCnt; 
+    uint indices[]; // indice arrays (EBO)
+};
+
+struct Node{
+    // int level; // LOD level
+    uvec4 indices; // vertex indice of 4 ends of a quad
+};
+
+layout(std430,binding=3) buffer InQueue{
+    uint nodeCnt;  // nodes that need calculation 
+    Node nodes[]; // nodes needed calculation this round
+}inQueue;
+
+layout(std430,binding=4) buffer OutQueue{
+    uint nodeCnt; // set to 0 before every iteration 
+    Node nodes[]; // nodes that need further calculation
+}outQueue;
+
+layout(std430, binding=5) buffer OutIndirect {
+	uint count;
+	uint primCount;
+	uint firstIndex;
+	uint baseVertex;
+	int baseInstance;
+    uint vertexCnt;
+}; // indirect draw 
+
+
+layout(std140,binding=0) uniform VP{
+    mat4 projection; 
+    mat4 view; 
+};
+uniform mat4 model; 
+
+uniform int iteration;  // 第几次执行该 compute shader
+
+int GetLODLevel(vec4 Position[4]){
+// left 
+    vec4 eyeSpacePos[4];
+    for(int i =0;i<4;i++){
+        eyeSpacePos[i] = view * model * vec4(Position[i].xyz,1.0f);
+    }
+    // "distance" from camera scaled between 0 and 1
+    float pointDistance[4];
+    for(int i= 0;i<4;i++){
+        pointDistance[i] = length(eyeSpacePos[i]);
+    }
+
+    float level[4]; 
+    for(int i=0;i<4;i++){
+        level[i] = log2(pointDistance[i]/MIN_DISTANCE + 1);
+        // level[i] = (pointDistance[i] - MIN_DISTANCE) / (MAX_DISTANCE - MIN_DISTANCE) * MAX_LEVEL;
+    }
+    // float maxLevel = max(level[0],max(level[1],max(level[2],level[3])));
+    float maxLevel = min(level[0],min(level[1],min(level[2],level[3])));
+    maxLevel = clamp(maxLevel, MIN_LEVEL, MAX_LEVEL);
+    return int(maxLevel);
+}
+
+bool needCulling(vec4 Position[4]){
+    bool flag = false;
+    for(int i=0;i<4;i++){
+        vec4 NDC = projection * view * model * vec4(Position[i].xyz,1.0f);
+        if(NDC.w >= 0.0f){
+            NDC = NDC / NDC.w;
+            if(NDC.x> -1.0f && NDC.x < 1.0f || 
+                NDC.y > -1.0f && NDC.y < 1.0f ||
+                NDC.z > -1.0f && NDC.z < 1.0f)
+            {
+                flag = flag || true;
+            }
+        }
+    }
+    return !flag; 
+}
+
+void generateLODData(int iter,Node n){
+    vec4 Points[4]; 
+    Points[0] = vertices[n.indices[0]];
+    Points[1] = vertices[n.indices[1]];
+    Points[2] = vertices[n.indices[2]];
+    Points[3] = vertices[n.indices[3]];
+    vec4 delta = Points[2] - Points[0]; 
+
+    if(needCulling(Points)){
+        return;
+    }
+    //debug
+        // uint curVertexIndex = atomicAdd(vertexCnt,2);
+        // uint index01 = curVertexIndex; 
+        // uint index12 = curVertexIndex + 1;
+        // vertices[index01] = vec4(float(n.indices.x),float(n.indices.y),float(n.indices.z),0.0f); //00 
+        // vertices[index12] = vec4(float(n.indices.z),0.0f,0.0f,0.0f);
+
+    int currentLevel = GetLODLevel(Points);
+    if(currentLevel + iter < MAX_LEVEL){
+        // 生成新的点继续细分
+
+        vec4 newPoint01 = 0.5*(Points[0] + Points[1]);
+        vec4 newPoint12 = 0.5*(Points[1] + Points[2]);
+        vec4 newPoint23 = 0.5*(Points[2] + Points[3]); 
+        vec4 newPoint03 = 0.5*(Points[3] + Points[0]); 
+        vec4 newPointc = 0.5*(Points[0] + Points[2]); // center
+
+        uint curVertexIndex = atomicAdd(vertexCnt,5);
+        uint index01 = curVertexIndex; 
+        uint index12 = curVertexIndex + 1;
+        uint index23 = curVertexIndex + 2; 
+        uint index30 = curVertexIndex + 3; 
+        uint indexc = curVertexIndex + 4;
+        vertices[index01] = newPoint01; //00 
+        vertices[index12] = newPoint12; //01 
+        vertices[index23] = newPoint23; //10
+        vertices[index30] = newPoint03; //11
+        vertices[indexc] = newPointc; // center
+
+        Node newNode00; 
+        Node newNode01; 
+        Node newNode10;
+        Node newNode11; 
+        newNode00.indices = uvec4(n.indices[0],index01,indexc,index30);
+        newNode01.indices = uvec4(index01,n.indices[1],index12,indexc);
+        newNode10.indices = uvec4(indexc,index12,n.indices[2],index23);
+        newNode11.indices = uvec4(index30,indexc,index23,n.indices[3]);
+
+        uint curNodeIndex = atomicAdd(outQueue.nodeCnt,4);
+        outQueue.nodes[curNodeIndex] = newNode00;
+        outQueue.nodes[curNodeIndex+1] = newNode01;
+        outQueue.nodes[curNodeIndex+2] = newNode10;
+        outQueue.nodes[curNodeIndex+3] = newNode11;
+    }else{
+        // 不再细分，填写 indices
+        // 一个 lod chunk 的边 分为 TESS_PER_CHUNK 个小块
+        uint NEW_VERTICES_COUNT = (TESS_PER_CHUNK+1) * (TESS_PER_CHUNK+1);
+        uint curVertexIndex = atomicAdd(vertexCnt,NEW_VERTICES_COUNT);
+        uint curIndiceIndex = atomicAdd(count,TESS_PER_CHUNK*TESS_PER_CHUNK*6);
+        for(uint i=0;i<=TESS_PER_CHUNK;i++){
+            for(uint j = 0;j<=TESS_PER_CHUNK;j++){
+                vertices[curVertexIndex + i * (TESS_PER_CHUNK+1) + j] = Points[0] + vec4(i*delta.x/TESS_PER_CHUNK,0.0f,j*delta.z/TESS_PER_CHUNK,0.0f);
+            }
+        }
+        for(uint i=0;i<TESS_PER_CHUNK;i++){
+            for(uint j =0;j<TESS_PER_CHUNK;j++){
+                uint upper_left = i * (TESS_PER_CHUNK+1) + j + curVertexIndex; 
+                indices[curIndiceIndex++] = upper_left; // 
+                indices[curIndiceIndex++] = upper_left + (TESS_PER_CHUNK + 1);
+                indices[curIndiceIndex++] = upper_left + 1; 
+
+                indices[curIndiceIndex++] = upper_left + 1;
+                indices[curIndiceIndex++] = upper_left + (TESS_PER_CHUNK + 1);
+                indices[curIndiceIndex++] = upper_left + 1 +(TESS_PER_CHUNK+1);
+            }
+        }
+
+    }
+}
+
+void main(){
+    // LOD 
+    uint nodeIndex = uint(gl_GlobalInvocationID);
+    // DEBUG
+    // uint curVertexIndex = atomicAdd(vertexCnt,1);
+    // vertices[curVertexIndex] = vec4(float(gl_GlobalInvocationID),0.0f,0.0f,0.0f);
+
+    generateLODData(iteration,inQueue.nodes[nodeIndex]);
+}

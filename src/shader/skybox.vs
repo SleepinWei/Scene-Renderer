@@ -1,10 +1,10 @@
-#version 330 core 
+#version 430 core 
 layout(location=0) in vec3 aPos; 
 
 out vec3 TexCoords;
 
 // uniform mat4 projection; 
-layout(std140) uniform VP{
+layout(std140,binding=0) uniform VP{
    mat4 projection; 
    mat4 view_; 
 };

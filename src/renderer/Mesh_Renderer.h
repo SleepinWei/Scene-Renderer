@@ -5,7 +5,7 @@
 #include<glm/glm.hpp>
 #include"../component/Component.h"
 #include"../system/RenderManager.h"
-#include<rttr/registration.h>
+//#include<rttr/registration.h>
 
 class Material; 
 class MeshFilter; 

@@ -75,26 +75,27 @@ void render() {
 	{
 		std::shared_ptr<Terrain> terrain = std::make_shared<Terrain>();
 		terrain->loadHeightmap("./asset/heightmap/iceland/");
-		auto terrainMaterial = Material::loadPBR("./asset/pbr/grass/");
+		auto terrainMaterial = Material::loadPBR("./asset/pbr/sand/");
 		terrain->addMaterial(terrainMaterial)
 			->addShader(ShaderType::TERRAIN);
+
 		scene->addTerrain(terrain);
 	}
 
 	// light 
 	{
 		std::shared_ptr<GameObject> pLight = std::make_shared<GameObject>();
-		std::shared_ptr<PointLight>& light = pLight->addComponent<PointLight>(); 
+		std::shared_ptr<PointLight>&& light = pLight->addComponent<PointLight>(); 
 		light->data.color = glm::vec3(5.0f);
 
-		auto& transform = pLight->addComponent<Transform>(); 
+		auto&& transform = pLight->addComponent<Transform>(); 
 		transform->scale = glm::vec3(0.1);
 		transform->position = glm::vec3(0.5f, 5.0f, -1.0f);
 
-		auto& mesh = pLight->addComponent<MeshFilter>();
+		auto&& mesh = pLight->addComponent<MeshFilter>();
 		mesh->loadShape(SHAPE::POINT);
 		
-		auto& renderer = pLight->addComponent <MeshRenderer>();
+		auto&& renderer = pLight->addComponent <MeshRenderer>();
 		renderer->setShader(ShaderType::LIGHT)
 			->setDrawMode(GL_POINTS);
 
@@ -103,17 +104,17 @@ void render() {
 	{
 		std::shared_ptr<GameObject> dLight = std::make_shared<GameObject>();
 
-		auto& transform = dLight->addComponent<Transform>(); 
+		auto&& transform = dLight->addComponent<Transform>(); 
 		transform->scale = glm::vec3(0.1);
 		transform->position = glm::vec3(1.0f, 2.0f, -1.0f);
 
-		std::shared_ptr<DirectionLight>& light = dLight->addComponent<DirectionLight>(); 
+		std::shared_ptr<DirectionLight>&& light = dLight->addComponent<DirectionLight>(); 
 		light->data.direction = -transform->position;
 
-		auto& mesh = dLight->addComponent<MeshFilter>();
+		auto&& mesh = dLight->addComponent<MeshFilter>();
 		mesh->loadShape(SHAPE::POINT);
 		
-		auto& renderer = dLight->addComponent <MeshRenderer>();
+		auto&& renderer = dLight->addComponent <MeshRenderer>();
 		renderer->setShader(ShaderType::LIGHT)
 			->setDrawMode(GL_POINTS);
 
@@ -129,20 +130,21 @@ void render() {
 	// object
 	{
 		std::shared_ptr<GameObject> sphere = std::make_shared<GameObject>();
-		auto& transform = sphere->addComponent<Transform>();
+		auto&& transform = sphere->addComponent<Transform>();
 		transform->position = glm::vec3(0.0f, 1.0f, 0.0f);
 		transform->scale = glm::vec3(0.2);
 
-		auto& mesh = sphere->addComponent<MeshFilter>();
+		auto&& mesh = sphere->addComponent<MeshFilter>();
 		mesh->loadShape(SHAPE::SPHERE);
 
-		auto& renderer = sphere->addComponent<MeshRenderer>();
+		auto&& renderer = sphere->addComponent<MeshRenderer>();
 		renderer->setShader(ShaderType::PBR)
 			->setMaterial(Material::loadPBR("./asset/pbr/riverrock/"));
 		// std::cout << resourceManager->resource.size() << '\n';
 
 		scene->addObject(sphere);
 	}
+	glCheckError();
 
 	while (!glfwWindowShouldClose(window)) {
 		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -156,6 +158,7 @@ void render() {
 		// camera tick
 		scene->main_camera->tick();
 
+		glCheckError();
 		renderManager->render(scene);
 
 		gui.render();

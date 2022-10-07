@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include"PathTracing.h"
 #include"PTVec.h"
 #include"PTCamera.h"

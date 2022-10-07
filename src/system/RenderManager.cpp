@@ -10,6 +10,7 @@
 #include"../component/Lights.h"
 #include"../component/transform.h"
 #include"../renderer/RenderPass.h"
+#include"../utils/Utils.h"
 
 #include<glm/gtc/type_ptr.hpp>
 
@@ -79,17 +80,17 @@ void RenderManager::prepareVPData(const std::shared_ptr<RenderScene>& renderScen
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4),sizeof(glm::mat4), glm::value_ptr(view));
 	}
 	// update the first time
-	if (uniformVPBuffer->dirty) {
-		//if dirty, set shader bindings of UBO
-		for (std::shared_ptr<Shader>& shader : m_shader) {
-			if (shader) {
-				//if shader is not null
-				shader->use();
-				shader->setUniformBuffer("VP", uniformVPBuffer->binding);
-			}
-		}
-		uniformVPBuffer->setDirtyFlag(false);
-	}
+	//if (uniformVPBuffer->dirty) {
+	//	//if dirty, set shader bindings of UBO
+	//	for (std::shared_ptr<Shader>& shader : m_shader) {
+	//		if (shader) {
+	//			//if shader is not null
+	//			shader->use();
+	//			shader->setUniformBuffer("VP", uniformVPBuffer->binding);
+	//		}
+	//	}
+	//	uniformVPBuffer->setDirtyFlag(false);
+	//}
 
 	// update every frame: skybox view
 	std::shared_ptr<Shader>& skyboxShader = m_shader[static_cast<int>(ShaderType::SKYBOX)];
@@ -109,15 +110,15 @@ void RenderManager::preparePointLightData(const std::shared_ptr<RenderScene>& sc
 	// TODO: test the consfusing offset
 	// point light
 	// update at the first time
-	if (uniformPointLightBuffer->dirty) {
-		uniformPointLightBuffer->dirty = false;
-		for (std::shared_ptr<Shader>& shader : m_shader) {
-			if (shader) {
-				shader->use();
-				shader->setUniformBuffer("PointLightBuffer", uniformPointLightBuffer->binding);
-			}
-		}
-	}
+	//if (uniformPointLightBuffer->dirty) {
+	//	uniformPointLightBuffer->dirty = false;
+	//	for (std::shared_ptr<Shader>& shader : m_shader) {
+	//		if (shader) {
+	//			shader->use();
+	//			shader->setUniformBuffer("PointLightBuffer", uniformPointLightBuffer->binding);
+	//		}
+	//	}
+	//}
 	uniformPointLightBuffer->bindBuffer();
 	unsigned int UBO = uniformPointLightBuffer->UBO;
 	int lightNum = scene->pointLights.size();
@@ -129,7 +130,7 @@ void RenderManager::preparePointLightData(const std::shared_ptr<RenderScene>& sc
 			continue;
 		}
 		PointLightData& data = scene->pointLights[i]->data; 
-		std::shared_ptr<Transform>& transform = std::dynamic_pointer_cast<Transform>(
+		std::shared_ptr<Transform>&& transform = std::dynamic_pointer_cast<Transform>(
 			scene->pointLights[i]->gameObject->GetComponent("Transform"));
 		glBufferSubData(GL_UNIFORM_BUFFER, 
 			0 + i * dataSize, 
@@ -148,21 +149,21 @@ void RenderManager::preparePointLightData(const std::shared_ptr<RenderScene>& sc
 
 void RenderManager::prepareDirectionLightData(const std::shared_ptr<RenderScene>& scene) {
 	// update light data only when dirty 
-	if (uniformDirectionLightBuffer->dirty) {
-		uniformDirectionLightBuffer->dirty = false;
-		for (std::shared_ptr<Shader>& shader : m_shader) {
-			if (shader) {
-				shader->setUniformBuffer("DirectionLightBuffer", uniformDirectionLightBuffer->binding);
-			}
-		}
-	}
+	//if (uniformDirectionLightBuffer->dirty) {
+	//	uniformDirectionLightBuffer->dirty = false;
+	//	for (std::shared_ptr<Shader>& shader : m_shader) {
+	//		if (shader) {
+	//			shader->setUniformBuffer("DirectionLightBuffer", uniformDirectionLightBuffer->binding);
+	//		}
+	//	}
+	//}
 	uniformDirectionLightBuffer->bindBuffer();
 	unsigned int UBO = uniformDirectionLightBuffer->UBO;
 	int lightNum = scene->directionLights.size();
 	int dataSize = 48; // data size for a single light (under std140 layout)
 	for (int i = 0; i < lightNum; i++) {
 		auto& light = scene->directionLights[i];
-		std::shared_ptr<Transform>& transform = std::dynamic_pointer_cast<Transform>(
+		std::shared_ptr<Transform>&& transform = std::dynamic_pointer_cast<Transform>(
 			scene->directionLights[i]->gameObject->GetComponent("Transform"));
 
 		if (!light->dirty) {
@@ -189,9 +190,13 @@ void RenderManager::prepareDirectionLightData(const std::shared_ptr<RenderScene>
 
 void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	// TODO: wrap up this function to be Scene rendering pass
+	glCheckError();
 	prepareVPData(scene);
+	glCheckError();
 	preparePointLightData(scene);
+	glCheckError();
 	prepareDirectionLightData(scene);
+	glCheckError();
 
 	// shadow pass
 
@@ -199,6 +204,7 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	if (setting.enableHDR) {
 		hdrPass->bindBuffer();
 	}
+	glCheckError();
 	basePass->render(scene);
 
 	// hdr pass 
@@ -241,9 +247,12 @@ std::shared_ptr<Shader> RenderManager::generateShader(ShaderType type) {
 				);
 			break;
 		case ShaderType::TERRAIN:
+			//return std::make_shared<Shader>(
+				//"./src/shader/terrain.vs", "./src/shader/pbr.fs", nullptr,
+				//"./src/shader/terrain.tesc", "./src/shader/terrain.tese"
+				//);
 			return std::make_shared<Shader>(
-				"./src/shader/terrain.vs", "./src/shader/pbr.fs", nullptr,
-				"./src/shader/terrain.tesc", "./src/shader/terrain.tese"
+				"./src/shader/terrain.vs","./src/shader/terrain.fs"
 				);
 			break;
 		case ShaderType::HDR:

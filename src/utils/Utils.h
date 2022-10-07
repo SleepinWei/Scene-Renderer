@@ -35,3 +35,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 void renderCube();
 void renderQuad();
 int gladInit();
+using GLenum = unsigned int;
+GLenum glCheckError_(const char* file, int line);
+#define glCheckError() glCheckError_(__FILE__, __LINE__) 

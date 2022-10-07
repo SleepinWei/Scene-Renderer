@@ -78,8 +78,8 @@ void MeshRenderer::render(){
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh_filter->indices.size() * sizeof(unsigned int), 
 			&(mesh_filter->indices[0]),GL_STATIC_DRAW);
+
 		glGenVertexArrays(1, &VAO);
-		
 		glBindVertexArray(VAO); 
 		{
 			glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -124,6 +124,7 @@ void MeshRenderer::render(){
 		}
 
 		glBindVertexArray(VAO);
+		assert(VAO>0);
 		{
 			//if (polyMode == GL_LINE) {
 			//	glPolygonMode(GL_FRONT_AND_BACK, polyMode);

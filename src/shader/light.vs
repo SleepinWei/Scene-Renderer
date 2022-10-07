@@ -1,11 +1,11 @@
-#version 330 
+#version 430 
 
 layout(location=0) in vec3 aPos; 
 
 // uniform mat4 projection;
 // uniform mat4 view; 
 uniform mat4 model;
-layout(std140) uniform VP{
+layout(std140,binding=0) uniform VP{
     mat4 projection;
     mat4 view;
 };

@@ -18,17 +18,20 @@ extern std::unique_ptr<RenderManager> renderManager;
 void BasePass::render(const std::shared_ptr<RenderScene>& scene) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	glCheckError();
 	for (auto object : scene->objects) {
-		std::shared_ptr<MeshRenderer>& renderer = std::dynamic_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
+		std::shared_ptr<MeshRenderer>&& renderer = std::dynamic_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
 		if (renderer && renderer->shader) {
 			renderer->shader->use();
 			renderer->render();
 		}
 	}
+	glCheckError();
 	// render Terrain 
 	std::shared_ptr<Terrain>& terrain = scene->terrain;
 	if (terrain && terrain->shader) {
-		terrain->shader->use();
+		//terrain->shader->use();
+		glCheckError();
 		terrain->render();
 	}
 
@@ -36,7 +39,7 @@ void BasePass::render(const std::shared_ptr<RenderScene>& scene) {
 	std::shared_ptr<SkyBox>& skybox = scene->skybox;
 	if (skybox && skybox->shader) {
 		skybox->shader->use();
-		skybox->render();
+		//skybox->render();
 	}
 }
 

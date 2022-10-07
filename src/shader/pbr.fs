@@ -7,7 +7,7 @@ struct PointLight{
     vec3 Color;
     vec3 Position; 
 };
-layout(std140) uniform PointLightBuffer {
+layout(std140,binding=1) uniform PointLightBuffer {
     PointLight pointLights[10];
     int pLightNum; 
 };
@@ -18,7 +18,7 @@ struct DirectionLight{
     vec3 Direction;
 };
 
-layout(std140) uniform DirectionLightBuffer{
+layout(std140,binding=2) uniform DirectionLightBuffer{
     DirectionLight directionLights[10]; 
     int dLightNum;
 };

@@ -1,11 +1,14 @@
-#version 410 core
+#version 430
 
-layout(location=0) in vec3 aPos;
-layout(location=1) in vec2 aTex;
+layout(location=0) in vec4 aPos;
 
-out vec2 TexCoord;
+layout(binding=0,std140) uniform VP{
+    mat4 projection; 
+    mat4 view; 
+};
+uniform mat4 model;
 
 void main(){
-    gl_Position = vec4(aPos,1.0); 
-    TexCoord = aTex;
+    gl_Position = projection * view * model * vec4(aPos.xyz,1.0); 
+    // gl_Position = vec4(vec3(gl_VertexID),1.0);
 }
