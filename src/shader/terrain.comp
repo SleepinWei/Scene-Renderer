@@ -2,23 +2,28 @@
 #define MIN_LEVEL 0
 #define MAX_LEVEL 5
 // #define MIN_LEVEL 0
-// #define MAX_LEVEL 3
+// #define MAX_LEVEL 5
 
 #define MIN_DISTANCE 0
-#define MAX_DISTANCE 1.5
+#define MAX_DISTANCE 2
 // #define MIN_DISTANCE 1
-// #define MAX_DISTANCE 10
+// #define MAX_DISTANCE 50
 
-#define TESS_PER_CHUNK 2
+#define TESS_PER_CHUNK 4
 // #define MAX_DISTANCE 50
 
 layout(local_size_x=1,local_size_y=1,local_size_z=1) in;
 
 // in uint gl_LocalInvocationIndex ;
 
+struct Object{
+    vec4 Position;
+    vec2 TexCoords; 
+};
+
 layout(std430, binding=1) buffer Vertices{
     // uint vertexCnt;
-    vec4 vertices[]; // all generated vertices
+    Object vertices[]; // all generated vertices
 };
 
 layout(std430, binding=2) buffer Indices{
@@ -27,7 +32,6 @@ layout(std430, binding=2) buffer Indices{
 };
 
 struct Node{
-    // int level; // LOD level
     uvec4 indices; // vertex indice of 4 ends of a quad
 };
 
@@ -61,13 +65,18 @@ layout(std140,binding=0) uniform VP{
 };
 uniform mat4 model; 
 
+uniform float yShift;
+uniform float yScale;
+
 uniform int iteration;  // 第几次执行该 compute shader
 
-int GetLODLevel(vec4 Position[4]){
+uniform sampler2D heightMap;
+
+int GetLODLevel(Object object[4]){
 // left 
     vec4 camPosition[4]; 
     for(int i =0;i<4;i++){
-        camPosition[i] = projection * view * model * vec4(Position[i].xyz,1.0f);
+        camPosition[i] = projection * view * model * vec4(object[i].Position.xyz,1.0f);
     }
 
     float len1 = length((camPosition[0]/camPosition[0].w-camPosition[2]/camPosition[2].w).xy);
@@ -78,7 +87,7 @@ int GetLODLevel(vec4 Position[4]){
     return MAX_LEVEL - level;
     // vec4 eyeSpacePos[4];
     // for(int i =0;i<4;i++){
-    //     eyeSpacePos[i] = view * model * vec4(Position[i].xyz,1.0f);
+    //     eyeSpacePos[i] = view * model * vec4(vertices[i].Position.xyz,1.0f);
     // }
     // // "distance" from camera scaled between 0 and 1
     // float pointDistance[4];
@@ -88,8 +97,8 @@ int GetLODLevel(vec4 Position[4]){
 
     // float level[4]; 
     // for(int i=0;i<4;i++){
-    //     level[i] = log2(pointDistance[i]/MIN_DISTANCE + 1);
-    //     // level[i] = (pointDistance[i] - MIN_DISTANCE) / (MAX_DISTANCE - MIN_DISTANCE) * MAX_LEVEL;
+    //     // level[i] = log2(pointDistance[i]/MIN_DISTANCE + 1);
+    //     level[i] = (pointDistance[i] + MIN_DISTANCE) / (MAX_DISTANCE + MIN_DISTANCE) * MAX_LEVEL;
     // }
     // // float maxLevel = max(level[0],max(level[1],max(level[2],level[3])));
     // float maxLevel = min(level[0],min(level[1],min(level[2],level[3])));
@@ -97,16 +106,16 @@ int GetLODLevel(vec4 Position[4]){
     // return int(maxLevel);
 }
 
-bool needCulling(vec4 Position[4]){
+bool needCulling(Object object[4]){
     // cohen-sutherland 
     vec4 NDC[4]; 
     bool flag = false;
     for(int i=0;i<4;i++){
-        NDC[i] = projection * view * model * vec4(Position[i].xyz,1.0f);
+        NDC[i] = projection * view * model * vec4(object[i].Position.xyz,1.0f);
     }
-    if(NDC[0].w < 0 && NDC[1].w <0 && NDC[2].w <0 && NDC[3].w < 0){
-        return true; 
-    }
+    // if(NDC[0].w < 0.0f && NDC[1].w <0.0f && NDC[2].w <0.0f && NDC[3].w < 0.0f){
+    //     return true; 
+    // }
     int code[4]; 
     for(int i=0;i<4;i++){
         NDC[i] = NDC[i] / NDC[i].w; 
@@ -144,20 +153,13 @@ bool needCulling(vec4 Position[4]){
 }
 
 void generateLODData(int iter,Node n){
-    vec4 Points[4]; 
+    Object Points[4]; 
     Points[0] = vertices[n.indices[0]];
     Points[1] = vertices[n.indices[1]];
     Points[2] = vertices[n.indices[2]];
     Points[3] = vertices[n.indices[3]];
-    vec4 delta = Points[2] - Points[0]; 
+    vec4 delta = Points[2].Position - Points[0].Position; 
 
-    
-    //debug
-        // uint curVertexIndex = atomicAdd(vertexCnt,2);
-        // uint index01 = curVertexIndex; 
-        // uint index12 = curVertexIndex + 1;
-        // vertices[index01] = vec4(float(n.indices.x),float(n.indices.y),float(n.indices.z),0.0f); //00 
-        // vertices[index12] = vec4(float(n.indices.z),0.0f,0.0f,0.0f);
     if(needCulling(Points)){
         return;
     };
@@ -166,11 +168,11 @@ void generateLODData(int iter,Node n){
     if(currentLevel + iter < MAX_LEVEL){
         // 生成新的点继续细分
 
-        vec4 newPoint01 = 0.5*(Points[0] + Points[1]);
-        vec4 newPoint12 = 0.5*(Points[1] + Points[2]);
-        vec4 newPoint23 = 0.5*(Points[2] + Points[3]); 
-        vec4 newPoint03 = 0.5*(Points[3] + Points[0]); 
-        vec4 newPointc = 0.5*(Points[0] + Points[2]); // center
+        vec4 newPoint01 = 0.5*(Points[0].Position+ Points[1].Position);
+        vec4 newPoint12 = 0.5*(Points[1].Position + Points[2].Position);
+        vec4 newPoint23 = 0.5*(Points[2].Position + Points[3].Position); 
+        vec4 newPoint03 = 0.5*(Points[3].Position + Points[0].Position); 
+        vec4 newPointc = 0.5*(Points[0].Position + Points[2].Position); // center
 
         uint curVertexIndex = atomicAdd(vertexCnt,5);
         uint index01 = curVertexIndex; 
@@ -178,11 +180,22 @@ void generateLODData(int iter,Node n){
         uint index23 = curVertexIndex + 2; 
         uint index30 = curVertexIndex + 3; 
         uint indexc = curVertexIndex + 4;
-        vertices[index01] = newPoint01; //00 
-        vertices[index12] = newPoint12; //01 
-        vertices[index23] = newPoint23; //10
-        vertices[index30] = newPoint03; //11
-        vertices[indexc] = newPointc; // center
+        vertices[index01].Position = newPoint01; //00 
+        vertices[index12].Position = newPoint12; //01 
+        vertices[index23].Position = newPoint23; //10
+        vertices[index30].Position = newPoint03; //11
+        vertices[indexc].Position = newPointc; // center
+
+        vec2 UV01 = 0.5*(Points[0].TexCoords+ Points[1].TexCoords);
+        vec2 UV12= 0.5*(Points[1].TexCoords+ Points[2].TexCoords);
+        vec2 UV23= 0.5*(Points[2].TexCoords+ Points[3].TexCoords); 
+        vec2 UV03= 0.5*(Points[3].TexCoords+ Points[0].TexCoords); 
+        vec2 UVc= 0.5*(Points[0].TexCoords + Points[2].TexCoords); // center
+        vertices[index01].TexCoords= UV01;//00 
+        vertices[index12].TexCoords= UV12; //01 
+        vertices[index23].TexCoords= UV23; //10
+        vertices[index30].TexCoords= UV03; //11
+        vertices[indexc].TexCoords= UVc; 
 
         Node newNode00; 
         Node newNode01; 
@@ -209,7 +222,18 @@ void generateLODData(int iter,Node n){
         uint curIndiceIndex = atomicAdd(count,TESS_PER_CHUNK*TESS_PER_CHUNK*6);
         for(uint i=0;i<=TESS_PER_CHUNK;i++){
             for(uint j = 0;j<=TESS_PER_CHUNK;j++){
-                vertices[curVertexIndex + i * (TESS_PER_CHUNK+1) + j] = Points[0] + vec4(i*delta.x/TESS_PER_CHUNK,0.0f,j*delta.z/TESS_PER_CHUNK,0.0f);
+                vec2 uv = vec2(j*1.0f/TESS_PER_CHUNK,i*1.0f/TESS_PER_CHUNK);
+                vec2 uv_ = vec2(
+                    Points[0].TexCoords.x * (1-uv.x) + Points[2].TexCoords.x * uv.x,
+                    Points[0].TexCoords.y * (1-uv.y) + Points[2].TexCoords.y * uv.y
+                    );
+                float height = texture(heightMap,uv_).r * yScale - yShift;
+                uint index = curVertexIndex + i * (TESS_PER_CHUNK+1) + j;
+                vertices[index].Position = 
+                    Points[0].Position + vec4(j*delta.x/TESS_PER_CHUNK,
+                    height,
+                    i*delta.z/TESS_PER_CHUNK,0.0f);
+                vertices[index].TexCoords = uv_;
             }
         }
         for(uint i=0;i<TESS_PER_CHUNK;i++){

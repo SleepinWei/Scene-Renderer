@@ -32,6 +32,7 @@ private:
 public:
 	std::vector<float> vertices;
 	std::vector<unsigned int> nodeIndex; // used in compute shader
+	std::vector<float> texCoords;
 	float yScale;
 	float yShift;
 
