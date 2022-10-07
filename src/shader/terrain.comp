@@ -27,11 +27,15 @@ struct Node{
 
 layout(std430,binding=3) buffer InQueue{
     uint nodeCnt;  // nodes that need calculation 
+    uint one;
+    uint one_;
     Node nodes[]; // nodes needed calculation this round
 }inQueue;
 
 layout(std430,binding=4) buffer OutQueue{
     uint nodeCnt; // set to 0 before every iteration 
+    uint one; 
+    uint one_;
     Node nodes[]; // nodes that need further calculation
 }outQueue;
 
@@ -82,8 +86,8 @@ bool needCulling(vec4 Position[4]){
         vec4 NDC = projection * view * model * vec4(Position[i].xyz,1.0f);
         if(NDC.w >= 0.0f){
             NDC = NDC / NDC.w;
-            if(NDC.x> -1.0f && NDC.x < 1.0f || 
-                NDC.y > -1.0f && NDC.y < 1.0f ||
+            if(NDC.x> -1.0f && NDC.x < 1.0f && 
+                NDC.y > -1.0f && NDC.y < 1.0f &&
                 NDC.z > -1.0f && NDC.z < 1.0f)
             {
                 flag = flag || true;
@@ -101,9 +105,7 @@ void generateLODData(int iter,Node n){
     Points[3] = vertices[n.indices[3]];
     vec4 delta = Points[2] - Points[0]; 
 
-    if(needCulling(Points)){
-        return;
-    }
+    
     //debug
         // uint curVertexIndex = atomicAdd(vertexCnt,2);
         // uint index01 = curVertexIndex; 
@@ -150,6 +152,9 @@ void generateLODData(int iter,Node n){
     }else{
         // 不再细分，填写 indices
         // 一个 lod chunk 的边 分为 TESS_PER_CHUNK 个小块
+        // decide whether this part needs culling
+        if(needCulling(Points))
+            return;
         uint NEW_VERTICES_COUNT = (TESS_PER_CHUNK+1) * (TESS_PER_CHUNK+1);
         uint curVertexIndex = atomicAdd(vertexCnt,NEW_VERTICES_COUNT);
         uint curIndiceIndex = atomicAdd(count,TESS_PER_CHUNK*TESS_PER_CHUNK*6);

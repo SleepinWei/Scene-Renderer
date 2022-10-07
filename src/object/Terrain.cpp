@@ -263,9 +263,15 @@ void Terrain::prepareData() {
 
 	inQueueSSBO->bindBuffer();
 	unsigned int nodeCnt = rez * rez;
+	unsigned int one = 1;
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 4, &nodeCnt);
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 4, 4, &one);
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 8, 4, &one);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 16, nodeIndex.size() * sizeof(unsigned int), &nodeIndex[0]);
-	glCheckError();
+
+	outQueueSSBO->bindBuffer();
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 4, 4, &one);
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 8, 4, &one);
 
 	// set render shader 
 	shader->use();
@@ -273,119 +279,66 @@ void Terrain::prepareData() {
 	// set shader 
 	computeShader->use();
 	computeShader->setMat4("model", model);
-	glCheckError();
 }
 
 void Terrain::computeDrawCall() {
 	const int MAX_LOD = 5; 
 	for (int i = 0; i < MAX_LOD; i++) {
-		// 循环计算 5 级 LOD
-		//if (isIn) {
-			// clear outQueue
-			inQueueSSBO->setBinding(3);
-			outQueueSSBO->setBinding(4);
-			outQueueSSBO->bindBuffer();
-		//}
-		//else {
-			//inQueueSSBO->setBinding(4);
-			//outQueueSSBO->setBinding(3);
-			//inQueueSSBO->bindBuffer();
-		//}
+		// 循环计算 LOD
+		inQueueSSBO->setBinding(3);
+		outQueueSSBO->setBinding(4);
+		outQueueSSBO->bindBuffer();
+
 		unsigned int zero = 0;
 		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 4, &zero); // 设置 out buffer 的 nodeCnt 为 0
 
 		computeShader->use();
 		computeShader->setInt("iteration", i);
 
-		//if (isIn) {
-			inQueueSSBO->bindBuffer();
-		//}
-		//else {
-			//outQueueSSBO->bindBuffer();
-		//}
-		unsigned int* nodeCntPtr = (unsigned int*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-		unsigned int nodeCnt = nodeCntPtr[0];
+		inQueueSSBO->bindBuffer();
 
-		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-		//std::cout << nodeCnt <<'\n';//DEBUG 
-		if (nodeCnt > 0)
-			glDispatchCompute(nodeCnt, 1, 1);
-		else
-			break;
+		glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, inQueueSSBO->ssbo);
+		glDispatchComputeIndirect(0);
+		//glDispatchCompute(nodeCnt, 1, 1);
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT|GL_COMMAND_BARRIER_BIT);
 		
 		//isIn = !isIn;
 		std::swap(inQueueSSBO->ssbo, outQueueSSBO->ssbo); // 交换buffer
 	}
-	glCheckError();
-	
-	//DEBUG
-	//freopen("./output.txt", "w", stdout);
-	//verticesSSBO->bindBuffer();
-	//float* vertexCnt = (float*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-	//unsigned int* beg = (unsigned int*)vertexCnt;
-	//for (int i = 0; i < 4; i++) {
-	//	std::cout << beg[i] << '\n';
-	//}
-	//for (int i = 1; i < 3000; i++) {
-	//	std::cout << vertexCnt[4 * i] << ' ' << vertexCnt[4 * i + 1] << ' ' << vertexCnt[4 * i + 2] << '\n';
-	//}
-	//glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-	//fclose(stdout);
-	//indirectDrawSSBO->bindBuffer();
-	//unsigned int* indirect= (unsigned int*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-	//std::cerr << "Indirect" << indirect[0] << ' ' << indirect[5] << '\n';
-	//glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 }
 
 void Terrain::renderCall() {
 	// test renderCall
 	initVertexObject();
 
-	// bind indices SSBO data -> element array buffer. 
 	glBindVertexArray(VAO);
-	glCheckError();
-	//glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
-	//glMemoryBarrier(GL_ELEMENT_ARRAY_BARRIER_BIT|GL_ALL_BARRIER_BITS);
 	glMemoryBarrier(GL_ALL_BARRIER_BITS);
-	////debug
-	//freopen("./output.txt", "w", stdout);
-	//indicesSSBO->bindBuffer();
-	//unsigned int* count = (unsigned int*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-	//for (int i = 0; i < 2000; i++) {
-	//	std::cout << count[3 * i] << ' ' << count[3 * i + 1] << ' ' << count[3 * i + 2] << '\n';
-	//}
-	//fclose(stdout);
-	//glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 	
+	//EBO
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indicesSSBO->ssbo);
-	glCheckError();
 
+	// VBO
 	glBindBuffer(GL_ARRAY_BUFFER, verticesSSBO->ssbo);
-	glCheckError();
 
-	// DEBUG
 	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
 	glEnableVertexAttribArray(0);
 
 	shader->use();
 	//debug
-	indirectDrawSSBO->bindBuffer();
+	/*indirectDrawSSBO->bindBuffer();
 	unsigned int* command = (unsigned int*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
 	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 	for (int i = 0; i <= 5; i++) {
 		std::cerr << command[i] << '\n';
-	}
+	}*/
 
 	glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
 	glCullFace(GL_FRONT);
 
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectDrawSSBO->ssbo);
+	//draw
 	glDrawElementsIndirect(GL_TRIANGLES,GL_UNSIGNED_INT,0);
-	//glDrawArraysIndirect(GL_TRIANGLES, 0);
-	//glDrawArrays(GL_TRIANGLES, 0, 300);
 	glCheckError();
-	//glDrawElements(GL_TRIANGLES, 300, GL_UNSIGNED_INT, 0);
 	glCullFace(GL_BACK);
 	glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
 }
