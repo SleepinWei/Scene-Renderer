@@ -57,7 +57,7 @@ Camera::Camera(glm::vec3 position,
 	updateCameraVectors();
 	aspect_ratio = aspect; 
 	zNear = 0.1f;
-	zFar = 1000.0f;
+	zFar = 100.0f;
 }
 // constructor with scalar values
 Camera::Camera(float posX, 
@@ -77,7 +77,7 @@ Camera::Camera(float posX,
 	updateCameraVectors();
 	aspect_ratio = aspect; 
 	zNear = 0.1f;
-	zFar = 1000.0f;
+	zFar = 100.0f;
 }
 
 // returns the view matrix calculated using Euler Angles and the LookAt Matrix

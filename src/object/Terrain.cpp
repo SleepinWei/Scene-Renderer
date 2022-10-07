@@ -325,12 +325,12 @@ void Terrain::renderCall() {
 
 	shader->use();
 	//debug
-	/*indirectDrawSSBO->bindBuffer();
-	unsigned int* command = (unsigned int*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-	for (int i = 0; i <= 5; i++) {
-		std::cerr << command[i] << '\n';
-	}*/
+	//indirectDrawSSBO->bindBuffer();
+	//unsigned int* command = (unsigned int*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+	//glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+	//for (int i = 0; i <= 5; i++) {
+	//	std::cerr << command[i] << '\n';
+	//}
 
 	glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
 	glCullFace(GL_FRONT);

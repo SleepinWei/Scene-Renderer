@@ -1,9 +1,15 @@
 #version 430 core 
 #define MIN_LEVEL 0
 #define MAX_LEVEL 3
-#define MIN_DISTANCE 2
+// #define MIN_LEVEL 0
+// #define MAX_LEVEL 3
+
+#define MIN_DISTANCE 0
+#define MAX_DISTANCE 1
+// #define MIN_DISTANCE 1
 // #define MAX_DISTANCE 10
-#define TESS_PER_CHUNK 4
+
+#define TESS_PER_CHUNK 2
 // #define MAX_DISTANCE 50
 
 layout(local_size_x=1,local_size_y=1,local_size_z=1) in;
@@ -59,42 +65,82 @@ uniform int iteration;  // 第几次执行该 compute shader
 
 int GetLODLevel(vec4 Position[4]){
 // left 
-    vec4 eyeSpacePos[4];
+    vec4 camPosition[4]; 
     for(int i =0;i<4;i++){
-        eyeSpacePos[i] = view * model * vec4(Position[i].xyz,1.0f);
-    }
-    // "distance" from camera scaled between 0 and 1
-    float pointDistance[4];
-    for(int i= 0;i<4;i++){
-        pointDistance[i] = length(eyeSpacePos[i]);
+        camPosition[i] = projection * view * model * vec4(Position[i].xyz,1.0f);
     }
 
-    float level[4]; 
-    for(int i=0;i<4;i++){
-        level[i] = log2(pointDistance[i]/MIN_DISTANCE + 1);
-        // level[i] = (pointDistance[i] - MIN_DISTANCE) / (MAX_DISTANCE - MIN_DISTANCE) * MAX_LEVEL;
-    }
-    // float maxLevel = max(level[0],max(level[1],max(level[2],level[3])));
-    float maxLevel = min(level[0],min(level[1],min(level[2],level[3])));
-    maxLevel = clamp(maxLevel, MIN_LEVEL, MAX_LEVEL);
-    return int(maxLevel);
+    float len1 = length((camPosition[0]/camPosition[0].w-camPosition[2]/camPosition[2].w).xy);
+    float len2 = length((camPosition[1]/camPosition[1].w - camPosition[3]/camPosition[3].w).xy);
+    float minL = min(len1,len2);
+    int level = int(MAX_LEVEL * (minL-MIN_DISTANCE)/(MAX_DISTANCE));
+    level = clamp(level,MIN_LEVEL,MAX_LEVEL);
+    return MAX_LEVEL - level;
+    // vec4 eyeSpacePos[4];
+    // for(int i =0;i<4;i++){
+    //     eyeSpacePos[i] = view * model * vec4(Position[i].xyz,1.0f);
+    // }
+    // // "distance" from camera scaled between 0 and 1
+    // float pointDistance[4];
+    // for(int i= 0;i<4;i++){
+    //     pointDistance[i] = length(eyeSpacePos[i]);
+    // }
+
+    // float level[4]; 
+    // for(int i=0;i<4;i++){
+    //     level[i] = log2(pointDistance[i]/MIN_DISTANCE + 1);
+    //     // level[i] = (pointDistance[i] - MIN_DISTANCE) / (MAX_DISTANCE - MIN_DISTANCE) * MAX_LEVEL;
+    // }
+    // // float maxLevel = max(level[0],max(level[1],max(level[2],level[3])));
+    // float maxLevel = min(level[0],min(level[1],min(level[2],level[3])));
+    // maxLevel = clamp(maxLevel, MIN_LEVEL, MAX_LEVEL);
+    // return int(maxLevel);
 }
 
 bool needCulling(vec4 Position[4]){
+    // cohen-sutherland 
+    vec4 NDC[4]; 
     bool flag = false;
     for(int i=0;i<4;i++){
-        vec4 NDC = projection * view * model * vec4(Position[i].xyz,1.0f);
-        if(NDC.w >= 0.0f){
-            NDC = NDC / NDC.w;
-            if(NDC.x> -1.0f && NDC.x < 1.0f && 
-                NDC.y > -1.0f && NDC.y < 1.0f &&
-                NDC.z > -1.0f && NDC.z < 1.0f)
-            {
-                flag = flag || true;
-            }
+        NDC[i] = projection * view * model * vec4(Position[i].xyz,1.0f);
+    }
+    if(NDC[0].w < 0 && NDC[1].w <0 && NDC[2].w <0 && NDC[3].w < 0){
+        return false; 
+    }
+    int code[4]; 
+    for(int i=0;i<4;i++){
+        NDC[i] = NDC[i] / NDC[i].w; 
+        code[i] = 0;
+        //x
+        if(NDC[i].x < -1.0f){
+            code[i] += (1<<4); 
+        }else if (NDC[i].x <= 1.0f){
+        }else{
+            code[i] += (1<< 5);
+        }
+        //y
+        if(NDC[i].y < -1.0f){
+            code[i] += (1<<2); 
+        }else if (NDC[i].y <= 1.0f){
+        }else{
+            code[i] += (1<<3);
+        }
+        //z
+        if(NDC[i].z < -1.0f){
+            code[i] += (1<<0); 
+        }else if (NDC[i].z <= 1.0f){
+        }else{
+            code[i] += (1<<1);
         }
     }
-    return !flag; 
+    int AND = code[0] & code[1] & code[2] & code[3]; 
+    int x_ = (AND >> 4); 
+    int y_ = (AND >> 2)%4;
+    int z_ = AND % 4;
+    if(x_ > 0 || y_ >0 || z_ > 0)
+        return true;
+    return false;
+    // return !flag; 
 }
 
 void generateLODData(int iter,Node n){
@@ -112,6 +158,9 @@ void generateLODData(int iter,Node n){
         // uint index12 = curVertexIndex + 1;
         // vertices[index01] = vec4(float(n.indices.x),float(n.indices.y),float(n.indices.z),0.0f); //00 
         // vertices[index12] = vec4(float(n.indices.z),0.0f,0.0f,0.0f);
+    if(needCulling(Points)){
+        return;
+    };
 
     int currentLevel = GetLODLevel(Points);
     if(currentLevel + iter < MAX_LEVEL){
@@ -153,8 +202,8 @@ void generateLODData(int iter,Node n){
         // 不再细分，填写 indices
         // 一个 lod chunk 的边 分为 TESS_PER_CHUNK 个小块
         // decide whether this part needs culling
-        if(needCulling(Points))
-            return;
+        // if(needCulling(Points))
+            // return;
         uint NEW_VERTICES_COUNT = (TESS_PER_CHUNK+1) * (TESS_PER_CHUNK+1);
         uint curVertexIndex = atomicAdd(vertexCnt,NEW_VERTICES_COUNT);
         uint curIndiceIndex = atomicAdd(count,TESS_PER_CHUNK*TESS_PER_CHUNK*6);
