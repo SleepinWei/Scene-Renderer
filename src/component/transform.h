@@ -1,7 +1,6 @@
 #pragma once
 #include"Component.h"
 #include<glm/glm.hpp>
-//#include<rttr/registration.h>
 
 class Transform : public Component {
 public:

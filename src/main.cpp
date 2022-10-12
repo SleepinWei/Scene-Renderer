@@ -22,6 +22,7 @@
 #include"./renderer/RenderScene.h"
 //system
 #include"system/InputManager.h"
+#include"./system/meta_register.h"
 #include"./system/RenderManager.h"
 #include"GUI.h"
 extern "C" __declspec(dllexport) long long NvOptimusEnablement = 0x00000001;
@@ -34,6 +35,7 @@ const unsigned int SCR_HEIGHT = 900;
 std::unique_ptr<RenderManager> renderManager;
 std::unique_ptr<ResourceManager> resourceManager;
 std::unique_ptr<InputManager> inputManager;
+std::unique_ptr<MetaRegister> meta;
 
 //#define TEST
 #ifndef TEST
@@ -182,7 +184,11 @@ void test_print(glm::mat4& model) {
 	}
 }
 void test() {
-
+	glm::vec3 a(1.0f);
+	float* p = (float*) & a;
+	for (int i = 0; i < 3; i++) {
+		std::cout << a[i] << ' '; 
+	}
 }
 
 //#include"PathTracing.h"

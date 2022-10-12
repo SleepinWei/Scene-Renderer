@@ -1,0 +1,300 @@
+#version 450 core
+layout(local_size_x=1,local_size_y=1,local_size_z=1)in;
+
+struct DensityProfileLayer{
+    float width; // an atomosphere layer of width 'width'
+    float exp_term;
+    float exp_scale; 
+    float linear_term; 
+    float const_term; 
+};
+
+// two layers of atmosphere
+struct DensityProfile{
+    DensityProfileLayer layers[2]; 
+};
+
+uniform int transTexWidth; // transmittance texture width 
+uniform int transTexHeight;
+uniform int TexWidth; //longtitude
+uniform int TexHeight; //latitude
+
+struct AtmosphereParameters{
+    float solar_irradiance; // solar irradiance at the top of the atmosphere
+    float sun_angular_radius; 
+    float top_radius;
+    float bottom_radius; 
+
+    DensityProfile rayleigh_density; 
+    vec3 rayleigh_scattering;//scattering coefficient of air molecules
+    DensityProfile mie_density; 
+    vec3 mie_scattering; // scattering cofficient, a function of wavelength.
+    vec3 mie_extinction; 
+    float mie_g; // g coefficient in phase function
+
+    DensityProfile absorption_density; //ozone layer
+    vec3 absorption_extinction; 
+
+    vec3 ground_albedo; // average albedo (can be replaced by gorund textures? perhaps)
+
+    // cosine of maximum sun zenith angle. 
+    // which is the smallest sun zenith angle yielding negligible 
+    // sky light radiance values. Earth: 102 degress -> -0.2 
+    float mu_s_min;
+};
+
+layout(rgba32f,binding=0) uniform image2D transmittance_texture;
+layout(rgba32f,binding=1) uniform image2D skyViewLut;
+
+layout(std140, binding=7) uniform ATMOS{
+    AtmosphereParameters atmosphere;
+};
+
+float DistanceToTop(AtmosphereParameters atmopshere,float r, float mu){
+    // mu = cos theta 
+    // r = polar radius
+    if(r > atmosphere.top_radius)
+        return -1; 
+    if(mu < -1.0 || mu > 1.0)
+        return -1;
+    float discriminant = r * r * (mu * mu -1.0f) + atmopshere.top_radius * atmopshere.top_radius;
+    if(discriminant < 0)
+        return -1; 
+    return (-r*mu+sqrt(discriminant));
+}
+
+float DistanceToBottom(AtmosphereParameters atmopshere,float r, float mu){
+    // mu = cos theta 
+    // r = polar radius
+    if(r > atmosphere.top_radius)
+        return -1; 
+    if(mu < -1.0 || mu > 1.0)
+        return -1;
+    float discriminant = r * r * (mu * mu -1.0f) + atmopshere.top_radius * atmopshere.top_radius;
+    if(discriminant < 0)
+        return -1; 
+    return (-r*mu-sqrt(discriminant));
+}
+
+bool RayIntersectsGround(AtmosphereParameters atmopshere,float r,float mu){
+    return mu < 0.0 && r * r * (mu * mu - 1.0) +
+      atmosphere.bottom_radius * atmosphere.bottom_radius >= 0.0;
+}
+
+float GetLayerDensity(DensityProfileLayer layer,float altitude){
+    float density = layer.exp_term * exp(layer.exp_scale * altitude)
+    + layer.linear_term * altitude + layer.const_term;
+    return clamp(density, 0.0f, 1.0f);
+}
+
+float GetProfileDensity(DensityProfile profile,float altitude){
+    return altitude < profile.layers[0].width ? 
+        GetLayerDensity(profile.layers[0],altitude):
+        GetLayerDensity(profile.layers[1],altitude);
+}
+// map r,mu -> 0,1 
+vec2 GetTransmittanceTextureUV(AtmosphereParameters atmosphere,float r, float mu){
+    float H = sqrt(atmosphere.top_radius * atmosphere.top_radius -
+      atmosphere.bottom_radius * atmosphere.bottom_radius);
+  // Distance to the horizon.
+    float rho =
+        sqrt(r * r - atmosphere.bottom_radius * atmosphere.bottom_radius);
+    // Distance to the top atmosphere boundary for the ray (r,mu), and its minimum
+    // and maximum values over all mu - obtained for (r,1) and (r,mu_horizon).
+    float d = DistanceToTop(atmosphere, r, mu);
+    float d_min = atmosphere.top_radius - r;
+    float d_max = rho + H;
+    float x_mu = (d - d_min) / (d_max - d_min);
+    float x_r = rho / H;
+    return vec2(x_mu,x_r);
+}
+
+vec3 GetTransmittanceToTopAtmosphereBoundary(
+    AtmosphereParameters atmosphere,
+    // image2D transmittance_texture,
+    float r, float mu) {
+
+    vec2 uv = GetTransmittanceTextureUV(atmosphere, r, mu);
+    ivec2 texCoords = ivec2(int(uv.x * transTexWidth),int(uv.y * transTexHeight)) ;
+    return vec3(imageLoad(transmittance_texture, texCoords));
+}
+
+vec3 GetTransmittance(
+    AtmosphereParameters atmosphere,
+    // image2D transmittanceTexture,
+    float r,float mu,float d,bool ray_intersect_ground
+){
+    float r_d = sqrt(d * d + 2.0 * r * mu * d + r * r);
+    float mu_d = (r * mu + d) / r_d;
+
+    if (ray_intersect_ground) {
+        return min(
+            GetTransmittanceToTopAtmosphereBoundary(
+                atmosphere, 
+                // transmittance_texture,
+                r_d, -mu_d) /
+            GetTransmittanceToTopAtmosphereBoundary(
+                atmosphere, 
+                // transmittanceTexture, 
+                r, -mu),
+            1.0f);
+    } else {
+        return min(
+            GetTransmittanceToTopAtmosphereBoundary(
+                atmosphere, 
+                // transmittanceTexture, 
+                r, mu) /
+            GetTransmittanceToTopAtmosphereBoundary(
+                atmosphere, 
+                // transmittanceTexture, 
+                r_d, mu_d),
+            1.0f);
+    }
+}
+
+vec3 GetTransmittanceToSun(
+    AtmosphereParameters atmosphere,
+    // image2D transmittance_texture,
+    float r, float mu_s) {
+    float sin_theta_h = atmosphere.bottom_radius / r;
+    float cos_theta_h = -sqrt(max(1.0 - sin_theta_h * sin_theta_h, 0.0));
+    return GetTransmittanceToTopAtmosphereBoundary(
+          atmosphere, 
+        //   transmittance_texture, 
+          r, mu_s) *
+        smoothstep(-sin_theta_h * atmosphere.sun_angular_radius ,
+                 sin_theta_h * atmosphere.sun_angular_radius ,
+                 mu_s - cos_theta_h);
+}
+
+// 
+void ComputeSingleScatteringIntegrand(
+    AtmosphereParameters atmosphere,
+    // image2D transmittance_texture,
+    float r, float mu, float mu_s, float nu, float d,
+    bool ray_r_mu_intersects_ground,
+    out vec3 rayleigh, out vec3 mie) {
+    float r_d = sqrt(d * d + 2.0 * r * mu * d + r * r);
+    float mu_s_d = (r * mu_s + d * nu) / r_d;
+    vec3 transmittance =
+        GetTransmittance(
+            atmosphere, 
+            // transmittance_texture, 
+            r, mu, d,
+            ray_r_mu_intersects_ground) *
+        GetTransmittanceToSun(
+            atmosphere, 
+            // transmittance_texture, 
+            r_d, mu_s_d);
+    rayleigh = transmittance * GetProfileDensity(
+        atmosphere.rayleigh_density, r_d - atmosphere.bottom_radius);
+    mie = transmittance * GetProfileDensity(
+        atmosphere.mie_density, r_d - atmosphere.bottom_radius);
+}
+
+float DistanceToNearestAtmosphereBoundary(
+    AtmosphereParameters atmosphere,
+    float r, float mu, bool ray_r_mu_intersects_ground) {
+  if (ray_r_mu_intersects_ground) {
+    return DistanceToBottom(atmosphere, r, mu);
+  } else {
+    return DistanceToTop(atmosphere, r, mu);
+  }
+}
+
+void ComputeSingleScattering(
+    AtmosphereParameters atmosphere,
+    // image2D transmittance_texture,
+    float r, float mu, float mu_s, float nu,
+    bool ray_r_mu_intersects_ground,
+    out vec3 rayleigh, out vec3 mie) {
+    // assume sun light is parallel
+//   assert(r >= atmosphere.bottom_radius && r <= atmosphere.top_radius);
+//   assert(mu >= -1.0 && mu <= 1.0);
+//   assert(mu_s >= -1.0 && mu_s <= 1.0);
+//   assert(nu >= -1.0 && nu <= 1.0);
+
+  // Number of intervals for the numerical integration.
+  const int SAMPLE_COUNT = 50;
+  // The integration step, i.e. the length of each integration interval.
+  float dx =
+      DistanceToNearestAtmosphereBoundary(atmosphere, r, mu,
+          ray_r_mu_intersects_ground) / float(SAMPLE_COUNT);
+  // Integration loop.
+  vec3 rayleigh_sum = vec3(0.0f);
+  vec3 mie_sum = vec3(0.0f);
+  for (int i = 0; i <= SAMPLE_COUNT; ++i) {
+    float d_i = float(i) * dx;
+    // The Rayleigh and Mie single scattering at the current sample point.
+    vec3 rayleigh_i;
+    vec3 mie_i;
+    ComputeSingleScatteringIntegrand(atmosphere,
+        // transmittance_texture,
+        r, mu, mu_s, nu, d_i, ray_r_mu_intersects_ground, rayleigh_i, mie_i);
+    // Sample weight (from the trapezoidal rule).
+    float weight_i = (i == 0 || i == SAMPLE_COUNT) ? 0.5 : 1.0;
+    rayleigh_sum += rayleigh_i * weight_i;
+    mie_sum += mie_i * weight_i;
+  }
+  rayleigh = rayleigh_sum * dx * atmosphere.solar_irradiance *
+      atmosphere.rayleigh_scattering;
+  mie = mie_sum * dx * atmosphere.solar_irradiance * atmosphere.mie_scattering;
+}
+
+#define PI 3.1415926
+float RayleighPhaseFunction(float nu) {
+  float k = 3.0 / (16.0 * PI);
+  return k * (1.0 + nu * nu);
+}
+
+float MiePhaseFunction(float g, float nu) {
+  float k = 3.0 / (8.0 * PI) * (1.0 - g * g) / (2.0 + g * g);
+  return k * (1.0 + nu * nu) / pow(1.0 + g * g - 2.0 * g * nu, 1.5);
+}
+
+// non-linear transformation: packs more pixels near horizon. 
+float MapLatitudeToUnit(float latitude){
+    return 0.5f + 0.5f * sign(latitude) * sqrt(abs(latitude)/(PI/2));
+}
+
+float MapUnitToLatitude(float unit){
+    float s = sign(unit - 0.5f);
+    return ((2 * unit-1.0f) * (2*unit-1.0f)) * s * PI / 2;
+}
+
+// uniform vec3 cameraPos; 
+uniform vec3 sunDirection;
+
+void main(){
+    vec2 uv = gl_WorkGroupID.xy;
+    ivec2 texelCoord = ivec2(int(uv.x * (TexWidth-1)),int(uv.y * (TexHeight-1)));
+    float latitude= MapUnitToLatitude(uv.y);
+    float longtitude = uv.y * PI; 
+
+    bool intersect_ground = false;
+    if(latitude>0)
+        intersect_ground = true;
+    vec3 rayleigh = vec3(0.0f);
+    vec3 mie = vec3(0.0f);
+
+    float r,mu,mu_s,nu; 
+    // suppose character is always on surface 
+    r = atmosphere.bottom_radius;
+    vec3 viewDir = vec3(
+        cos(latitude) * sin(longtitude),
+        sin(latitude),
+        -cos(latitude) * -cos(longtitude)
+        );
+    vec3 up = vec3(0.0f,1.0f,0.0f);
+    vec3 sunDir = -normalize(sunDirection);
+    mu =  dot(up,sunDir);
+    nu = dot(viewDir,sunDir);
+    mu_s = dot(up,sunDir);
+        
+    ComputeSingleScattering(atmosphere,
+        // transmittanceTexture,
+        r,mu,mu_s,nu,intersect_ground,rayleigh,mie);
+    vec3 color = atmosphere.solar_irradiance * (rayleigh * RayleighPhaseFunction(nu)
+         + mie * MiePhaseFunction(atmosphere.mie_g,nu));
+    imageStore(skyViewLut,texelCoord,vec4(color,1.0f));
+}
