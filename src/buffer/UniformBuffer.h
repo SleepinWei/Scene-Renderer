@@ -1,7 +1,8 @@
 #pragma once
+#include"buffer.h"
 #include<iostream>
 
-class UniformBuffer {
+class UniformBuffer:public Buffer {
 public:
 	unsigned int UBO;
 	int size; 
@@ -13,8 +14,9 @@ public:
 	UniformBuffer(int size);
 	~UniformBuffer();
 
-	void bindBuffer();
-	void setBinding(int binding);
+	virtual void bindBuffer();
+	virtual void unbindBuffer();
+	virtual void setBinding(int binding);
 	void setDirtyFlag(bool flag);
 };
 

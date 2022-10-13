@@ -1,14 +1,15 @@
 #pragma once
+#include"buffer.h"
 
-class SSBO {
+class SSBO :public Buffer{
 	// shader storage buffer
 public:
 	SSBO();
 	SSBO(int size);
 	~SSBO() ;
-	void bindBuffer();
-	void unbindBuffer();
-	void setBinding(int binding);
+	virtual void bindBuffer() override;
+	virtual void unbindBuffer() override;
+	virtual void setBinding(int binding) override;
 
 public:
 	unsigned int ssbo; 
