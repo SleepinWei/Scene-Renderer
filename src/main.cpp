@@ -25,6 +25,8 @@
 #include"./system/meta_register.h"
 #include"./system/RenderManager.h"
 #include"GUI.h"
+#include"./system/global_context.h"
+#include"./component/Atmosphere.h"
 extern "C" __declspec(dllexport) long long NvOptimusEnablement = 0x00000001;
 extern "C" __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 0x00000001;
 
@@ -32,10 +34,10 @@ const unsigned int  SCR_WIDTH = 1600;
 const unsigned int SCR_HEIGHT = 900;
 
 // manager
-std::unique_ptr<RenderManager> renderManager;
-std::unique_ptr<ResourceManager> resourceManager;
-std::unique_ptr<InputManager> inputManager;
-std::unique_ptr<MetaRegister> meta;
+extern std::unique_ptr<RenderManager> renderManager;
+extern std::unique_ptr<ResourceManager> resourceManager;
+extern std::unique_ptr<InputManager> inputManager;
+//std::unique_ptr<MetaRegister> meta;
 
 //#define TEST
 #ifndef TEST
@@ -146,13 +148,21 @@ void render() {
 
 		scene->addObject(sphere);
 	}
-	glCheckError();
+	// atmosphere
+	float* sunAngle;
+	{
+		std::shared_ptr<GameObject> atm = std::make_shared<GameObject>();
+		auto&& atmosphere = atm->addComponent<Atmosphere>();
+		sunAngle = &(atmosphere->sunAngle);
+
+		scene->addObject(atm);
+	}
 
 	while (!glfwWindowShouldClose(window)) {
 		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		//glClearColor(0.6, 0.6, 0.6, 1.0);
 
-		gui.window(scene);
+		gui.window(scene,sunAngle);
 		glfwPollEvents();
 		//input manager tick
 		inputManager->tick();

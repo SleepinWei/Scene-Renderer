@@ -10,6 +10,7 @@
 #include"../component/GameObject.h"
 #include"../object/Terrain.h"
 #include"../object/SkyBox.h"
+#include"../component/Atmosphere.h"
 #include<memory>
 
 extern std::unique_ptr<InputManager> inputManager;
@@ -24,6 +25,10 @@ void BasePass::render(const std::shared_ptr<RenderScene>& scene) {
 		if (renderer && renderer->shader) {
 			renderer->shader->use();
 			renderer->render();
+		}
+		std::shared_ptr<Atmosphere>&& atmos = std::dynamic_pointer_cast<Atmosphere>(object->GetComponent("Atmosphere"));
+		if (atmos && atmos->shader) {
+			atmos->render();
 		}
 	}
 	glCheckError();

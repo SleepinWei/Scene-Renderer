@@ -190,13 +190,9 @@ void RenderManager::prepareDirectionLightData(const std::shared_ptr<RenderScene>
 
 void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	// TODO: wrap up this function to be Scene rendering pass
-	glCheckError();
 	prepareVPData(scene);
-	glCheckError();
 	preparePointLightData(scene);
-	glCheckError();
 	prepareDirectionLightData(scene);
-	glCheckError();
 
 	// shadow pass
 
@@ -204,7 +200,6 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	if (setting.enableHDR) {
 		hdrPass->bindBuffer();
 	}
-	glCheckError();
 	basePass->render(scene);
 
 	// hdr pass 
@@ -259,6 +254,17 @@ std::shared_ptr<Shader> RenderManager::generateShader(ShaderType type) {
 			return std::make_shared<Shader>(
 				"./src/shader/hdr.vs","./src/shader/hdr.fs"
 				);
+			break;
+		case ShaderType::SKY:
+			return std::make_shared<Shader>(
+				"./src/shader/sky/skyRender.vs","./src/shader/sky/skyRender.fs"
+				);
+			break;
+		case ShaderType::TEST:
+			return std::make_shared<Shader>(
+				"./src/shader/test.vs","./src/shader/test.fs"
+				);
+			break;
 		default:
 			std::cerr << "No such shader type" << '\n';
 			break;

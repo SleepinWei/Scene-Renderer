@@ -17,6 +17,8 @@ enum class ShaderType{
 	TERRAIN,
 	SKYBOX,
 	HDR,
+	SKY,
+	TEST,
 	
 	KIND_COUNT
 };

@@ -1,0 +1,8 @@
+USE db;
+CREATE TABLE IF NOT EXISTS student (
+    no INT NOT NULL AUTO_INCREMENT,
+    name VARCHAR NOT NULL,
+    gender VARCHAR NOT NULL,
+    age INT NOT NULL,
+    PRIMARY KEY (no)
+);
