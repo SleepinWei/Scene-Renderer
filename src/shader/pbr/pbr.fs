@@ -117,9 +117,6 @@ vec3 computePointShading(Object object,PointLight light,Material material){
     vec3 N = getNormalFromMap();
     vec3 V = normalize(camPos - object.Position);
 
-    // float heightScale = 0.3;
-    // float heightOffset = texture(material.height,object.TexCoords).r;
-    // vec3 objectPosition = object.Position + heightOffset * heightScale * N;
     vec3 objectPosition = object.Position;
 
     // F0 : plastic, albedo : metallic 
