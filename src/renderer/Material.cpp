@@ -17,7 +17,8 @@ std::shared_ptr<Material> Material::loadPBR(const std::string& folder) {
 		->addTexture(resourceManager->getResource(folder + "metallic.png"))
 		->addTexture(resourceManager->getResource(folder + "roughness.png"))
 		->addTexture(resourceManager->getResource(folder + "normal.png"))
-		->addTexture(resourceManager->getResource(folder + "ao.png"));
+		->addTexture(resourceManager->getResource(folder + "ao.png"))
+		->addTexture(resourceManager->getResource(folder + "height.png"));
 	return material;
 }
 

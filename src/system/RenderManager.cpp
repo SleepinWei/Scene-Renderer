@@ -239,7 +239,7 @@ std::shared_ptr<Shader> RenderManager::generateShader(ShaderType type) {
 		case ShaderType::PBR:
 			return std::make_shared<Shader>(
 				"./src/shader/pbr.vs", "./src/shader/pbr.fs", nullptr,
-				nullptr, nullptr
+				"./src/shader/pbr.tesc","./src/shader/pbr.tese"
 				);
 			break;
 		case ShaderType::SIMPLE:

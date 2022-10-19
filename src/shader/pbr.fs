@@ -37,6 +37,7 @@ struct Material{
     sampler2D normal;
     sampler2D roughness;
     sampler2D ao; 
+    sampler2D height;
 };
 uniform Material material; 
 
@@ -116,14 +117,19 @@ vec3 computePointShading(Object object,PointLight light,Material material){
     vec3 N = getNormalFromMap();
     vec3 V = normalize(camPos - object.Position);
 
+    // float heightScale = 0.3;
+    // float heightOffset = texture(material.height,object.TexCoords).r;
+    // vec3 objectPosition = object.Position + heightOffset * heightScale * N;
+    vec3 objectPosition = object.Position;
+
     // F0 : plastic, albedo : metallic 
     vec3 F0 = vec3(0.04);
     F0 = mix(F0,albedo,metallic);
 
     vec3 Lo = vec3(0.0); 
-    vec3 L = normalize(light.Position - object.Position);
+    vec3 L = normalize(light.Position - objectPosition);
     vec3 H = normalize(V+L);
-    float attenuation = calculateAtten(object.Position,light.Position);
+    float attenuation = calculateAtten(objectPosition,light.Position);
     vec3 radiance = light.Color * attenuation; 
 
     // cook-tolerance brdf
@@ -204,8 +210,6 @@ void main(){
     finalColor += ambient; 
 
     // HDR tone mapping 
-    // finalColor = finalColor / (finalColor + vec3(1.0));
-    // finalColor = pow(finalColor,vec3(1.0/2.2));
-    // FragColor = vec4(finalColor,1.0);
     FragColor = vec4(finalColor,1.0f);
+    // FragColor = vec4(vec3(object.TexCoords.x),1.0f);
 }

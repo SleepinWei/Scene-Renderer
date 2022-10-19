@@ -7,6 +7,7 @@
 #include"renderer/RenderScene.h"
 #include"./component/Lights.h"
 #include"./component/Transform.h"
+#include"./component/Atmosphere.h"
 
 class Gui {
 public:
@@ -23,7 +24,7 @@ public:
 		ImGui_ImplGlfw_Shutdown();
 		ImGui::DestroyContext();
 	}
-	void window(std::shared_ptr<RenderScene>& scene,float* sunAngle) {
+	void window(std::shared_ptr<RenderScene>& scene,float* sunAngle,AtmosphereParameters* parameters) {
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
@@ -35,7 +36,7 @@ public:
 			title[5] = '0' + 0;
 			ImGui::Text(title);
 			//auto& light = lights[0]; 
-			auto lightTrans = std::dynamic_pointer_cast<Transform>(
+			auto&& lightTrans = std::dynamic_pointer_cast<Transform>(
 				lights[i]->gameObject->GetComponent("Transform"));
 			ImGui::SliderFloat("X", &(lightTrans->position.x), -8.0f, 8.0f);
 			ImGui::SliderFloat("Y", &(lightTrans->position.y), -8.0f, 8.0f);
@@ -48,7 +49,7 @@ public:
 			title[15] = '0' + 0;
 			ImGui::Text(title);
 			//auto& light = lights[0]; 
-			auto lightTrans = std::dynamic_pointer_cast<Transform>(
+			auto&& lightTrans = std::dynamic_pointer_cast<Transform>(
 				dlights[i]->gameObject->GetComponent("Transform"));
 			ImGui::SliderFloat("X", &(lightTrans->position.x), -8.0f, 8.0f);
 			ImGui::SliderFloat("Y", &(lightTrans->position.y), -8.0f, 8.0f);
@@ -56,7 +57,10 @@ public:
 			dlights[i]->setDirtyFlag(true);
 		}
 
+		ImGui::Text("Atmosphere Parameters");
 		ImGui::SliderFloat("sunAngle", sunAngle, -10.0f, 90.0f);
+		//ImGui::SliderFloat("RayLeigh Scattering",0.0e-3,)
+
 		ImGui::Text("Light Intensity");
 		//ImGui::SliderFloat("Intensity", &lightColor, 0.5f, 20.0f);
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);

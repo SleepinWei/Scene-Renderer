@@ -90,7 +90,7 @@ void render() {
 	{
 		std::shared_ptr<GameObject> pLight = std::make_shared<GameObject>();
 		std::shared_ptr<PointLight>&& light = pLight->addComponent<PointLight>(); 
-		light->data.color = glm::vec3(5.0f);
+		light->data.color = glm::vec3(1.0f);
 
 		auto&& transform = pLight->addComponent<Transform>(); 
 		transform->scale = glm::vec3(0.1);
@@ -143,17 +143,40 @@ void render() {
 
 		auto&& renderer = sphere->addComponent<MeshRenderer>();
 		renderer->setShader(ShaderType::PBR)
-			->setMaterial(Material::loadPBR("./asset/pbr/riverrock/"));
+			->setMaterial(Material::loadPBR("./asset/pbr/riverrock/"))
+			->setDrawMode(GL_PATCHES)
+			->setPolyMode(GL_LINE);
 		// std::cout << resourceManager->resource.size() << '\n';
 
 		scene->addObject(sphere);
 	}
+	//plane 
+	{
+		std::shared_ptr<GameObject> plane = std::make_shared<GameObject>();
+		auto&& transform = plane->addComponent<Transform>();
+		transform->position = glm::vec3(0.0f, 0.5f, 0.0f);
+		transform->scale = glm::vec3(0.2);
+
+		auto&& mesh = plane->addComponent<MeshFilter>();
+		mesh->loadShape(SHAPE::PLANE);
+
+		auto&& renderer = plane->addComponent<MeshRenderer>();
+		renderer->setShader(ShaderType::PBR)
+			->setMaterial(Material::loadPBR("./asset/pbr/riverrock/"))
+			->setDrawMode(GL_PATCHES)
+			->setPolyMode(GL_LINE);
+		// std::cout << resourceManager->resource.size() << '\n';
+
+		scene->addObject(plane);
+	}
 	// atmosphere
 	float* sunAngle;
+	AtmosphereParameters* parameters; 
 	{
 		std::shared_ptr<GameObject> atm = std::make_shared<GameObject>();
 		auto&& atmosphere = atm->addComponent<Atmosphere>();
 		sunAngle = &(atmosphere->sunAngle);
+		parameters = &(atmosphere->atmosphere);
 
 		scene->addObject(atm);
 	}
@@ -162,7 +185,7 @@ void render() {
 		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		//glClearColor(0.6, 0.6, 0.6, 1.0);
 
-		gui.window(scene,sunAngle);
+		gui.window(scene,sunAngle,parameters);
 		glfwPollEvents();
 		//input manager tick
 		inputManager->tick();

@@ -26,6 +26,6 @@ void main(){
     float LonUnit = Lon / (2 * PI);
     vec4 color = texture(skyViewLut,vec2(LonUnit,LatUnit));
     // vec4 color = vec4(LatUnit,LonUnit,1.0f,1.0f);
-    // vec4 color = vec4(1.0f)
-    FragColor = color;
+    // FragColor = color;
+    FragColor = vec4(0.8f);
 }

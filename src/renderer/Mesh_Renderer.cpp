@@ -37,8 +37,14 @@ std::shared_ptr<MeshRenderer> MeshRenderer::setMaterial(std::shared_ptr<Material
 	return shared_from_this();
 };
 
-void MeshRenderer::setDrawMode(GLenum drawMode_) {
+std::shared_ptr<MeshRenderer> MeshRenderer::setDrawMode(GLenum drawMode_) {
 	drawMode = drawMode_;
+	return shared_from_this();
+}
+
+std::shared_ptr<MeshRenderer> MeshRenderer::setPolyMode(GLenum ployMode_) {
+	polyMode = ployMode_;
+	return shared_from_this();
 }
 
 MeshRenderer::MeshRenderer():drawMode(GL_TRIANGLES),polyMode(GL_FILL) {
@@ -126,13 +132,15 @@ void MeshRenderer::render(){
 		glBindVertexArray(VAO);
 		assert(VAO>0);
 		{
-			//if (polyMode == GL_LINE) {
-			//	glPolygonMode(GL_FRONT_AND_BACK, polyMode);
-			//}
+			if (polyMode == GL_LINE) {
+				glPolygonMode(GL_FRONT_AND_BACK, polyMode);
+			}
+			glPatchParameteri(GL_PATCH_VERTICES, 3);
+			// --- end debug
 			glDrawElements(drawMode, mesh_filter->indices.size(), GL_UNSIGNED_INT, 0);
-			//if (polyMode == GL_FILL) {
-				//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-			//}
+			if (polyMode == GL_LINE) {
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			}
 		}
 		glBindVertexArray(0);
 	}
