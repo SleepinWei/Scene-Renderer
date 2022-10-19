@@ -1,20 +1,31 @@
 #include"../renderer/Mesh_Filter.h"
 #include"../renderer/Mesh_Renderer.h"
 #include"../component/transform.h"
-//#include"meta_register.h"
-//#include<meta/meta.hpp>
-//#include<meta/factory.hpp>
-//
-//MetaRegister::MetaRegister() {
-//	std::hash<std::string_view> hash{};
-//	
-//	meta::reflect<Transform>(hash("Transform"))
-//		.ctor()
-//		.data<&Transform::position>(hash("Position"))
-//		.data<&Transform::rotation>(hash("Rotation"))
-//		.data<&Transform::scale>(hash("scale"));
-//}
-//
-//MetaRegister::~MetaRegister() {
-//
-//}
+#include"meta_register.h"
+//#include<UDRefl/UDRefl.hpp>
+#include<glm/glm.hpp>
+#include<memory>
+//using namespace Ubpa;
+//using namespace Ubpa::UDRefl;
+
+//using Ubpa::UDRefl::Mngr;
+//using Ubpa::UDRefl::SharedObject;
+
+MetaRegister::MetaRegister() {
+	// Transform 
+	//Mngr.RegisterType<Transform>();
+	//Mngr.AddField<&Transform::position>("position");
+	//Mngr.AddField<&Transform::rotation>("rotation");
+	//Mngr.AddField<&Transform::scale>("scale");
+}
+
+MetaRegister::~MetaRegister() {
+
+}
+
+void MetaRegister::test() {
+	//SharedObject v = Mngr.MakeShared(Ubpa::Type_of<Transform>);
+	//std::shared_ptr<Transform> p = std::static_pointer_cast<Transform>(v.GetBuffer());
+	//std::cout << v.GetType().GetName() << '\n';
+	//std::cout << p.get() << '\n';
+}

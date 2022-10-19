@@ -23,7 +23,7 @@ public:
 		ImGui_ImplGlfw_Shutdown();
 		ImGui::DestroyContext();
 	}
-	void window(std::shared_ptr<RenderScene>& scene) {
+	void window(std::shared_ptr<RenderScene>& scene,float* sunAngle) {
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
@@ -55,6 +55,8 @@ public:
 			ImGui::SliderFloat("Z", &(lightTrans->position.z), -8.0f, 8.0f);
 			dlights[i]->setDirtyFlag(true);
 		}
+
+		ImGui::SliderFloat("sunAngle", sunAngle, -10.0f, 90.0f);
 		ImGui::Text("Light Intensity");
 		//ImGui::SliderFloat("Intensity", &lightColor, 0.5f, 20.0f);
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);

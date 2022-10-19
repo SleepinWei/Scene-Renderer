@@ -26,6 +26,10 @@ void UniformBuffer::bindBuffer() {
 	glBindBuffer(GL_UNIFORM_BUFFER, UBO);
 }
 
+void UniformBuffer::unbindBuffer() {
+	glBindBuffer(GL_UNIFORM_BUFFER, 0);
+}
+
 void UniformBuffer::setBinding(int binding) {
 	if(UBO){
 		this->binding = binding;

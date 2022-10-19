@@ -4,11 +4,9 @@
 
 class RenderManager;
 class ResourceManager;
+class InputManager;
 
-class RunTimeGlobalContext {
-public:
+std::unique_ptr<RenderManager> renderManager;
+std::unique_ptr<ResourceManager> resourceManager;
+std::unique_ptr<InputManager> inputManager;
 
-	std::shared_ptr<RenderManager> renderManager;
-	std::shared_ptr<ResourceManager> resourceManager;
-
-};
