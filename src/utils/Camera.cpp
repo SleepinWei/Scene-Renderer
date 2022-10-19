@@ -40,8 +40,10 @@ void Camera::tick() {
 	}
 	
 	// view port change 
-	if (inputManager->viewPortChange)
-		aspect_ratio = inputManager->width * 1.0 / inputManager->height; 
+	if (inputManager->viewPortChange) {
+		aspect_ratio = inputManager->width * 1.0 / inputManager->height;
+		//aspect_ratio = std::max(aspect_ratio, 0.1f);
+	}
 }
 
 // constructor with vectors

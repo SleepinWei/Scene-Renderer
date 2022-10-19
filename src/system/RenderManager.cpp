@@ -20,7 +20,8 @@ RenderManager::RenderManager() {
 
 	// setting
 	setting = RenderSetting{
-		true // enableHDR
+		//true // enableHDR
+		false
 	};
 
 	// UBOs 
@@ -93,9 +94,18 @@ void RenderManager::prepareVPData(const std::shared_ptr<RenderScene>& renderScen
 	//}
 
 	// update every frame: skybox view
+	glm::mat4 view_for_skybox = glm::mat4(glm::mat3(camera->GetViewMatrix()));
 	std::shared_ptr<Shader>& skyboxShader = m_shader[static_cast<int>(ShaderType::SKYBOX)];
-	skyboxShader->use();
-	skyboxShader->setMat4("view", glm::mat4(glm::mat3(camera->GetViewMatrix())));
+	if (skyboxShader) {
+		skyboxShader->use();
+		skyboxShader->setMat4("view", view_for_skybox);
+	}
+
+	std::shared_ptr<Shader>& skyShader = m_shader[static_cast<int>(ShaderType::SKY)];
+	if (skyShader) {
+		skyShader->use();
+		skyShader->setMat4("view", view_for_skybox);
+	}
 
 	// campos
 	for (auto& shader : m_shader) {
@@ -191,6 +201,7 @@ void RenderManager::prepareDirectionLightData(const std::shared_ptr<RenderScene>
 void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	// TODO: wrap up this function to be Scene rendering pass
 	prepareVPData(scene);
+	glCheckError();
 	preparePointLightData(scene);
 	prepareDirectionLightData(scene);
 

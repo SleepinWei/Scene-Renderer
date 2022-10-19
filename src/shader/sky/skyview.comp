@@ -21,7 +21,8 @@ uniform int TexHeight; //latitude
 // uniform vec3 cameraPos; 
 // uniform vec3 sunDirection; // def: sunPosition - curPosition
 
-layout(rgba32f,binding=0) uniform image2D transmittance_texture;
+// layout(rgba32f,binding=0) uniform image2D transmittance_texture;
+uniform sampler2D transmittance_texture;
 layout(rgba32f,binding=1) uniform image2D skyViewLut;
 
 struct AtmosphereParameters{
@@ -133,8 +134,9 @@ vec3 GetTransmittanceToTopAtmosphereBoundary(
     float r, float mu) {
 
     vec2 uv = GetTransmittanceTextureUV(atmosphere, r, mu);
-    ivec2 texCoords = ivec2(int(uv.x * (transTexWidth-1)),int(uv.y * (transTexHeight-1))) ;
-    return vec3(imageLoad(transmittance_texture, texCoords));
+    // ivec2 texCoords = ivec2(int(uv.x * (transTexWidth-1)),int(uv.y * (transTexHeight-1))) ;
+    // return vec3(imageLoad(transmittance_texture, texCoords));
+    return vec3(texture(transmittance_texture,uv));
 }
 
 vec3 GetTransmittance(
@@ -272,13 +274,14 @@ float MiePhaseFunction(float g, float nu) {
 }
 
 // non-linear transformation: packs more pixels near horizon. 
+#define epsilon 0.2
 float MapLatitudeToUnit(float latitude){
-    return 0.5f + 0.5f * sign(latitude) * sqrt(abs(latitude)/(PI/2));
+    return 0.5f + 0.5f * sign(latitude) * sqrt(abs(latitude)/(PI/2+epsilon));
 }
 
 float MapUnitToLatitude(float unit){
     float s = sign(unit - 0.5f);
-    return ((2 * unit-1.0f) * (2*unit-1.0f)) * s * PI / 2;
+    return ((2 * unit-1.0f) * (2*unit-1.0f)) * s * (PI / 2+epsilon);
 }
 
 // debug
@@ -288,7 +291,7 @@ void main(){
     vec2 uv = vec2(gl_WorkGroupID.x * 1.0f / TexWidth,gl_WorkGroupID.y * 1.0f / TexHeight);
     ivec2 texelCoord = ivec2(gl_WorkGroupID.x,gl_WorkGroupID.y);
     float latAngle = MapUnitToLatitude(uv.y);
-    float lonAngle = uv.x * PI; 
+    float lonAngle = uv.x * 2 * PI; 
 
     vec3 rayleigh = vec3(0.0f);
     vec3 mie = vec3(0.0f);

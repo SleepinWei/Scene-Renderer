@@ -41,11 +41,11 @@ void BasePass::render(const std::shared_ptr<RenderScene>& scene) {
 	}
 
 	// render skybox 
-	std::shared_ptr<SkyBox>& skybox = scene->skybox;
-	if (skybox && skybox->shader) {
-		skybox->shader->use();
-		//skybox->render();
-	}
+	//std::shared_ptr<SkyBox>& skybox = scene->skybox;
+	//if (skybox && skybox->shader) {
+	//	skybox->shader->use();
+	//	//skybox->render();
+	//}
 }
 
 HDRPass::HDRPass() {

@@ -36,13 +36,13 @@ void Atmosphere::initTextures() {
 void Atmosphere::initAtmosphereParameters(){
 	// initialize AtmosphereParameters
 	// TODO:
-	atmosphere.solar_irradiance = 5.0f; // solar irradiance
-	atmosphere.sun_angular_radius = 0.1f;//sun angular radius
+	atmosphere.solar_irradiance = 10.0f; // solar irradiance
+	atmosphere.sun_angular_radius = 0.005f;//sun angular radius
 	atmosphere.top_radius = 6460.0f;// top_radius
 	atmosphere.bottom_radius = 6360.0f;// bottom_radius
 
-	atmosphere.HDensityRayleigh = 1.2f; //hdensity rayleigh
-	atmosphere.HDensityMie = 8.0f; // hdensity mie
+	atmosphere.HDensityRayleigh = 8.0f; //hdensity rayleigh
+	atmosphere.HDensityMie = 1.2f; // hdensity mie
 	atmosphere.OzoneCenter = 25.0f; //ozoneCenter
 	atmosphere.mie_g = 0.8;//mig_g
 	atmosphere.rayleigh_scattering = glm::vec3(5.802e-3, 13.558e-3, 33.1e-3);//ray_scat
@@ -58,9 +58,9 @@ void Atmosphere::initShaders() {
 	// TODO: add compute shader to RenderManager;
 	compTransShader = std::make_shared<Shader>("./src/shader/sky/transmittance.comp");
 	compskyViewShader = std::make_shared<Shader>("./src/shader/sky/skyview.comp");
-	//shader = renderManager->getShader(ShaderType::SKY);
+	shader = renderManager->getShader(ShaderType::SKY);
 	// only for debug
-	shader = renderManager->getShader(ShaderType::TEST);
+	//shader = renderManager->getShader(ShaderType::TEST);
 }
 
 void Atmosphere::prepareAtmosphere() {
@@ -125,6 +125,9 @@ void Atmosphere::computeSkyViewTexutre() {
 
 	//debug
 	compskyViewShader->setFloat("sunAngle", sunAngle);
+	compskyViewShader->setInt("transmittance_texture", 0);
+	glActiveTexture(GL_TEXTURE0);
+	transmittanceTexture->bindBuffer();
 	// debug end
 	glDispatchCompute(skyViewWidth, skyViewHeight, 1);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -137,10 +140,20 @@ void Atmosphere::computeDrawCall() {
 
 void Atmosphere::renderDrawCall() {
 	//TODO
+	glDepthFunc(GL_LEQUAL);
+	glCullFace(GL_FRONT);
+
+	glActiveTexture(GL_TEXTURE8);
+	skyViewTexture->bindBuffer();
+
 	shader->use();
-	//renderCube();
+	shader->setInt("skyViewLut", 8);
+	//shader->setInt("tex", 8);
+	renderCube();
 	// only for debug
-	renderQuad();
+	//renderQuad();
+	glCullFace(GL_BACK);
+	glDepthFunc(GL_LESS);
 }
 
 
@@ -148,13 +161,6 @@ void Atmosphere::render() {
 	//TODO
 	prepareAtmosphere();
 	computeDrawCall();
-	//------------ debug
-	skyViewTexture->bindBuffer();
-	glActiveTexture(GL_TEXTURE8);
-	glBindTexture(GL_TEXTURE_2D, skyViewTexture->getTexture());
-	shader->use();
-	shader->setInt("tex", 8);
-	//------------------------
 	renderDrawCall();
 }
 
