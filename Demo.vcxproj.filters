@@ -1,0 +1,290 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="ImGui">
+      <UniqueIdentifier>{220c4882-ae52-478d-9f2e-1add09d60636}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{5556d3eb-4167-4377-bbf8-75a317fbaf18}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\component">
+      <UniqueIdentifier>{23240452-dbcb-4e7a-b9e1-99f4230573ba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\object">
+      <UniqueIdentifier>{1ccf31de-7db9-4cb5-b618-365026d1a19d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\PT">
+      <UniqueIdentifier>{20c44c69-524b-4d0b-87c2-ed03ec1de130}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\system">
+      <UniqueIdentifier>{45a37cf9-2d62-4062-af8a-4d0a48f36ce2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\utils">
+      <UniqueIdentifier>{a07f2dcf-6e3e-4ea8-9fb9-d5ccb2c9edd8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\renderer">
+      <UniqueIdentifier>{ee52301d-6165-4939-8c00-957cf3f6dd0f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\buffer">
+      <UniqueIdentifier>{4a8485d4-519f-41a1-9657-a6211eb7ba20}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="include\imgui\imgui.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="include\imgui\imgui_demo.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="include\imgui\imgui_draw.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="include\imgui\imgui_impl_glfw.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="include\imgui\imgui_impl_opengl3.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="include\imgui\imgui_tables.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="include\imgui\imgui_widgets.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\component\Lights.cpp">
+      <Filter>src\component</Filter>
+    </ClCompile>
+    <ClCompile Include="src\component\Model.cpp">
+      <Filter>src\component</Filter>
+    </ClCompile>
+    <ClCompile Include="src\object\SkyBox.cpp">
+      <Filter>src\object</Filter>
+    </ClCompile>
+    <ClCompile Include="src\object\Terrain.cpp">
+      <Filter>src\object</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PT\BVH.cpp">
+      <Filter>src\PT</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PT\hittable.cpp">
+      <Filter>src\PT</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PT\PathTracing.cpp">
+      <Filter>src\PT</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PT\PTAABB.cpp">
+      <Filter>src\PT</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PT\PTCamera.cpp">
+      <Filter>src\PT</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PT\PTMaterial.cpp">
+      <Filter>src\PT</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PT\PTRay.cpp">
+      <Filter>src\PT</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PT\PTVec.cpp">
+      <Filter>src\PT</Filter>
+    </ClCompile>
+    <ClCompile Include="src\system\RenderManager.cpp">
+      <Filter>src\system</Filter>
+    </ClCompile>
+    <ClCompile Include="src\utils\Shader.cpp">
+      <Filter>src\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="src\utils\Utils.cpp">
+      <Filter>src\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="src\component\transform.cpp">
+      <Filter>src\component</Filter>
+    </ClCompile>
+    <ClCompile Include="src\renderer\Mesh_Filter.cpp">
+      <Filter>src\renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\component\GameObject.cpp">
+      <Filter>src\component</Filter>
+    </ClCompile>
+    <ClCompile Include="src\renderer\Texture.cpp">
+      <Filter>src\renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\renderer\Material.cpp">
+      <Filter>src\renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\renderer\ResourceManager.cpp">
+      <Filter>src\renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\renderer\Mesh_Renderer.cpp">
+      <Filter>src\renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\system\meta_register.cpp">
+      <Filter>src\system</Filter>
+    </ClCompile>
+    <ClCompile Include="src\renderer\RenderScene.cpp">
+      <Filter>src\renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\buffer\UniformBuffer.cpp">
+      <Filter>src\buffer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\buffer\SSBO.cpp">
+      <Filter>src\buffer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\system\InputManager.cpp">
+      <Filter>src\system</Filter>
+    </ClCompile>
+    <ClCompile Include="src\utils\Camera.cpp">
+      <Filter>src\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="src\glad.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\buffer\FrameBuffer.cpp">
+      <Filter>src\buffer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\renderer\RenderPass.cpp">
+      <Filter>src\renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\AABB.cpp">
+      <Filter>src\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="src\component\Atmosphere.cpp">
+      <Filter>src\component</Filter>
+    </ClCompile>
+    <ClCompile Include="src\buffer\ImageTexture.cpp">
+      <Filter>src\buffer</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\GUI.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\component\Component.h">
+      <Filter>src\component</Filter>
+    </ClInclude>
+    <ClInclude Include="src\component\Lights.h">
+      <Filter>src\component</Filter>
+    </ClInclude>
+    <ClInclude Include="src\component\Model.h">
+      <Filter>src\component</Filter>
+    </ClInclude>
+    <ClInclude Include="src\object\SkyBox.h">
+      <Filter>src\object</Filter>
+    </ClInclude>
+    <ClInclude Include="src\object\Terrain.h">
+      <Filter>src\object</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PT\BVH.h">
+      <Filter>src\PT</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PT\hittable.h">
+      <Filter>src\PT</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PT\PathTracing.h">
+      <Filter>src\PT</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PT\PTAABB.h">
+      <Filter>src\PT</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PT\PTCamera.h">
+      <Filter>src\PT</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PT\PTMaterial.h">
+      <Filter>src\PT</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PT\PTrandom.h">
+      <Filter>src\PT</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PT\PTRay.h">
+      <Filter>src\PT</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PT\PTVec.h">
+      <Filter>src\PT</Filter>
+    </ClInclude>
+    <ClInclude Include="src\system\RenderManager.h">
+      <Filter>src\system</Filter>
+    </ClInclude>
+    <ClInclude Include="src\utils\Camera.h">
+      <Filter>src\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="src\utils\global.h">
+      <Filter>src\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="src\utils\Utils.h">
+      <Filter>src\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="src\component\transform.h">
+      <Filter>src\component</Filter>
+    </ClInclude>
+    <ClInclude Include="src\renderer\Mesh_Filter.h">
+      <Filter>src\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\renderer\Mesh_Renderer.h">
+      <Filter>src\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\renderer\Texture.h">
+      <Filter>src\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\renderer\Material.h">
+      <Filter>src\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\component\GameObject.h">
+      <Filter>src\component</Filter>
+    </ClInclude>
+    <ClInclude Include="src\renderer\ResourceManager.h">
+      <Filter>src\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\system\global_context.h">
+      <Filter>src\system</Filter>
+    </ClInclude>
+    <ClInclude Include="src\system\meta_register.h">
+      <Filter>src\system</Filter>
+    </ClInclude>
+    <ClInclude Include="src\renderer\RenderScene.h">
+      <Filter>src\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\buffer\UniformBuffer.h">
+      <Filter>src\buffer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\buffer\buffer.h">
+      <Filter>src\buffer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\utils\Shader.h">
+      <Filter>src\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="src\buffer\SSBO.h">
+      <Filter>src\buffer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\system\InputManager.h">
+      <Filter>src\system</Filter>
+    </ClInclude>
+    <ClInclude Include="src\system\Key.h">
+      <Filter>src\system</Filter>
+    </ClInclude>
+    <ClInclude Include="src\buffer\FrameBuffer.h">
+      <Filter>src\buffer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\renderer\RenderPass.h">
+      <Filter>src\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\AABB.h">
+      <Filter>src\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="src\component\Atmosphere.h">
+      <Filter>src\component</Filter>
+    </ClInclude>
+    <ClInclude Include="src\buffer\ImageTexture.h">
+      <Filter>src\buffer</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
