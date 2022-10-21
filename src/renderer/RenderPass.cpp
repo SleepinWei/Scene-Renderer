@@ -11,12 +11,15 @@
 #include"../object/Terrain.h"
 #include"../object/SkyBox.h"
 #include"../component/Atmosphere.h"
+#include"../buffer/FrameBuffer.h"
+#include"../component/Lights.h"
 #include<memory>
 
 extern std::unique_ptr<InputManager> inputManager;
 extern std::unique_ptr<RenderManager> renderManager;
 
 void BasePass::render(const std::shared_ptr<RenderScene>& scene) {
+	glViewport(0, 0, inputManager->width, inputManager->height);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glCheckError();
@@ -112,3 +115,42 @@ void HDRPass::render() {
 	glBindTexture(GL_TEXTURE_2D, colorBuffer);
 	renderQuad();
 }
+
+ShadowPass::ShadowPass() {
+	// TODO: init shadowShader: get from renderManager
+
+	// TODO: init framebuffer
+	frameBuffer = std::make_shared<FrameBuffer>();
+}
+
+ShadowPass::~ShadowPass() {
+
+}
+
+void ShadowPass::render(const std::shared_ptr<RenderScene>& scene) {
+	// TODO: 
+	glViewport(0, 0, Light::SHADOW_WIDTH, Light::SHADOW_HEIGHT);
+	frameBuffer->bindBuffer();
+
+	// rendering shadow map
+
+	frameBuffer->unbindBuffer();
+}
+
+void ShadowPass::pointLightShadow(const std::shared_ptr<RenderScene>& scene) {
+	//TODO:
+}
+
+void ShadowPass::directionLightShadow(const std::shared_ptr<RenderScene>& scene) {
+	//TODO:
+	auto& dLights = scene->directionLights;
+	for (auto& light : dLights) {
+		if (!light || !light->castShadow) {
+			continue;
+		}
+		frameBuffer->bindTexture(light->shadowTex, GL_DEPTH_ATTACHMENT, TextureType::FLAT);
+		glDrawBuffer(GL_NONE);
+		glReadBuffer(GL_NONE);
+	}
+}
+

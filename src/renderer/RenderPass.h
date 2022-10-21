@@ -3,6 +3,7 @@
 
 class RenderScene; 
 class Shader;
+class FrameBuffer;
 class HDRPass {
 public:
 	HDRPass();
@@ -18,7 +19,7 @@ private:
 	void initPass(int SCR_WITH,int SCR_HEIGHT);
 
 public:
-	std::shared_ptr<Shader> hdrShader; 
+	std::shared_ptr<Shader> hdrShader;
 	bool dirty; 
 	unsigned int hdrFBO; // framebuffer object
 	unsigned int colorBuffer; // texture
@@ -37,5 +38,24 @@ public:
 
 	void render(const std::shared_ptr<RenderScene>& scene);
 public:
+
+};
+
+class ShadowPass {
+public:
+	ShadowPass();
+	~ShadowPass();
+
+	void render(const std::shared_ptr<RenderScene>& scene);
+public:
+	std::shared_ptr<Shader> shadowShader; 
+	std::shared_ptr<FrameBuffer> frameBuffer;
+private:
+	void pointLightShadow(const std::shared_ptr<RenderScene>& scene);
+	void directionLightShadow(const std::shared_ptr<RenderScene>& scene);
+};
+
+//TODO:
+class DeferredPass {
 
 };
