@@ -201,7 +201,7 @@ void ComputeSingleScatteringIntegrand(
             atmosphere, 
             // transmittance_texture, 
             r, mu, d,
-            ray_r_mu_intersects_ground) *
+            ray_r_mu_intersects_ground)*
         GetTransmittanceToSun(
             atmosphere, 
             // transmittance_texture, 

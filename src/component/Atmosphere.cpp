@@ -35,7 +35,6 @@ void Atmosphere::initTextures() {
 
 void Atmosphere::initAtmosphereParameters(){
 	// initialize AtmosphereParameters
-	// TODO:
 	atmosphere.solar_irradiance = 10.0f; // solar irradiance
 	atmosphere.sun_angular_radius = 0.005f;//sun angular radius
 	atmosphere.top_radius = 6460.0f;// top_radius
@@ -133,13 +132,11 @@ void Atmosphere::computeSkyViewTexutre() {
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 void Atmosphere::computeDrawCall() {
-	// TODO 
 	computeTransTexture();
 	computeSkyViewTexutre();
 }
 
 void Atmosphere::renderDrawCall() {
-	//TODO
 	glDepthFunc(GL_LEQUAL);
 	glCullFace(GL_FRONT);
 
@@ -158,7 +155,6 @@ void Atmosphere::renderDrawCall() {
 
 
 void Atmosphere::render() {
-	//TODO
 	prepareAtmosphere();
 	computeDrawCall();
 	renderDrawCall();

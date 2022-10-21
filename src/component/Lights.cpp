@@ -2,7 +2,9 @@
 #include<glm/gtc/matrix_transform.hpp>
 #include"../component/GameObject.h"
 #include"../component/transform.h"
-Light::Light() {
+#include"../renderer/Texture.h"
+Light::Light()
+{
 
 }
 
@@ -37,41 +39,50 @@ PointLight::PointLight() {
 	fov = 90.0f; 
 	near = 0.1f; 
 	far = 100.f;
+
+	// TODO: add texture generation
+	shadowTex = std::make_shared<Texture>();
+	shadowTex->genCubeMap(GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT);
 }
 
-//std::shared_ptr<PointLight> PointLight::setMode(POINTLIGHT mode) {
-//	if (mode != this->mode) {
-//		this->mode = mode;
-//	}
-//}
-
-std::vector<glm::mat4> PointLight::getLightMatrix() {
+tuple<glm::mat4,glm::mat4> PointLight::getLightTransform(int face) {
 
 	//glm::vec3 lightPos = data.position;
-	glm::vec3 lightPos = std::dynamic_pointer_cast<Transform>(
+	// TODO: confirm the sequence is correct
+	static vector<glm::vec3> centers{
+		glm::vec3(1.0, 0.0, 0.0),
+		glm::vec3(-1.0, 0.0, 0.0),
+		glm::vec3(0.0, 1.0, 0.0),
+		glm::vec3(0.0, -1.0, 0.0),
+		glm::vec3(0.0, 0.0, 1.0),
+		glm::vec3(0.0, 0.0, -1.0)
+	};
+	static vector<glm::vec3> ups{
+		glm::vec3(0.0, -1.0, 0.0),
+		glm::vec3(0.0, -1.0, 0.0),
+		glm::vec3(0.0, 0.0, 1.0),
+		glm::vec3(0.0, 0.0, -1.0),
+		glm::vec3(0.0, -1.0, 0.0),
+		glm::vec3(0.0, -1.0, 0.0)
+	};
+
+	glm::vec3 lightPos = std::static_pointer_cast<Transform>(
 		gameObject->GetComponent("Transform"))->position;
 
-	if (Light:: dirty) {
-		glm::mat4 proj = glm::perspective(glm::radians(fov), aspect, near, far);
-
-		lightTransforms.push_back(
-			proj * glm::lookAt(lightPos, lightPos + glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)));
-		lightTransforms.push_back(
-			proj * glm::lookAt(lightPos, lightPos + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)));
-		lightTransforms.push_back(
-			proj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0)));
-		lightTransforms.push_back(
-			proj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, -1.0)));
-		lightTransforms.push_back(
-			proj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, -1.0, 0.0)));
-		lightTransforms.push_back(
-			proj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0)));
-	}
-	return lightTransforms;
+	//if (Light:: dirty) {
+	glm::mat4 proj = glm::perspective(glm::radians(fov), aspect, near, far);
+	glm::mat4 view = glm::lookAt(lightPos, lightPos + centers[face], ups[face]);
+	//}
+	return std::make_tuple(proj, view);
 }
 
 PointLight::~PointLight() {
 
+}
+
+std::shared_ptr<PointLight> PointLight::setCastShadow(bool castShadow_) {
+	this->castShadow = castShadow_;
+	return std::dynamic_pointer_cast<PointLight>(shared_from_this());
 }
 
 DirectionLight::DirectionLight() {
@@ -81,7 +92,8 @@ DirectionLight::DirectionLight() {
 	Light::dirty = true;
 
 	near = 0.1f;
-	far = 7.5f;
+	far = 10.0f;
+	ortho_width = 10.0f;
 
 	data = {
 		glm::vec3(1.0f), // color
@@ -91,23 +103,27 @@ DirectionLight::DirectionLight() {
 		glm::vec3(1.0f),//diffuse
 		glm::vec3(1.0f)//specular
 	};
+
+	// TODO: add Texture generation
+	shadowTex = std::make_shared<Texture>();
+	shadowTex->genTexture(GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT);
 }
 
 DirectionLight::~DirectionLight() {
 
 }
 
-glm::mat4 DirectionLight::getLightMatrix() {
-	if (Light::dirty) {
+tuple<glm::mat4,glm::mat4> DirectionLight::getLightTransform() {
+	//if (Light::dirty) {
 		//glm::vec3 lightPos = data.position;
-		glm::vec3 lightPos = std::dynamic_pointer_cast<Transform>(
+		glm::vec3 lightPos = std::static_pointer_cast<Transform>(
 			gameObject->GetComponent("Transform")
 			)->position;
-		glm::mat4 proj = glm::ortho(-10.0f, 10.f, -10.0f, 10.0f, near, far);
+		glm::mat4 proj = glm::ortho(-ortho_width, ortho_width, -ortho_width, ortho_width, near, far);
 		glm::mat4 view = glm::lookAt(lightPos, lightPos + data.direction, glm::vec3(0.0f, 1.0f, 0.0f));
-		lightTransforms = proj * view; 
-	}
-	return lightTransforms; 
+		//lightProj = proj;
+	//}
+	return std::make_tuple(view,proj);
 }
 
 std::shared_ptr<DirectionLight> DirectionLight::setDirection(const glm::vec3& dir) {
@@ -115,4 +131,8 @@ std::shared_ptr<DirectionLight> DirectionLight::setDirection(const glm::vec3& di
 	return std::dynamic_pointer_cast<DirectionLight>(shared_from_this());
 }
 
+std::shared_ptr<DirectionLight> DirectionLight::setCastShadow(bool castShadow_) {
+	this->castShadow = castShadow_;
+	return std::dynamic_pointer_cast<DirectionLight>(shared_from_this());
+}
 

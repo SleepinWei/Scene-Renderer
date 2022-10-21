@@ -113,7 +113,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     inputManager->width = width;
     inputManager->height = height;
     inputManager->viewPortChange = true;
-    glViewport(0, 0, width, height);
+    //glViewport(0, 0, width, height);
 }
 
 // glfw: whenever the mouse moves, this callback is called

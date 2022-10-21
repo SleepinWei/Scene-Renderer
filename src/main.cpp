@@ -142,12 +142,10 @@ void render() {
 		mesh->loadShape(SHAPE::SPHERE);
 
 		auto&& renderer = sphere->addComponent<MeshRenderer>();
-		renderer->setShader(ShaderType::PBR)
+		renderer->setShader(ShaderType::PBR_TESS)
 			->setMaterial(Material::loadPBR("./asset/pbr/riverrock/"))
-			->setDrawMode(GL_PATCHES)
-			->setPolyMode(GL_LINE);
-		// std::cout << resourceManager->resource.size() << '\n';
-
+			->setDrawMode(GL_PATCHES);
+			//->setPolyMode(GL_LINE);
 		scene->addObject(sphere);
 	}
 	//plane 
@@ -214,13 +212,6 @@ void test_print(glm::mat4& model) {
 			std::cout << model[i][j] << ' '; 
 		}
 		std::cout << '\n';
-	}
-}
-void test() {
-	glm::vec3 a(1.0f);
-	float* p = (float*) & a;
-	for (int i = 0; i < 3; i++) {
-		std::cout << a[i] << ' '; 
 	}
 }
 

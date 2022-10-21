@@ -91,7 +91,24 @@ std::shared_ptr<Texture> Texture::genTexture(unsigned int DataType,unsigned int 
 		dType = GL_FLOAT;
 	else if (DataType == GL_RGBA)
 		dType = GL_UNSIGNED_BYTE;
+	else if (DataType == GL_DEPTH_COMPONENT)
+		dType = GL_FLOAT;
 	glTexImage2D(GL_TEXTURE_2D, 0, DataType, width, height, 0, channelType,
 		dType, NULL);
+	return shared_from_this();
+}
+
+std::shared_ptr<Texture> Texture::genCubeMap(GLenum format, int width,int height) {
+	glGenTextures(1, &id);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, id);
+	for (int i = 0; i < 6; i++) {
+		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, format,
+			width, height, 0, format, GL_FLOAT, NULL);
+	}
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 	return shared_from_this();
 }

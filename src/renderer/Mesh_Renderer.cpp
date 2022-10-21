@@ -54,7 +54,13 @@ MeshRenderer::MeshRenderer():drawMode(GL_TRIANGLES),polyMode(GL_FILL) {
 	EBO = 0;
 }
 
-void MeshRenderer::render(){
+/// <summary>
+/// @param: useShader: determines whether the renderer
+/// should use its shader. In Shadow Pass or G buffer pass
+/// a global shader is used. 
+/// </summary>
+/// <param name="useShader"></param>
+void MeshRenderer::render(bool useShader){
 	const std::shared_ptr<Transform>& transform = std::dynamic_pointer_cast<Transform>(gameObject->GetComponent("Transform"));
 
 	if (!transform) {
@@ -106,9 +112,9 @@ void MeshRenderer::render(){
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
-	if(shader)
+	if (useShader && shader)
 	{
-		shader->use(); 
+		shader->use();
 		//glEnable(GL_DEPTH_TEST);
 		//glEnable(GL_CULL_FACE);
 		//shader->setMat4("projection", projection);
@@ -116,7 +122,6 @@ void MeshRenderer::render(){
 		shader->setMat4("model", model);
 
 		// bind textures 
-		//TODO:
 		if (material) {
 			std::vector<std::shared_ptr<Texture>>& textures = material->textures;
 			for (int texture_index = 0; texture_index < textures.size(); ++texture_index) {
@@ -128,20 +133,20 @@ void MeshRenderer::render(){
 				shader->setInt(("material." + textures[texture_index]->type).c_str(), texture_index);
 			}
 		}
-
-		glBindVertexArray(VAO);
-		assert(VAO>0);
-		{
-			if (polyMode == GL_LINE) {
-				glPolygonMode(GL_FRONT_AND_BACK, polyMode);
-			}
-			glPatchParameteri(GL_PATCH_VERTICES, 3);
-			// --- end debug
-			glDrawElements(drawMode, mesh_filter->indices.size(), GL_UNSIGNED_INT, 0);
-			if (polyMode == GL_LINE) {
-				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-			}
-		}
-		glBindVertexArray(0);
 	}
+
+	glBindVertexArray(VAO);
+	assert(VAO>0);
+	{
+		if (polyMode == GL_LINE) {
+			glPolygonMode(GL_FRONT_AND_BACK, polyMode);
+		}
+		glPatchParameteri(GL_PATCH_VERTICES, 3);
+		// --- end debug
+		glDrawElements(drawMode, mesh_filter->indices.size(), GL_UNSIGNED_INT, 0);
+		if (polyMode == GL_LINE) {
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		}
+	}
+	glBindVertexArray(0);
 }

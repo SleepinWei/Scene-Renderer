@@ -151,6 +151,7 @@ void ShadowPass::directionLightShadow(const std::shared_ptr<RenderScene>& scene)
 		frameBuffer->bindTexture(light->shadowTex, GL_DEPTH_ATTACHMENT, TextureType::FLAT);
 		glDrawBuffer(GL_NONE);
 		glReadBuffer(GL_NONE);
+		// 画所有的物体
 	}
 }
 

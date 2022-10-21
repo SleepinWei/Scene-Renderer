@@ -82,7 +82,6 @@ SkyBox::~SkyBox() {
 }
 
 void SkyBox::render()const {
-	// TODO: add a render grass pass;
 	glDepthFunc(GL_LEQUAL);
 
 	glBindVertexArray(VAO);

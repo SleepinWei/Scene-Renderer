@@ -5,6 +5,12 @@
 #include<vector>
 #include<memory>
 #include"../component/Component.h"
+#include<tuple>
+
+class Texture;
+using std::tuple;
+using std::vector;
+using std::shared_ptr;
 
 enum class LightType {
 	POINT,
@@ -20,8 +26,8 @@ public:
 
 	bool castShadow;
 	enum LightType type; 
-	const int SHADOW_WIDTH = 1024;
-	const int SHADOW_HEIGHT = 1024; 
+	static const int SHADOW_WIDTH = 512;
+	static const int SHADOW_HEIGHT = 512; 
 	
 	bool dirty; //if position of light changes, this flag turns true
 	// light 是否 dirty 要交给 prepare light data 统一设置
@@ -49,19 +55,23 @@ public:
 	PointLight();
 	virtual ~PointLight();
 	//void initVertexObject();
-	std::vector<glm::mat4> getLightMatrix();
+	tuple<glm::mat4,glm::mat4> getLightTransform(int face);
+	std::shared_ptr<PointLight> setCastShadow(bool castShadow);
 
 public:
 	PointLightData data; 
 
 	//POINTLIGHT mode; 
 
-	std::vector <glm::mat4> lightTransforms; // 6 faces, 6 view transforms (for shadow map) 
+	//std::vector <glm::mat4> lightTransforms; // 6 faces, 6 view transforms (for shadow map) 
 
 	float near; 
 	float far; 
 	float fov; 
 	float aspect; 
+
+	// shadow mapping texture;
+	std::shared_ptr<Texture> shadowTex;
 };
 
 struct DirectionLightData {
@@ -81,13 +91,19 @@ public:
 
 	float near; 
 	float far;
+	float ortho_width;
 
-	glm::mat4 lightTransforms; 
+	//glm::mat4 lightView; 
+	//glm::mat4 lightProj;
+
+	// shadow mapping texture
+	std::shared_ptr<Texture> shadowTex;
 
 public:
 	DirectionLight();
 	~DirectionLight();
 	std::shared_ptr<DirectionLight> setDirection(const glm::vec3& dir);
-	glm::mat4 getLightMatrix(); 
+	std::shared_ptr<DirectionLight> setCastShadow(bool castShadow);
+	tuple<glm::mat4,glm::mat4> getLightTransform();
 };
 

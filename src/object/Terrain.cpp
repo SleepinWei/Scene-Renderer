@@ -24,6 +24,11 @@ std::shared_ptr<Terrain> Terrain::loadHeightmap_(const std::string& path){
 	//unsigned char* data = stbi_load((path+"heightMap.png").c_str(), &width, &height, &nrChannels, 0);
 	//stbi_image_free(data);
 	std::shared_ptr<Texture>&& heightTex = Texture::loadFromFile(path + "heightMap.png");
+
+	//FIX: because we need y-offset,we have to read the texture another time, though this is stupid.
+	//stbi_set_flip_vertically_on_load(true);
+	//unsigned char* data = stbi_load((path +"heightMap.png").c_str(), nullptr, nullptr,nullptr, 0);
+
 	width = heightTex->width;
 	height = heightTex->height;
 	terrainMaterial->addTexture(heightTex);
@@ -42,26 +47,31 @@ std::shared_ptr<Terrain> Terrain::loadHeightmap_(const std::string& path){
 		for (unsigned j = 0; j <= rez - 1; j++)
 		{
 			int index = 20 * (i * rez + j);
+			int textureIndex = i * heightTex->width + j * rez;
 			vertices[index] = - width / 2.0f + width * i / (float)rez; // v.x
-			vertices[index+1] = 0.0f; // v.y
+			//vertices[index + 1] = float(data[textureIndex]) / 255.0f * yScale - yShift; // v.y
+			vertices[index + 1] = 0.0f;
 			vertices[index + 2] = (-height / 2.0f + height * j / (float)rez); // v.z
 			vertices[index + 3] = (i / (float)rez); // u
 			vertices[index + 4] =  (j / (float)rez); // v
 
 			vertices[index + 5] = (-width / 2.0f + width * (i + 1) / (float)rez); // v.x
-			vertices[index + 6] = (0.0f); // v.y
+			//vertices[index + 6] = float(data[textureIndex + heightTex->width]) / 255.0f * yScale - yShift; // v.y
+			vertices[index + 6] = 0.0f;
 			vertices[index + 7] = (-height / 2.0f + height * j / (float)rez); // v.z
 			vertices[index+8] = ((i + 1) / (float)rez); // u
 			vertices[index+9] = (j / (float)rez); // v
 
 			vertices[index+10] = (-width / 2.0f + width * i / (float)rez); // v.x
-			vertices[index+11] = (0.0f); // v.y
+			//vertices[index+11] = float(data[textureIndex + rez]) / 255.0f * yScale - yShift; // v.y
+			vertices[index + 11] = 0.0f;
 			vertices[index+12] = (-height / 2.0f + height * (j + 1) / (float)rez); // v.z
 			vertices[index+13] = (i / (float)rez); // u
 			vertices[index+14] = ((j + 1) / (float)rez); // v
 
 			vertices[index+15] = (-width / 2.0f + width * (i + 1) / (float)rez); // v.x
-			vertices[index+16] = (0.0f); // v.y
+			//vertices[index+16] = float(data[textureIndex + rez +heightTex->width]) / 255.0f * yScale - yShift; // v.y
+			vertices[index + 16] = 0.0f;
 			vertices[index+17] = (-height / 2.0f + height * (j + 1) / (float)rez); // v.z
 			vertices[index+18] = ((i + 1) / (float)rez); // u
 			vertices[index+19] = ((j + 1) / (float)rez); // v
@@ -70,6 +80,8 @@ std::shared_ptr<Terrain> Terrain::loadHeightmap_(const std::string& path){
 	//std::cerr << "Vertices Done" << '\n';
 
 	initVertexObject();
+
+	//stbi_image_free(data);
 	return std::dynamic_pointer_cast<Terrain> (shared_from_this());
 }
 std::shared_ptr<Terrain> Terrain::loadHeightmap(const std::string& path){
