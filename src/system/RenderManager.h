@@ -14,6 +14,7 @@ enum class ShaderType{
 	SIMPLE=0,
 	LIGHT,
 	PBR,
+	PBR_TESS,
 	TERRAIN,
 	SKYBOX,
 	HDR,
@@ -57,6 +58,8 @@ public:
 	// RenderPass
 	std::shared_ptr<HDRPass> hdrPass;
 	std::shared_ptr<BasePass> basePass;
+	//std::shared_ptr<ShadowPass> shadowPass;
+	//std::shared_ptr<DeferredPass> deferredPass;
 
 	// uniform buffer
 	std::shared_ptr<UniformBuffer> uniformVPBuffer;

@@ -46,7 +46,6 @@ void RenderManager::initVPbuffer() {
 }
 
 void RenderManager::initPointLightBuffer() {
-	// TODO: 
 	const int maxLight = 10; 
 	int lightBufferSize = maxLight * (32) + 16; // maximum 10 point lights, std140 layout
 	uniformPointLightBuffer = std::make_shared<UniformBuffer>(lightBufferSize);
@@ -117,7 +116,6 @@ void RenderManager::prepareVPData(const std::shared_ptr<RenderScene>& renderScen
 }
 
 void RenderManager::preparePointLightData(const std::shared_ptr<RenderScene>& scene) {
-	// TODO: test the consfusing offset
 	// point light
 	// update at the first time
 	//if (uniformPointLightBuffer->dirty) {
@@ -199,7 +197,6 @@ void RenderManager::prepareDirectionLightData(const std::shared_ptr<RenderScene>
 }
 
 void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
-	// TODO: wrap up this function to be Scene rendering pass
 	prepareVPData(scene);
 	glCheckError();
 	preparePointLightData(scene);
@@ -236,10 +233,15 @@ std::shared_ptr<Shader> RenderManager::generateShader(ShaderType type) {
 				nullptr, nullptr
 				);
 			break;
+		case ShaderType::PBR_TESS:
+			return std::make_shared<Shader>(
+				"./src/shader/pbr/pbr_tess.vs", "./src/shader/pbr/pbr.fs", nullptr,
+				"./src/shader/pbr/pbr.tesc","./src/shader/pbr/pbr.tese"
+				);
+			break;
 		case ShaderType::PBR:
 			return std::make_shared<Shader>(
-				"./src/shader/pbr.vs", "./src/shader/pbr.fs", nullptr,
-				"./src/shader/pbr.tesc","./src/shader/pbr.tese"
+				"./src/shader/pbr/pbr.vs","./src/shader/pbr/pbr.fs"
 				);
 			break;
 		case ShaderType::SIMPLE:
