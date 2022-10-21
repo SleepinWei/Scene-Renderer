@@ -235,9 +235,9 @@ void generateLODData(int iter,Node n){
             // return;
         uint TESS_PER_CHUNK = 1; 
         if(currentLevel == 0){
-            TESS_PER_CHUNK = 1;
+            TESS_PER_CHUNK = 4;
         }else if (currentLevel ==  1){
-            TESS_PER_CHUNK = 1;
+            TESS_PER_CHUNK = 2;
         }else{
             TESS_PER_CHUNK = 1;
         }

@@ -302,7 +302,7 @@ void Terrain::prepareData() {
 
 void Terrain::computeDrawCall() {
 	const int MAX_LOD = 5; 
-	for (int i = 0; i < MAX_LOD; i++) {
+	for (int i = 0; i <= MAX_LOD; i++) {
 		// Ñ­»·¼ÆËã LOD
 		inQueueSSBO->setBinding(3);
 		outQueueSSBO->setBinding(4);
