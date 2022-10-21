@@ -1,7 +1,7 @@
 build/
 asset/
 dll/
-lib/
+# lib/
 .vs/
 .vscode/
 x64/
