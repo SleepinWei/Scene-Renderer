@@ -82,7 +82,7 @@ void render() {
 		auto terrainMaterial = Material::loadPBR("./asset/pbr/grass/");
 		terrain->addMaterial(terrainMaterial)
 			->addShader(ShaderType::TERRAIN);
-		terrain->setPolyMode(GL_LINE);
+		//terrain->setPolyMode(GL_LINE);
 
 		scene->addTerrain(terrain);
 	}
