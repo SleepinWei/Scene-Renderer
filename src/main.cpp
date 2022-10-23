@@ -79,9 +79,10 @@ void render() {
 	{
 		std::shared_ptr<Terrain> terrain = std::make_shared<Terrain>();
 		terrain->loadHeightmap("./asset/heightmap/iceland/");
-		auto terrainMaterial = Material::loadPBR("./asset/pbr/sand/");
+		auto terrainMaterial = Material::loadPBR("./asset/pbr/grass/");
 		terrain->addMaterial(terrainMaterial)
 			->addShader(ShaderType::TERRAIN);
+		//terrain->setPolyMode(GL_LINE);
 
 		scene->addTerrain(terrain);
 	}
@@ -94,7 +95,7 @@ void render() {
 
 		auto&& transform = pLight->addComponent<Transform>(); 
 		transform->scale = glm::vec3(0.1);
-		transform->position = glm::vec3(0.5f, 5.0f, -1.0f);
+		transform->position = glm::vec3(0.0f,0.05f, 0.0f);
 
 		auto&& mesh = pLight->addComponent<MeshFilter>();
 		mesh->loadShape(SHAPE::POINT);
@@ -110,10 +111,12 @@ void render() {
 
 		auto&& transform = dLight->addComponent<Transform>(); 
 		transform->scale = glm::vec3(0.1);
-		transform->position = glm::vec3(1.0f, 2.0f, -1.0f);
+		transform->position = glm::vec3(0.0f, 2.0f, 0.0f);
 
 		std::shared_ptr<DirectionLight>&& light = dLight->addComponent<DirectionLight>(); 
-		light->data.direction = -transform->position;
+		light->data.direction = transform->position;
+		float intensity = 1.0f;
+		light->data.color = glm::vec3(1.0f, 1.0f, 1.0f) * intensity;
 
 		auto&& mesh = dLight->addComponent<MeshFilter>();
 		mesh->loadShape(SHAPE::POINT);
@@ -122,7 +125,7 @@ void render() {
 		renderer->setShader(ShaderType::LIGHT)
 			->setDrawMode(GL_POINTS);
 
-		scene->addObject(dLight);
+		//scene->addObject(dLight);
 	}
 
 	// Camera
@@ -136,23 +139,72 @@ void render() {
 		std::shared_ptr<GameObject> sphere = std::make_shared<GameObject>();
 		auto&& transform = sphere->addComponent<Transform>();
 		transform->position = glm::vec3(0.0f, 1.0f, 0.0f);
-		transform->scale = glm::vec3(0.2);
+		transform->scale = glm::vec3(0.5);
+
+		auto&& mesh = sphere->addComponent<MeshFilter>();
+		mesh->loadShape(SHAPE::SPHERE);
+
+		auto&& renderer = sphere->addComponent<MeshRenderer>();
+		renderer->setShader(ShaderType::PBR)
+			->setMaterial(Material::loadPBR("./asset/pbr/riverrock/"))
+			->setDrawMode(GL_TRIANGLES);
+			//->setPolyMode(GL_LINE);
+		scene->addObject(sphere);
+	}
+	{
+		std::shared_ptr<GameObject> sphere = std::make_shared<GameObject>();
+		auto&& transform = sphere->addComponent<Transform>();
+		transform->position = glm::vec3(-2.0f, 1.0f, 0.0f);
+		transform->scale = glm::vec3(0.5);
+
+		auto&& mesh = sphere->addComponent<MeshFilter>();
+		mesh->loadShape(SHAPE::SPHERE);
+
+		auto&& renderer = sphere->addComponent<MeshRenderer>();
+		renderer->setShader(ShaderType::PBR)
+			->setMaterial(Material::loadPBR("./asset/pbr/granite/"))
+			->setDrawMode(GL_TRIANGLES);
+			//->setPolyMode(GL_LINE);
+		scene->addObject(sphere);
+	}
+	{
+		std::shared_ptr<GameObject> sphere = std::make_shared<GameObject>();
+		auto&& transform = sphere->addComponent<Transform>();
+		transform->position = glm::vec3(2.0f, 1.0f, 0.0f);
+		transform->scale = glm::vec3(0.5);
 
 		auto&& mesh = sphere->addComponent<MeshFilter>();
 		mesh->loadShape(SHAPE::SPHERE);
 
 		auto&& renderer = sphere->addComponent<MeshRenderer>();
 		renderer->setShader(ShaderType::PBR_TESS)
-			->setMaterial(Material::loadPBR("./asset/pbr/riverrock/"))
+			->setMaterial(Material::loadPBR("./asset/pbr/badland/"))
 			->setDrawMode(GL_PATCHES);
 			//->setPolyMode(GL_LINE);
 		scene->addObject(sphere);
 	}
+	{
+		std::shared_ptr<GameObject> sphere = std::make_shared<GameObject>();
+		auto&& transform = sphere->addComponent<Transform>();
+		transform->position = glm::vec3(4.0f, 1.0f, 0.0f);
+		transform->scale = glm::vec3(0.5);
+
+		auto&& mesh = sphere->addComponent<MeshFilter>();
+		mesh->loadShape(SHAPE::SPHERE);
+
+		auto&& renderer = sphere->addComponent<MeshRenderer>();
+		renderer->setShader(ShaderType::PBR)
+			->setMaterial(Material::loadPBR("./asset/pbr/desertrock/"))
+			->setDrawMode(GL_TRIANGLES);
+			//->setPolyMode(GL_LINE);
+		scene->addObject(sphere);
+	}
+
 	//plane 
 	{
 		std::shared_ptr<GameObject> plane = std::make_shared<GameObject>();
 		auto&& transform = plane->addComponent<Transform>();
-		transform->position = glm::vec3(0.0f, 0.5f, 0.0f);
+		transform->position = glm::vec3(0.0f, 0.0f, 0.0f);
 		transform->scale = glm::vec3(0.2);
 
 		auto&& mesh = plane->addComponent<MeshFilter>();
@@ -160,9 +212,9 @@ void render() {
 
 		auto&& renderer = plane->addComponent<MeshRenderer>();
 		renderer->setShader(ShaderType::PBR)
-			->setMaterial(Material::loadPBR("./asset/pbr/riverrock/"))
-			->setDrawMode(GL_PATCHES)
-			->setPolyMode(GL_LINE);
+			->setMaterial(Material::loadPBR("./asset/pbr/badland/"))
+			->setDrawMode(GL_TRIANGLES);
+			//->setPolyMode(GL_LINE);
 		// std::cout << resourceManager->resource.size() << '\n';
 
 		scene->addObject(plane);
@@ -178,6 +230,7 @@ void render() {
 
 		scene->addObject(atm);
 	}
+	glCheckError();
 
 	while (!glfwWindowShouldClose(window)) {
 		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

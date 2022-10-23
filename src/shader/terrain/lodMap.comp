@@ -1,0 +1,45 @@
+#version 450 core
+#define MAX_LEVEL 5 
+#define MIN_LEVEL 0
+layout(local_size_x=1,local_size_y=1,local_size_z=1) in;
+
+// layout(std430,binding=5) buffer lodMap{
+    // uint lod[];
+// };
+layout(rgba32f,binding=5) uniform image2D lodMap;
+
+struct NodeInfo{
+    uint isLeaf;
+};
+layout(std430,binding=1) buffer NodeDescriptor{
+    NodeInfo info[];
+};
+
+uint GetNodeID(uvec3 nodeLoc){
+    uint nodeIdOffsetLOD[6] = {8525,2125,525,125,25,0};
+    uint nodeCountLOD[6] = {160,80,40,20,10,5};
+    return nodeIdOffsetLOD[nodeLoc.z] + nodeLoc.y * nodeCountLOD[nodeLoc.z] + nodeLoc.x;
+}
+uint GetNodeID(uvec2 nodeLoc,uint lod){
+    uint nodeIdOffsetLOD[6] = {8525,2125,525,125,25,0};
+    uint nodeCountLOD[6] = {160,80,40,20,10,5};
+    return nodeIdOffsetLOD[lod] + nodeLoc.y * nodeCountLOD[lod] + nodeLoc.x;
+}
+void main(){
+    uvec2 texelCoord = gl_WorkGroupID.xy;
+    ivec2 itexelCoord = ivec2(gl_WorkGroupID.xy);
+    // uint index = texelCoord.y * width + texelCoord.x;
+    // uint nodeCountLOD[6] = {160,80,40,20,10,5};
+
+    for(int i =MAX_LEVEL;i>=MIN_LEVEL;i--){
+        // find corresponding level , search from LOD5 blocks
+        uvec2 currentLodNodeLoc= texelCoord / uint(1 << i) ;
+        uint index = GetNodeID(currentLodNodeLoc,i);
+        if(info[index].isLeaf == 1){
+            // if this node is the leaf
+            imageStore(lodMap,itexelCoord, vec4(vec3(i * 1.0 / MAX_LEVEL),1.0f)); // write lod to lod map
+            break;
+        }
+    }
+}
+

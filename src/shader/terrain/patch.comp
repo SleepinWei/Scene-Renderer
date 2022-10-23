@@ -1,0 +1,138 @@
+#version 450 core
+//generate 8 * 8 patches
+#define PATCH_NUM 8 
+#define MAX_LEVEL 5
+layout(local_size_x=PATCH_NUM,local_size_y=PATCH_NUM,local_size_z=1) in;
+
+layout(std140,binding=2) buffer FinalNodeList{
+    uint finalNodeCnt;
+    uint one;
+    uint one_;
+    uvec3 finalNode[];
+};
+
+struct Patch{// 1 patch : 16 by 16 grid
+    vec4 Position[4];
+    vec2 TexCoords[4];
+};
+
+// 1 node: 8 by 8 patches
+layout(std430,binding=0) buffer Patches{
+    Patch patches[];
+};
+// layout(std430,binding=1) buffer Indices{
+    // uint indices[];
+// };
+
+layout(rgba32f,binding=5) uniform image2D lodMap;
+uniform sampler2D heightMap;
+
+layout(std430, binding=5) buffer OutIndirect {
+	uint count;
+	uint primCount;
+	uint firstIndex;
+	uint baseVertex;
+	int baseInstance;
+    uint vertexCnt;
+}; // indirect draw 
+
+void GetNearByLod(ivec3 curNode,int dir, out int lod){
+    // dir: left, up ,right ,bottom
+    float totalNum = 5 * (1 << (MAX_LEVEL-curNode.z));
+    ivec2 direction[4] = {
+        ivec2(-1,0),ivec2(0,-1),ivec2(1,0),ivec2(0,1)
+    };
+    // for(int i =0;i<4;i++){
+    ivec2 texel; 
+    if(dir == 0 || dir == 1){
+        texel = curNode.xy * (1 << curNode.z) + direction[dir];
+    }else{
+        texel = (curNode.xy + direction[dir]) * (1 << curNode.z);
+    }
+    lod = int(imageLoad(lodMap,texel).r * MAX_LEVEL);
+    // }
+}
+
+void main(){
+    uvec2 localIndex = uvec2(gl_LocalInvocationID.xy);
+    uint index = uint(gl_WorkGroupID.x);
+    ivec3 curNode = ivec3(finalNode[index]);
+    int curLod = curNode.z;
+    float totalNum = 5 * (1 << (MAX_LEVEL-curNode.z));
+    uint interval = 1 << (curLod);
+
+    vec2 uv = vec2(curNode.xy) / float(totalNum);
+    // ivec2 itexelCoord = ivec2(curNode.xy * (1<<curNode.z));
+    float delta = interval * 1.0f/ PATCH_NUM / 160.0f;
+
+    Patch p; 
+    ivec2 offset[4] = {
+        ivec2(0,0),
+        ivec2(1,0),
+        ivec2(1,1),
+        ivec2(0,1)
+    };
+
+    for(int i =0 ;i<4;i++){
+        vec2 currentPatchUV = uv + vec2(offset[i].x + localIndex.x , offset[i].y + localIndex.y) * delta; 
+        // float height = texture(heightMap,currentPatchUV).r;
+        p.Position[i] = vec4(2 * currentPatchUV.x -1,0.0f,
+            2*currentPatchUV.y -1,1.0f);
+        p.TexCoords[i] = vec2(localIndex + offset[i]) / PATCH_NUM;
+    }
+
+    // mesh 缝补
+    if(localIndex.x == 0 || localIndex.x == PATCH_NUM-1){
+        int lod;
+        int dir = (localIndex.x == 0 ? 0 :2);
+        int loc1 = (localIndex.x == 0? 3 : 2);//偶数
+        int loc2 = (localIndex.x == 0? 0:1); //奇数
+        GetNearByLod(curNode,dir,lod);
+        if(lod > curLod){
+            // modify patch
+            if(localIndex.y % 2 == 0) {
+                p.Position[loc1].z += 2 * delta; // 因为最终投影到-1,1，长度为2
+                p.TexCoords[loc1].y += 1.0f/ PATCH_NUM;
+            }else{
+                p.Position[loc2].z += 2 * delta;
+                p.TexCoords[loc2].y += 1.0f/PATCH_NUM;
+            }
+        }
+    }
+    if(localIndex.y ==0 || localIndex.y == PATCH_NUM-1){
+        int lod;
+        int dir = (localIndex.y == 0 ? 1 :3);
+        int loc1 = (localIndex.y == 0? 1:2); //偶数
+        int loc2 = (localIndex.y == 0? 0:3); //奇数
+        GetNearByLod(curNode,dir,lod);
+        if(lod > curLod){
+            // modify patch
+            if(localIndex.x % 2 == 0) {
+                p.Position[loc1].x -= 2 * delta; 
+                p.TexCoords[loc1].x -= 1.0f/ PATCH_NUM;
+            }else{
+                p.Position[loc2].x -= 2 * delta; 
+                p.TexCoords[loc2].x -= 1.0f/PATCH_NUM;
+            }
+        }
+    }
+
+    for(int i =0;i<4;i++){
+        float height = texture(heightMap,0.5 * p.Position[i].xz + 0.5).r;
+        p.Position[i].y = height;
+    }
+
+    uint currentPatchIndex = atomicAdd(primCount,1);
+    patches[currentPatchIndex] = p;
+    // if(localIndex.x == 0 && lod[0] < curLod && lod[0] > -1){
+    //     if(localIndex.y % 2 ==0) {
+    //         Patch p; 
+    //     }
+
+    // }else if (localIndex.x == PATCH_NUM-1) {
+
+    // }
+    // else{
+
+    // }
+}

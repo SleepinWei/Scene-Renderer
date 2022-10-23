@@ -20,8 +20,8 @@ RenderManager::RenderManager() {
 
 	// setting
 	setting = RenderSetting{
-		//true // enableHDR
-		false
+		true // enableHDR
+		//false
 	};
 
 	// UBOs 
@@ -235,13 +235,13 @@ std::shared_ptr<Shader> RenderManager::generateShader(ShaderType type) {
 			break;
 		case ShaderType::PBR_TESS:
 			return std::make_shared<Shader>(
-				"./src/shader/pbr/pbr_tess.vs", "./src/shader/pbr/pbr.fs", nullptr,
+				"./src/shader/pbr/pbr_tess.vs", "./src/shader/pbr/pbr.fs",nullptr,// "./src/shader/pbr/pbr.gs",
 				"./src/shader/pbr/pbr.tesc","./src/shader/pbr/pbr.tese"
 				);
 			break;
 		case ShaderType::PBR:
 			return std::make_shared<Shader>(
-				"./src/shader/pbr/pbr.vs","./src/shader/pbr/pbr.fs"
+				"./src/shader/pbr/pbr.vs","./src/shader/pbr/pbr.fs",nullptr//"./src/shader/pbr/pbr.gs"
 				);
 			break;
 		case ShaderType::SIMPLE:
@@ -260,7 +260,7 @@ std::shared_ptr<Shader> RenderManager::generateShader(ShaderType type) {
 				//"./src/shader/terrain.tesc", "./src/shader/terrain.tese"
 				//);
 			return std::make_shared<Shader>(
-				"./src/shader/terrain.vs","./src/shader/terrain.fs"
+				"./src/shader/terrain/terrain.vs","./src/shader/pbr/pbr.fs"
 				);
 			break;
 		case ShaderType::HDR:

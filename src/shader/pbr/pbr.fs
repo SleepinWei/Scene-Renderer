@@ -40,7 +40,7 @@ struct Material{
     sampler2D height;
 };
 uniform Material material; 
-
+// in mat3 TBN;
 
 const float PI = 3.1415926;
 
@@ -54,6 +54,7 @@ vec3 getNormalFromMap()
     // transform tangent-normals into world-space
     vec3 tangentNormal = texture(material.normal, 
         object.TexCoords).xyz * 2.0 - 1.0;
+    tangentNormal = vec3(tangentNormal.x,tangentNormal.y,-tangentNormal.z);
 
     vec3 Q1  = dFdx(object.Position);
     vec3 Q2  = dFdy(object.Position);
@@ -64,8 +65,13 @@ vec3 getNormalFromMap()
     vec3 T  = normalize(Q1*st2.t - Q2*st1.t);
     vec3 B  = -normalize(cross(N, T));
     mat3 TBN = mat3(T, B, N);
+    vec3 actualNormal = TBN * tangentNormal; 
+    if(dot(actualNormal,object.Normal) < 0.0f){
+        actualNormal = -actualNormal;
+    }
+    // actualNormal = vec3(-actualNormal.x,actualNormal.y,-actualNormal.z);
 
-    return normalize(TBN * tangentNormal);
+    return normalize(actualNormal);
 }
 
 float DistributionGGX(vec3 N, vec3 H, float roughness)
@@ -126,13 +132,15 @@ vec3 computePointShading(Object object,PointLight light,Material material){
     vec3 Lo = vec3(0.0); 
     vec3 L = normalize(light.Position - objectPosition);
     vec3 H = normalize(V+L);
-    float attenuation = calculateAtten(objectPosition,light.Position);
+    // float attenuation = calculateAtten(objectPosition,light.Position);
+    float attenuation = 1.0f;
     vec3 radiance = light.Color * attenuation; 
 
     // cook-tolerance brdf
     float NDF = DistributionGGX(N,H,roughness);
     float G =GeometrySmith(N,V,L,roughness) ;
     vec3 F = fresnelSchlick(max(dot(H,V),0.0),F0);
+    // vec3 F = F0;
 
     vec3 numerator= NDF*G*F;
     float denominator= 4.0 * max(dot(N,V),0.0)*max(dot(N,L),0.0) + 0.0001;
@@ -173,6 +181,7 @@ vec3 computeDirectionShading(Object object,DirectionLight light,Material materia
     float NDF = DistributionGGX(N,H,roughness);
     float G =GeometrySmith(N,V,L,roughness) ;
     vec3 F = fresnelSchlick(max(dot(H,V),0.0),F0);
+    // vec3 F = F0;
 
     vec3 numerator= NDF*G*F;
     float denominator= 4.0 * max(dot(N,V),0.0)*max(dot(N,L),0.0) + 0.0001;
@@ -208,5 +217,7 @@ void main(){
 
     // HDR tone mapping 
     FragColor = vec4(finalColor,1.0f);
-    // FragColor = vec4(vec3(object.TexCoords.x),1.0f);
+
+    // vec3 color= 0.5 * getNormalFromMap() + 0.5f;
+    // FragColor = vec4(color,1.0f);
 }
