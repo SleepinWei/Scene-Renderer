@@ -35,6 +35,24 @@ layout(std430, binding=5) buffer OutIndirect {
 	int baseInstance;
     uint vertexCnt;
 }; // indirect draw 
+
+void GetNearByLod(ivec3 curNode,int dir, out int lod){
+    // dir: left, up ,right ,bottom
+    float totalNum = 5 * (1 << (MAX_LEVEL-curNode.z));
+    ivec2 direction[4] = {
+        ivec2(-1,0),ivec2(0,-1),ivec2(1,0),ivec2(0,1)
+    };
+    // for(int i =0;i<4;i++){
+    ivec2 texel; 
+    if(dir == 0 || dir == 1){
+        texel = curNode.xy * (1 << curNode.z) + direction[dir];
+    }else{
+        texel = (curNode.xy + direction[dir]) * (1 << curNode.z);
+    }
+    lod = int(imageLoad(lodMap,texel).r * MAX_LEVEL);
+    // }
+}
+
 void main(){
     uvec2 localIndex = uvec2(gl_LocalInvocationID.xy);
     uint index = uint(gl_WorkGroupID.x);
@@ -45,25 +63,7 @@ void main(){
 
     vec2 uv = vec2(curNode.xy) / float(totalNum);
     // ivec2 itexelCoord = ivec2(curNode.xy * (1<<curNode.z));
-
-    // int lod[4]; // left,up,right,down
-    // ivec2 direction[4] = {
-    //     ivec2(-1,0),ivec2(0,1),ivec2(1,0),ivec2(0,-1)
-    // };
-    // for(int i =0;i<4;i++){
-    //     ivec2 nearNode = curNode.xy + direction[i]; 
-    //     if(nearNode.x < 0 || nearNode.x >= totalNum || nearNode.y < 0 || nearNode.y >= totalNum){
-    //         lod[i] = 10; // set to highest
-    //         continue;
-    //     }
-    //     ivec2 nearTexel; 
-    //     if(direction[i].x < 0 || direction[i].y < 0){
-    //         nearTexel = curNode.xy * (1 << (MAX_LEVEL-curLod)) + direction[i];
-    //     }else{
-    //         nearTexel = (curNode.xy + direction[i]) * (1<<(MAX_LEVEL-curLod));
-    //     }
-    //     lod[i] = int(imageLoad(lodMap,nearTexel).r * MAX_LEVEL);
-    // }
+    float delta = interval * 1.0f/ PATCH_NUM / 160.0f;
 
     Patch p; 
     ivec2 offset[4] = {
@@ -74,12 +74,54 @@ void main(){
     };
 
     for(int i =0 ;i<4;i++){
-        vec2 currentPatchUV = uv + vec2(offset[i].x + localIndex.x , offset[i].y + localIndex.y) * interval * 1.0f/ PATCH_NUM / 160.0f;
-        float height = texture(heightMap,currentPatchUV).r;
-        p.Position[i] = vec4(2 * currentPatchUV.x -1,height,
+        vec2 currentPatchUV = uv + vec2(offset[i].x + localIndex.x , offset[i].y + localIndex.y) * delta; 
+        // float height = texture(heightMap,currentPatchUV).r;
+        p.Position[i] = vec4(2 * currentPatchUV.x -1,0.0f,
             2*currentPatchUV.y -1,1.0f);
         p.TexCoords[i] = vec2(localIndex + offset[i]) / PATCH_NUM;
     }
+
+    // mesh 缝补
+    if(localIndex.x == 0 || localIndex.x == PATCH_NUM-1){
+        int lod;
+        int dir = (localIndex.x == 0 ? 0 :2);
+        int loc1 = (localIndex.x == 0? 3 : 2);//偶数
+        int loc2 = (localIndex.x == 0? 0:1); //奇数
+        GetNearByLod(curNode,dir,lod);
+        if(lod > curLod){
+            // modify patch
+            if(localIndex.y % 2 == 0) {
+                p.Position[loc1].z += 2 * delta; // 因为最终投影到-1,1，长度为2
+                p.TexCoords[loc1].y += 1.0f/ PATCH_NUM;
+            }else{
+                p.Position[loc2].z += 2 * delta;
+                p.TexCoords[loc2].y += 1.0f/PATCH_NUM;
+            }
+        }
+    }
+    if(localIndex.y ==0 || localIndex.y == PATCH_NUM-1){
+        int lod;
+        int dir = (localIndex.y == 0 ? 1 :3);
+        int loc1 = (localIndex.y == 0? 1:2); //偶数
+        int loc2 = (localIndex.y == 0? 0:3); //奇数
+        GetNearByLod(curNode,dir,lod);
+        if(lod > curLod){
+            // modify patch
+            if(localIndex.x % 2 == 0) {
+                p.Position[loc1].x -= 2 * delta; 
+                p.TexCoords[loc1].x -= 1.0f/ PATCH_NUM;
+            }else{
+                p.Position[loc2].x -= 2 * delta; 
+                p.TexCoords[loc2].x -= 1.0f/PATCH_NUM;
+            }
+        }
+    }
+
+    for(int i =0;i<4;i++){
+        float height = texture(heightMap,0.5 * p.Position[i].xz + 0.5).r;
+        p.Position[i].y = height;
+    }
+
     uint currentPatchIndex = atomicAdd(primCount,1);
     patches[currentPatchIndex] = p;
     // if(localIndex.x == 0 && lod[0] < curLod && lod[0] > -1){

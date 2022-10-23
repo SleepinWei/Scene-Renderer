@@ -17,7 +17,7 @@ Atmosphere::Atmosphere() {
 	initShaders();
 
 	//debug 
-	sunAngle = 0.0f;
+	sunAngle = 10.0f;
 }
 void Atmosphere::initTextures() {
 	transmittanceTexture = std::make_shared<ImageTexture>();
@@ -95,7 +95,8 @@ void Atmosphere::prepareAtmosphere() {
 }
 
 void Atmosphere::computeTransTexture() {
-	//
+	//set binding
+	transmittanceTexture->setBinding(0);
 	static bool firstCall = true;
 	if (firstCall) {
 		compTransShader->use();
@@ -109,7 +110,8 @@ void Atmosphere::computeTransTexture() {
 }
 #define PI 3.1415926
 void Atmosphere::computeSkyViewTexutre() {
-	//
+	//set binding
+	skyViewTexture->setBinding(1);
 	static bool firstCall = true;
 	if (firstCall) {
 		firstCall = false;
