@@ -10,6 +10,7 @@
 #include"../renderer/Material.h"
 #include"../utils/Shader.h"
 #include"../buffer/SSBO.h"
+#include"../buffer/ImageTexture.h"
 
 extern std::unique_ptr<ResourceManager> resourceManager;
 extern std::unique_ptr<RenderManager> renderManager;
@@ -17,7 +18,7 @@ extern std::unique_ptr<RenderManager> renderManager;
 std::shared_ptr<Terrain> Terrain::loadHeightmap_(const std::string& path){
 	int width, height, nrChannels; 
 	yScale = 1.0f;
-	yShift = 1.0f; 
+	yShift = 0.0f; 
 	//xzScale = 10.0f;
 	model = glm::mat4(1);
 	// set the texture wrapping parameters
@@ -87,9 +88,8 @@ std::shared_ptr<Terrain> Terrain::loadHeightmap_(const std::string& path){
 std::shared_ptr<Terrain> Terrain::loadHeightmap(const std::string& path){
 	int width, height, nrChannels; 
 	yScale = 5.0f;
-	yShift = 1.0f; 
+	yShift = -5.0f; 
 	//xzScale = 10.0f;
-	model = glm::mat4(1);
 	std::shared_ptr<Texture>&& heightTex = Texture::loadFromFile(path + "heightMap.png");
 	width = heightTex->width;
 	height = heightTex->height;
@@ -99,31 +99,38 @@ std::shared_ptr<Terrain> Terrain::loadHeightmap(const std::string& path){
 	// indices
 	float xzScale = 100.0f;
 	//float xzScale = 1.0f;
-	model[0][0] = xzScale;//x scale
-	model[2][2] = xzScale; //z scale
+	model = glm::mat4(1);
+	//model[0][0] = xzScale;//x scale
+	//model[2][2] = xzScale; //z scale
+	model = glm::translate(model, glm::vec3(0.0f, yShift,0.0f));
+	model = glm::scale(model, glm::vec3(xzScale, yScale, xzScale));
 
-	rez = 20; 
+	rez = 5; 
 
 	// generate chunk vertex
-	std::vector<float>((rez + 1) * (rez + 1) * 4).swap(vertices);
-	std::vector<float>((rez + 1) * (rez + 1) * 2).swap(texCoords);
-	for (unsigned i = 0; i <= rez; i++)
+	//std::vector<float>((rez + 1) * (rez + 1) * 4).swap(vertices);
+	//std::vector<float>((rez + 1) * (rez + 1) * 2).swap(texCoords);
+	std::vector<unsigned int>(rez * rez * 2).swap(nodeIndex);
+	for (unsigned i = 0; i < rez; i++)
 	{
-		for (unsigned j = 0; j <= rez; j++)
+		for (unsigned j = 0; j < rez; j++)
 		{
-			int index = 4 * (i * (rez+1) + j);
-			vertices[index++] = - 1.0f + 2 * j / (float)rez; // v.x
-			vertices[index++] = 0.0f; // v.y
-			vertices[index++] = -1.0f + 2 * i / (float)rez; // v.z
-			vertices[index++] = 0.0f; // v.w
-			int index_ = 2 * (i * (rez + 1) + j);
-			texCoords[index_] = j / (float)rez; 
-			texCoords[index_ + 1] = i / (float)rez;
+			//int index = 4 * (i * (rez+1) + j);
+			//vertices[index++] = - 1.0f + 2 * j / (float)rez; // v.x
+			//vertices[index++] = 0.0f; // v.y
+			//vertices[index++] = -1.0f + 2 * i / (float)rez; // v.z
+			//vertices[index++] = 0.0f; // v.w
+			//int index_ = 2 * (i * (rez + 1) + j);
+			//texCoords[index_] = j / (float)rez; 
+			//texCoords[index_ + 1] = i / (float)rez;
+			int index = 2 * (i * rez + j);
+			nodeIndex[index] = j;
+			nodeIndex[index + 1] = i;
 		}
 	}
 
 	// generate node indices
-	std::vector<unsigned int>(rez * rez * 4).swap(nodeIndex);
+	/*std::vector<unsigned int>(rez * rez * 4).swap(nodeIndex);
 	for (int i = 0; i < rez; i++) {
 		for (int j = 0; j < rez; j++) {
 			int index = 4 * (i * rez + j);
@@ -133,7 +140,7 @@ std::shared_ptr<Terrain> Terrain::loadHeightmap(const std::string& path){
 			nodeIndex[index++] = upper_left + 1 + (1 + rez);
 			nodeIndex[index++] = upper_left + (1 + rez);
 		}
-	}
+	}*/
 
 	return std::dynamic_pointer_cast<Terrain> (shared_from_this());
 }
@@ -206,26 +213,38 @@ void Terrain::tessDrawCall(){
 	//std::cerr << "Terrain Done" << "\n";
 }
 
-Terrain::Terrain():NUM_PATCH_PTS(4) {
+Terrain::Terrain(){
 	material = std::make_shared<Material>();
 	terrainMaterial = std::make_shared<Material>();
 	name = "Terrain";
+	polyMode = GL_FILL;
 
 	// VAO
 	VAO = 0, VBO = 0;
-	rez = 20;
+	rez = 5;
 
 	// compute shader related buffers
-	computeShader = std::make_shared<Shader>("./src/shader/terrain.comp");
+	computeShader = std::make_shared<Shader>("./src/shader/terrain/terrain.comp");
+	complodMapShader = std::make_shared<Shader>("./src/shader/terrain/lodMap.comp");
+	compGenPatchShader = std::make_shared<Shader>("./src/shader/terrain/patch.comp");
 
-	verticesSSBO = std::make_shared<SSBO>(8192*8192);
-	verticesSSBO->setBinding(1); 
-	indicesSSBO = std::make_shared<SSBO>(8192*8192);
-	indicesSSBO->setBinding(2);
+	// ----
+	patchesSSBO = std::make_shared<SSBO>(8192*8192);
+	//verticesSSBO->setBinding(1); 
+	//patchesSSBO = std::make_shared<SSBO>(8192*8192);
+	//indicesSSBO->setBinding(2);
+	// ----
 	inQueueSSBO = std::make_shared<SSBO>(8192 * 4);
 	inQueueSSBO->setBinding(3);
 	outQueueSSBO = std::make_shared<SSBO>(8192 * 4);
 	outQueueSSBO->setBinding(4);
+	finalNodeList = std::make_shared<SSBO>(8525 * 8);
+	finalNodeList->setBinding(2);
+	nodeDescriptor = std::make_shared<SSBO>(8192 * 8192);
+	nodeDescriptor->setBinding(1);
+	lodMapTexture = std::make_shared<ImageTexture>();
+	lodMapTexture->genImageTexture(GL_RGBA32F, GL_RGBA, 160, 160);
+	//--- 
 	indirectDrawSSBO = std::make_shared<SSBO>(64);
 	indirectDrawSSBO->setBinding(5);
 	glCheckError();
@@ -233,40 +252,23 @@ Terrain::Terrain():NUM_PATCH_PTS(4) {
 }
 
 void Terrain::prepareData() {
-	// prepare SSBO data; 
-	verticesSSBO->bindBuffer();
-	glCheckError();
-	//glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 4, &vertexCnt);
-	// 其实只要绑定一次vertices
-	if (verticesSSBO->dirty) {
-		for (int i = 0; i < vertices.size()/4; i++) {
-			// Position
-			glBufferSubData(GL_SHADER_STORAGE_BUFFER, i * 32, 4 * sizeof(float), &vertices[4 * i]);
-			// TexCoords 
-			glBufferSubData(GL_SHADER_STORAGE_BUFFER, i * 32 + 16, 2 * sizeof(float), &texCoords[2 * i]);
-		}
-		verticesSSBO->dirty = false;
-	}
-	// update each call
-
+	// set indirect draw SSBO
 	indirectDrawSSBO->bindBuffer();
-	glCheckError();
-	unsigned int count = 0;
-	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 4, &count);//count 
-	glCheckError();
 
+	unsigned int zero = 0; 
 	if (indirectDrawSSBO->dirty) {
-		unsigned int zero = 0; 
 		unsigned int one = 1; 
-		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 4, 4, &one); // primCount
+		unsigned int count = 6;
+		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 4, &count);//count 
 		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 8, 4, &zero); // firstIndex
 		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 12, 4, &zero); // baseVertex
 		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 16, 4, &zero); // baseInstance
 		//glBufferSubData(GL_SHADER_STORAGE_BUFFER, 20, 4, &zero);
 		indirectDrawSSBO->dirty = false;
 	}
-	unsigned int vertexCnt = (rez + 1) * (rez + 1);
-	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 20, 4, &vertexCnt);
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 4, 4, &zero); // primCount
+	//unsigned int vertexCnt = (rez + 1) * (rez + 1);
+	//glBufferSubData(GL_SHADER_STORAGE_BUFFER, 20, 4, &vertexCnt);
 
 	inQueueSSBO->bindBuffer();
 	unsigned int nodeCnt = rez * rez;
@@ -280,16 +282,24 @@ void Terrain::prepareData() {
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 4, 4, &one);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 8, 4, &one);
 
+	// set finalNodeCnt
+	finalNodeList->bindBuffer();
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 4, &zero);
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 4, 4, &one);
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 8, 4, &one);
+
 	// set render shader 
 	shader->use();
 	shader->setMat4("model", model);
+	shader->setInt("normalMap", 1);
+
 	// set shader 
 	computeShader->use();
 	computeShader->setMat4("model", model);
-	computeShader->setFloat("yShift", yShift);
-	computeShader->setFloat("yScale", yScale);
+	//computeShader->setFloat("yShift", yShift);
+	//computeShader->setFloat("yScale", yScale);
 	int beginIndex = 0;
-	auto& textures = terrainMaterial->textures;
+	auto& textures = terrainMaterial->textures; // heightMap + normalMap
 	for (int texture_index = 0; texture_index < textures.size(); texture_index++) {
 		glActiveTexture(GL_TEXTURE0 + texture_index + beginIndex);
 		//将加载的图片纹理句柄，绑定到纹理单元0的Texture2D上。
@@ -301,8 +311,18 @@ void Terrain::prepareData() {
 }
 
 void Terrain::computeDrawCall() {
+	compLodCall();
+	compLodMapCall();
+	compGeneratePatchCall();
+}
+
+void Terrain::compLodCall() {
+	// set binding 
+	finalNodeList->setBinding(2);
+	nodeDescriptor->setBinding(1);
+	// binding set end----
 	const int MAX_LOD = 5; 
-	for (int i = 0; i <= MAX_LOD; i++) {
+	for (unsigned int i = 0; i <= MAX_LOD; i++) {
 		// 循环计算 LOD
 		inQueueSSBO->setBinding(3);
 		outQueueSSBO->setBinding(4);
@@ -312,8 +332,7 @@ void Terrain::computeDrawCall() {
 		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 4, &zero); // 设置 out buffer 的 nodeCnt 为 0
 
 		computeShader->use();
-		computeShader->setInt("iteration", i);
-
+		computeShader->setUInt("currentLOD", i);
 		inQueueSSBO->bindBuffer();
 
 		glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, inQueueSSBO->ssbo);
@@ -326,6 +345,44 @@ void Terrain::computeDrawCall() {
 	}
 }
 
+void Terrain::compLodMapCall() {
+	// set binding
+	lodMapTexture->setBinding(5);
+	nodeDescriptor->setBinding(1);
+	complodMapShader->use();
+
+	glDispatchCompute(lodMapTexture->getWidth(), lodMapTexture->getHeight(), 1);
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT|GL_COMMAND_BARRIER_BIT);
+}
+
+void Terrain::compGeneratePatchCall() {
+	//TODO;
+	// set bindings
+	finalNodeList->setBinding(2);
+	patchesSSBO->setBinding(0);
+	lodMapTexture->setBinding(5);
+	indirectDrawSSBO->setBinding(5);
+	
+	// for debug
+	compGenPatchShader->use();
+	compGenPatchShader->setInt("heightMap", 0);
+	glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, finalNodeList->ssbo);
+	glDispatchComputeIndirect(0);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |GL_COMMAND_BARRIER_BIT);
+
+	//freopen("./output.txt", "w",stdout);
+	//patchesSSBO->bindBuffer();
+	//float* data = (float*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+	//for (int i = 0; i < 1000; i++) {
+	//	for (int j = 0; j < 24; j++) {
+	//		std::cout << data[24 * i + j] << ' ';
+	//	}
+	//	std::cout << '\n';
+	//}
+	//glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+	// end for 
+}
+
 void Terrain::renderCall() {
 	// test renderCall
 	initVertexObject();
@@ -334,36 +391,51 @@ void Terrain::renderCall() {
 	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 	
 	//EBO
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indicesSSBO->ssbo);
+	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indicesSSBO->ssbo);
 
 	// VBO
-	glBindBuffer(GL_ARRAY_BUFFER, verticesSSBO->ssbo);
+	//glBindBuffer(GL_ARRAY_BUFFER, verticesSSBO->ssbo);
 
-	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(float), 0);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)4);
-	glEnableVertexAttribArray(1);
+	//glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(float), 0);
+	//glEnableVertexAttribArray(0);
+	//glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)16);
+	//glEnableVertexAttribArray(1);
 
 	shader->use();
-	//debug
-	//indirectDrawSSBO->bindBuffer();
-	//unsigned int* command = (unsigned int*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-	//glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-	//for (int i = 0; i <= 5; i++) {
-	//	std::cerr << command[i] << '\n';
-	//}
 
-	glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
-	//glCullFace(GL_FRONT);
-	glDisable(GL_CULL_FACE);
+	// bind normal map
+	auto& normalTex = terrainMaterial->textures[1];
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, normalTex->id);
+	//bind pbr textures
+	int beginIndex = 2;  // heightMap, normalMap
+	if (material) {
+		std::vector<std::shared_ptr<Texture>>& textures = material->textures;
+		for (int texture_index = 0; texture_index < textures.size(); ++texture_index) {
+			//激活纹理单元0
+			glActiveTexture(GL_TEXTURE0 + beginIndex + texture_index);
+			//将加载的图片纹理句柄，绑定到纹理单元0的Texture2D上。
+			glBindTexture(GL_TEXTURE_2D, textures[texture_index]->id);
+			//设置Shader程序从纹理单元0读取颜色数据
+			shader->setInt(("material." + textures[texture_index]->type).c_str(), beginIndex + texture_index);
+		}
+	}
 
+	if (polyMode == GL_LINE) {
+		glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+	}
+	glCullFace(GL_FRONT);
+
+	// draw
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectDrawSSBO->ssbo);
-	//draw
-	glDrawElementsIndirect(GL_TRIANGLES,GL_UNSIGNED_INT,0);
+	glDrawArraysIndirect(GL_TRIANGLES, 0);
+
 	glCheckError();
-	//glCullFace(GL_BACK);
-	glEnable(GL_CULL_FACE);
-	glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+
+	glCullFace(GL_BACK);
+	//glEnable(GL_CULL_FACE);
+	if(polyMode == GL_LINE)
+		glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
 }
 
 void Terrain::render() {
@@ -372,4 +444,8 @@ void Terrain::render() {
 	prepareData(); 
 	computeDrawCall();
 	renderCall();
+}
+
+void Terrain::setPolyMode(unsigned int polyMode_) {
+	this->polyMode = polyMode_;
 }

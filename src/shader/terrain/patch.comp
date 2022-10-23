@@ -1,0 +1,96 @@
+#version 450 core
+//generate 8 * 8 patches
+#define PATCH_NUM 8 
+#define MAX_LEVEL 5
+layout(local_size_x=PATCH_NUM,local_size_y=PATCH_NUM,local_size_z=1) in;
+
+layout(std140,binding=2) buffer FinalNodeList{
+    uint finalNodeCnt;
+    uint one;
+    uint one_;
+    uvec3 finalNode[];
+};
+
+struct Patch{// 1 patch : 16 by 16 grid
+    vec4 Position[4];
+    vec2 TexCoords[4];
+};
+
+// 1 node: 8 by 8 patches
+layout(std430,binding=0) buffer Patches{
+    Patch patches[];
+};
+// layout(std430,binding=1) buffer Indices{
+    // uint indices[];
+// };
+
+layout(rgba32f,binding=5) uniform image2D lodMap;
+uniform sampler2D heightMap;
+
+layout(std430, binding=5) buffer OutIndirect {
+	uint count;
+	uint primCount;
+	uint firstIndex;
+	uint baseVertex;
+	int baseInstance;
+    uint vertexCnt;
+}; // indirect draw 
+void main(){
+    uvec2 localIndex = uvec2(gl_LocalInvocationID.xy);
+    uint index = uint(gl_WorkGroupID.x);
+    ivec3 curNode = ivec3(finalNode[index]);
+    int curLod = curNode.z;
+    float totalNum = 5 * (1 << (MAX_LEVEL-curNode.z));
+    uint interval = 1 << (curLod);
+
+    vec2 uv = vec2(curNode.xy) / float(totalNum);
+    // ivec2 itexelCoord = ivec2(curNode.xy * (1<<curNode.z));
+
+    // int lod[4]; // left,up,right,down
+    // ivec2 direction[4] = {
+    //     ivec2(-1,0),ivec2(0,1),ivec2(1,0),ivec2(0,-1)
+    // };
+    // for(int i =0;i<4;i++){
+    //     ivec2 nearNode = curNode.xy + direction[i]; 
+    //     if(nearNode.x < 0 || nearNode.x >= totalNum || nearNode.y < 0 || nearNode.y >= totalNum){
+    //         lod[i] = 10; // set to highest
+    //         continue;
+    //     }
+    //     ivec2 nearTexel; 
+    //     if(direction[i].x < 0 || direction[i].y < 0){
+    //         nearTexel = curNode.xy * (1 << (MAX_LEVEL-curLod)) + direction[i];
+    //     }else{
+    //         nearTexel = (curNode.xy + direction[i]) * (1<<(MAX_LEVEL-curLod));
+    //     }
+    //     lod[i] = int(imageLoad(lodMap,nearTexel).r * MAX_LEVEL);
+    // }
+
+    Patch p; 
+    ivec2 offset[4] = {
+        ivec2(0,0),
+        ivec2(1,0),
+        ivec2(1,1),
+        ivec2(0,1)
+    };
+
+    for(int i =0 ;i<4;i++){
+        vec2 currentPatchUV = uv + vec2(offset[i].x + localIndex.x , offset[i].y + localIndex.y) * interval * 1.0f/ PATCH_NUM / 160.0f;
+        float height = texture(heightMap,currentPatchUV).r;
+        p.Position[i] = vec4(2 * currentPatchUV.x -1,height,
+            2*currentPatchUV.y -1,1.0f);
+        p.TexCoords[i] = vec2(localIndex + offset[i]) / PATCH_NUM;
+    }
+    uint currentPatchIndex = atomicAdd(primCount,1);
+    patches[currentPatchIndex] = p;
+    // if(localIndex.x == 0 && lod[0] < curLod && lod[0] > -1){
+    //     if(localIndex.y % 2 ==0) {
+    //         Patch p; 
+    //     }
+
+    // }else if (localIndex.x == PATCH_NUM-1) {
+
+    // }
+    // else{
+
+    // }
+}

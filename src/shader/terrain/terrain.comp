@@ -1,0 +1,246 @@
+#version 430 core 
+#define MIN_LEVEL 0 // 0 表示最近处的LOD
+#define MAX_LEVEL 5 // 5 表示 最远处的lod
+// #define MIN_LEVEL 0
+// #define MAX_LEVEL 5
+
+// #define MIN_DISTANCE 0
+// #define MAX_DISTANCE 2
+#define MIN_DISTANCE 5
+#define MAX_DISTANCE 50
+
+#define INITIAL_NODE_NUM 5
+
+// #define MAX_DISTANCE 50
+
+layout(local_size_x=1,local_size_y=1,local_size_z=1) in;
+
+// in uint gl_LocalInvocationIndex ;
+
+// struct Object{
+//     vec4 Position;
+//     vec2 TexCoords; 
+// };
+
+// layout(std430, binding=1) buffer Vertices{
+//     // uint vertexCnt;
+//     Object vertices[]; // all generated vertices
+// };
+
+// layout(std430, binding=2) buffer Indices{
+//     // uint indexCnt; 
+//     uint indices[]; // indice arrays (EBO)
+// };
+
+struct Node{
+    uvec2 pos; // x,y
+};
+struct FinalNode{
+    uvec3 pos; // x, y ,lod 
+};
+
+layout(std140,binding=2) buffer FinalNodeList{
+    uint finalNodeCnt;
+    uint one;
+    uint one_;
+    uvec3 finalNode[];
+};
+
+struct NodeInfo{
+    uint isLeaf;
+};
+layout(std430,binding=1) buffer NodeDescriptor{
+    NodeInfo info[];
+};
+
+uint GetNodeID(uvec3 nodeLoc){
+    uint nodeIdOffsetLOD[6] = {8525,2125,525,125,25,0};
+    uint nodeCountLOD[6] = {160,80,40,20,10,5};
+    return nodeIdOffsetLOD[nodeLoc.z] + nodeLoc.y * nodeCountLOD[nodeLoc.z] + nodeLoc.x;
+}
+
+layout(std430,binding=3) buffer InQueue{ // consume node list 
+    uint nodeCnt;  // nodes that need calculation 
+    uint one;
+    uint one_;
+    uvec2 nodes[]; // nodes needed calculation this round
+}inQueue;
+
+layout(std430,binding=4) buffer OutQueue{
+    uint nodeCnt; // set to 0 before every iteration 
+    uint one; 
+    uint one_;
+    uvec2 nodes[]; // nodes that need further calculation
+}outQueue;
+
+// layout(std430, binding=5) buffer OutIndirect {
+// 	uint count;
+// 	uint primCount;
+// 	uint firstIndex;
+// 	uint baseVertex;
+// 	int baseInstance;
+//     uint vertexCnt;
+// }; // indirect draw 
+
+
+layout(std140,binding=0) uniform VP{
+    mat4 projection; 
+    mat4 view; 
+};
+
+uniform mat4 model; 
+
+// uniform float yShift;
+// uniform float yScale;
+
+uniform uint currentLOD;  // MAX_LEVEL-当前处理的LOD等级, 0-5
+
+uniform sampler2D heightMap;
+
+int GetLODLevel(vec3 Position[4]){
+    vec4 eyeSpacePos[4];
+
+    for(int i =0;i<4;i++){
+        eyeSpacePos[i] = view * model * vec4(Position[i],1.0f);
+    }
+
+    // comptue distance to camera.
+    float pointDistance[4];
+    for(int i= 0;i<4;i++){
+        pointDistance[i] = length(eyeSpacePos[i].xyz);
+    }
+
+    float level[4]; 
+    for(int i=0;i<4;i++){
+        // level[i] = log2(pointDistance[i]/MIN_DISTANCE + 1);
+        // level[i] = (pointDistance[i] + MIN_DISTANCE) / (MAX_DISTANCE + MIN_DISTANCE) * MAX_LEVEL;
+        float level_ = 0;
+        float d = pointDistance[i];
+        if(d < MIN_DISTANCE){
+            level_ = MIN_LEVEL;
+        }else if (d > MAX_DISTANCE){
+            level_ = MAX_LEVEL; 
+        }else{
+            // distance > MIN : start from 1 to MAX_LEVEL
+            level_ = (d-MIN_DISTANCE) / (MAX_DISTANCE-MIN_DISTANCE) * (MAX_LEVEL-MIN_LEVEL-1) + MIN_LEVEL + 1;
+        }
+        level[i] = level_;
+    }
+    // float maxLevel = max(level[0],max(level[1],max(level[2],level[3])));
+    float maxLevel = min(level[0],min(level[1],min(level[2],level[3])));
+    maxLevel = clamp(maxLevel, MIN_LEVEL, MAX_LEVEL);
+    return int(maxLevel);
+}
+
+bool needCulling(vec3 Position[4]){
+    // cohen-sutherland 
+    vec4 NDC[4]; 
+    // bool flag = false;
+    for(int i=0;i<4;i++){
+        NDC[i] = projection * view * model * vec4(Position[i],1.0f);
+    }
+    if(NDC[0].w < 0.0f && NDC[1].w <0.0f && NDC[2].w <0.0f && NDC[3].w < 0.0f){
+        return true; 
+    }
+    int code[4]; 
+    for(int i=0;i<4;i++){
+        NDC[i] = NDC[i] / NDC[i].w; 
+        code[i] = 0;
+        //x : 10xxxx(smaller),01xxxx(larger),00xxxx(inside)
+        if(NDC[i].x < -1.f){
+            code[i] += (1<<4); 
+        }else if (NDC[i].x <= 1.f){
+        }else{
+            code[i] += (1<< 5);
+        }
+        //y : xx10xx,xx01xx,xx00xx
+        if(NDC[i].y < -1.f){
+            code[i] += (1<<2); 
+        }else if (NDC[i].y <= 1.f){
+        }else{
+            code[i] += (1<<3);
+        }
+        //z xxxx10,xxxx01,xxxx00
+        if(NDC[i].z < -1.f){
+            code[i] += (1<<0); 
+        }else if (NDC[i].z <= 1.f){
+        }else{
+            code[i] += (1<<1);
+        }
+    }
+    int AND = code[0] & code[1] & code[2] & code[3]; 
+    int x_ = (AND >> 4); 
+    int y_ = (AND >> 2)%4;
+    int z_ = AND % 4;
+    if(x_ > 0 || y_ >0 || z_ > 0)
+        return true;
+    return false;
+    // return !flag; 
+}
+
+void generateLODData(uvec2 nodeLoc,uint currentLod){
+    // Object Points[4]; 
+    // Points[0] = vertices[n.indices[0]];
+    // Points[1] = vertices[n.indices[1]];
+    // Points[2] = vertices[n.indices[2]];
+    // Points[3] = vertices[n.indices[3]];
+
+    // compute Positions
+    uint nodeAllNum = INITIAL_NODE_NUM * (1 << currentLod);
+    uvec2 offset[4] = {
+        uvec2(0,0),
+        uvec2(1,0),
+        uvec2(1,1),
+        uvec2(0,1)
+    };
+    vec2 uv[4];
+    vec3 Position[4];
+    for(int i =0;i<4;i++){
+        uv[i] = vec2(nodeLoc + offset[i]) / float(nodeAllNum); // project -> [-1,1], upper-left-corner position
+        Position[i] = vec3(2 * uv[i].x -1,0.0f,2 * uv[i].y-1);// four corners of the quad
+    }
+
+    //compute height (load height from texture)
+    //compute height when first read in. (to sovle false culling problem)
+    for(int i= 0;i<4;i++){
+        float height = texture(heightMap,uv[i]).r;
+        // float height = 0.0f;
+        Position[i].y = height;
+    }
+    // vec4 delta = Position[2].Position - Points[0].Position; 
+
+    // if(needCulling(Position)){
+    //     info[GetNodeID(uvec3(nodeLoc,MAX_LEVEL-currentLod))].isLeaf = 1;
+    //     return;
+    // };
+
+    int currentLevel = GetLODLevel(Position); // 当前quad实际的lod level
+    if(currentLevel + currentLod < MAX_LEVEL){
+        // 生成新的点继续细分
+
+        uint curNodeIndex = atomicAdd(outQueue.nodeCnt,4);
+        outQueue.nodes[curNodeIndex] = nodeLoc * 2;
+        outQueue.nodes[curNodeIndex+1] = nodeLoc * 2 + uvec2(1,0);
+        outQueue.nodes[curNodeIndex+2] = nodeLoc * 2 + uvec2(1,1);
+        outQueue.nodes[curNodeIndex+3] = nodeLoc * 2 + uvec2(0,1);
+
+        uint indexID = GetNodeID(uvec3(nodeLoc,MAX_LEVEL-currentLod));
+        info[indexID].isLeaf = 0;
+    }else{
+        //  add to final 
+        uint curFinalNode = atomicAdd(finalNodeCnt,1);
+
+        finalNode[curFinalNode] = uvec3(nodeLoc,MAX_LEVEL-currentLod);
+        info[GetNodeID(uvec3(nodeLoc,MAX_LEVEL-currentLod))].isLeaf = 1;
+    }
+}
+
+void main(){
+    // LOD 
+    uint nodeIndex = uint(gl_WorkGroupID.x);
+    // DEBUG
+    // uint curVertexIndex = atomicAdd(vertexCnt,1);
+    // vertices[curVertexIndex] = vec4(float(gl_GlobalInvocationID),0.0f,0.0f,0.0f);
+
+    generateLODData(inQueue.nodes[nodeIndex],currentLOD);
+}

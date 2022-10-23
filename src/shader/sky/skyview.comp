@@ -298,7 +298,7 @@ void main(){
 
     float r,mu,mu_s,nu; 
     // suppose character is always on surface 
-    r = atmosphere.bottom_radius;
+    r = atmosphere.bottom_radius + 1.0f;
     vec3 viewDir = vec3(
         cos(latAngle) * sin(lonAngle),
         sin(latAngle),
