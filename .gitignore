@@ -12,3 +12,5 @@ include/USmallFlat/*
 include/UTemplate/*
 a.exe
 asset.zip
+*.rdc
+*.jpg
