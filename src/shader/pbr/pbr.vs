@@ -16,14 +16,15 @@ out struct Object{
     vec3 Normal; 
     vec2 TexCoords;
 } object;
+// out mat3 TBN;
 
 
 void main(){
     object.Position = vec3(model * vec4(aPos,1.0)) ;
-    object.Normal = mat3(transpose(inverse(model))) * aNormal;
+    object.Normal = normalize(mat3(transpose(inverse(model))) * aNormal);
     object.TexCoords = TexCoords;
 
-    // gl_Position = projection * view * model * vec4(aPos,1.0);
-    gl_Position = projection * view * vec4(object.Position,1.0);
-    // gl_Position = vec4(aPos,1.0);
+    gl_Position = projection * view * model * vec4(aPos,1.0);
+    // gl_Position = projection * view * vec4(object_gs.Position,1.0);
+    // gl_Position = model * vec4(aPos,1.0);
 }

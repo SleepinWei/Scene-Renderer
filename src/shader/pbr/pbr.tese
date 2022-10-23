@@ -33,11 +33,11 @@ void main()
     float w = gl_TessCoord.z;
 
     object.TexCoords = object_ts[0].TexCoords * u + object_ts[1].TexCoords * v + object_ts[2].TexCoords * w; 
-    object.Normal = object_ts[0].Normal * u + object_ts[1].Normal * v + object_ts[2].Normal * w; 
+    object.Normal = normalize(object_ts[0].Normal * u + object_ts[1].Normal * v + object_ts[2].Normal * w); 
     object.Position = object_ts[0].Position * u + object_ts[1].Position * v + object_ts[2].Position * w;
 
     float height = texture(material.height,object.TexCoords).r;
-    float heightScale = 0.02f; 
-    object.Position = object.Position + normalize(object.Normal) * height * heightScale;
+    float heightScale = 0.05f; 
+    object.Position = object.Position + object.Normal * height * heightScale;
     gl_Position = projection * view * vec4(object.Position,1.0); 
 }
