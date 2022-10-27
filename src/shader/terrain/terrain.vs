@@ -37,8 +37,9 @@ void main(){
     object.TexCoords = p.patchTex[indexChange[vertexIndex]] ;
 
     // TODO: 需要考虑 y_shift 和 y_scale 
-    vec3 sampledNormal = texture(normalMap,(0.5 * aPos.xz + 0.5)).xzy * 2 -1.0f;
-    object.Normal = mat3(transpose(inverse(model))) * sampledNormal;
+    vec3 tangentNormal = texture(normalMap,(0.5 * aPos.xz + 0.5)).xyz * 2 -1.0f;
+    tangentNormal = vec3(tangentNormal.x,tangentNormal.z,tangentNormal.y);
+    object.Normal = mat3(transpose(inverse(model))) * tangentNormal;
     // object.Normal.y = object.Normal.y / 256.0f;
     object.Normal = normalize(object.Normal);
 
