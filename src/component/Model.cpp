@@ -104,23 +104,26 @@ std::shared_ptr<MeshFilter> Model::processMesh(aiMesh* mesh, const aiScene* scen
 	// specular: texture_specularN
 	// normal: texture_normalN
 
-	material = std::make_shared<Material>();
-	// 1. diffuse maps
-	loadMaterialTextures(aimaterial, aiTextureType_DIFFUSE, material);
-	// 2. specular maps
-	loadMaterialTextures(aimaterial, aiTextureType_SPECULAR, material);
-	// 3. normal maps
-	loadMaterialTextures(aimaterial, aiTextureType_HEIGHT, material);
-	// 4. height maps
-	loadMaterialTextures(aimaterial, aiTextureType_AMBIENT, material);
+	//material = std::make_shared<Material>();
+	//// 1. diffuse maps
+	//loadMaterialTextures(aimaterial, aiTextureType_DIFFUSE, "material.albedo",material);
+	//// 2. specular maps
+	//loadMaterialTextures(aimaterial, aiTextureType_SPECULAR, "material.metallic",material);
+	//// 3. normal maps
+	//loadMaterialTextures(aimaterial, aiTextureType_HEIGHT, "material.height",material);
+	//// 4. height maps
+	//loadMaterialTextures(aimaterial, aiTextureType_AMBIENT, "",material); //TODO:
 
+	//loadMaterialTextures(aimaterial, aiTextureType_AMBIENT_OCCLUSION, "material.ao", material);
+
+	//loadMaterialTextures(aimaterial, aiTextureType_AMBIENT, "", material);
 	// return a mesh object created from the extracted mesh data
-	return std::make_shared<MeshFilter>(vertices, indices, material);
+	return std::make_shared<MeshFilter>(vertices, indices);
 }
 
 // checks all material textures of a given type and loads the textures if they're not loaded yet.
 // the required info is returned as a Texture struct.
-void Model::loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::shared_ptr<Material>& material)
+void Model::loadMaterialTextures(aiMaterial* mat, aiTextureType type,std::string texType, std::shared_ptr<Material>& material)
 {
 	for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
 	{
@@ -129,7 +132,7 @@ void Model::loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::share
 		std::string mat_path(str.C_Str());
 		const std::shared_ptr<Texture>& tex = resourceManager->getResource(mat_path);
 
-		material->textures.push_back(tex);
+		material->textures.insert({ texType,tex });
 	}
 }
 

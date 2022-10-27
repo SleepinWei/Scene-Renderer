@@ -24,6 +24,6 @@ public:
 
     // checks all material textures of a given type and loads the textures if they're not loaded yet.
     // the required info is returned as a Texture struct.
-    static void loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::shared_ptr<Material>& material);
+    static void loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string texType, std::shared_ptr<Material>& material);
 };
 

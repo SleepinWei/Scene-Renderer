@@ -14,7 +14,7 @@ MeshFilter::MeshFilter() {
 	Component::name = "MeshFilter";
 }
 
-MeshFilter::MeshFilter(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::shared_ptr<Material> material){
+MeshFilter::MeshFilter(std::vector<Vertex> vertices, std::vector<unsigned int> indices){
 	Component::name = "MeshFilter";
 	this->vertices = vertices;
 	this->indices = indices;

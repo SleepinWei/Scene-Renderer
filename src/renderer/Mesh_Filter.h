@@ -34,7 +34,7 @@ public:
 	};
 
 	MeshFilter();
-	MeshFilter(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::shared_ptr<Material>);
+	MeshFilter(std::vector<Vertex> vertices, std::vector<unsigned int> indices);
 
 	~MeshFilter();
 

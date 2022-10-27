@@ -4,7 +4,7 @@
 
 Texture::Texture() {
 	width = height = 0;
-	type = ""; 
+	//type = ""; 
 	name = ""; 
 	id = 0;
 }
@@ -27,8 +27,9 @@ Texture::~Texture() {
 std::shared_ptr<Texture> Texture::loadFromFile(const std::string& file_path) {
 	std::shared_ptr<Texture> tex = std::make_shared<Texture>(); 
 
-	int index = file_path.find_last_of("/");
-	tex->type = file_path.substr(index + 1, file_path.length() - index - 1 - 4); // ɾȥ .png
+	//int index = file_path.find_last_of("/");
+	//tex->type = file_path.substr(index + 1, file_path.length() - index - 1 - 4); // ɾȥ .png
+	//tex->type = "";
 	tex->name = file_path;
 	
 	// type is for shaders 
@@ -73,6 +74,11 @@ std::shared_ptr<Texture> Texture::loadFromFile(const std::string& file_path) {
 
 	return tex; 
 }
+
+//std::shared_ptr<Texture> Texture::setType(const std::string& type) {
+	//this->type = type;
+	//return shared_from_this();
+//}
 
 std::shared_ptr<Texture> Texture::genTexture(unsigned int DataType,unsigned int channelType,int width, int height) {
 	if (id)

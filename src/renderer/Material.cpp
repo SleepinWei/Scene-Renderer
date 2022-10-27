@@ -1,10 +1,11 @@
 #include<glad/glad.h>
+#include<memory>
+//#include<utility>
 #include"Material.h"
 #include"../utils/Shader.h"
-#include<utility>
 #include"Texture.h"
-#include<memory>
 #include"../renderer/ResourceManager.h"
+#include"../utils/Shader.h"
 
 extern std::unique_ptr<ResourceManager> resourceManager;
 
@@ -13,27 +14,33 @@ Material::~Material() {
 
 std::shared_ptr<Material> Material::loadPBR(const std::string& folder) {
 	auto material = std::make_shared<Material>();
-	material->addTexture(resourceManager->getResource(folder + "albedo.png"))
-		->addTexture(resourceManager->getResource(folder + "metallic.png"))
-		->addTexture(resourceManager->getResource(folder + "roughness.png"))
-		->addTexture(resourceManager->getResource(folder + "normal.png"))
-		->addTexture(resourceManager->getResource(folder + "ao.png"))
-		->addTexture(resourceManager->getResource(folder + "height.png"));
+	material->addTexture(resourceManager->getResource(folder + "albedo.png"),"material.albedo")
+		->addTexture(resourceManager->getResource(folder + "metallic.png"),"material.metallic")
+		->addTexture(resourceManager->getResource(folder + "roughness.png"),"material.roughness")
+		->addTexture(resourceManager->getResource(folder + "normal.png"),"material.normal")
+		->addTexture(resourceManager->getResource(folder + "ao.png"),"material.ao")
+		->addTexture(resourceManager->getResource(folder + "height.png"),"material.height");
 	return material;
 }
 
 std::shared_ptr<Material> Material::loadTerrain(const std::string& folder){
 	auto material = std::make_shared<Material>(); 
-	material->addTexture(resourceManager->getResource(folder + "heightMap.png"))
-		->addTexture(resourceManager->getResource(folder + "normalMap.png"));
+	material->addTexture(resourceManager->getResource(folder + "heightMap.png"),"heightMap")
+		->addTexture(resourceManager->getResource(folder + "normalMap.png"),"heightMap");
 	return material;
 }
 
-std::shared_ptr<Material> Material::addTexture(std::shared_ptr<Texture> tex) {
-	textures.push_back(tex);
+std::shared_ptr<Material> Material::addTexture(std::shared_ptr<Texture> tex,std::string type) {
+	//textures.push_back(tex);
+	this->textures.insert({ type,tex });
 	return shared_from_this();
 }
 
+std::shared_ptr<Material> Material::addTexture(std::string tex_path, std::string type) {
+	auto& tex = resourceManager->getResource(tex_path);
+	this->textures.insert({ type,tex });
+	return shared_from_this();
+}
 
 std::shared_ptr<Material> Material::loadCubeMap(const std::string& folder_path) {
 	std:: vector<std::string> faces
@@ -76,8 +83,8 @@ std::shared_ptr<Material> Material::loadCubeMap(const std::string& folder_path) 
 	std::shared_ptr<Texture> tex = std::make_shared<Texture>();
 	tex->name = folder_path; 
 	tex->id = textureID; 
-	tex->type = "skybox";
+	//tex->type = "skybox";
 	std::shared_ptr<Material> mat = std::make_shared<Material>();
-	mat->addTexture(tex);
+	mat->addTexture(tex,"skybox");
 	return mat;
 }
