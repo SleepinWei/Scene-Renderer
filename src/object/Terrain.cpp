@@ -87,14 +87,14 @@ std::shared_ptr<Terrain> Terrain::loadHeightmap_(const std::string& path){
 }
 std::shared_ptr<Terrain> Terrain::loadHeightmap(const std::string& path){
 	int width, height, nrChannels; 
-	yScale = 5.0f;
-	yShift = -5.0f; 
+	yScale = 25.0f;
+	yShift = -25.0f; 
 	//xzScale = 10.0f;
 	std::shared_ptr<Texture> heightTex = Texture::loadFromFile(path + "heightMap.png");
 	width = heightTex->width;
 	height = heightTex->height;
 	terrainMaterial->addTexture(heightTex,"heightMap");
-	terrainMaterial->addTexture(Texture::loadFromFile(path+"normalMap.png"),"normalMap");
+	//terrainMaterial->addTexture(Texture::loadFromFile(path+"normalMap.png"),"normalMap");
 	//resourceManager.getResource();
 	// indices
 	float xzScale = 100.0f;
@@ -233,18 +233,18 @@ Terrain::Terrain(){
 	compGenPatchShader = std::make_shared<Shader>("./src/shader/terrain/patch.comp");
 
 	// ----
-	patchesSSBO = std::make_shared<SSBO>(8192*8192);
+	patchesSSBO = std::make_shared<SSBO>(16 * 1024 * 1024); //16 MB
 	//verticesSSBO->setBinding(1); 
 	//patchesSSBO = std::make_shared<SSBO>(8192*8192);
 	//indicesSSBO->setBinding(2);
 	// ----
-	inQueueSSBO = std::make_shared<SSBO>(8192 * 4);
+	inQueueSSBO = std::make_shared<SSBO>(4096);
 	inQueueSSBO->setBinding(3);
-	outQueueSSBO = std::make_shared<SSBO>(8192 * 4);
+	outQueueSSBO = std::make_shared<SSBO>(4096);
 	outQueueSSBO->setBinding(4);
-	finalNodeList = std::make_shared<SSBO>(8525 * 8);
+	finalNodeList = std::make_shared<SSBO>(8192 * 2);
 	finalNodeList->setBinding(2);
-	nodeDescriptor = std::make_shared<SSBO>(8192 * 8192);
+	nodeDescriptor = std::make_shared<SSBO>(256 * 1024); //
 	nodeDescriptor->setBinding(1);
 	lodMapTexture = std::make_shared<ImageTexture>();
 	lodMapTexture->genImageTexture(GL_RGBA32F, GL_RGBA, 160, 160);

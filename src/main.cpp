@@ -78,9 +78,10 @@ void render() {
 	//terrain
 	{
 		std::shared_ptr<Terrain> terrain = std::make_shared<Terrain>();
-		terrain->loadHeightmap("./asset/heightmap/iceland/");
-		auto terrainMaterial = Material::loadPBR("./asset/pbr/grass/");
-		terrain->addMaterial(terrainMaterial)
+		terrain->loadHeightmap("./asset/heightmap/mountain/");
+		//auto terrainMaterial = Material::loadPBR("./asset/heightmap/mountain/");
+		terrain
+			//->addMaterial(terrainMaterial)
 			->addShader(ShaderType::TERRAIN);
 		//terrain->setPolyMode(GL_LINE);
 
@@ -121,11 +122,11 @@ void render() {
 		auto&& mesh = dLight->addComponent<MeshFilter>();
 		mesh->loadShape(SHAPE::POINT);
 		
-		auto&& renderer = dLight->addComponent <MeshRenderer>();
+		auto&& renderer = dLight->addComponent<MeshRenderer>();
 		renderer->setShader(ShaderType::LIGHT)
 			->setDrawMode(GL_POINTS);
 
-		//scene->addObject(dLight);
+		scene->addObject(dLight);
 	}
 
 	// Camera
