@@ -4,14 +4,14 @@
 #include"../renderer/Material.h"
 #include"../renderer/Mesh_Filter.h"
 
-std::optional<std::vector<std::shared_ptr<MeshFilter>>> Model::loadModel(const std:: string& path) {
+std::vector<std::shared_ptr<MeshFilter>> Model::loadModel(const std:: string& path) {
 	std::vector<std::shared_ptr<MeshFilter>> meshes; 
 	Assimp::Importer importer; 
 	const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
 	{
 		std::cout << "ERROR::ASSIMP:: " << importer.GetErrorString() << std::endl;
-		return std::nullopt;
+		return meshes;
 	}
 
 	// process ASSIMP's root node recursively
@@ -96,7 +96,7 @@ std::shared_ptr<MeshFilter> Model::processMesh(aiMesh* mesh, const aiScene* scen
 			indices.push_back(face.mIndices[j]);
 	}
 	// process materials
-	aiMaterial* aimaterial = scene->mMaterials[mesh->mMaterialIndex];
+	//aiMaterial* aimaterial = scene->mMaterials[mesh->mMaterialIndex];
 	// we assume a convention for sampler names in the shaders. Each diffuse texture should be named
 	// as 'texture_diffuseN' where N is a sequential number ranging from 1 to MAX_SAMPLER_NUMBER. 
 	// Same applies to other texture as the following list summarizes:

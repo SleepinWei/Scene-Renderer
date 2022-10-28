@@ -16,7 +16,7 @@ extern std::unique_ptr<ResourceManager> resourceManager;
 
 class Model {
 public:
-    static std::optional<std::vector<std::shared_ptr<MeshFilter>>> loadModel(const std::string& path);
+    static std::vector<std::shared_ptr<MeshFilter>> loadModel(const std::string& path);
 		
     static void processNode(std::vector<std::shared_ptr<MeshFilter>>& meshes,aiNode* node, const aiScene* scene);
 
