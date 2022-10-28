@@ -38,7 +38,5 @@ public:
 	//glm::mat4 view; 
 	//glm::mat4 projection; 
 	std::shared_ptr<Material> material;
-
 	std::shared_ptr<Shader> shader; 
-	GLuint VAO, VBO, EBO;
 };
