@@ -79,9 +79,9 @@ void render() {
 	{
 		std::shared_ptr<Terrain> terrain = std::make_shared<Terrain>();
 		terrain->loadHeightmap("./asset/heightmap/mountain/");
-		//auto terrainMaterial = Material::loadPBR("./asset/heightmap/mountain/");
+		auto terrainMaterial = Material::loadPBR("./asset/heightmap/mountain/");
 		terrain
-			//->addMaterial(terrainMaterial)
+			->addMaterial(terrainMaterial)
 			->addShader(ShaderType::TERRAIN);
 		//terrain->setPolyMode(GL_LINE);
 

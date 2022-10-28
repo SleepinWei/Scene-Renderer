@@ -41,7 +41,7 @@ void main(){
     // vec3 tangentNormal = texture(normalMap,(0.5 * aPos.xz + 0.5)).xyz * 2 -1.0f;
     // tangentNormal = vec3(tangentNormal.x,tangentNormal.z,tangentNormal.y);
     // object.Normal = mat3(transpose(inverse(model))) * tangentNormal;
-    object.Normal = vec3(0.0f,1.0f-0.001,0.0f);
+    object.Normal = vec3(0.0f,1.0f,0.0f);
     // object.Normal.y = object.Normal.y / 256.0f;
     object.Normal = normalize(object.Normal);
 
