@@ -67,23 +67,24 @@ void Atmosphere::prepareAtmosphere() {
 		atmBuffer->setDirtyFlag(false);
 
 		AtmosphereParameters& data = this->atmosphere;
-		glNamedBufferSubData(atmBuffer->UBO, 0, 4, &data.solar_irradiance);
-		glNamedBufferSubData(atmBuffer->UBO, 4, 4, &data.sun_angular_radius);
-		glNamedBufferSubData(atmBuffer->UBO, 8, 4, &data.top_radius);
-		glNamedBufferSubData(atmBuffer->UBO, 12, 4, &data.bottom_radius);
+		atmBuffer->bindBuffer();
+		glBufferSubData(GL_UNIFORM_BUFFER, 0, 4, &data.solar_irradiance);
+		glBufferSubData(GL_UNIFORM_BUFFER, 4, 4, &data.sun_angular_radius);
+		glBufferSubData(GL_UNIFORM_BUFFER, 8, 4, &data.top_radius);
+		glBufferSubData(GL_UNIFORM_BUFFER, 12, 4, &data.bottom_radius);
 
-		glNamedBufferSubData(atmBuffer->UBO, 16, 4, &data.HDensityRayleigh);
-		glNamedBufferSubData(atmBuffer->UBO, 20, 4, &data.HDensityMie);
-		glNamedBufferSubData(atmBuffer->UBO, 24, 4, &data.OzoneCenter);
-		glNamedBufferSubData(atmBuffer->UBO, 28, 4, &data.mie_g);
+		glBufferSubData(GL_UNIFORM_BUFFER, 16, 4, &data.HDensityRayleigh);
+		glBufferSubData(GL_UNIFORM_BUFFER, 20, 4, &data.HDensityMie);
+		glBufferSubData(GL_UNIFORM_BUFFER, 24, 4, &data.OzoneCenter);
+		glBufferSubData(GL_UNIFORM_BUFFER, 28, 4, &data.mie_g);
 
-		glNamedBufferSubData(atmBuffer->UBO, 32, 16, glm::value_ptr(data.rayleigh_scattering));
-		glNamedBufferSubData(atmBuffer->UBO, 48, 16, glm::value_ptr(data.mie_scattering));
-		glNamedBufferSubData(atmBuffer->UBO, 64, 16, glm::value_ptr(data.mie_extinction));
-		glNamedBufferSubData(atmBuffer->UBO, 80, 16, glm::value_ptr(data.absorption_extinction));
+		glBufferSubData(GL_UNIFORM_BUFFER, 32, 16, glm::value_ptr(data.rayleigh_scattering));
+		glBufferSubData(GL_UNIFORM_BUFFER, 48, 16, glm::value_ptr(data.mie_scattering));
+		glBufferSubData(GL_UNIFORM_BUFFER, 64, 16, glm::value_ptr(data.mie_extinction));
+		glBufferSubData(GL_UNIFORM_BUFFER, 80, 16, glm::value_ptr(data.absorption_extinction));
 
 		//ozone width 
-		glNamedBufferSubData(atmBuffer->UBO, 96, 4, &data.OzoneWidth);
+		glBufferSubData(GL_UNIFORM_BUFFER, 96, 4, &data.OzoneWidth);
 
 		////debug
 		//atmBuffer->bindBuffer();
