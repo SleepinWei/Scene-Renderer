@@ -76,6 +76,7 @@ void render() {
 	}
 		
 	//terrain
+	if (0)
 	{
 		std::shared_ptr<Terrain> terrain = std::make_shared<Terrain>();
 		terrain->loadHeightmap("./asset/heightmap/mountain/");
@@ -96,7 +97,7 @@ void render() {
 
 		auto&& transform = pLight->addComponent<Transform>(); 
 		transform->scale = glm::vec3(0.1);
-		transform->position = glm::vec3(0.0f,0.05f, 0.0f);
+		transform->position = glm::vec3(0.0f,0.05f, -2.0f);
 
 		auto&& mesh = pLight->addComponent<MeshFilter>();
 		mesh->loadShape(SHAPE::POINT);
@@ -136,6 +137,7 @@ void render() {
 	}
 
 	// object
+	if (0)
 	{
 		std::shared_ptr<GameObject> sphere = std::make_shared<GameObject>();
 		auto&& transform = sphere->addComponent<Transform>();
@@ -152,6 +154,7 @@ void render() {
 			//->setPolyMode(GL_LINE);
 		scene->addObject(sphere);
 	}
+	if (0)
 	{
 		std::shared_ptr<GameObject> sphere = std::make_shared<GameObject>();
 		auto&& transform = sphere->addComponent<Transform>();
@@ -168,6 +171,7 @@ void render() {
 			//->setPolyMode(GL_LINE);
 		scene->addObject(sphere);
 	}
+	if (0)
 	{
 		std::shared_ptr<GameObject> sphere = std::make_shared<GameObject>();
 		auto&& transform = sphere->addComponent<Transform>();
@@ -184,6 +188,7 @@ void render() {
 			//->setPolyMode(GL_LINE);
 		scene->addObject(sphere);
 	}
+	if (0)
 	{
 		std::shared_ptr<GameObject> sphere = std::make_shared<GameObject>();
 		auto&& transform = sphere->addComponent<Transform>();
@@ -199,6 +204,23 @@ void render() {
 			->setDrawMode(GL_TRIANGLES);
 			//->setPolyMode(GL_LINE);
 		scene->addObject(sphere);
+	}
+
+	//model
+	{
+		std::shared_ptr<GameObject> model = std::make_shared<GameObject>();
+		auto&& transform = model->addComponent<Transform>();
+		transform->position = glm::vec3(0.0f, 0.0f, -2.0f);
+		transform->scale = glm::vec3(0.5);
+		std::string dir = "./asset/model/bed/";
+		auto&& mesh = model->addComponent<MeshFilter>(Model::loadModel(dir + "Bed.fbx")[0]);
+
+		auto&& renderer = model->addComponent<MeshRenderer>();
+		renderer->setShader(ShaderType::PBR)
+			//->setMaterial(Material::loadModel(dir))
+			->setDrawMode(GL_TRIANGLES)
+			->setPolyMode(GL_LINE);
+		scene->addObject(model);
 	}
 
 	//plane 
