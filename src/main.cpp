@@ -212,14 +212,16 @@ void render() {
 		auto&& transform = model->addComponent<Transform>();
 		transform->position = glm::vec3(0.0f, 0.0f, -2.0f);
 		transform->scale = glm::vec3(0.5);
-		std::string dir = "./asset/model/bed/";
-		auto&& mesh = model->addComponent<MeshFilter>(Model::loadModel(dir + "Bed.fbx")[0]);
+
+		std::string dir = "./asset/model/backpack/";
+		model->addComponent<MeshFilter>(Model::loadModel(dir + "backpack.obj"));
+		auto&& mesh = std::dynamic_pointer_cast<MeshFilter>(model->GetComponent("MeshFilter"));
 
 		auto&& renderer = model->addComponent<MeshRenderer>();
 		renderer->setShader(ShaderType::PBR)
-			//->setMaterial(Material::loadModel(dir))
-			->setDrawMode(GL_TRIANGLES)
-			->setPolyMode(GL_LINE);
+			->setMaterial(Material::loadModel(dir))
+			->setDrawMode(GL_TRIANGLES);
+			//->setPolyMode(GL_LINE);
 		scene->addObject(model);
 	}
 
@@ -254,7 +256,7 @@ void render() {
 		scene->addObject(atm);
 	}
 	glCheckError();
-
+	
 	while (!glfwWindowShouldClose(window)) {
 		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		//glClearColor(0.6, 0.6, 0.6, 1.0);

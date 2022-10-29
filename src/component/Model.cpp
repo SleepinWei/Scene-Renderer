@@ -12,13 +12,13 @@ std::shared_ptr<Mesh> Model::combineMesh(const std::vector<std::shared_ptr<Mesh>
 		auto& resultVertices = resultMesh->vertices;
 		auto& resultIndices = resultMesh->indices;
 		auto& subVertices = submesh->vertices;
-		auto& subIndices = resultMesh->indices;
+		auto& subIndices = submesh->indices;
 		resultVertices.insert(resultVertices.end(), subVertices.begin(), subVertices.end());
 		// indices append
 		for (auto& index: subIndices) {
 			resultIndices.emplace_back(index + beginIndex);
 		}
-		beginIndex += resultVertices.size();
+		beginIndex = resultVertices.size();
 	}
 	return resultMesh;
 }
@@ -40,7 +40,6 @@ std::shared_ptr<MeshFilter> Model::loadModel(const std:: string& path) {
 	meshFilter->meshes.push_back(combineMesh(meshes));
 	return meshFilter;
 }
-
 
 void Model::processNode(std::vector<std::shared_ptr<Mesh>>& meshes,aiNode* node, const aiScene* scene)
 {

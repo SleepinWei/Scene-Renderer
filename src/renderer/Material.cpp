@@ -88,3 +88,13 @@ std::shared_ptr<Material> Material::loadCubeMap(const std::string& folder_path) 
 	mat->addTexture(tex,"skybox");
 	return mat;
 }
+
+std::shared_ptr<Material> Material::loadModel(const std::string& folder) {
+	auto material = std::make_shared<Material>();
+	material->addTexture(folder + "albedo.jpg", "material.albedo")
+		->addTexture(folder + "ao.jpg", "material.ao")
+		->addTexture(folder + "metallic.jpg", "material.metallic")
+		->addTexture(folder + "normal.png", "material.normal")
+		->addTexture(folder + "roughness.jpg", "material.roughness");
+	return material;
+}
