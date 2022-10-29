@@ -212,6 +212,7 @@ void render() {
 		auto&& transform = model->addComponent<Transform>();
 		transform->position = glm::vec3(0.0f, 0.0f, -2.0f);
 		transform->scale = glm::vec3(0.5);
+<<<<<<< Updated upstream
 
 		std::string dir = "./asset/model/backpack/";
 		model->addComponent<MeshFilter>(Model::loadModel(dir + "backpack.obj"));
@@ -222,6 +223,16 @@ void render() {
 			->setMaterial(Material::loadModel(dir))
 			->setDrawMode(GL_TRIANGLES);
 			//->setPolyMode(GL_LINE);
+=======
+		std::string dir = "./asset/model/bed/";
+		auto&& mesh = model->addComponent<MeshFilter>(Model::loadModel(dir + "Bed.fbx")[0]);
+
+		auto&& renderer = model->addComponent<MeshRenderer>();
+		renderer->setShader(ShaderType::PBR)
+			//->setMaterial(Material::loadModel(dir))
+			->setDrawMode(GL_TRIANGLES)
+			->setPolyMode(GL_LINE);
+>>>>>>> Stashed changes
 		scene->addObject(model);
 	}
 
