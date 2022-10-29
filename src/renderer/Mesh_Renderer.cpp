@@ -49,9 +49,9 @@ std::shared_ptr<MeshRenderer> MeshRenderer::setPolyMode(GLenum ployMode_) {
 
 MeshRenderer::MeshRenderer():drawMode(GL_TRIANGLES),polyMode(GL_FILL) {
 	name = "MeshRenderer";
-	VAO = 0;
-	VBO = 0;
-	EBO = 0;
+	//VAO = 0;
+	//VBO = 0;
+	//EBO = 0;
 }
 
 /// <summary>
@@ -75,77 +75,84 @@ void MeshRenderer::render(bool useShader){
 	//glm::mat4 mvp = projection * view * model;
 
 	auto component_mesh_filter = gameObject->GetComponent("MeshFilter");
-	auto mesh_filter = std::dynamic_pointer_cast<MeshFilter>(component_mesh_filter);
+	auto mesh_filter = std::static_pointer_cast<MeshFilter>(component_mesh_filter);
 	if (!mesh_filter) {
 		return;
 	}
 	
 	//std::shared_ptr<Shader> shader = material->shader; 
-	if (VAO == 0) {
-		glGenBuffers(1, &VBO);
-		glBindBuffer(GL_ARRAY_BUFFER, VBO);
-		glBufferData(GL_ARRAY_BUFFER, mesh_filter->vertices.size() * sizeof(MeshFilter::Vertex),
-			&(mesh_filter->vertices[0]), GL_STATIC_DRAW);
-		glGenBuffers(1, &EBO);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh_filter->indices.size() * sizeof(unsigned int), 
-			&(mesh_filter->indices[0]),GL_STATIC_DRAW);
-
-		glGenVertexArrays(1, &VAO);
-		glBindVertexArray(VAO); 
-		{
+	for (auto& mesh : mesh_filter->meshes) {
+		unsigned int& VAO = mesh->VAO;
+		unsigned int& VBO = mesh->VBO;
+		unsigned int& EBO = mesh->EBO;
+		auto& vertices = mesh->vertices;
+		auto& indices = mesh->indices;
+		if (VAO == 0) {
+			glGenBuffers(1, &VBO);
 			glBindBuffer(GL_ARRAY_BUFFER, VBO);
-			glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(MeshFilter::Vertex), (void*)offsetof(MeshFilter::Vertex,Position));
-			glVertexAttribPointer(1, 3, GL_FLOAT, false, sizeof(MeshFilter::Vertex), (void*)offsetof(MeshFilter::Vertex,Normal));
-			glVertexAttribPointer(2, 2, GL_FLOAT, false, sizeof(MeshFilter::Vertex), (void*)offsetof(MeshFilter::Vertex,TexCoords));
-			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(MeshFilter::Vertex), (void*)offsetof(MeshFilter::Vertex, Tangent));
-			glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(MeshFilter::Vertex), (void*)offsetof(MeshFilter::Vertex, Bitangent));
-
-			glEnableVertexAttribArray(0);
-			glEnableVertexAttribArray(1);
-			glEnableVertexAttribArray(2);
-			glEnableVertexAttribArray(3);
-			glEnableVertexAttribArray(4);
-
+			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex),
+				&(vertices[0]), GL_STATIC_DRAW);
+			glGenBuffers(1, &EBO);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int),
+				&(indices[0]), GL_STATIC_DRAW);
+
+			glGenVertexArrays(1, &VAO);
+			glBindVertexArray(VAO);
+			{
+				glBindBuffer(GL_ARRAY_BUFFER, VBO);
+				glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(Vertex), (void*)offsetof(Vertex, Position));
+				glVertexAttribPointer(1, 3, GL_FLOAT, false, sizeof(Vertex), (void*)offsetof(Vertex, Normal));
+				glVertexAttribPointer(2, 2, GL_FLOAT, false, sizeof(Vertex), (void*)offsetof(Vertex, TexCoords));
+				glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Tangent));
+				glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Bitangent));
+
+				glEnableVertexAttribArray(0);
+				glEnableVertexAttribArray(1);
+				glEnableVertexAttribArray(2);
+				glEnableVertexAttribArray(3);
+				glEnableVertexAttribArray(4);
+
+				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+			}
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
 		}
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-	}
 
-	if (useShader && shader)
-	{
-		shader->use();
-		//glEnable(GL_DEPTH_TEST);
-		//glEnable(GL_CULL_FACE);
-		shader->setMat4("model", model);
+		if (useShader && shader)
+		{
+			shader->use();
+			//glEnable(GL_DEPTH_TEST);
+			//glEnable(GL_CULL_FACE);
+			shader->setMat4("model", model);
 
-		// bind textures 
-		if (material) {
-			auto& textures = material->textures; // a hash map
-			int texture_index = 0;
-			for (auto iterator = textures.begin(); iterator!=textures.end(); ++iterator) {
-				//激活纹理单元0
-				glActiveTexture(GL_TEXTURE0 + texture_index);
-				//将加载的图片纹理句柄，绑定到纹理单元0的Texture2D上。
-				glBindTexture(GL_TEXTURE_2D, iterator->second->id);
-				//设置Shader程序从纹理单元0读取颜色数据
-				shader->setInt((iterator->first).c_str(), texture_index);
-				++texture_index;
+			// bind textures 
+			if (material) {
+				auto& textures = material->textures; // a hash map
+				int texture_index = 0;
+				for (auto iterator = textures.begin(); iterator != textures.end(); ++iterator) {
+					//激活纹理单元0
+					glActiveTexture(GL_TEXTURE0 + texture_index);
+					//将加载的图片纹理句柄，绑定到纹理单元0的Texture2D上。
+					glBindTexture(GL_TEXTURE_2D, iterator->second->id);
+					//设置Shader程序从纹理单元0读取颜色数据
+					shader->setInt((iterator->first).c_str(), texture_index);
+					++texture_index;
+				}
 			}
 		}
-	}
 
-	glBindVertexArray(VAO);
-	assert(VAO>0);
-	{
-		if (polyMode == GL_LINE) {
-			glPolygonMode(GL_FRONT_AND_BACK, polyMode);
-		}
-		glPatchParameteri(GL_PATCH_VERTICES, 3);
-		// --- end debug
-		glDrawElements(drawMode, mesh_filter->indices.size(), GL_UNSIGNED_INT, 0);
-		if (polyMode == GL_LINE) {
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glBindVertexArray(VAO);
+		assert(VAO > 0);
+		{
+			if (polyMode == GL_LINE) {
+				glPolygonMode(GL_FRONT_AND_BACK, polyMode);
+			}
+			glPatchParameteri(GL_PATCH_VERTICES, 3);
+			// --- end debug
+			glDrawElements(drawMode, indices.size(), GL_UNSIGNED_INT, 0);
+			if (polyMode == GL_LINE) {
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			}
 		}
 	}
 	glBindVertexArray(0);

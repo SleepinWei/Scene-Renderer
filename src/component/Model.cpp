@@ -4,22 +4,45 @@
 #include"../renderer/Material.h"
 #include"../renderer/Mesh_Filter.h"
 
-std::vector<std::shared_ptr<MeshFilter>> Model::loadModel(const std:: string& path) {
-	std::vector<std::shared_ptr<MeshFilter>> meshes; 
+std::shared_ptr<Mesh> Model::combineMesh(const std::vector<std::shared_ptr<Mesh>>& meshes) {
+	// TODO:
+	std::shared_ptr<Mesh> resultMesh = std::make_shared<Mesh>();
+	int beginIndex = 0;
+	for (auto& submesh : meshes) {
+		auto& resultVertices = resultMesh->vertices;
+		auto& resultIndices = resultMesh->indices;
+		auto& subVertices = submesh->vertices;
+		auto& subIndices = resultMesh->indices;
+		resultVertices.insert(resultVertices.end(), subVertices.begin(), subVertices.end());
+		// indices append
+		for (auto& index: subIndices) {
+			resultIndices.emplace_back(index + beginIndex);
+		}
+		beginIndex += resultVertices.size();
+	}
+	return resultMesh;
+}
+
+std::shared_ptr<MeshFilter> Model::loadModel(const std:: string& path) {
+	std::shared_ptr<MeshFilter> meshFilter = std::make_shared<MeshFilter>();
+	std::vector<std::shared_ptr<Mesh>> meshes; 
 	Assimp::Importer importer; 
 	const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
 	{
 		std::cout << "ERROR::ASSIMP:: " << importer.GetErrorString() << std::endl;
-		return meshes;
+		return meshFilter;
 	}
 
 	// process ASSIMP's root node recursively
 	processNode(meshes,scene->mRootNode, scene);
-	return meshes;
+
+	meshFilter->meshes.push_back(combineMesh(meshes));
+	return meshFilter;
 }
 
-void Model::processNode(std::vector<std::shared_ptr<MeshFilter>>& meshes,aiNode* node, const aiScene* scene)
+
+void Model::processNode(std::vector<std::shared_ptr<Mesh>>& meshes,aiNode* node, const aiScene* scene)
 {
 	// process each mesh located at the current node
 	for (unsigned int i = 0; i < node->mNumMeshes; i++)
@@ -36,10 +59,10 @@ void Model::processNode(std::vector<std::shared_ptr<MeshFilter>>& meshes,aiNode*
 	}
 }
 
-std::shared_ptr<MeshFilter> Model::processMesh(aiMesh* mesh, const aiScene* scene)
+std::shared_ptr<Mesh> Model::processMesh(aiMesh* mesh, const aiScene* scene)
 {
 	// data to fill
-	std::vector <MeshFilter::Vertex > vertices;
+	std::vector <Vertex> vertices;
 	std::vector<unsigned int> indices;
 	//std::vector<Texture> textures;
 	std::shared_ptr<Material> material; 
@@ -47,7 +70,7 @@ std::shared_ptr<MeshFilter> Model::processMesh(aiMesh* mesh, const aiScene* scen
 	// walk through each of the mesh's vertices
 	for (unsigned int i = 0; i < mesh->mNumVertices; i++)
 	{
-		MeshFilter::Vertex vertex;
+		Vertex vertex;
 		glm::vec3 vector; // we declare a placeholder vector since assimp uses its own vector class that doesn't directly convert to glm's vec3 class so we transfer the data to this placeholder glm::vec3 first.
 		// positions
 		vector.x = mesh->mVertices[i].x;
@@ -118,7 +141,7 @@ std::shared_ptr<MeshFilter> Model::processMesh(aiMesh* mesh, const aiScene* scen
 
 	//loadMaterialTextures(aimaterial, aiTextureType_AMBIENT, "", material);
 	// return a mesh object created from the extracted mesh data
-	return std::make_shared<MeshFilter>(vertices, indices);
+	return std::make_shared<Mesh>(vertices, indices);
 }
 
 // checks all material textures of a given type and loads the textures if they're not loaded yet.

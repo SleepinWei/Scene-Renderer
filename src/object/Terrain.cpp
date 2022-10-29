@@ -87,8 +87,8 @@ std::shared_ptr<Terrain> Terrain::loadHeightmap_(const std::string& path){
 }
 std::shared_ptr<Terrain> Terrain::loadHeightmap(const std::string& path){
 	int width, height, nrChannels; 
-	yScale = 25.0f;
-	yShift = -25.0f; 
+	yScale = 50.0f;
+	yShift = -10.0f; 
 	//xzScale = 10.0f;
 	std::shared_ptr<Texture> heightTex = Texture::loadFromFile(path + "heightMap.png");
 	width = heightTex->width;

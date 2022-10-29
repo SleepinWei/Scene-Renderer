@@ -18,37 +18,44 @@ enum class SHAPE {
 	POINT,
 	CUBE
 };
+struct Vertex {
+	glm::vec3 Position;
+	glm::vec3 Normal;
+	glm::vec2 TexCoords;
+	glm::vec3 Tangent;
+	glm::vec3 Bitangent;
+
+	int m_BoneIDs[MAX_BONE_INFLUENCE];
+	float m_Weights[MAX_BONE_INFLUENCE];
+};
+
+typedef unsigned int GLuint;
+class Mesh 
+{
+public:
+	std::vector<Vertex> vertices;
+    std::vector<unsigned int> indices;
+	GLuint VAO, VBO, EBO;
+
+public:
+	Mesh();
+	Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices);
+	static std::shared_ptr<Mesh> initSphere(int pointNum); 
+	static std::shared_ptr<Mesh> initPlane();
+	static std::shared_ptr<Mesh> initPoint(); 
+	static std::shared_ptr<Mesh> initCube();
+};
 
 class MeshFilter :public Component {
 public:
-
-	struct Vertex {
-		glm::vec3 Position;
-		glm::vec3 Normal;
-		glm::vec2 TexCoords;
-		glm::vec3 Tangent;
-		glm::vec3 Bitangent;
-
-		int m_BoneIDs[MAX_BONE_INFLUENCE];
-		float m_Weights[MAX_BONE_INFLUENCE];
-	};
-
 	MeshFilter();
-	MeshFilter(std::vector<Vertex> vertices, std::vector<unsigned int> indices);
 
 	~MeshFilter();
 
-	void loadShape(SHAPE type);
-	void loadMesh(std::string path);
-
-private:
-	void initSphere(int pointNum); 
-	void initPlane();
-	void initPoint(); 
-	void initCube();
+	void addShape(SHAPE type);
+	//void loadMesh(std::string path);
 
 public:
-    std::vector<Vertex> vertices;
-    std::vector<unsigned int> indices;
+	std::vector<std::shared_ptr<Mesh>> meshes;
 };
 

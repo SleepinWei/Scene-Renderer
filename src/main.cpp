@@ -100,7 +100,7 @@ void render() {
 		transform->position = glm::vec3(0.0f,0.05f, -2.0f);
 
 		auto&& mesh = pLight->addComponent<MeshFilter>();
-		mesh->loadShape(SHAPE::POINT);
+		mesh->addShape(SHAPE::POINT);
 		
 		auto&& renderer = pLight->addComponent <MeshRenderer>();
 		renderer->setShader(ShaderType::LIGHT)
@@ -121,7 +121,7 @@ void render() {
 		light->data.color = glm::vec3(1.0f, 1.0f, 1.0f) * intensity;
 
 		auto&& mesh = dLight->addComponent<MeshFilter>();
-		mesh->loadShape(SHAPE::POINT);
+		mesh->addShape(SHAPE::POINT);
 		
 		auto&& renderer = dLight->addComponent<MeshRenderer>();
 		renderer->setShader(ShaderType::LIGHT)
@@ -145,7 +145,7 @@ void render() {
 		transform->scale = glm::vec3(0.5);
 
 		auto&& mesh = sphere->addComponent<MeshFilter>();
-		mesh->loadShape(SHAPE::SPHERE);
+		mesh->addShape(SHAPE::SPHERE);
 
 		auto&& renderer = sphere->addComponent<MeshRenderer>();
 		renderer->setShader(ShaderType::PBR)
@@ -162,7 +162,7 @@ void render() {
 		transform->scale = glm::vec3(0.5);
 
 		auto&& mesh = sphere->addComponent<MeshFilter>();
-		mesh->loadShape(SHAPE::SPHERE);
+		mesh->addShape(SHAPE::SPHERE);
 
 		auto&& renderer = sphere->addComponent<MeshRenderer>();
 		renderer->setShader(ShaderType::PBR)
@@ -179,7 +179,7 @@ void render() {
 		transform->scale = glm::vec3(0.5);
 
 		auto&& mesh = sphere->addComponent<MeshFilter>();
-		mesh->loadShape(SHAPE::SPHERE);
+		mesh->addShape(SHAPE::SPHERE);
 
 		auto&& renderer = sphere->addComponent<MeshRenderer>();
 		renderer->setShader(ShaderType::PBR_TESS)
@@ -196,7 +196,7 @@ void render() {
 		transform->scale = glm::vec3(0.5);
 
 		auto&& mesh = sphere->addComponent<MeshFilter>();
-		mesh->loadShape(SHAPE::SPHERE);
+		mesh->addShape(SHAPE::SPHERE);
 
 		auto&& renderer = sphere->addComponent<MeshRenderer>();
 		renderer->setShader(ShaderType::PBR)
@@ -231,7 +231,7 @@ void render() {
 		transform->scale = glm::vec3(0.2);
 
 		auto&& mesh = plane->addComponent<MeshFilter>();
-		mesh->loadShape(SHAPE::PLANE);
+		mesh->addShape(SHAPE::PLANE);
 
 		auto&& renderer = plane->addComponent<MeshRenderer>();
 		renderer->setShader(ShaderType::PBR)
