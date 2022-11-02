@@ -207,12 +207,12 @@ void render() {
 	}
 
 	//model
+	if (1)
 	{
 		std::shared_ptr<GameObject> model = std::make_shared<GameObject>();
 		auto&& transform = model->addComponent<Transform>();
 		transform->position = glm::vec3(0.0f, 0.0f, -2.0f);
 		transform->scale = glm::vec3(0.5);
-<<<<<<< Updated upstream
 
 		std::string dir = "./asset/model/backpack/";
 		model->addComponent<MeshFilter>(Model::loadModel(dir + "backpack.obj"));
@@ -223,20 +223,20 @@ void render() {
 			->setMaterial(Material::loadModel(dir))
 			->setDrawMode(GL_TRIANGLES);
 			//->setPolyMode(GL_LINE);
-=======
-		std::string dir = "./asset/model/bed/";
-		auto&& mesh = model->addComponent<MeshFilter>(Model::loadModel(dir + "Bed.fbx")[0]);
-
-		auto&& renderer = model->addComponent<MeshRenderer>();
-		renderer->setShader(ShaderType::PBR)
-			//->setMaterial(Material::loadModel(dir))
-			->setDrawMode(GL_TRIANGLES)
-			->setPolyMode(GL_LINE);
->>>>>>> Stashed changes
 		scene->addObject(model);
+
+		//dir = "./asset/model/bed/";
+		//mesh = model->addComponent<MeshFilter>(Model::loadModel(dir + "Bed.fbx"));
+
+		//renderer = model->addComponent<MeshRenderer>();
+		//renderer->setShader(ShaderType::PBR)
+		//	//->setMaterial(Material::loadModel(dir))
+		//	->setDrawMode(GL_TRIANGLES)
+		//	->setPolyMode(GL_LINE);
 	}
 
-	//plane 
+	//plane
+	if (0)
 	{
 		std::shared_ptr<GameObject> plane = std::make_shared<GameObject>();
 		auto&& transform = plane->addComponent<Transform>();

@@ -96,9 +96,6 @@ std::shared_ptr<Material> Material::loadModel(const std::string& folder) {
 		->addTexture(folder + "metallic.jpg", "material.metallic")
 		->addTexture(folder + "normal.png", "material.normal")
 		->addTexture(folder + "roughness.jpg", "material.roughness");
-<<<<<<< Updated upstream
-=======
 		//->addTexture("height.png", "material.height");
->>>>>>> Stashed changes
 	return material;
 }
