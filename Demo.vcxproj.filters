@@ -155,9 +155,6 @@
     <ClCompile Include="src\renderer\RenderPass.cpp">
       <Filter>src\renderer</Filter>
     </ClCompile>
-    <ClCompile Include="utils\AABB.cpp">
-      <Filter>src\utils</Filter>
-    </ClCompile>
     <ClCompile Include="src\component\Atmosphere.cpp">
       <Filter>src\component</Filter>
     </ClCompile>
@@ -276,9 +273,6 @@
     </ClInclude>
     <ClInclude Include="src\renderer\RenderPass.h">
       <Filter>src\renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="utils\AABB.h">
-      <Filter>src\utils</Filter>
     </ClInclude>
     <ClInclude Include="src\component\Atmosphere.h">
       <Filter>src\component</Filter>
