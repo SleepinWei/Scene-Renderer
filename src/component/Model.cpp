@@ -23,11 +23,14 @@ std::shared_ptr<Mesh> Model::combineMesh(const std::vector<std::shared_ptr<Mesh>
 	return resultMesh;
 }
 
-std::shared_ptr<MeshFilter> Model::loadModel(const std:: string& path) {
+std::shared_ptr<MeshFilter> Model::loadModel(const std:: string& path, bool flipUV) {
 	std::shared_ptr<MeshFilter> meshFilter = std::make_shared<MeshFilter>();
 	std::vector<std::shared_ptr<Mesh>> meshes; 
-	Assimp::Importer importer; 
-	const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
+	Assimp::Importer importer;
+	unsigned int pFlags = aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace;
+	if (flipUV)
+		pFlags |= aiProcess_FlipUVs;
+	const aiScene* scene = importer.ReadFile(path, pFlags);
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
 	{
 		std::cout << "ERROR::ASSIMP:: " << importer.GetErrorString() << std::endl;

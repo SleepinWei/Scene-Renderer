@@ -3,6 +3,7 @@
 #include<iostream>
 #include<glfw/glfw3.h>
 #include<glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 //utils
 #include"utils/Utils.h"
 #include"utils/Camera.h"
@@ -27,6 +28,8 @@
 #include"GUI.h"
 #include"./system/global_context.h"
 #include"./component/Atmosphere.h"
+// yaml
+#include"../include/yaml-cpp/yaml.h"
 extern "C" __declspec(dllexport) long long NvOptimusEnablement = 0x00000001;
 extern "C" __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 0x00000001;
 
@@ -205,9 +208,8 @@ void render() {
 			//->setPolyMode(GL_LINE);
 		scene->addObject(sphere);
 	}
-
-	//model
-	if (1)
+#pragma region model
+	if (0)
 	{
 		std::shared_ptr<GameObject> model = std::make_shared<GameObject>();
 		auto&& transform = model->addComponent<Transform>();
@@ -220,19 +222,85 @@ void render() {
 
 		auto&& renderer = model->addComponent<MeshRenderer>();
 		renderer->setShader(ShaderType::PBR)
-			->setMaterial(Material::loadModel(dir))
+			->setMaterial(Material::loadCustomModel(dir))
 			->setDrawMode(GL_TRIANGLES);
 			//->setPolyMode(GL_LINE);
 		scene->addObject(model);
+	}
+	if (0)
+	{
+		std::shared_ptr<GameObject> model = std::make_shared<GameObject>();
+		auto&& transform = model->addComponent<Transform>();
+		transform->position = glm::vec3(0.0f, -5.0f, -10.0f);
+		transform->scale = glm::vec3(0.02);
 
-		//dir = "./asset/model/bed/";
-		//mesh = model->addComponent<MeshFilter>(Model::loadModel(dir + "Bed.fbx"));
+		std::string dir = "./asset/model/bed/";
+		model->addComponent<MeshFilter>(Model::loadModel(dir + "Bed.fbx", false));
+		auto&& mesh = std::dynamic_pointer_cast<MeshFilter>(model->GetComponent("MeshFilter"));
 
-		//renderer = model->addComponent<MeshRenderer>();
-		//renderer->setShader(ShaderType::PBR)
-		//	//->setMaterial(Material::loadModel(dir))
-		//	->setDrawMode(GL_TRIANGLES)
-		//	->setPolyMode(GL_LINE);
+		auto&& renderer = model->addComponent<MeshRenderer>();
+		renderer->setShader(ShaderType::PBR)
+			->setMaterial(Material::loadCustomModel(dir))
+			->setDrawMode(GL_TRIANGLES);
+		//->setPolyMode(GL_LINE);
+		scene->addObject(model);
+	}
+	
+	// 读取预制体文件
+	auto building = YAML::LoadAllFromFile("./asset/model/PFB_Building_Full.yml");
+	auto objs = vector<std::unordered_map<std::string, YAML::Node>>();
+	int componentCount = 0;
+	for (auto obj : building)
+	{
+		// 读取新物体
+		if (componentCount == 0)
+		{
+			componentCount = obj["GameObject"]["m_Component"].size();
+			objs.push_back(std::unordered_map<std::string, YAML::Node>());
+		}
+		// 为物体添加组件
+		else
+		{
+			for (auto com : obj)
+			{
+				std::string key = com.first.as<std::string>();
+				YAML::Node value = com.second;
+				objs[objs.size() - 1].emplace(key, value);
+			}
+			componentCount--;
+		}
+	}
+
+	// 在场景中创建物体
+	for (auto obj : objs)
+	{
+		if (obj.find("MeshFilter") == obj.end() || obj.find("MeshRenderer") == obj.end())
+			continue;
+		// 设置位置
+		std::shared_ptr<GameObject> model = std::make_shared<GameObject>();
+		auto&& trans = model->addComponent<Transform>();
+		YAML::Node pos = obj["Transform"]["m_LocalPosition"];
+		YAML::Node rot = obj["Transform"]["m_LocalRotation"];
+		YAML::Node scale = obj["Transform"]["m_LocalScale"];
+		float scaler = 0.012;
+		trans->position = glm::vec3(pos["x"].as<float>(), pos["y"].as<float>(), pos["z"].as<float>());
+		trans->rotation = glm::vec3(glm::eulerAngles(glm::quat(rot["w"].as<float>(), rot["x"].as<float>(), rot["y"].as<float>(), rot["z"].as<float>())));
+		trans->rotation.x = glm::degrees(trans->rotation.x);
+		trans->rotation.y = -glm::degrees(trans->rotation.y);
+		trans->rotation.z = glm::degrees(trans->rotation.z);
+		trans->scale = glm::vec3(scale["x"].as<float>() * scaler, scale["y"].as<float>() * scaler, scale["z"].as<float>() * scaler);
+		// 导入网格
+		std::string guid = obj["MeshFilter"]["m_Mesh"]["guid"].as<std::string>();
+		model->addComponent<MeshFilter>(Model::loadModel(resourceManager->guidMap[guid], false));
+		// 导入材质
+		for (auto mat : obj["MeshRenderer"]["m_Materials"])
+			guid = mat["guid"].as<std::string>();
+		auto&& renderer = model->addComponent<MeshRenderer>();
+		renderer->setShader(ShaderType::PBR);
+		renderer->setMaterial(Material::loadModel(resourceManager->guidMap[guid]));
+		renderer->setDrawMode(GL_TRIANGLES);
+		//renderer->setPolyMode(GL_LINE);
+		scene->addObject(model);
 	}
 
 	//plane
@@ -255,6 +323,8 @@ void render() {
 
 		scene->addObject(plane);
 	}
+#pragma endregion
+
 	// atmosphere
 	float* sunAngle;
 	AtmosphereParameters* parameters; 

@@ -26,7 +26,8 @@ public:
 	static std::shared_ptr<Material> loadPBR(const std::string& folder);
 	static std::shared_ptr<Material> loadTerrain(const std::string& folder); 
 	static std::shared_ptr<Material> loadCubeMap(const std::string& folder);
-	static std::shared_ptr<Material> loadModel(const std::string& folder);
+	static std::shared_ptr<Material> loadModel(const std::string& file);
+	static std::shared_ptr<Material> loadCustomModel(const std::string& folder);
 
 public:
 	//std::vector<std::string> textureType;
