@@ -8,6 +8,16 @@
 #define KEY_A 2
 #define D_PRESSED 3
 #define KEY_D 3
+#define Q_PRESSED 9
+#define KEY_Q 9
+#define E_PRESSED 10
+#define KEY_E 10
+
+#define SHIFT_PRESSED 18
+#define KEY_SHIFT 18
+#define ALT_PRESSED 19
+#define KEY_ALT 19
+
 #define ESC_PRESSED 4
 #define MOUSE_CLICKED_LEFT 5
 #define MOUSE_CLICKED_RIGHT 6 

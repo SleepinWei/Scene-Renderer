@@ -80,10 +80,26 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		if (key == GLFW_KEY_S) {
 			inputManager->keyStatus[KEY_S] = PRESSED;
 		}
-
+        
 		if (key == GLFW_KEY_D) {
 			inputManager->keyStatus[KEY_D] = PRESSED;
 		}
+
+        if (key == GLFW_KEY_Q) {
+            inputManager->keyStatus[KEY_Q] = PRESSED;
+        }
+
+        if (key == GLFW_KEY_E) {
+            inputManager->keyStatus[KEY_E] = PRESSED;
+        }
+
+        if (key == GLFW_KEY_LEFT_ALT || key == GLFW_KEY_RIGHT_ALT) {
+            inputManager->keyStatus[KEY_ALT] = PRESSED;
+        }
+
+        if (key == GLFW_KEY_LEFT_SHIFT || key == GLFW_KEY_RIGHT_SHIFT) {
+            inputManager->keyStatus[KEY_SHIFT] = PRESSED;
+        }
 	}
     else if (action == GLFW_RELEASE) {
         if (key == GLFW_KEY_W) {
@@ -101,6 +117,22 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		if (key == GLFW_KEY_D) {
 			inputManager->keyStatus[KEY_D] = RELEASED;
 		}
+
+        if (key == GLFW_KEY_Q) {
+            inputManager->keyStatus[KEY_Q] = RELEASED;
+        }
+
+        if (key == GLFW_KEY_E) {
+            inputManager->keyStatus[KEY_E] = RELEASED;
+        }
+
+        if (key == GLFW_KEY_LEFT_ALT || key == GLFW_KEY_RIGHT_ALT) {
+            inputManager->keyStatus[KEY_ALT] = RELEASED;
+        }
+
+        if (key == GLFW_KEY_LEFT_SHIFT || key == GLFW_KEY_RIGHT_SHIFT) {
+            inputManager->keyStatus[KEY_SHIFT] = RELEASED;
+        }
     }
 }
 

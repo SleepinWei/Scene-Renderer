@@ -13,18 +13,28 @@ extern std::unique_ptr<InputManager> inputManager;
 
 void Camera::tick() {
 	float deltaTime = inputManager->deltaFrame;
+	float speedScale = 1;
+	if (inputManager->getKeyStatus(ALT_PRESSED) == PRESSED)
+		speedScale = 0.3;
+	if (inputManager->getKeyStatus(SHIFT_PRESSED) == PRESSED)
+		speedScale = 5;
 	// wasd
 	if (inputManager->getKeyStatus(W_PRESSED) == PRESSED) {
-		ProcessKeyboard(Camera_Movement::FORWARD, 1 * deltaTime);
+		ProcessKeyboard(Camera_Movement::FORWARD, speedScale * deltaTime);
 	}
 	if (inputManager->getKeyStatus(S_PRESSED) == PRESSED) {
-		ProcessKeyboard(Camera_Movement::BACKWARD, 1 * deltaTime);
+		ProcessKeyboard(Camera_Movement::BACKWARD, speedScale * deltaTime);
 	}
 	if (inputManager->getKeyStatus(A_PRESSED) == PRESSED)
-		ProcessKeyboard(Camera_Movement::LEFT, 1 * deltaTime);
+		ProcessKeyboard(Camera_Movement::LEFT, speedScale * deltaTime);
     if (inputManager->getKeyStatus(D_PRESSED) == PRESSED) {
-        ProcessKeyboard(Camera_Movement::RIGHT, 1 * deltaTime);
+        ProcessKeyboard(Camera_Movement::RIGHT, speedScale * deltaTime);
     }
+	if (inputManager->getKeyStatus(E_PRESSED) == PRESSED)
+		ProcessKeyboard(Camera_Movement::UP, speedScale * deltaTime);
+	if (inputManager->getKeyStatus(Q_PRESSED) == PRESSED) {
+		ProcessKeyboard(Camera_Movement::DOWN, speedScale * deltaTime);
+	}
 
 	// scroll
 	if (inputManager->scrollMove) {
@@ -104,6 +114,10 @@ void Camera::ProcessKeyboard(Camera_Movement direction, float deltaTime)
 		Position -= Right * velocity;
 	if (direction == Camera_Movement::RIGHT)
 		Position += Right * velocity;
+	if (direction == Camera_Movement::UP)
+		Position += WorldUp * velocity;
+	if (direction == Camera_Movement::DOWN)
+		Position -= WorldUp * velocity;
 }
 
 // processes input received from a mouse input system. Expects the offset value in both the x and y direction.
