@@ -11,12 +11,13 @@ public:
 	~Texture();
 public:
 	static std::shared_ptr<Texture> loadFromFile(const std::string& file_path);
+	//std::shared_ptr<Texture> setType(const std::string& type);
 	std::shared_ptr<Texture> genTexture(unsigned int DataType,unsigned int channelType,int width,int height);
 	std::shared_ptr<Texture> genCubeMap(GLenum format, int width,int height);
 
 public:
 	int width, height;
-	std::string type; // shader 中对应名称 (diffuse, metallic, height, ..) 
+	//std::string type; // type is now recorded in material.
 	std::string name; // 唯一id，path
 	unsigned int id;
 };

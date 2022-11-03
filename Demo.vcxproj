@@ -189,7 +189,6 @@
     <ClCompile Include="src\utils\Camera.cpp" />
     <ClCompile Include="src\utils\Shader.cpp" />
     <ClCompile Include="src\utils\Utils.cpp" />
-    <ClCompile Include="utils\AABB.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\buffer\buffer.h" />
@@ -229,9 +228,9 @@
     <ClInclude Include="src\system\RenderManager.h" />
     <ClInclude Include="src\utils\Camera.h" />
     <ClInclude Include="src\utils\global.h" />
+    <ClInclude Include="src\utils\header.h" />
     <ClInclude Include="src\utils\Shader.h" />
     <ClInclude Include="src\utils\Utils.h" />
-    <ClInclude Include="utils\AABB.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

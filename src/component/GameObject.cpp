@@ -7,6 +7,7 @@ const float PI = 3.1415926f;
 #include"../renderer/Mesh_Filter.h"
 #include"../renderer/Mesh_Renderer.h"
 #include"../component/transform.h"
+#include"../system/meta_register.h"
 //#include<rttr/registration.h>
 
 GameObject::GameObject(std::string name) {
@@ -46,19 +47,42 @@ GameObject::~GameObject() {
 //	return component;
 //}
 
-std::vector<std::shared_ptr<Component>>& GameObject::GetComponents(std::string component_type_name) {
-	return component_type_instance_map[component_type_name];
-}
+//std::shared_ptr<Component>& GameObject::GetComponents(std::string component_type_name) {
+	//return component_type_instance_map[component_type_name];
+//}
 
 std::shared_ptr<Component> GameObject::GetComponent(std::string component_type_name) {
 	if (component_type_instance_map.find(component_type_name) == component_type_instance_map.end()) {
 		return nullptr;
 	}
-	if (component_type_instance_map[component_type_name].size() == 0) {
-		return nullptr;
-	}
-	return component_type_instance_map[component_type_name][0];
+	return component_type_instance_map[component_type_name];
 }
 
+void GameObject::loadFromJson(json& data) {
+	std::string name_ = data["name"].get<std::string>();
+	this->name = name_;
+	json components = data["components"];
+	for (auto iter = components.begin(); iter != components.end(); ++iter) {
+		auto comp = Meta::generateComponent(iter.key());
+		comp->loadFromJson(iter.value());
 
+		this->addComponent(comp);
+	}
+}
+
+std::shared_ptr<GameObject> GameObject::addComponent(const std::shared_ptr<Component>& component)
+{
+		component->setGameObject(shared_from_this());
+		std::string component_type_name = component->name;
+		if (component_type_instance_map.find(component_type_name) == component_type_instance_map.end()) {
+			//std::vector<std::shared_ptr<Component>> component_vec;
+			//component_vec.push_back(component);
+			component_type_instance_map[component_type_name] = component;
+		}
+		else {
+			//component_type_instance_map[component_type_name] = component;
+			std::cout << "Component: " << component_type_name << " has already existed\n";
+		}
+		return shared_from_this();
+	}
 

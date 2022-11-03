@@ -1,9 +1,13 @@
 #pragma once
+#include<string>
+#include<memory>
 
-class MetaRegister {
+class Component;
+
+class Meta{
 public:
-	MetaRegister();
-	~MetaRegister();
+	Meta();
+	~Meta();
 
-	void test();
+	static std::shared_ptr<Component> generateComponent(const std::string& name);
 };

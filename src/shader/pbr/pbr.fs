@@ -54,7 +54,7 @@ vec3 getNormalFromMap()
     // transform tangent-normals into world-space
     vec3 tangentNormal = texture(material.normal, 
         object.TexCoords).xyz * 2.0 - 1.0;
-    tangentNormal = vec3(tangentNormal.x,tangentNormal.y,-tangentNormal.z);
+    tangentNormal = vec3(-tangentNormal.x,tangentNormal.y,tangentNormal.z);
 
     vec3 Q1  = dFdx(object.Position);
     vec3 Q2  = dFdy(object.Position);
@@ -63,12 +63,12 @@ vec3 getNormalFromMap()
 
     vec3 N   = normalize(object.Normal);
     vec3 T  = normalize(Q1*st2.t - Q2*st1.t);
-    vec3 B  = -normalize(cross(N, T));
+    vec3 B  = normalize(cross(N, T));
     mat3 TBN = mat3(T, B, N);
     vec3 actualNormal = TBN * tangentNormal; 
-    if(dot(actualNormal,object.Normal) < 0.0f){
-        actualNormal = -actualNormal;
-    }
+    // if(dot(actualNormal,object.Normal) < 0.0f){
+        // actualNormal = -actualNormal;
+    // }
     // actualNormal = vec3(-actualNormal.x,actualNormal.y,-actualNormal.z);
 
     return normalize(actualNormal);
@@ -219,5 +219,5 @@ void main(){
     FragColor = vec4(finalColor,1.0f);
 
     // vec3 color= 0.5 * getNormalFromMap() + 0.5f;
-    // FragColor = vec4(color,1.0f);
+    // FragColor = vec4(1.0f);
 }

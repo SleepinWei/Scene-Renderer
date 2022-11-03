@@ -2,6 +2,9 @@
 #include<glm/glm.hpp>
 #include<memory>
 #include<string>
+#include<json/json.hpp>
+
+using json = nlohmann::json;
 
 class GameObject; 
 
@@ -12,6 +15,7 @@ public:
 	void setGameObject(std::shared_ptr<GameObject> object) {
 		gameObject = object;
 	}
+	virtual void loadFromJson(json& data) {};
 public:
 	std::shared_ptr<GameObject> gameObject;
 	std::string name; 

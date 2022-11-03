@@ -32,8 +32,8 @@ std::shared_ptr<Terrain> Terrain::loadHeightmap_(const std::string& path){
 
 	width = heightTex->width;
 	height = heightTex->height;
-	terrainMaterial->addTexture(heightTex);
-	terrainMaterial->addTexture(Texture::loadFromFile(path+"normalMap.png"));
+	terrainMaterial->addTexture(heightTex,"heightMap");
+	terrainMaterial->addTexture(Texture::loadFromFile(path+"normalMap.png"),"normalMap");
 	//resourceManager.getResource();
 	// indices
 	float xzScale = 20.0f/std::max(width,height);
@@ -87,14 +87,14 @@ std::shared_ptr<Terrain> Terrain::loadHeightmap_(const std::string& path){
 }
 std::shared_ptr<Terrain> Terrain::loadHeightmap(const std::string& path){
 	int width, height, nrChannels; 
-	yScale = 5.0f;
-	yShift = -5.0f; 
+	yScale = 50.0f;
+	yShift = -10.0f; 
 	//xzScale = 10.0f;
-	std::shared_ptr<Texture>&& heightTex = Texture::loadFromFile(path + "heightMap.png");
+	std::shared_ptr<Texture> heightTex = Texture::loadFromFile(path + "heightMap.png");
 	width = heightTex->width;
 	height = heightTex->height;
-	terrainMaterial->addTexture(heightTex);
-	terrainMaterial->addTexture(Texture::loadFromFile(path+"normalMap.png"));
+	terrainMaterial->addTexture(heightTex,"heightMap");
+	//terrainMaterial->addTexture(Texture::loadFromFile(path+"normalMap.png"),"normalMap");
 	//resourceManager.getResource();
 	// indices
 	float xzScale = 100.0f;
@@ -179,24 +179,28 @@ void Terrain::tessDrawCall(){
 	shader->setFloat("yShift", yShift);
 	shader->setFloat("yScale", yScale);
 
-	std::vector<std::shared_ptr<Texture>> textures = material->textures;
+	auto& textures = material->textures;
 	//auto textures = material->textures;
-	for (int texture_index = 0; texture_index < textures.size(); ++texture_index) {
+	int texture_index = 0;
+	for (auto iterator = textures.begin(); iterator!=textures.end(); ++iterator) {
 		//激活纹理单元0
 		glActiveTexture(GL_TEXTURE0 + texture_index);
 		//将加载的图片纹理句柄，绑定到纹理单元0的Texture2D上。
-		glBindTexture(GL_TEXTURE_2D, textures[texture_index]->id);
+		glBindTexture(GL_TEXTURE_2D, iterator->second->id);
 		//设置Shader程序从纹理单元0读取颜色数据
-		shader->setInt(("material."+textures[texture_index]->type).c_str(), texture_index);
+		shader->setInt((iterator->first).c_str(), texture_index);
+		++texture_index;
 	}
 	int beginIndex = textures.size();
+	texture_index = 0;
 	textures = terrainMaterial->textures;
-	for (int texture_index = 0; texture_index < textures.size(); texture_index++) {
+	for (auto iterator = textures.begin(); iterator !=textures.end(); ++texture_index) {
 		glActiveTexture(GL_TEXTURE0 + texture_index + beginIndex);
 		//将加载的图片纹理句柄，绑定到纹理单元0的Texture2D上。
-		glBindTexture(GL_TEXTURE_2D, textures[texture_index]->id);
+		glBindTexture(GL_TEXTURE_2D, iterator->second->id);
 		//设置Shader程序从纹理单元0读取颜色数据
-		shader->setInt((textures[texture_index]->type).c_str(), texture_index+beginIndex);
+		shader->setInt((iterator->first).c_str(), texture_index+beginIndex);
+		++texture_index;
 	}
 
 	shader->setMat4("model", model);
@@ -229,18 +233,18 @@ Terrain::Terrain(){
 	compGenPatchShader = std::make_shared<Shader>("./src/shader/terrain/patch.comp");
 
 	// ----
-	patchesSSBO = std::make_shared<SSBO>(8192*8192);
+	patchesSSBO = std::make_shared<SSBO>(16 * 1024 * 1024); //16 MB
 	//verticesSSBO->setBinding(1); 
 	//patchesSSBO = std::make_shared<SSBO>(8192*8192);
 	//indicesSSBO->setBinding(2);
 	// ----
-	inQueueSSBO = std::make_shared<SSBO>(8192 * 4);
+	inQueueSSBO = std::make_shared<SSBO>(4096);
 	inQueueSSBO->setBinding(3);
-	outQueueSSBO = std::make_shared<SSBO>(8192 * 4);
+	outQueueSSBO = std::make_shared<SSBO>(4096);
 	outQueueSSBO->setBinding(4);
-	finalNodeList = std::make_shared<SSBO>(8525 * 8);
+	finalNodeList = std::make_shared<SSBO>(8192 * 2);
 	finalNodeList->setBinding(2);
-	nodeDescriptor = std::make_shared<SSBO>(8192 * 8192);
+	nodeDescriptor = std::make_shared<SSBO>(256 * 1024); //
 	nodeDescriptor->setBinding(1);
 	lodMapTexture = std::make_shared<ImageTexture>();
 	lodMapTexture->genImageTexture(GL_RGBA32F, GL_RGBA, 160, 160);
@@ -291,7 +295,7 @@ void Terrain::prepareData() {
 	// set render shader 
 	shader->use();
 	shader->setMat4("model", model);
-	shader->setInt("normalMap", 1);
+	//shader->setInt("normalMap", 1);
 
 	// set shader 
 	computeShader->use();
@@ -300,12 +304,20 @@ void Terrain::prepareData() {
 	//computeShader->setFloat("yScale", yScale);
 	int beginIndex = 0;
 	auto& textures = terrainMaterial->textures; // heightMap + normalMap
-	for (int texture_index = 0; texture_index < textures.size(); texture_index++) {
+	int texture_index = 0;
+	for (auto iterator = textures.begin(); iterator!=textures.end(); ++iterator) {
 		glActiveTexture(GL_TEXTURE0 + texture_index + beginIndex);
 		//将加载的图片纹理句柄，绑定到纹理单元0的Texture2D上。
-		glBindTexture(GL_TEXTURE_2D, textures[texture_index]->id);
+		glBindTexture(GL_TEXTURE_2D, iterator->second->id);
 		//设置Shader程序从纹理单元0读取颜色数据
-		computeShader->setInt((textures[texture_index]->type).c_str(), texture_index+beginIndex);
+		computeShader->use();
+		computeShader->setInt((iterator->first).c_str(), texture_index+beginIndex);
+		compGenPatchShader->use();
+		compGenPatchShader->setInt((iterator->first).c_str(), texture_index + beginIndex);
+		shader->use();
+		shader->setInt((iterator->first).c_str(), texture_index + beginIndex);
+		
+		++texture_index;
 	}
 
 }
@@ -365,7 +377,7 @@ void Terrain::compGeneratePatchCall() {
 	
 	// for debug
 	compGenPatchShader->use();
-	compGenPatchShader->setInt("heightMap", 0);
+	//compGenPatchShader->setInt("heightMap", 0);
 	glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, finalNodeList->ssbo);
 	glDispatchComputeIndirect(0);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |GL_COMMAND_BARRIER_BIT);
@@ -404,20 +416,22 @@ void Terrain::renderCall() {
 	shader->use();
 
 	// bind normal map
-	auto& normalTex = terrainMaterial->textures[1];
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, normalTex->id);
+	//auto& normalTex = terrainMaterial->textures["normalMap"];
+	//glActiveTexture(GL_TEXTURE1);
+	//glBindTexture(GL_TEXTURE_2D, normalTex->id);
 	//bind pbr textures
 	int beginIndex = 2;  // heightMap, normalMap
 	if (material) {
-		std::vector<std::shared_ptr<Texture>>& textures = material->textures;
-		for (int texture_index = 0; texture_index < textures.size(); ++texture_index) {
+		auto& textures = material->textures;
+		int texture_index = 0;
+		for (auto iterator = textures.begin(); iterator!=textures.end(); ++iterator) {
 			//激活纹理单元0
 			glActiveTexture(GL_TEXTURE0 + beginIndex + texture_index);
 			//将加载的图片纹理句柄，绑定到纹理单元0的Texture2D上。
-			glBindTexture(GL_TEXTURE_2D, textures[texture_index]->id);
+			glBindTexture(GL_TEXTURE_2D, iterator->second->id);
 			//设置Shader程序从纹理单元0读取颜色数据
-			shader->setInt(("material." + textures[texture_index]->type).c_str(), beginIndex + texture_index);
+			shader->setInt((iterator->first).c_str(), beginIndex + texture_index);
+			++texture_index;
 		}
 	}
 

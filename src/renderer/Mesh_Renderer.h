@@ -5,7 +5,7 @@
 #include<glm/glm.hpp>
 #include"../component/Component.h"
 #include"../system/RenderManager.h"
-//#include<rttr/registration.h>
+#include"../utils/header.h"
 
 class Material; 
 class MeshFilter; 
@@ -24,11 +24,14 @@ public:
 
 	//void setShader(std::shared_ptr<Shader> shader) { this->shader = shader; };
 	std::shared_ptr<MeshRenderer> setShader(ShaderType type);
+	std::shared_ptr<MeshRenderer> setShader(std::string type);
 	std::shared_ptr<MeshRenderer> setMaterial(std::shared_ptr<Material> material);
 	//void setView(glm::mat4 view) { view = view; };
 	//void setProjection(glm::mat4 projection) { projection = projection; };
 	std::shared_ptr<MeshRenderer> setDrawMode(GLenum drawMode_);
 	std::shared_ptr<MeshRenderer> setPolyMode(GLenum polyMode_);
+
+	virtual void loadFromJson(json& data);
 
 public:
 
@@ -38,7 +41,5 @@ public:
 	//glm::mat4 view; 
 	//glm::mat4 projection; 
 	std::shared_ptr<Material> material;
-
 	std::shared_ptr<Shader> shader; 
-	GLuint VAO, VBO, EBO;
 };
