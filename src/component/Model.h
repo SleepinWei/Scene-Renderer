@@ -18,7 +18,7 @@ class Model {
 public:
     static std::shared_ptr<Mesh> combineMesh(const std::vector<std::shared_ptr<Mesh>>& meshes);
 
-    static std::shared_ptr<MeshFilter> loadModel(const std::string& path);
+    static std::shared_ptr<Mesh> loadModel(const std::string& path);
 		
     static void processNode(std::vector<std::shared_ptr<Mesh>>& meshes,aiNode* node, const aiScene* scene);
 

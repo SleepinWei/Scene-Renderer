@@ -1,6 +1,7 @@
 #include<glad/glad.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include<iostream>
+#include<fstream>
 #include<glfw/glfw3.h>
 #include<glm/glm.hpp>
 //utils
@@ -27,6 +28,9 @@
 #include"GUI.h"
 #include"./system/global_context.h"
 #include"./component/Atmosphere.h"
+//json
+#include<json/json.hpp>
+using json = nlohmann::json;
 extern "C" __declspec(dllexport) long long NvOptimusEnablement = 0x00000001;
 extern "C" __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 0x00000001;
 
@@ -87,6 +91,14 @@ void render() {
 		//terrain->setPolyMode(GL_LINE);
 
 		scene->addTerrain(terrain);
+	}
+
+	{
+		std::ifstream f("./asset/objects/sphere.json");
+		json data = json::parse(f);
+		std::shared_ptr<GameObject> object = std::make_shared<GameObject>();
+		object->loadFromJson(data);
+		scene->addObject(object);
 	}
 
 	// light 
@@ -207,7 +219,7 @@ void render() {
 	}
 
 	//model
-	if (1)
+	if (0)
 	{
 		std::shared_ptr<GameObject> model = std::make_shared<GameObject>();
 		auto&& transform = model->addComponent<Transform>();
@@ -215,7 +227,8 @@ void render() {
 		transform->scale = glm::vec3(0.5);
 
 		std::string dir = "./asset/model/backpack/";
-		model->addComponent<MeshFilter>(Model::loadModel(dir + "backpack.obj"));
+		auto& meshfilter = model->addComponent<MeshFilter>();
+		meshfilter->addMesh(Model::loadModel(dir + "backpack.obj"));
 		auto&& mesh = std::dynamic_pointer_cast<MeshFilter>(model->GetComponent("MeshFilter"));
 
 		auto&& renderer = model->addComponent<MeshRenderer>();

@@ -7,10 +7,10 @@
 class Shader;
 class Texture;
 
-enum class MatType {
-	PBR,
-	TERRAIN
-};
+//enum class MatType {
+//	PBR,
+//	TERRAIN
+//};
 
 class Material:public std::enable_shared_from_this<Material> {
 public:
@@ -29,7 +29,5 @@ public:
 	static std::shared_ptr<Material> loadModel(const std::string& folder);
 
 public:
-	//std::vector<std::string> textureType;
-	//std::vector<std::shared_ptr<Texture>> textures;
 	std::unordered_map<std::string, std::shared_ptr<Texture>> textures;
 };

@@ -5,6 +5,7 @@
 #include<memory>
 #include<glm/glm.hpp>
 #include<vector>
+#include"../utils/header.h"
 
 class Material;
 class Texture; 
@@ -36,6 +37,7 @@ public:
 	std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
 	GLuint VAO, VBO, EBO;
+	std::string name;
 
 public:
 	Mesh();
@@ -54,8 +56,13 @@ public:
 
 	void addShape(SHAPE type);
 	//void loadMesh(std::string path);
+	void addMesh(std::shared_ptr<Mesh> mesh_);
+
+	virtual void loadFromJson(json& data);
 
 public:
 	std::vector<std::shared_ptr<Mesh>> meshes;
+private:
+	void addShape(std::string type);
 };
 

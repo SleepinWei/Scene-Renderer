@@ -202,3 +202,39 @@ void MeshFilter::addShape(SHAPE shape) {
 	}
 	meshes.push_back(mesh);
 }
+
+void MeshFilter::addShape(std::string type) {
+	std::shared_ptr<Mesh> mesh;
+	if (type == "sphere") {
+		mesh = Mesh::initSphere(64);
+	}
+	else if (type == "plane") {
+		mesh = Mesh::initPlane();
+	}
+	else if (type == "cube") {
+		mesh = Mesh::initCube();
+	}
+	else if (type == "point") {
+		mesh = Mesh::initPoint();
+	}
+	meshes.push_back(mesh);
+}
+
+void MeshFilter::addMesh(std::shared_ptr<Mesh> mesh_) {
+	meshes.push_back(mesh_);
+}
+
+void MeshFilter::loadFromJson(json& data) {
+	for (auto iter = data.begin(); iter != data.end(); ++iter) {
+		// mesh name : mesh path
+		if (iter.key() == "shape") {
+			std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
+			this->addShape(iter.value().get<std::string>());
+		}
+		else {
+			std::shared_ptr<Mesh> mesh = Model::loadModel(iter.value().get<std::string>());
+			mesh->name = iter.key();
+			this->addMesh(mesh);
+		}
+	}
+}

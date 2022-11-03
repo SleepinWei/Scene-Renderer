@@ -6,7 +6,10 @@
 // #include<meta/meta.hpp>
 #include<unordered_map>
 #include<string>
+#include<json/json.hpp>
+
 class Component; 
+using json = nlohmann::json;
 
 class GameObject:public std::enable_shared_from_this<GameObject> {
 public:
@@ -23,38 +26,24 @@ public:
 		std::string component_type_name = component->name; 
 		component->Component::setGameObject(shared_from_this());
 		if (component_type_instance_map.find(component_type_name) == component_type_instance_map.end()) {
-			std::vector<std::shared_ptr<Component>> component_vec;
-			component_vec.push_back(component);
-			component_type_instance_map[component_type_name] = component_vec;
+			component_type_instance_map[component_type_name] = component;
 		}
 		else {
-			component_type_instance_map[component_type_name].push_back(component);
+			std::cout << "Componet: " << component_type_name << " has already existed\n";
 		}
 		return component;
 	}
 
-	template<class T>
-	std::shared_ptr<GameObject> addComponent(const std::shared_ptr<T>& component) {
-		component->Component::setGameObject(shared_from_this());
-		std::string component_type_name = component->name;
-		if (component_type_instance_map.find(component_type_name) == component_type_instance_map.end()) {
-			std::vector<std::shared_ptr<Component>> component_vec;
-			component_vec.push_back(component);
-			component_type_instance_map[component_type_name] = component_vec;
-		}
-		else {
-			component_type_instance_map[component_type_name].push_back(component);
-		}
-		return shared_from_this();
-	}
-
+	std::shared_ptr<GameObject> addComponent(const std::shared_ptr<Component>& component);
 	std::shared_ptr<Component> GetComponent(std::string component_type_name);
 
+	void loadFromJson(json& data);
+
 	// get all components with the same name 
-	std::vector<std::shared_ptr<Component>>& GetComponents(std::string component_type_name);
+	//std::vector<std::shared_ptr<Component>>& GetComponents(std::string component_type_name);
 
 public:
 	std::string name; 
-	std::unordered_map<std::string, std::vector<std::shared_ptr<Component>>> component_type_instance_map;
+	std::unordered_map<std::string, std::shared_ptr<Component>> component_type_instance_map;
 };
 

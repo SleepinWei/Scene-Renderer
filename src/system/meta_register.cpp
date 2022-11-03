@@ -18,5 +18,14 @@ std::shared_ptr<Component> Meta::generateComponent(const std::string& name) {
 		std::shared_ptr<Transform> transform = std::make_shared<Transform>();
 		return std::static_pointer_cast<Component>(transform);
 	}
+	else if (name == "MeshFilter") {
+		std::shared_ptr<MeshFilter> meshfilter = std::make_shared<MeshFilter>();
+		return std::static_pointer_cast<Component>(meshfilter);
+	}
+	else if (name == "MeshRenderer") {
+		std::shared_ptr<MeshRenderer> meshrenderer = std::make_shared<MeshRenderer>();
+		return std::static_pointer_cast<Component>(meshrenderer);
+	}
+	return nullptr;
 	//if(name == "")
 }

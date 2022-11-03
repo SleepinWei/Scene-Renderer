@@ -280,5 +280,8 @@
     <ClInclude Include="src\buffer\ImageTexture.h">
       <Filter>src\buffer</Filter>
     </ClInclude>
+    <ClInclude Include="src\utils\header.h">
+      <Filter>src\utils</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

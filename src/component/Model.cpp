@@ -23,22 +23,20 @@ std::shared_ptr<Mesh> Model::combineMesh(const std::vector<std::shared_ptr<Mesh>
 	return resultMesh;
 }
 
-std::shared_ptr<MeshFilter> Model::loadModel(const std:: string& path) {
-	std::shared_ptr<MeshFilter> meshFilter = std::make_shared<MeshFilter>();
+std::shared_ptr<Mesh> Model::loadModel(const std:: string& path) {
 	std::vector<std::shared_ptr<Mesh>> meshes; 
 	Assimp::Importer importer; 
 	const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
 	{
 		std::cout << "ERROR::ASSIMP:: " << importer.GetErrorString() << std::endl;
-		return meshFilter;
+		return nullptr;
 	}
 
 	// process ASSIMP's root node recursively
 	processNode(meshes,scene->mRootNode, scene);
 
-	meshFilter->meshes.push_back(combineMesh(meshes));
-	return meshFilter;
+	return combineMesh(meshes);
 }
 
 void Model::processNode(std::vector<std::shared_ptr<Mesh>>& meshes,aiNode* node, const aiScene* scene)

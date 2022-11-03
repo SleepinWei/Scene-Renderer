@@ -32,6 +32,35 @@ std::shared_ptr<MeshRenderer> MeshRenderer::setShader(ShaderType type) {
 	return shared_from_this();
 }
 
+std::shared_ptr<MeshRenderer> MeshRenderer::setShader(std::string type) {
+	ShaderType shadertype = ShaderType::SIMPLE;
+	if (type == "pbr") {
+		shadertype = ShaderType::PBR;
+	}
+	else if (type == "pbr_tess") {
+		shadertype = ShaderType::PBR_TESS;
+	}
+	else if (type == "light") {
+		shadertype = ShaderType::LIGHT;
+	}
+	else if (type == "terrain") {
+		shadertype = ShaderType::TERRAIN;
+	}
+	else if (type == "sky") {
+		shadertype = ShaderType::SKY;
+	}
+	else if (type == "test") {
+		shadertype = ShaderType::TEST;
+	}
+	else if (type == "skybox") {
+		shadertype = ShaderType::SKYBOX;
+	}
+
+	shader = renderManager->getShader(shadertype);
+	return shared_from_this();
+}
+
+
 std::shared_ptr<MeshRenderer> MeshRenderer::setMaterial(std::shared_ptr<Material> material) { 
 	this->material = material; 
 	return shared_from_this();
@@ -49,6 +78,7 @@ std::shared_ptr<MeshRenderer> MeshRenderer::setPolyMode(GLenum ployMode_) {
 
 MeshRenderer::MeshRenderer():drawMode(GL_TRIANGLES),polyMode(GL_FILL) {
 	name = "MeshRenderer";
+	material = std::make_shared<Material>();
 	//VAO = 0;
 	//VBO = 0;
 	//EBO = 0;
@@ -156,4 +186,31 @@ void MeshRenderer::render(bool useShader){
 		}
 	}
 	glBindVertexArray(0);
+}
+
+void MeshRenderer::loadFromJson(json& data) {
+	auto& mat = data["material"];
+	for (auto iter = mat.begin(); iter != mat.end(); ++iter) {
+		auto& mat_type = iter.key();
+		auto& mat_path = iter.value().get<std::string>();
+		this->material->addTexture(mat_path, mat_type);
+	}
+	{
+		auto& shader = data["shader"];
+		std::string shader_type = shader.get<std::string>();
+		this->setShader(shader_type);
+	}
+	{
+		if (data.find("drawmode") != data.end()) {
+			std::string s_drawmode = data["drawmode"].get<std::string>();
+			unsigned int drawMode_ = 0;
+			if(s_drawmode == "triangles"){
+				drawMode_ = GL_TRIANGLES;
+			}
+			else if (s_drawmode == "patches") {
+				drawMode_ = GL_PATCHES;
+			}
+			this->setDrawMode(drawMode_);
+		}
+	}
 }

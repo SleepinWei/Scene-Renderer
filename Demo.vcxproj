@@ -228,6 +228,7 @@
     <ClInclude Include="src\system\RenderManager.h" />
     <ClInclude Include="src\utils\Camera.h" />
     <ClInclude Include="src\utils\global.h" />
+    <ClInclude Include="src\utils\header.h" />
     <ClInclude Include="src\utils\Shader.h" />
     <ClInclude Include="src\utils\Utils.h" />
   </ItemGroup>

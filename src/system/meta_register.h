@@ -9,5 +9,5 @@ public:
 	Meta();
 	~Meta();
 
-	std::shared_ptr<Component> generateComponent(const std::string& name);
+	static std::shared_ptr<Component> generateComponent(const std::string& name);
 };
