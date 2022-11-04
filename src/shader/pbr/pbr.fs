@@ -114,68 +114,25 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
     return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
-vec3 computePointShading(Object object,PointLight light,Material material){
+vec3 BRDF(vec3 N, vec3 V,vec3 L){
     vec3 albedo = pow(texture(material.albedo,object.TexCoords).rgb,vec3(2.2));
     // vec3 albedo = vec3(object.TexCoords,1.0);
     float metallic = texture(material.metallic,object.TexCoords).r;
     float roughness = texture(material.roughness,object.TexCoords).r;
 
-    vec3 N = getNormalFromMap();
-    vec3 V = normalize(camPos - object.Position);
 
-    vec3 objectPosition = object.Position;
+    // vec3 objectPosition = object.Position;
 
     // F0 : plastic, albedo : metallic 
     vec3 F0 = vec3(0.04);
     F0 = mix(F0,albedo,metallic);
 
-    vec3 Lo = vec3(0.0); 
-    vec3 L = normalize(light.Position - objectPosition);
-    vec3 H = normalize(V+L);
-    // float attenuation = calculateAtten(objectPosition,light.Position);
-    float attenuation = 1.0f;
-    vec3 radiance = light.Color * attenuation; 
-
-    // cook-tolerance brdf
-    float NDF = DistributionGGX(N,H,roughness);
-    float G =GeometrySmith(N,V,L,roughness) ;
-    vec3 F = fresnelSchlick(max(dot(H,V),0.0),F0);
-    // vec3 F = F0;
-
-    vec3 numerator= NDF*G*F;
-    float denominator= 4.0 * max(dot(N,V),0.0)*max(dot(N,L),0.0) + 0.0001;
-    vec3 specular = numerator / denominator; 
-
-    vec3 kS = F;
-    vec3 kD = vec3(1.0) - kS;
-    kD *= (1.0 - metallic);
-
-    float NdotL = max(dot(N,L),0.0);
-
-    Lo += (kD * albedo / PI + specular) * radiance * NdotL;
-
-    return Lo; 
-}
-
-vec3 computeDirectionShading(Object object,DirectionLight light,Material material){
-    vec3 albedo = pow(texture(material.albedo,object.TexCoords).rgb,vec3(2.2));
-    float metallic = texture(material.metallic,object.TexCoords).r;
-    float roughness = texture(material.roughness,object.TexCoords).r;
-
-    vec3 N = getNormalFromMap();
-    vec3 V = normalize(camPos - object.Position);
-
-    // F0 : plastic, albedo : metallic 
-    vec3 F0 = vec3(0.04);
-    F0 = mix(F0,albedo,metallic);
-
-    vec3 Lo = vec3(0.0); 
-    //--- modify mark
-    vec3 L = normalize(light.Direction);
+    // vec3 Lo = vec3(0.0); 
+    // vec3 L = normalize(light.Position - objectPosition);
     vec3 H = normalize(V+L);
     // float attenuation = calculateAtten(object.Position,light.Position);
-    // --- modify mark
-    vec3 radiance = light.Color; 
+    // float attenuation = 1.0f;
+    // vec3 radiance = light.Color * attenuation; 
 
     // cook-tolerance brdf
     float NDF = DistributionGGX(N,H,roughness);
@@ -186,28 +143,48 @@ vec3 computeDirectionShading(Object object,DirectionLight light,Material materia
     vec3 numerator= NDF*G*F;
     float denominator= 4.0 * max(dot(N,V),0.0)*max(dot(N,L),0.0) + 0.0001;
     vec3 specular = numerator / denominator; 
+    // vec3 energyCompensation = 1.0 + F0 * (1.0f / numerator.y -1.0f);
+    // specular *= energyCompensation;
 
     vec3 kS = F;
     vec3 kD = vec3(1.0) - kS;
     kD *= (1.0 - metallic);
 
-    float NdotL = max(dot(N,L),0.0);
+    // float NdotL = max(dot(N,L),0.0);
 
-    Lo += (kD * albedo / PI + specular) * radiance * NdotL;
+    // Lo += (kD * albedo / PI + specular) * radiance * NdotL;
+    vec3 brdf = kD * albedo / PI + specular;
 
-    return Lo; 
+    return brdf;
 }
 
 void main(){
     // radiance; 
     vec3 finalColor = vec3(0.0f);
     // point lights
+    vec3 N = getNormalFromMap();
+    vec3 V = normalize(camPos - object.Position);
     for(int i=0;i<pLightNum;i++){
-        finalColor += computePointShading(object,pointLights[i],material);
+        PointLight light = pointLights[i];
+        vec3 L = normalize(light.Position - object.Position);
+        vec3 brdf = BRDF(N,V,L);
+        float NdotL = max(dot(N,L),0.0);
+
+        float attenuation = 1.0f;
+        vec3 radiance = light.Color * attenuation; 
+        finalColor += brdf * radiance * NdotL;
     }
     //directional lights
     for(int i =0;i<dLightNum;i++){
-        finalColor += computeDirectionShading(object,directionLights[i],material);
+        DirectionLight light = directionLights[i];
+        vec3 L = normalize(light.Direction);
+        vec3 brdf = BRDF(N,V,L);
+        float NdotL = max(dot(N,L),0.0);
+
+        float attenuation = 1.0f;
+        vec3 radiance = light.Color * attenuation; 
+        finalColor += brdf * radiance * NdotL;
+        // finalColor += computeDirectionShading(object,directionLights[i],material);
     }
     vec3 albedo = pow(texture(material.albedo,object.TexCoords).rgb,vec3(2.2));
     float ao = texture(material.ao,object.TexCoords).r; 
