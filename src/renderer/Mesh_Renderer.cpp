@@ -40,6 +40,9 @@ std::shared_ptr<MeshRenderer> MeshRenderer::setShader(std::string type) {
 	else if (type == "pbr_tess") {
 		shadertype = ShaderType::PBR_TESS;
 	}
+	else if (type == "pbr_clearcoat") {
+		shadertype = ShaderType::PBR_CLEARCOAT;
+	}
 	else if (type == "light") {
 		shadertype = ShaderType::LIGHT;
 	}

@@ -278,6 +278,10 @@ std::shared_ptr<Shader> RenderManager::generateShader(ShaderType type) {
 				"./src/shader/test.vs","./src/shader/test.fs"
 				);
 			break;
+		case ShaderType::PBR_CLEARCOAT:
+			return std::make_shared<Shader>(
+				"./src/shader/pbr/pbr.vs","./src/shader/pbr/clearcoat.fs"
+				);
 		default:
 			std::cerr << "No such shader type" << '\n';
 			break;

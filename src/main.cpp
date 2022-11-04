@@ -101,6 +101,23 @@ void render() {
 		scene->addObject(object);
 	}
 
+	{
+		std::ifstream f("./asset/objects/sphere2.json");
+		json data = json::parse(f);
+		std::shared_ptr<GameObject> object = std::make_shared<GameObject>();
+		object->loadFromJson(data);
+		scene->addObject(object);
+	}
+	{
+		std::ifstream f("./asset/objects/backpack.json");
+		json data = json::parse(f);
+		std::shared_ptr<GameObject> object = std::make_shared<GameObject>();
+		object->loadFromJson(data);
+		scene->addObject(object);
+	}
+
+
+
 	// light 
 	{
 		std::shared_ptr<GameObject> pLight = std::make_shared<GameObject>();
@@ -120,6 +137,7 @@ void render() {
 
 		scene->addObject(pLight);
 	}
+	if(0)
 	{
 		std::shared_ptr<GameObject> dLight = std::make_shared<GameObject>();
 
