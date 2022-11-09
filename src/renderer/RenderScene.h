@@ -2,6 +2,8 @@
 #include<memory>
 #include<string>
 #include<vector>
+#include<json/json.hpp>
+using json = nlohmann::json;
 
 class GameObject;
 class Terrain; 
@@ -27,6 +29,8 @@ public:
 	std::shared_ptr<RenderScene> addObject(std::shared_ptr<GameObject> object);
 	std::shared_ptr<RenderScene> addTerrain(std::shared_ptr<Terrain>terrain);
 	std::shared_ptr<RenderScene> addSkyBox(std::shared_ptr<SkyBox>skybox);
+	void loadFromJson(json& data);
+	void destroy();
 };
 
 //namespace RenderPass {
