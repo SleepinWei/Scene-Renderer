@@ -15,4 +15,5 @@ asset.zip
 *.rdc
 *.jpg
 RenderDoc/
+*.pptx
 .VSCodeCounter/

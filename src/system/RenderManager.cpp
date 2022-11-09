@@ -239,6 +239,11 @@ std::shared_ptr<Shader> RenderManager::generateShader(ShaderType type) {
 				"./src/shader/pbr/pbr.tesc","./src/shader/pbr/pbr.tese"
 				);
 			break;
+		case ShaderType::PBR_ANISOTROPY:
+			return std::make_shared<Shader>(
+				"./src/shader/pbr/pbr.vs", "./src/shader/pbr/anisotropic.fs"
+				);
+			break;
 		case ShaderType::PBR:
 			return std::make_shared<Shader>(
 				"./src/shader/pbr/pbr.vs","./src/shader/pbr/pbr.fs",nullptr//"./src/shader/pbr/pbr.gs"

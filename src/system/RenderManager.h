@@ -16,6 +16,7 @@ enum class ShaderType{
 	PBR,
 	PBR_TESS,
 	PBR_CLEARCOAT,
+	PBR_ANISOTROPY,
 	TERRAIN,
 	SKYBOX,
 	HDR,

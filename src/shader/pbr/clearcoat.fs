@@ -27,6 +27,8 @@ in struct Object{
     vec3 Position; 
     vec3 Normal; 
     vec2 TexCoords;
+    vec3 Tangent;
+    vec3 Bitangent;
 } object;
 
 uniform vec3 camPos; 
@@ -156,7 +158,7 @@ vec3 BRDF(vec3 N, vec3 V,vec3 L){
 
     // float NdotL = max(dot(N,L),0.0);
 
-    // Lo += (kD * albedo / PI + specular) * radiance * NdotL;
+    // ------------------- clear Coat model
     float clearCoatRoughness = texture(material.clearCoatRoughness,object.TexCoords).r * 0.5;
     float coatPerceptualRoughness = clamp(clearCoatRoughness,0.089,1.0f);
     float coatRoughness = coatPerceptualRoughness * coatPerceptualRoughness;
@@ -167,6 +169,7 @@ vec3 BRDF(vec3 N, vec3 V,vec3 L){
     float Vc = V_Kelemen(LoH);
     float Fc = fresnelSchlick(LoH,vec3(0.4f)).r * 0.5;
     float Frc = (Dc*Vc) *Fc;
+    // 
 
     vec3 Fd = kD * albedo / PI;
 
