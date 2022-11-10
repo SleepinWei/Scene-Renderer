@@ -154,32 +154,28 @@ bool clicked = false;
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
     inputManager->mouseMove = true;
-    if (clicked) {
-        inputManager->deltaX = xpos - inputManager->lastX;
-        inputManager->deltaY = inputManager->lastY - ypos; // reversed since y-coordinates go from bottom to top
-        inputManager->lastX = xpos;
-        inputManager->lastY = ypos;
+    //if (clicked) {
+	inputManager->deltaX = xpos - inputManager->lastX;
+	inputManager->deltaY = inputManager->lastY - ypos; // reversed since y-coordinates go from bottom to top
+	inputManager->lastX = xpos;
+	inputManager->lastY = ypos;
 
         //camera.ProcessMouseMovement(xoffset, yoffset);
-    }
+    //}
 }
 void mouse_button_callback(GLFWwindow* window, int key, int action,int mods){
     if(key == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS){
         double xpos, ypos; 
-        glfwGetCursorPos(window, &xpos, &ypos);
+        //glfwGetCursorPos(window, &xpos, &ypos);
         clicked = true;
+        //inputManager->lastX = xpos;
+        //inputManager->lastY = ypos;
         inputManager->cursorEnbaled = false;
-        inputManager->lastX = xpos;
-        inputManager->lastY = ypos;
-        inputManager->deltaX = 0;
-        inputManager->deltaY = 0;
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     }
     else if (key == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE){
         clicked = false;
         inputManager->cursorEnbaled = true;
-        inputManager->deltaX = 0;
-        inputManager->deltaY = 0;
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
 }
