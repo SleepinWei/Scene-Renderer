@@ -1,6 +1,6 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include"PathTracing.h"
-#include"PTVec.h"
+//#include"PTVec.h"
 #include"PTCamera.h"
 #include<iostream>
 #include"PTrandom.h"
@@ -19,7 +19,7 @@ class PT::Material;
 //}
 
 
-PT::vec3 PT::rayColor(const Ray& r,const hittable& world,int depth) {
+vec3 PT::rayColor(const Ray& r,const hittable& world,int depth) {
 	hitRecord rec;
 
 	if (depth <= 0) {
@@ -38,13 +38,13 @@ PT::vec3 PT::rayColor(const Ray& r,const hittable& world,int depth) {
 		return vec3(0, 0, 0);
 	}
 	vec3 unit_direction = normalize(r.dir);
-	auto t = 0.5 * (unit_direction.y + 1.0);
-	return (1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
+	float t = 0.5f * (unit_direction.y + 1.0);
+	return (1.0f - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
 }
 
 
 
-void write_color(const PT::vec3& color, int samples_per_pixel) {
+void write_color(const vec3& color, int samples_per_pixel) {
 	auto r = color.x; 
 	auto g = color.y;
 	auto b = color.z;

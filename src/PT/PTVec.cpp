@@ -6,16 +6,16 @@ PT::vec3::vec3(double x, double y, double z):x(x),y(y),z(z) {
 }
 PT::vec3::vec3(double x):x(x),y(x),z(x) {
 }
-PT::vec3 PT::vec3::operator*(double t)const {
+PT::vec3 PT::vec3::operator*(float t)const {
 	return vec3(x * t, y * t, z * t);
 }
-PT::vec3 PT::vec3::operator+(double t)const {
+PT::vec3 PT::vec3::operator+(float t)const {
 	return vec3(x + t, y + t, z + t);
 }
-PT::vec3 PT::vec3::operator-(double t)const {
+PT::vec3 PT::vec3::operator-(float t)const {
 	return vec3(x - t, y - t, z - t);
 }
-PT::vec3 PT::vec3::operator/(double t)const {
+PT::vec3 PT::vec3::operator/(float t)const {
 	return vec3(x / t, y / t, z / t);
 }
 PT::vec3 PT::operator* (double t, const PT::vec3& v) {
@@ -109,7 +109,7 @@ PT::vec3 PT::refract(const vec3& uv, const vec3& n, double etai_over_etat) {
 	return r_out_perp + r_out_parallel;
 }
 
-double PT::radians(double degree) {
+float PT::radians(float degree) {
 	return degree / 180.0 * PI;
 }
 

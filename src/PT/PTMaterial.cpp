@@ -1,6 +1,11 @@
 #include"PTMaterial.h"
+#include"PTTexture.h"
+#include"glm_vec3.h"
 
-PT::Lambertian::Lambertian(const vec3& a):albedo(a){
+using glm::normalize;
+
+PT::Lambertian::Lambertian(const vec3& a)
+	:albedo(std::make_shared<SolidColor>(a)){
 }
 bool PT::Lambertian::scatter(
 	const Ray& r,const hitRecord & rec,
@@ -17,7 +22,7 @@ bool PT::Lambertian::scatter(
 		scatter_direction = normalize(scatter_direction);
 	}
 	scattered = Ray(rec.p, scatter_direction);
-	attenuation = albedo;
+	attenuation = albedo->value(rec.u,rec.v,rec.p);
 	return true;
 }
 PT::Metal::Metal(const vec3 & a,double f):albedo(a),fuzz(f<1?f:1) {

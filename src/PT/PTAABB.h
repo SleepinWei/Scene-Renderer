@@ -2,7 +2,9 @@
 
 #include"PTrandom.h"
 #include"PTRay.h"
-#include"PTVec.h"
+//#include"PTVec.h"
+#include<glm/glm.hpp>
+using glm::vec3;
 
 namespace PT {
 	class AABB {

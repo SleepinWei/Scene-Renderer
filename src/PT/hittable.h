@@ -1,8 +1,11 @@
 #pragma once
-#include"PTVec.h"
+//#include"PTVec.h"
 #include"PTRay.h"
 #include"PTAABB.h"
 #include<memory>
+#include<glm/glm.hpp>
+
+using glm::vec3;
 //#include"PTMaterial.h"
 
 namespace PT {
@@ -12,7 +15,9 @@ namespace PT {
 	public:
 		vec3 p;
 		vec3 normal;
-		double t;
+		float t;
+		float u;
+		float v;
 		bool front_face;
 		std::shared_ptr<Material> mat_ptr; // pointer of material
 		//vec3 T;
@@ -20,6 +25,7 @@ namespace PT {
 
 		inline void set_face_normal(const Ray& r, const vec3& outward_normal);
 	};
+
 	class hittable {
 	public:
 		virtual bool hit(const Ray& r, double t_min, double t_max, hitRecord& rec)const =0;
@@ -47,9 +53,11 @@ namespace PT {
 
 		virtual bool hit(const Ray& r, double t_min, double t_max, hitRecord& rec) const override;
 		virtual bool bounding_box(double time0, double time1, AABB& output_box)const;
+		
+		static void get_sphere_uv(const vec3& p, float& u, float& v);
 	public:
 		vec3 center;
-		double radius;
+		float radius;
 		std::shared_ptr<Material> mat_ptr;
 	};
 

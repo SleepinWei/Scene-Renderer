@@ -6,6 +6,6 @@ PT::Ray::Ray(vec3 origin, vec3 dir) :
 PT::Ray::~Ray() {
 }
 
-PT::vec3 PT::Ray::at(double t)const {
+vec3 PT::Ray::at(float t)const {
 	return orig + t * dir;
 }

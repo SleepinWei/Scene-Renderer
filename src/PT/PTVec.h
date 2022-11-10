@@ -10,10 +10,10 @@ namespace PT {
 		~vec3() = default;
 
 		double x, y, z;
-		vec3 operator* (double t)const;
-		vec3 operator+ (double t)const;
-		vec3 operator- (double t)const;
-		vec3 operator/ (double t)const;
+		vec3 operator* (float t)const;
+		vec3 operator+ (float t)const;
+		vec3 operator- (float t)const;
+		vec3 operator/ (float t)const;
 		vec3 operator+ (const vec3& v)const;
 		vec3 operator- (const vec3& v)const;
 		vec3 operator- (void)const;
@@ -42,5 +42,5 @@ namespace PT {
 	vec3 random_in_unit_sphere();
 	bool nearZero(const vec3& v);
 
-	double radians(double degree);
+	float radians(float degree);
 }

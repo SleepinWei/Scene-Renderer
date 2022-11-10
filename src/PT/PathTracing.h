@@ -2,9 +2,12 @@
 #include<vector>
 #include<limits>
 #include<cstdlib>
-#include"PTVec.h"
+#include<glm/glm.hpp>
+//#include"PTVec.h"
 #include"PTRay.h"
 #include"hittable.h"
+
+using glm::vec3;
 
 namespace PT {
 	const double infinity = std::numeric_limits<double>::infinity();

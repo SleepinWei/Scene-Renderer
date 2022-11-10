@@ -7,6 +7,7 @@ PT::BVH_Node::BVH_Node(
 	const std::vector<std::shared_ptr<hittable>>& src_objects,
 	size_t start, size_t end, double time0, double time1
 ) {
+	// recursively build BVH structure
 	auto objects = src_objects;
 
 	int axis = random_int(0, 2);
