@@ -4,6 +4,7 @@
 #include"../renderer/Texture.h"
 #include"../system/RenderManager.h"
 #include"../renderer/Material.h"
+#include"../component/Atmosphere.h"
 
 extern std::unique_ptr<RenderManager> renderManager;
 std::shared_ptr<SkyBox> SkyBox::addShader(ShaderType st) {
@@ -94,3 +95,14 @@ void SkyBox::render()const {
 	glDepthFunc(GL_LESS);
 }
 
+Sky::Sky() {
+	atmosphere = std::make_shared<Atmosphere>();
+}
+
+Sky::~Sky() {
+
+}
+
+void Sky::render(bool useShader) {
+	atmosphere->render(useShader);
+}

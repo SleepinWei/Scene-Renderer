@@ -22,8 +22,8 @@ std::shared_ptr<RenderScene> RenderScene::addTerrain(std::shared_ptr<Terrain>ter
 	this->terrain = terrain;
 	return shared_from_this();
 }
-std::shared_ptr<RenderScene> RenderScene::addSkyBox(std::shared_ptr<SkyBox>skybox) {
-	this->skybox = skybox;
+std::shared_ptr<RenderScene> RenderScene::addSky(std::shared_ptr<Sky>sky) {
+	this->sky = sky;
 	return shared_from_this();
 }
 

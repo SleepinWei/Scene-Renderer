@@ -9,6 +9,8 @@
 class RenderManager;
 class Material;
 enum class ShaderType;
+class Component;
+class Atmosphere;
 
 
 class SkyBox:public GameObject {
@@ -26,4 +28,15 @@ public:
 	void init();
 	
 	void render() const;
+};
+
+class Sky{
+public:
+	Sky();
+	~Sky();
+
+	void render(bool useShader);
+
+public:
+	std::shared_ptr<Atmosphere> atmosphere;
 };

@@ -13,12 +13,13 @@
 #include"../component/Atmosphere.h"
 #include"../buffer/FrameBuffer.h"
 #include"../component/Lights.h"
+#include"../renderer/Texture.h"
 #include<memory>
 
 extern std::unique_ptr<InputManager> inputManager;
 extern std::unique_ptr<RenderManager> renderManager;
 
-void BasePass::render(const std::shared_ptr<RenderScene>& scene) {
+void BasePass::render(const std::shared_ptr<RenderScene>& scene,bool useShader) {
 	glViewport(0, 0, inputManager->width, inputManager->height);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -26,12 +27,7 @@ void BasePass::render(const std::shared_ptr<RenderScene>& scene) {
 	for (auto object : scene->objects) {
 		std::shared_ptr<MeshRenderer>&& renderer = std::dynamic_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
 		if (renderer && renderer->shader) {
-			renderer->shader->use();
-			renderer->render();
-		}
-		std::shared_ptr<Atmosphere>&& atmos = std::dynamic_pointer_cast<Atmosphere>(object->GetComponent("Atmosphere"));
-		if (atmos && atmos->shader) {
-			atmos->render();
+			renderer->render(useShader);
 		}
 	}
 	glCheckError();
@@ -40,7 +36,12 @@ void BasePass::render(const std::shared_ptr<RenderScene>& scene) {
 	if (terrain && terrain->shader) {
 		//terrain->shader->use();
 		glCheckError();
-		terrain->render();
+		terrain->render(useShader);
+	}
+
+	std::shared_ptr<Sky>& sky = scene->sky;
+	if (sky && sky->atmosphere->shader) {
+		sky->render(useShader);
 	}
 
 	// render skybox 
@@ -155,3 +156,26 @@ void ShadowPass::directionLightShadow(const std::shared_ptr<RenderScene>& scene)
 	}
 }
 
+DepthPass::DepthPass() {
+	// TODO :
+	// shader
+	depthShader = renderManager->getShader(ShaderType::DEPTH);
+	//frame buffer
+	frameBuffer = std::make_shared<FrameBuffer>();
+}
+
+DepthPass::~DepthPass() {
+	
+}
+
+void DepthPass::render(const std::shared_ptr<RenderScene>& scene) {
+	glViewport(0, 0, inputManager->width, inputManager->height);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	for (auto object : scene->objects) {
+		std::shared_ptr<MeshRenderer>&& renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
+		if (renderer && renderer->shader) {
+			renderer->render(false);
+		}
+	}
+}

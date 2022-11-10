@@ -20,13 +20,11 @@ public:
 	std::shared_ptr<Terrain> addMaterial(std::shared_ptr<Material> material); // append 
 
 	// render pass
-	void render();
+	void render(bool useShader);
 	void tessDrawCall();
 
 	// compute Shader 
-	void prepareData(); 
-	void computeDrawCall(); // compute shader
-	void renderCall();
+	void constructCall();
 	void setPolyMode(unsigned int polyMode_);
 private:
 	void initVertexObject();
@@ -61,9 +59,12 @@ public:
 	std::shared_ptr<SSBO> finalNodeList;
 	std::shared_ptr<SSBO> nodeDescriptor;
 	std::shared_ptr<ImageTexture> lodMapTexture;
-	bool isIn; // inQueue 是否使用 inQueueSSBO / or outQueueSSBO
+	//bool isIn; // inQueue 是否使用 inQueueSSBO / or outQueueSSBO
 private: 
 	void compLodCall();
 	void compLodMapCall();
 	void compGeneratePatchCall();
+	void prepareData(); 
+	void computeDrawCall(); // compute shader
+	void renderCall(bool useShader);
 };

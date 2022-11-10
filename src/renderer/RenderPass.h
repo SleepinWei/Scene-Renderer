@@ -4,6 +4,8 @@
 class RenderScene; 
 class Shader;
 class FrameBuffer;
+class Texture;
+
 class HDRPass {
 public:
 	HDRPass();
@@ -36,9 +38,23 @@ public:
 	BasePass() = default; 
 	~BasePass() = default;
 
-	void render(const std::shared_ptr<RenderScene>& scene);
+	void render(const std::shared_ptr<RenderScene>& scene,bool useShader);
 public:
 
+};
+
+class DepthPass {
+public:
+	DepthPass();
+	~DepthPass();
+
+	void render(const std::shared_ptr<RenderScene>& scene);
+public:
+	std::shared_ptr<Shader> depthShader;
+	std::shared_ptr<FrameBuffer> frameBuffer; //scene size
+	std::shared_ptr<Texture> frontDepth;
+	std::shared_ptr<Texture> backDepth;
+private:
 };
 
 class ShadowPass {
@@ -49,7 +65,7 @@ public:
 	void render(const std::shared_ptr<RenderScene>& scene);
 public:
 	std::shared_ptr<Shader> shadowShader; 
-	std::shared_ptr<FrameBuffer> frameBuffer;
+	std::shared_ptr<FrameBuffer> frameBuffer; 
 private:
 	void pointLightShadow(const std::shared_ptr<RenderScene>& scene);
 	void directionLightShadow(const std::shared_ptr<RenderScene>& scene);

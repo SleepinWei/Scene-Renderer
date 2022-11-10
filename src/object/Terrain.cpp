@@ -252,7 +252,7 @@ Terrain::Terrain(){
 	indirectDrawSSBO = std::make_shared<SSBO>(64);
 	indirectDrawSSBO->setBinding(5);
 	glCheckError();
-	isIn = true;
+	//isIn = true;
 }
 
 void Terrain::prepareData() {
@@ -395,7 +395,7 @@ void Terrain::compGeneratePatchCall() {
 	// end for 
 }
 
-void Terrain::renderCall() {
+void Terrain::renderCall(bool useShader) {
 	// test renderCall
 	initVertexObject();
 
@@ -413,25 +413,27 @@ void Terrain::renderCall() {
 	//glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)16);
 	//glEnableVertexAttribArray(1);
 
-	shader->use();
+	if (useShader && shader) {
+		shader->use();
 
-	// bind normal map
-	//auto& normalTex = terrainMaterial->textures["normalMap"];
-	//glActiveTexture(GL_TEXTURE1);
-	//glBindTexture(GL_TEXTURE_2D, normalTex->id);
-	//bind pbr textures
-	int beginIndex = 2;  // heightMap, normalMap
-	if (material) {
-		auto& textures = material->textures;
-		int texture_index = 0;
-		for (auto iterator = textures.begin(); iterator!=textures.end(); ++iterator) {
-			//激活纹理单元0
-			glActiveTexture(GL_TEXTURE0 + beginIndex + texture_index);
-			//将加载的图片纹理句柄，绑定到纹理单元0的Texture2D上。
-			glBindTexture(GL_TEXTURE_2D, iterator->second->id);
-			//设置Shader程序从纹理单元0读取颜色数据
-			shader->setInt((iterator->first).c_str(), beginIndex + texture_index);
-			++texture_index;
+		// bind normal map
+		//auto& normalTex = terrainMaterial->textures["normalMap"];
+		//glActiveTexture(GL_TEXTURE1);
+		//glBindTexture(GL_TEXTURE_2D, normalTex->id);
+		//bind pbr textures
+		int beginIndex = 2;  // heightMap, normalMap
+		if (material) {
+			auto& textures = material->textures;
+			int texture_index = 0;
+			for (auto iterator = textures.begin(); iterator != textures.end(); ++iterator) {
+				//激活纹理单元0
+				glActiveTexture(GL_TEXTURE0 + beginIndex + texture_index);
+				//将加载的图片纹理句柄，绑定到纹理单元0的Texture2D上。
+				glBindTexture(GL_TEXTURE_2D, iterator->second->id);
+				//设置Shader程序从纹理单元0读取颜色数据
+				shader->setInt((iterator->first).c_str(), beginIndex + texture_index);
+				++texture_index;
+			}
 		}
 	}
 
@@ -452,12 +454,12 @@ void Terrain::renderCall() {
 		glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
 }
 
-void Terrain::render() {
-	isIn = true; // reset
-
+void Terrain::constructCall() {
 	prepareData(); 
 	computeDrawCall();
-	renderCall();
+}
+void Terrain::render(bool useShader) {
+	renderCall(useShader);
 }
 
 void Terrain::setPolyMode(unsigned int polyMode_) {
