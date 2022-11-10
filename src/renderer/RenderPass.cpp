@@ -162,6 +162,12 @@ DepthPass::DepthPass() {
 	depthShader = renderManager->getShader(ShaderType::DEPTH);
 	//frame buffer
 	frameBuffer = std::make_shared<FrameBuffer>();
+	frameBuffer->bindBuffer();
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+
+	frontDepth = std::make_shared<Texture>();
+	backDepth = std::make_shared<Texture>();
 }
 
 DepthPass::~DepthPass() {
@@ -169,9 +175,29 @@ DepthPass::~DepthPass() {
 }
 
 void DepthPass::render(const std::shared_ptr<RenderScene>& scene) {
-	glViewport(0, 0, inputManager->width, inputManager->height);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	frameBuffer->bindBuffer();
+	if (inputManager->viewPortChange) {
+		frontDepth->genTexture(GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, inputManager->width, inputManager->height);
+		backDepth->genTexture(GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, inputManager->width, inputManager->height);
+	}
 
+	depthShader->use();
+
+	frameBuffer->bindTexture(frontDepth,GL_DEPTH_ATTACHMENT,TextureType::FLAT);
+	glViewport(0, 0, inputManager->width, inputManager->height);
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	glCullFace(GL_BACK);
+	for (auto object : scene->objects) {
+		std::shared_ptr<MeshRenderer>&& renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
+		if (renderer && renderer->shader) {
+			renderer->render(false);
+		}
+	}
+
+	glClear(GL_DEPTH_BUFFER_BIT);
+	frameBuffer->bindTexture(backDepth,GL_DEPTH_ATTACHMENT,TextureType::FLAT);
+	glCullFace(GL_FRONT);
 	for (auto object : scene->objects) {
 		std::shared_ptr<MeshRenderer>&& renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
 		if (renderer && renderer->shader) {

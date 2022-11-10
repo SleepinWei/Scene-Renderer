@@ -3,6 +3,8 @@
 #include<vector>
 #include<string>
 #include<memory>
+#include<json/json.hpp>
+using json = nlohmann::json;
 
 class Shader;
 class Texture;
@@ -14,7 +16,7 @@ class Texture;
 
 class Material:public std::enable_shared_from_this<Material> {
 public:
-	Material()=default;
+	Material();
 	//Material(std::vector<std::shared_ptr<Texture>>& textures) {
 		//this->textures = textures;
 	//}
@@ -28,6 +30,10 @@ public:
 	static std::shared_ptr<Material> loadCubeMap(const std::string& folder);
 	static std::shared_ptr<Material> loadModel(const std::string& folder);
 
+	void loadFromJson(json& data);
+
 public:
+	//std::string type; 
+	bool hasSubSurface;
 	std::unordered_map<std::string, std::shared_ptr<Texture>> textures;
 };

@@ -9,6 +9,9 @@
 
 extern std::unique_ptr<ResourceManager> resourceManager;
 
+Material::Material() {
+	hasSubSurface = false;
+}
 Material::~Material() {
 }
 
@@ -98,4 +101,18 @@ std::shared_ptr<Material> Material::loadModel(const std::string& folder) {
 		->addTexture(folder + "roughness.jpg", "material.roughness");
 		//->addTexture("height.png", "material.height");
 	return material;
+}
+
+void Material::loadFromJson(json& data) {
+	if (data.find("textures") != data.end()) {
+		auto& mat = data["textures"];
+		for (auto iter = mat.begin(); iter != mat.end(); ++iter) {
+			auto& mat_type = iter.key();
+			auto& mat_path = iter.value().get<std::string>();
+			this->addTexture(mat_path, mat_type);
+		}
+	}
+	if (data.find("hasSubSurface") != data.end()) {
+		this->hasSubSurface = data["hasSubSurface"].get<bool>();
+	}
 }

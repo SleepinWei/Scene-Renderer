@@ -195,11 +195,10 @@ void MeshRenderer::render(bool useShader){
 }
 
 void MeshRenderer::loadFromJson(json& data) {
-	auto& mat = data["material"];
-	for (auto iter = mat.begin(); iter != mat.end(); ++iter) {
-		auto& mat_type = iter.key();
-		auto& mat_path = iter.value().get<std::string>();
-		this->material->addTexture(mat_path, mat_type);
+	{
+		if (data.find("material") != data.end()) {
+			this->material->loadFromJson(data["material"]);
+		}
 	}
 	{
 		auto& shader = data["shader"];
