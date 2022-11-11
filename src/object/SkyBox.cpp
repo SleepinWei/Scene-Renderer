@@ -103,6 +103,6 @@ Sky::~Sky() {
 
 }
 
-void Sky::render(bool useShader) {
-	atmosphere->render(useShader);
+void Sky::render(const std::shared_ptr<Shader>& shader) {
+	atmosphere->render(shader);
 }

@@ -47,7 +47,7 @@ class Atmosphere :public Component,public std::enable_shared_from_this<Atmospher
 public:
 	Atmosphere();
 	~Atmosphere();
-	void render(bool useShader); 
+	void render(const std::shared_ptr<Shader>& shader); 
 	void constructCall();
 
 public:
@@ -79,6 +79,6 @@ private:
 	void initTextures();
 	void prepareAtmosphere();
 	void computeDrawCall(); 
-	void renderDrawCall(bool useShader);
+	void renderDrawCall(const std::shared_ptr<Shader>& shader);
 };
 

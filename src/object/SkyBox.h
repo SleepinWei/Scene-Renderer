@@ -35,7 +35,7 @@ public:
 	Sky();
 	~Sky();
 
-	void render(bool useShader);
+	void render(const std::shared_ptr<Shader>& shader);
 
 public:
 	std::shared_ptr<Atmosphere> atmosphere;

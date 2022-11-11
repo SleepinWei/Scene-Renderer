@@ -139,17 +139,20 @@ void Atmosphere::computeDrawCall() {
 	computeSkyViewTexutre();
 }
 
-void Atmosphere::renderDrawCall(bool useShader) {
+void Atmosphere::renderDrawCall(const std::shared_ptr<Shader>& outShader) {
 	glDepthFunc(GL_LEQUAL);
 	glCullFace(GL_FRONT);
 
 	glActiveTexture(GL_TEXTURE8);
 	skyViewTexture->bindBuffer();
 
-	if (useShader) {
+	if (!outShader) {
 		shader->use();
 		shader->setInt("skyViewLut", 8);
 		//shader->setInt("tex", 8);
+	}
+	else {
+		outShader->use();
 	}
 	renderCube();
 	// only for debug
@@ -159,8 +162,8 @@ void Atmosphere::renderDrawCall(bool useShader) {
 }
 
 
-void Atmosphere::render(bool useShader) {
-	renderDrawCall(useShader);
+void Atmosphere::render(const std::shared_ptr<Shader>& shader) {
+	renderDrawCall(shader);
 }
 
 Atmosphere::~Atmosphere() {
