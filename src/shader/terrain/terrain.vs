@@ -34,11 +34,14 @@ void main(){
     Patch p = patches[gl_InstanceID];
     vec4 aPos = p.patchPos[indexChange[vertexIndex]];
     object.Position = vec3(model * aPos);
-    object.TexCoords = p.patchTex[indexChange[vertexIndex]] ;
+    // object.TexCoords = p.patchTex[indexChange[vertexIndex]] ;
+    object.TexCoords = clamp(aPos.xz * 0.5 + 0.5,0.0f,1.0f);
 
     // TODO: 需要考虑 y_shift 和 y_scale 
-    vec3 sampledNormal = texture(normalMap,(0.5 * aPos.xz + 0.5)).xzy * 2 -1.0f;
-    object.Normal = mat3(transpose(inverse(model))) * sampledNormal;
+    // vec3 tangentNormal = texture(normalMap,(0.5 * aPos.xz + 0.5)).xyz * 2 -1.0f;
+    // tangentNormal = vec3(tangentNormal.x,tangentNormal.z,tangentNormal.y);
+    // object.Normal = mat3(transpose(inverse(model))) * tangentNormal;
+    object.Normal = vec3(0.0f,1.0f,0.0f);
     // object.Normal.y = object.Normal.y / 256.0f;
     object.Normal = normalize(object.Normal);
 

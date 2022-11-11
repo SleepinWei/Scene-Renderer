@@ -1,6 +1,7 @@
 #include"Mesh_Filter.h"
 #include"Material.h"
 #include"Texture.h"
+#include"../component/Model.h"
 #include<glfw/glfw3.h>
 
 #define PI 3.1415926
@@ -10,32 +11,32 @@
 //	.constructor<>()(rttr::policy::ctor::as_std_shared_ptr);
 //	//.constructor<>()(rttr::policy::ctor::as_raw_ptr);
 //}
-MeshFilter::MeshFilter() {
-	Component::name = "MeshFilter";
+
+Mesh::Mesh() {
+	VAO = 0, VBO = 0, EBO = 0;
 }
 
-MeshFilter::MeshFilter(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::shared_ptr<Material> material){
-	Component::name = "MeshFilter";
+Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices){
 	this->vertices = vertices;
 	this->indices = indices;
+	VAO = 0, VBO = 0, EBO = 0;
 }
 
-void MeshFilter::loadMesh(std::string path) {
+//void MeshFilter::loadMesh(std::string path) {
 	// TODO: 
-}
+//}
 
-MeshFilter::~MeshFilter() {
-
-}
-
-void MeshFilter::initSphere(int pointNum) {
+std::shared_ptr<Mesh> Mesh::initSphere(int pointNum) {
+	std::shared_ptr<Mesh> result = std::make_shared<Mesh>();
 	float delta = 2 * PI * 1.0 / pointNum; // delta of angle
 	float R = 1;
 	int overallPointNum = (pointNum/2 + 1) * (pointNum + 1);
-	vertices = std::vector<Vertex>(overallPointNum * 3);
+	std::vector<Vertex>(overallPointNum * 3).swap(result->vertices);
 
 	int overallTriangles = pointNum * pointNum;
-	indices = std::vector<GLuint>(overallTriangles * 3,0);
+	std::vector<GLuint>(overallTriangles * 3,0).swap(result->indices);
+	auto& vertices = result->vertices;
+	auto& indices = result->indices;
 
 	//vertices[0].Position = { 0,R,0 };
 	//vertices[0].TexCoords = { 0.5,0 };
@@ -91,15 +92,18 @@ void MeshFilter::initSphere(int pointNum) {
 		//indices[index++] = overallPointNum - 1;
 		//indices[index++] = nextPoint;
 	//}
+	return result;
 }
 
-void MeshFilter::initPlane() {
+std::shared_ptr<Mesh> Mesh::initPlane() {
+	std::shared_ptr<Mesh> result = std::make_shared<Mesh>();
+	std::vector<Vertex>(4).swap(result->vertices);
 
-	vertices = std::vector<Vertex>(4);
-	indices = std::vector<unsigned int>{
+	auto& vertices = result->vertices;
+	std::vector<unsigned int>{
 		0, 1, 2,
 		0, 2, 3
-	};
+	}.swap(result->indices);
 
 	vertices[0].Position = { 1.0f, 0.0f, 1.0f };
 	vertices[1].Position = { 1.0f, 0.0f, -1.0f };
@@ -113,16 +117,26 @@ void MeshFilter::initPlane() {
 	vertices[1].TexCoords = { 1.0f,0.0f };
 	vertices[2].TexCoords = { 0.0f,0.0f };
 	vertices[3].TexCoords = { 0.0f,1.0f };
+	return result;
 }
 
-void MeshFilter::initPoint() {
-	vertices = std::vector<Vertex>(1);
+std::shared_ptr<Mesh> Mesh::initPoint() {
+	std::shared_ptr<Mesh> result = std::make_shared<Mesh>();
+	std::vector<Vertex>(1).swap(result->vertices);
+	std::vector<unsigned int>{ 0 }.swap(result->indices);
+
+	auto& vertices = result->vertices;
+	//auto& indices = result->indices;
+
 	vertices[0].Position = { 0,0,0 };
-	indices = std::vector<unsigned int>{ 0 };
+	return result;
 }
 
-void MeshFilter::initCube() {
-	vertices = std::vector<Vertex>(8);
+std::shared_ptr<Mesh> Mesh::initCube() {
+	std::shared_ptr<Mesh> result = std::make_shared<Mesh>();
+	std::vector<Vertex>(8).swap(result->vertices);
+
+	auto& vertices = result->vertices;
 	vertices[0].Position = { 1.0f,1.0f,1.0f };
 	vertices[1].Position = { 1.0f,1.0f,-1.0f };
 	vertices[2].Position = { -1.0f,1.0f,-1.0f };
@@ -141,7 +155,7 @@ void MeshFilter::initCube() {
 	vertices[6].Normal= { -1.0f,-1.0f,-1.0f };
 	vertices[7].Normal= { -1.0f,-1.0f,1.0f };
 
-	indices = std::vector<unsigned int>{
+	std::vector<unsigned int>{
 		0,4,1,
 		1,4,5,
 		0,3,4,
@@ -154,26 +168,37 @@ void MeshFilter::initCube() {
 		1,2,0,
 		4,6,5,
 		4,7,6
-	};
+	}.swap(result->indices);
+
+	return result;
+}
+
+MeshFilter::MeshFilter() {
+	Component::name = "MeshFilter";
+}
+
+MeshFilter::~MeshFilter() {
 
 }
 
-void MeshFilter::loadShape(SHAPE shape) {
+void MeshFilter::addShape(SHAPE shape) {
+	std::shared_ptr<Mesh> mesh;
 	switch (shape)
 	{
 	case SHAPE::SPHERE:
-		initSphere(64);
+		mesh = Mesh::initSphere(64);
 		break;
 	case SHAPE::PLANE:
-		initPlane();
+		mesh = Mesh::initPlane();
 		break;
 	case SHAPE::CUBE:
-		initCube();
+		mesh = Mesh::initCube();
 		break;
 	case SHAPE::POINT:
-		initPoint();
+		mesh = Mesh::initPoint();
 		break;
 	default:
 		break;
 	}
+	meshes.push_back(mesh);
 }

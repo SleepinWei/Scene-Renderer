@@ -33,6 +33,21 @@ public:
 		return component;
 	}
 
+	template<class T>
+	std::shared_ptr<GameObject> addComponent(const std::shared_ptr<T>& component) {
+		component->Component::setGameObject(shared_from_this());
+		std::string component_type_name = component->name;
+		if (component_type_instance_map.find(component_type_name) == component_type_instance_map.end()) {
+			std::vector<std::shared_ptr<Component>> component_vec;
+			component_vec.push_back(component);
+			component_type_instance_map[component_type_name] = component_vec;
+		}
+		else {
+			component_type_instance_map[component_type_name].push_back(component);
+		}
+		return shared_from_this();
+	}
+
 	std::shared_ptr<Component> GetComponent(std::string component_type_name);
 
 	// get all components with the same name 

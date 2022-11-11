@@ -27,6 +27,9 @@
 #include"GUI.h"
 #include"./system/global_context.h"
 #include"./component/Atmosphere.h"
+// yaml
+#include"../include/yaml-cpp/yaml.h"
+
 extern "C" __declspec(dllexport) long long NvOptimusEnablement = 0x00000001;
 extern "C" __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 0x00000001;
 
@@ -55,10 +58,9 @@ void render() {
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 	glEnable(GL_PROGRAM_POINT_SIZE);
-
 	// gui
 	Gui gui(window);
-
+	
 	// init Managers 
 	{
 		inputManager = std::make_unique<InputManager>();
@@ -76,11 +78,13 @@ void render() {
 	}
 		
 	//terrain
+	if (0)
 	{
 		std::shared_ptr<Terrain> terrain = std::make_shared<Terrain>();
-		terrain->loadHeightmap("./asset/heightmap/iceland/");
-		auto terrainMaterial = Material::loadPBR("./asset/pbr/grass/");
-		terrain->addMaterial(terrainMaterial)
+		terrain->loadHeightmap("./asset/heightmap/mountain/");
+		auto terrainMaterial = Material::loadPBR("./asset/heightmap/mountain/");
+		terrain
+			->addMaterial(terrainMaterial)
 			->addShader(ShaderType::TERRAIN);
 		//terrain->setPolyMode(GL_LINE);
 
@@ -95,10 +99,10 @@ void render() {
 
 		auto&& transform = pLight->addComponent<Transform>(); 
 		transform->scale = glm::vec3(0.1);
-		transform->position = glm::vec3(0.0f,0.05f, 0.0f);
+		transform->position = glm::vec3(0.0f,0.05f, -2.0f);
 
 		auto&& mesh = pLight->addComponent<MeshFilter>();
-		mesh->loadShape(SHAPE::POINT);
+		mesh->addShape(SHAPE::POINT);
 		
 		auto&& renderer = pLight->addComponent <MeshRenderer>();
 		renderer->setShader(ShaderType::LIGHT)
@@ -119,13 +123,13 @@ void render() {
 		light->data.color = glm::vec3(1.0f, 1.0f, 1.0f) * intensity;
 
 		auto&& mesh = dLight->addComponent<MeshFilter>();
-		mesh->loadShape(SHAPE::POINT);
+		mesh->addShape(SHAPE::POINT);
 		
-		auto&& renderer = dLight->addComponent <MeshRenderer>();
+		auto&& renderer = dLight->addComponent<MeshRenderer>();
 		renderer->setShader(ShaderType::LIGHT)
 			->setDrawMode(GL_POINTS);
 
-		//scene->addObject(dLight);
+		scene->addObject(dLight);
 	}
 
 	// Camera
@@ -135,6 +139,7 @@ void render() {
 	}
 
 	// object
+	if (0)
 	{
 		std::shared_ptr<GameObject> sphere = std::make_shared<GameObject>();
 		auto&& transform = sphere->addComponent<Transform>();
@@ -142,7 +147,7 @@ void render() {
 		transform->scale = glm::vec3(0.5);
 
 		auto&& mesh = sphere->addComponent<MeshFilter>();
-		mesh->loadShape(SHAPE::SPHERE);
+		mesh->addShape(SHAPE::SPHERE);
 
 		auto&& renderer = sphere->addComponent<MeshRenderer>();
 		renderer->setShader(ShaderType::PBR)
@@ -151,6 +156,7 @@ void render() {
 			//->setPolyMode(GL_LINE);
 		scene->addObject(sphere);
 	}
+	if (0)
 	{
 		std::shared_ptr<GameObject> sphere = std::make_shared<GameObject>();
 		auto&& transform = sphere->addComponent<Transform>();
@@ -158,7 +164,7 @@ void render() {
 		transform->scale = glm::vec3(0.5);
 
 		auto&& mesh = sphere->addComponent<MeshFilter>();
-		mesh->loadShape(SHAPE::SPHERE);
+		mesh->addShape(SHAPE::SPHERE);
 
 		auto&& renderer = sphere->addComponent<MeshRenderer>();
 		renderer->setShader(ShaderType::PBR)
@@ -167,6 +173,7 @@ void render() {
 			//->setPolyMode(GL_LINE);
 		scene->addObject(sphere);
 	}
+	if (0)
 	{
 		std::shared_ptr<GameObject> sphere = std::make_shared<GameObject>();
 		auto&& transform = sphere->addComponent<Transform>();
@@ -174,7 +181,7 @@ void render() {
 		transform->scale = glm::vec3(0.5);
 
 		auto&& mesh = sphere->addComponent<MeshFilter>();
-		mesh->loadShape(SHAPE::SPHERE);
+		mesh->addShape(SHAPE::SPHERE);
 
 		auto&& renderer = sphere->addComponent<MeshRenderer>();
 		renderer->setShader(ShaderType::PBR_TESS)
@@ -183,6 +190,7 @@ void render() {
 			//->setPolyMode(GL_LINE);
 		scene->addObject(sphere);
 	}
+	if (0)
 	{
 		std::shared_ptr<GameObject> sphere = std::make_shared<GameObject>();
 		auto&& transform = sphere->addComponent<Transform>();
@@ -190,7 +198,7 @@ void render() {
 		transform->scale = glm::vec3(0.5);
 
 		auto&& mesh = sphere->addComponent<MeshFilter>();
-		mesh->loadShape(SHAPE::SPHERE);
+		mesh->addShape(SHAPE::SPHERE);
 
 		auto&& renderer = sphere->addComponent<MeshRenderer>();
 		renderer->setShader(ShaderType::PBR)
@@ -199,8 +207,97 @@ void render() {
 			//->setPolyMode(GL_LINE);
 		scene->addObject(sphere);
 	}
+#pragma region model
+	if (0)
+	{
+		std::shared_ptr<GameObject> model = std::make_shared<GameObject>();
+		auto&& transform = model->addComponent<Transform>();
+		transform->position = glm::vec3(0.0f, 0.0f, -2.0f);
+		transform->scale = glm::vec3(0.5);
 
-	//plane 
+		std::string dir = "./asset/model/backpack/";
+		model->addComponent<MeshFilter>(Model::loadModel(dir + "backpack.obj"));
+		auto&& mesh = std::dynamic_pointer_cast<MeshFilter>(model->GetComponent("MeshFilter"));
+
+		auto&& renderer = model->addComponent<MeshRenderer>();
+		renderer->setShader(ShaderType::PBR)
+			->setMaterial(Material::loadCustomModel(dir))
+			->setDrawMode(GL_TRIANGLES);
+			//->setPolyMode(GL_LINE);
+		scene->addObject(model);
+	}
+	if (0)
+	{
+		std::shared_ptr<GameObject> model = std::make_shared<GameObject>();
+		auto&& transform = model->addComponent<Transform>();
+		transform->position = glm::vec3(0.0f, -5.0f, -10.0f);
+		transform->scale = glm::vec3(0.02);
+
+		std::string dir = "./asset/model/bed/";
+		model->addComponent<MeshFilter>(Model::loadModel(dir + "Bed.fbx", false));
+		auto&& mesh = std::dynamic_pointer_cast<MeshFilter>(model->GetComponent("MeshFilter"));
+
+		auto&& renderer = model->addComponent<MeshRenderer>();
+		renderer->setShader(ShaderType::PBR)
+			->setMaterial(Material::loadCustomModel(dir))
+			->setDrawMode(GL_TRIANGLES);
+		//->setPolyMode(GL_LINE);
+		scene->addObject(model);
+	}
+	
+	// ��ȡԤ�����ļ�
+	auto building = YAML::LoadAllFromFile("./asset/model/PFB_Building_Full.yml");
+	const std::string tag = "tag:unity3d.com,2011:";
+	auto comps = std::unordered_map<std::string, YAML::Node>();
+	auto objAnchors = std::set<std::string>();
+	for (auto comp : building)
+	{
+		comps.emplace(comp.Anchor(), comp);
+		if (comp.Tag() == tag + "1")
+			objAnchors.emplace(comp.Anchor());
+	}
+
+	// �ڳ����д�������
+	for (auto objAnchor : objAnchors)
+	{
+		// ���Ҹ�������������
+		auto& obj = comps[objAnchor];
+		auto obj_comps = std::unordered_map<std::string, YAML::Node>();
+		for (auto comp : obj["GameObject"]["m_Component"])
+		{
+			std::string anchor = comp["component"]["fileID"].as<std::string>();
+			std::string tag = comps[anchor].Tag().substr(comps[anchor].Tag().find_last_of(':') + 1);
+			if (tag == "4")
+				obj_comps.emplace("Transform", comps[anchor]);
+			else if (tag == "33")
+				obj_comps.emplace("MeshFilter", comps[anchor]);
+			else if (tag == "23")
+				obj_comps.emplace("MeshRenderer", comps[anchor]);
+		}
+		if (obj_comps.find("MeshFilter") == obj_comps.end() || 
+			obj_comps.find("MeshRenderer") == obj_comps.end())
+			continue;
+
+		// ����λ��
+		std::shared_ptr<GameObject> model = std::make_shared<GameObject>();
+		auto&& trans = model->addComponent<Transform>(Transform::GetWorldTransform(comps, obj_comps["Transform"].Anchor()));
+		
+		// ��������
+		std::string guid = obj_comps["MeshFilter"]["MeshFilter"]["m_Mesh"]["guid"].as<std::string>();
+		model->addComponent<MeshFilter>(Model::loadModel(resourceManager->guidMap[guid], false));
+		// ������ʣ����ѭ��ȷ��ֻ����һ�Σ�
+		for (auto mat : obj_comps["MeshRenderer"]["MeshRenderer"]["m_Materials"])
+			guid = mat["guid"].as<std::string>();
+		auto&& renderer = model->addComponent<MeshRenderer>();
+		renderer->setShader(ShaderType::PBR);
+		renderer->setMaterial(Material::loadModel(resourceManager->guidMap[guid]));
+		renderer->setDrawMode(GL_TRIANGLES);
+		//renderer->setPolyMode(GL_LINE);
+		scene->addObject(model);
+	}
+
+	//plane
+	if (0)
 	{
 		std::shared_ptr<GameObject> plane = std::make_shared<GameObject>();
 		auto&& transform = plane->addComponent<Transform>();
@@ -208,7 +305,7 @@ void render() {
 		transform->scale = glm::vec3(0.2);
 
 		auto&& mesh = plane->addComponent<MeshFilter>();
-		mesh->loadShape(SHAPE::PLANE);
+		mesh->addShape(SHAPE::PLANE);
 
 		auto&& renderer = plane->addComponent<MeshRenderer>();
 		renderer->setShader(ShaderType::PBR)
@@ -219,6 +316,8 @@ void render() {
 
 		scene->addObject(plane);
 	}
+#pragma endregion
+
 	// atmosphere
 	float* sunAngle;
 	AtmosphereParameters* parameters; 
@@ -231,7 +330,7 @@ void render() {
 		scene->addObject(atm);
 	}
 	glCheckError();
-
+	
 	while (!glfwWindowShouldClose(window)) {
 		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		//glClearColor(0.6, 0.6, 0.6, 1.0);
