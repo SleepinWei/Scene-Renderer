@@ -32,6 +32,7 @@ void Transform::loadFromJson(json& data) {
 	this->position = position_;
 	this->rotation = rotation_;
 	this->scale = scale_;
+}
 // 构造一个游戏对象的世界坐标Transform
 std::shared_ptr<Transform> Transform::GetWorldTransform(Components& comps, std::string id)
 {

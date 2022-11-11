@@ -5,7 +5,7 @@
 
 using json = nlohmann::json;
 #include <unordered_map>
-#include<<yaml-cpp/yaml.h>
+#include<yaml-cpp/yaml.h>
 
 const float sca_scaler = 0.012f;
 const float pos_scaler = 8.0f;

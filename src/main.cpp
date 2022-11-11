@@ -272,7 +272,8 @@ void render() {
 		transform->scale = glm::vec3(0.02);
 
 		std::string dir = "./asset/model/bed/";
-		model->addComponent<MeshFilter>(Model::loadModel(dir + "Bed.fbx", false));
+		auto& meshfilter = model->addComponent<MeshFilter>();
+		meshfilter->addMesh(Model::loadModel(dir + "Bed.fbx", false));
 		auto&& mesh = std::dynamic_pointer_cast<MeshFilter>(model->GetComponent("MeshFilter"));
 
 		auto&& renderer = model->addComponent<MeshRenderer>();
@@ -318,11 +319,12 @@ void render() {
 
 		// ����λ��
 		std::shared_ptr<GameObject> model = std::make_shared<GameObject>();
-		auto&& trans = model->addComponent<Transform>(Transform::GetWorldTransform(comps, obj_comps["Transform"].Anchor()));
+		auto&& trans = model->addComponent(Transform::GetWorldTransform(comps, obj_comps["Transform"].Anchor()));
 		
 		// ��������
 		std::string guid = obj_comps["MeshFilter"]["MeshFilter"]["m_Mesh"]["guid"].as<std::string>();
-		model->addComponent<MeshFilter>(Model::loadModel(resourceManager->guidMap[guid], false));
+		auto& meshfilter = model->addComponent<MeshFilter>();
+		meshfilter->addMesh(Model::loadModel(resourceManager->guidMap[guid], false));
 		// ������ʣ����ѭ��ȷ��ֻ����һ�Σ�
 		for (auto mat : obj_comps["MeshRenderer"]["MeshRenderer"]["m_Materials"])
 			guid = mat["guid"].as<std::string>();
