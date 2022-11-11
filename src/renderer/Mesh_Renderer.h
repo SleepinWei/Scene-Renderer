@@ -20,7 +20,7 @@ public:
 	MeshRenderer();
 	~MeshRenderer();
 
-	void render(bool useShader); 
+	void render(const std::shared_ptr<Shader>& shader); 
 
 	//void setShader(std::shared_ptr<Shader> shader) { this->shader = shader; };
 	std::shared_ptr<MeshRenderer> setShader(ShaderType type);

@@ -16,13 +16,6 @@
 #include"../component/transform.h"
 #include"../component/Lights.h"
 
-//using namespace rttr;
-
-//RTTR_REGISTRATION{
-//	registration::class_<MeshRenderer>("MeshRenderer")
-//	.constructor<>()(rttr::policy::ctor::as_std_shared_ptr);
-//}
-
 MeshRenderer::~MeshRenderer() {
 
 }
@@ -45,6 +38,9 @@ std::shared_ptr<MeshRenderer> MeshRenderer::setShader(std::string type) {
 	}
 	else if (type == "pbr_anisotropy") {
 		shadertype = ShaderType::PBR_ANISOTROPY;
+	}
+	else if (type == "pbr_sss") {
+		shadertype = ShaderType::PBR_SSS;
 	}
 	else if (type == "light") {
 		shadertype = ShaderType::LIGHT;
@@ -96,7 +92,7 @@ MeshRenderer::MeshRenderer():drawMode(GL_TRIANGLES),polyMode(GL_FILL) {
 /// a global shader is used. 
 /// </summary>
 /// <param name="useShader"></param>
-void MeshRenderer::render(bool useShader){
+void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 	const std::shared_ptr<Transform>& transform = std::dynamic_pointer_cast<Transform>(gameObject->GetComponent("Transform"));
 
 	if (!transform) {
@@ -154,7 +150,8 @@ void MeshRenderer::render(bool useShader){
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
 		}
 
-		if (useShader && shader)
+
+		if (!outShader && shader)
 		{
 			shader->use();
 			//glEnable(GL_DEPTH_TEST);
@@ -174,8 +171,16 @@ void MeshRenderer::render(bool useShader){
 					shader->setInt((iterator->first).c_str(), texture_index);
 					++texture_index;
 				}
+				if (material->hasSubSurface) {
+					// 
+				}
 			}
 		}
+		else if (outShader) {
+			outShader->use();
+			outShader->setMat4("model",model);
+		}
+
 
 		glBindVertexArray(VAO);
 		assert(VAO > 0);

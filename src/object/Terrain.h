@@ -20,8 +20,7 @@ public:
 	std::shared_ptr<Terrain> addMaterial(std::shared_ptr<Material> material); // append 
 
 	// render pass
-	void render(bool useShader);
-	void tessDrawCall();
+	void render(const std::shared_ptr<Shader>& outShader);
 
 	// compute Shader 
 	void constructCall();
@@ -61,10 +60,11 @@ public:
 	std::shared_ptr<ImageTexture> lodMapTexture;
 	//bool isIn; // inQueue  «∑Ò π”√ inQueueSSBO / or outQueueSSBO
 private: 
+	void tessDrawCall();
 	void compLodCall();
 	void compLodMapCall();
 	void compGeneratePatchCall();
 	void prepareData(); 
 	void computeDrawCall(); // compute shader
-	void renderCall(bool useShader);
+	void renderCall(const std::shared_ptr<Shader>& outShader);
 };

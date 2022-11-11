@@ -395,7 +395,7 @@ void Terrain::compGeneratePatchCall() {
 	// end for 
 }
 
-void Terrain::renderCall(bool useShader) {
+void Terrain::renderCall(const std::shared_ptr<Shader>& outShader) {
 	// test renderCall
 	initVertexObject();
 
@@ -413,7 +413,7 @@ void Terrain::renderCall(bool useShader) {
 	//glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)16);
 	//glEnableVertexAttribArray(1);
 
-	if (useShader && shader) {
+	if (!outShader && shader) {
 		shader->use();
 
 		// bind normal map
@@ -435,6 +435,9 @@ void Terrain::renderCall(bool useShader) {
 				++texture_index;
 			}
 		}
+	}
+	else {
+		outShader->use();
 	}
 
 	if (polyMode == GL_LINE) {
@@ -458,8 +461,8 @@ void Terrain::constructCall() {
 	prepareData(); 
 	computeDrawCall();
 }
-void Terrain::render(bool useShader) {
-	renderCall(useShader);
+void Terrain::render(const std::shared_ptr<Shader>& outShader) {
+	renderCall(outShader);
 }
 
 void Terrain::setPolyMode(unsigned int polyMode_) {
