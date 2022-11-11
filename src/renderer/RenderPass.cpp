@@ -14,12 +14,13 @@
 #include"../buffer/FrameBuffer.h"
 #include"../component/Lights.h"
 #include"../renderer/Texture.h"
+#include"../buffer/RenderBuffer.h"
 #include<memory>
 
 extern std::unique_ptr<InputManager> inputManager;
 extern std::unique_ptr<RenderManager> renderManager;
 
-void BasePass::render(const std::shared_ptr<RenderScene>& scene,bool useShader) {
+void BasePass::render(const std::shared_ptr<RenderScene>& scene,const std::shared_ptr<Shader>& outShader) {
 	glViewport(0, 0, inputManager->width, inputManager->height);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -27,7 +28,7 @@ void BasePass::render(const std::shared_ptr<RenderScene>& scene,bool useShader) 
 	for (auto object : scene->objects) {
 		std::shared_ptr<MeshRenderer>&& renderer = std::dynamic_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
 		if (renderer && renderer->shader) {
-			renderer->render(useShader);
+			renderer->render(outShader);
 		}
 	}
 	glCheckError();
@@ -36,12 +37,12 @@ void BasePass::render(const std::shared_ptr<RenderScene>& scene,bool useShader) 
 	if (terrain && terrain->shader) {
 		//terrain->shader->use();
 		glCheckError();
-		terrain->render(useShader);
+		terrain->render(outShader);
 	}
 
 	std::shared_ptr<Sky>& sky = scene->sky;
 	if (sky && sky->atmosphere->shader) {
-		sky->render(useShader);
+		sky->render(outShader);
 	}
 
 	// render skybox 
@@ -58,7 +59,7 @@ HDRPass::HDRPass() {
 	rboDepth = 0;
 	dirty = true;
 
-	//hdrShader = renderManager->getShader(ShaderType::HDR);
+	hdrShader = renderManager->getShader(ShaderType::HDR);
 }
 
 HDRPass::~HDRPass() {
@@ -160,14 +161,19 @@ DepthPass::DepthPass() {
 	// TODO :
 	// shader
 	depthShader = renderManager->getShader(ShaderType::DEPTH);
+
 	//frame buffer
 	frameBuffer = std::make_shared<FrameBuffer>();
 	frameBuffer->bindBuffer();
-	glDrawBuffer(GL_NONE);
-	glReadBuffer(GL_NONE);
+	//glDrawBuffer(GL_NONE);
+	//glReadBuffer(GL_NONE);
 
 	frontDepth = std::make_shared<Texture>();
 	backDepth = std::make_shared<Texture>();
+
+	renderBuffer = std::make_shared<RenderBuffer>();
+
+	dirty = true;
 }
 
 DepthPass::~DepthPass() {
@@ -176,32 +182,62 @@ DepthPass::~DepthPass() {
 
 void DepthPass::render(const std::shared_ptr<RenderScene>& scene) {
 	frameBuffer->bindBuffer();
-	if (inputManager->viewPortChange) {
-		frontDepth->genTexture(GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, inputManager->width, inputManager->height);
-		backDepth->genTexture(GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, inputManager->width, inputManager->height);
+	if (dirty || inputManager->viewPortChange) {
+		frontDepth->genTexture(GL_RGBA32F, GL_RGBA, inputManager->width, inputManager->height);
+		backDepth->genTexture(GL_RGBA32F, GL_RGBA, inputManager->width, inputManager->height);
+		renderBuffer->genBuffer(inputManager->width, inputManager->height);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderBuffer->rbo);
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+			std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+		dirty = false;
 	}
+	glCheckError();
+
+	//glm::mat4 projection_ = glm::perspective(glm::radians(scene->main_camera->Zoom),
+		//inputManager->width * 1.0f / inputManager->height,
+		//0.5f, 5.0f);
 
 	depthShader->use();
+	//depthShader->setMat4("projection_", projection_);
 
-	frameBuffer->bindTexture(frontDepth,GL_DEPTH_ATTACHMENT,TextureType::FLAT);
+	frameBuffer->bindTexture(frontDepth,GL_COLOR_ATTACHMENT0,TextureType::FLAT);
+
 	glViewport(0, 0, inputManager->width, inputManager->height);
-	glClear(GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);//black
+	glCheckError();
 
 	glCullFace(GL_BACK);
 	for (auto object : scene->objects) {
 		std::shared_ptr<MeshRenderer>&& renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
 		if (renderer && renderer->shader) {
-			renderer->render(false);
+			renderer->render(depthShader);
 		}
 	}
 
-	glClear(GL_DEPTH_BUFFER_BIT);
-	frameBuffer->bindTexture(backDepth,GL_DEPTH_ATTACHMENT,TextureType::FLAT);
+	frameBuffer->bindTexture(backDepth,GL_COLOR_ATTACHMENT0,TextureType::FLAT);
+	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);//black
 	glCullFace(GL_FRONT);
 	for (auto object : scene->objects) {
 		std::shared_ptr<MeshRenderer>&& renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
 		if (renderer && renderer->shader) {
-			renderer->render(false);
+			renderer->render(depthShader);
 		}
 	}
+
+	// set shaders 
+	auto& sssShader = renderManager->getShader(ShaderType::PBR_SSS);
+	glActiveTexture(GL_TEXTURE18);
+	glBindTexture(GL_TEXTURE_2D, frontDepth->id);
+	glActiveTexture(GL_TEXTURE19);
+	glBindTexture(GL_TEXTURE_2D, backDepth->id);
+
+	glCullFace(GL_BACK);
+	
+	sssShader->use();
+	sssShader->setInt("frontDepth", 18);
+	sssShader->setInt("backDepth", 19);
+	sssShader->setInt("screen_width", inputManager->width);
+	sssShader->setInt("screen_height", inputManager->height);
 }

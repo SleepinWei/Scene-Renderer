@@ -157,6 +157,7 @@
     <ClCompile Include="include\imgui\imgui_widgets.cpp" />
     <ClCompile Include="src\buffer\FrameBuffer.cpp" />
     <ClCompile Include="src\buffer\ImageTexture.cpp" />
+    <ClCompile Include="src\buffer\RenderBuffer.cpp" />
     <ClCompile Include="src\buffer\SSBO.cpp" />
     <ClCompile Include="src\buffer\UniformBuffer.cpp" />
     <ClCompile Include="src\component\Atmosphere.cpp" />
@@ -194,6 +195,7 @@
     <ClInclude Include="src\buffer\buffer.h" />
     <ClInclude Include="src\buffer\FrameBuffer.h" />
     <ClInclude Include="src\buffer\ImageTexture.h" />
+    <ClInclude Include="src\buffer\RenderBuffer.h" />
     <ClInclude Include="src\buffer\SSBO.h" />
     <ClInclude Include="src\buffer\UniformBuffer.h" />
     <ClInclude Include="src\component\Atmosphere.h" />
@@ -206,6 +208,7 @@
     <ClInclude Include="src\object\SkyBox.h" />
     <ClInclude Include="src\object\Terrain.h" />
     <ClInclude Include="src\PT\BVH.h" />
+    <ClInclude Include="src\PT\glm_vec3.h" />
     <ClInclude Include="src\PT\hittable.h" />
     <ClInclude Include="src\PT\PathTracing.h" />
     <ClInclude Include="src\PT\PTAABB.h" />
@@ -213,6 +216,7 @@
     <ClInclude Include="src\PT\PTMaterial.h" />
     <ClInclude Include="src\PT\PTrandom.h" />
     <ClInclude Include="src\PT\PTRay.h" />
+    <ClInclude Include="src\PT\PTTexture.h" />
     <ClInclude Include="src\PT\PTVec.h" />
     <ClInclude Include="src\renderer\Material.h" />
     <ClInclude Include="src\renderer\Mesh_Filter.h" />

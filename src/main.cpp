@@ -41,6 +41,7 @@ const unsigned int SCR_HEIGHT = 900;
 extern std::unique_ptr<RenderManager> renderManager;
 extern std::unique_ptr<ResourceManager> resourceManager;
 extern std::unique_ptr<InputManager> inputManager;
+//extern std::shared_ptr<RenderScene> renderScene;
 //std::unique_ptr<MetaRegister> meta;
 
 //#define TEST
@@ -56,6 +57,7 @@ void render() {
 	//glad
 	gladInit();
 	glEnable(GL_DEPTH_TEST);
+	//glDepthMask(GL_FALSE);
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 	glEnable(GL_PROGRAM_POINT_SIZE);
@@ -67,16 +69,20 @@ void render() {
 	{
 		inputManager = std::make_unique<InputManager>();
 		renderManager = std::make_unique<RenderManager>();
+		renderManager->init();
 		resourceManager = std::make_unique<ResourceManager>();
+		//renderScene = std::make_shared<RenderScene>();
 	}
-
+	//std::shared_ptr<RenderScene>& scene = renderScene;
 	std::shared_ptr<RenderScene> scene = std::make_shared<RenderScene>();
+
 	//skybox
+	if(0)
 	{
-		std::shared_ptr<SkyBox> skybox = std::make_shared<SkyBox>();
-		skybox->addShader(ShaderType::SKYBOX) // define shader
-			->addMaterial("./asset/skybox/"); // define texture
-		scene->addSkyBox(skybox);
+		//std::shared_ptr<SkyBox> skybox = std::make_shared<SkyBox>();
+		//skybox->addShader(ShaderType::SKYBOX) // define shader
+			//->addMaterial("./asset/skybox/"); // define texture
+		//scene->addSkyBox(skybox);
 	}
 		
 	//terrain
@@ -100,7 +106,6 @@ void render() {
 		object->loadFromJson(data);
 		scene->addObject(object);
 	}
-
 	{
 		std::ifstream f("./asset/objects/sphere2.json");
 		json data = json::parse(f);
@@ -290,18 +295,23 @@ void render() {
 	float* sunAngle;
 	AtmosphereParameters* parameters; 
 	{
-		std::shared_ptr<GameObject> atm = std::make_shared<GameObject>();
-		auto&& atmosphere = atm->addComponent<Atmosphere>();
-		sunAngle = &(atmosphere->sunAngle);
-		parameters = &(atmosphere->atmosphere);
+		//std::shared_ptr<GameObject> atm = std::make_shared<GameObject>();
+		//auto&& atmosphere = atm->addComponent<Atmosphere>();
 
-		scene->addObject(atm);
+		std::shared_ptr<Sky> sky = std::make_shared<Sky>();
+
+		sunAngle = &(sky->atmosphere->sunAngle);
+		parameters = &(sky->atmosphere->atmosphere);
+
+		//scene->addObject(atm);
+		scene->addSky(sky);
 	}
 	glCheckError();
 	
 	while (!glfwWindowShouldClose(window)) {
 		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		//glClearColor(0.6, 0.6, 0.6, 1.0);
+		//glEnable(GL_DEPTH_TEST);
 
 		gui.window(scene,sunAngle,parameters);
 		glfwPollEvents();
@@ -335,7 +345,7 @@ void test_print(glm::mat4& model) {
 	}
 }
 
-//#include"PathTracing.h"
+#include"PT/PathTracing.h"
 int main() {
 	// 
 	render();

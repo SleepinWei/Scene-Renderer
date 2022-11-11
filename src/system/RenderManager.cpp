@@ -11,6 +11,7 @@
 #include"../component/transform.h"
 #include"../renderer/RenderPass.h"
 #include"../utils/Utils.h"
+#include"../component/Atmosphere.h"
 
 #include<glm/gtc/type_ptr.hpp>
 
@@ -24,16 +25,21 @@ RenderManager::RenderManager() {
 		//false
 	};
 
+}
+
+void RenderManager::init() {
 	// UBOs 
 	initVPbuffer();
 	initPointLightBuffer();
 	initDirectionLightBuffer();
+	initRenderPass();
+}
 
+void RenderManager::initRenderPass() {
 	// render Pass initialization 
 	hdrPass = std::make_shared<HDRPass>(); 
-	// 不能将设置shader的步骤合并到构造函数中，会导致引用一个nullptr
-	hdrPass->hdrShader = getShader(ShaderType::HDR);
 	basePass = std::make_shared<BasePass>();
+	depthPass = std::make_shared<DepthPass>();
 }
 
 void RenderManager::initVPbuffer() {
@@ -196,19 +202,33 @@ void RenderManager::prepareDirectionLightData(const std::shared_ptr<RenderScene>
 		sizeof(int), &lightNum);
 }
 
+void RenderManager::prepareCompData(const std::shared_ptr<RenderScene>& scene) {
+	// compute terrain
+	if (scene->terrain) {
+		scene->terrain->constructCall();
+	}
+	if (scene->sky) {
+		scene->sky->atmosphere->constructCall();
+	}
+}
+
 void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	prepareVPData(scene);
 	glCheckError();
 	preparePointLightData(scene);
 	prepareDirectionLightData(scene);
+	prepareCompData(scene);
 
 	// shadow pass
+
+	// depth pass (camera space)
+	depthPass->render(scene);
 
 	// base pass 
 	if (setting.enableHDR) {
 		hdrPass->bindBuffer();
 	}
-	basePass->render(scene);
+	basePass->render(scene,nullptr);
 
 	// hdr pass 
 	if (setting.enableHDR) {
@@ -224,6 +244,7 @@ std::shared_ptr<Shader> RenderManager::getShader(ShaderType type) {
 	}
 	return m_shader[index];
 }
+
 std::shared_ptr<Shader> RenderManager::generateShader(ShaderType type) {
 
 	switch (type) {
@@ -286,6 +307,15 @@ std::shared_ptr<Shader> RenderManager::generateShader(ShaderType type) {
 		case ShaderType::PBR_CLEARCOAT:
 			return std::make_shared<Shader>(
 				"./src/shader/pbr/pbr.vs","./src/shader/pbr/clearcoat.fs"
+				);
+			break;
+		case ShaderType::PBR_SSS:
+			return std::make_shared<Shader>(
+				"./src/shader/pbr/pbr.vs","./src/shader/pbr/sss.fs"
+				);
+		case ShaderType::DEPTH:
+			return std::make_shared<Shader>(
+				"./src/shader/shadow/depth.vs","./src/shader/shadow/shadow.fs"
 				);
 		default:
 			std::cerr << "No such shader type" << '\n';

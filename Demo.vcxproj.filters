@@ -161,6 +161,9 @@
     <ClCompile Include="src\buffer\ImageTexture.cpp">
       <Filter>src\buffer</Filter>
     </ClCompile>
+    <ClCompile Include="src\buffer\RenderBuffer.cpp">
+      <Filter>src\buffer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\GUI.h">
@@ -282,6 +285,15 @@
     </ClInclude>
     <ClInclude Include="src\utils\header.h">
       <Filter>src\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PT\glm_vec3.h">
+      <Filter>src\PT</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PT\PTTexture.h">
+      <Filter>src\PT</Filter>
+    </ClInclude>
+    <ClInclude Include="src\buffer\RenderBuffer.h">
+      <Filter>src\buffer</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
