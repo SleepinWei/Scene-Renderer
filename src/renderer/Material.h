@@ -31,9 +31,12 @@ public:
 	static std::shared_ptr<Material> loadModel(const std::string& folder);
 
 	void loadFromJson(json& data);
+	void genTexture();
 
 public:
 	//std::string type; 
 	bool hasSubSurface;
 	std::unordered_map<std::string, std::shared_ptr<Texture>> textures;
+	std::unordered_map<std::string, std::string> texture_path;
+	bool initDone;
 };

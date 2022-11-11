@@ -72,12 +72,12 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geo
     vertex = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertex, 1, &vShaderCode, NULL);
     glCompileShader(vertex);
-    checkCompileErrors(vertex, "VERTEX");
+    checkCompileErrors(vertex, "VERTEX",vertexPath);
     // fragment Shader
     fragment = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragment, 1, &fShaderCode, NULL);
     glCompileShader(fragment);
-    checkCompileErrors(fragment, "FRAGMENT");
+    checkCompileErrors(fragment, "FRAGMENT",fragmentPath);
     // if geometry shader is given, compile geometry shader
     unsigned int geometry;
     if (geometryPath != nullptr)
@@ -86,7 +86,7 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geo
         geometry = glCreateShader(GL_GEOMETRY_SHADER);
         glShaderSource(geometry, 1, &gShaderCode, NULL);
         glCompileShader(geometry);
-        checkCompileErrors(geometry, "GEOMETRY");
+        checkCompileErrors(geometry, "GEOMETRY",geometryPath);
     }
     unsigned int tessControl, tessEval;
     if (tessControlPath != nullptr) {
@@ -94,14 +94,14 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geo
         tessControl = glCreateShader(GL_TESS_CONTROL_SHADER);
         glShaderSource(tessControl, 1,&tcShaderCode, NULL);
         glCompileShader(tessControl);
-        checkCompileErrors(tessControl, "TESS CONTROL");
+        checkCompileErrors(tessControl, "TESS CONTROL",tessControlPath);
     }
     if (tessEvalPath != nullptr) {
         const char* teShaderCode = tessEvalCode.c_str();
         tessEval = glCreateShader(GL_TESS_EVALUATION_SHADER);
         glShaderSource(tessEval, 1,&teShaderCode, NULL);
         glCompileShader(tessEval);
-        checkCompileErrors(tessEval, "TESS EVAL");
+        checkCompileErrors(tessEval, "TESS EVAL",tessEvalPath);
     }
     // shader Program
     ID = glCreateProgram();
@@ -114,7 +114,7 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geo
     if (tessEvalPath != nullptr)
         glAttachShader(ID, tessEval);
     glLinkProgram(ID);
-    checkCompileErrors(ID, "PROGRAM");
+    checkCompileErrors(ID, "PROGRAM", vertexPath);
     // delete the shaders as they're linked into our program now and no longer necessery
     glDeleteShader(vertex);
     glDeleteShader(fragment);
@@ -156,12 +156,12 @@ Shader::Shader(const char* computePath)
     compute = glCreateShader(GL_COMPUTE_SHADER);
     glShaderSource(compute, 1, &computeShaderCode, NULL);
     glCompileShader(compute);
-    checkCompileErrors(compute, "COMPUTE");
+    checkCompileErrors(compute, "COMPUTE",computePath);
     // shader Program
     ID = glCreateProgram();
     glAttachShader(ID, compute);
     glLinkProgram(ID);
-    checkCompileErrors(ID, "PROGRAM");
+    checkCompileErrors(ID, "PROGRAM",computePath);
     // delete the shaders as they're linked into our program now and no longer necessery
     glDeleteShader(compute);
 }
@@ -236,7 +236,7 @@ void Shader::setMat4(const std::string& name, const glm::mat4& mat) const
 
 // utility function for checking shader compilation/linking errors.
 // ------------------------------------------------------------------------
-void Shader::checkCompileErrors(unsigned int shader, std::string type)
+void Shader::checkCompileErrors(unsigned int shader, std::string type,const char* path)
 {
     GLint success;
     GLchar infoLog[1024];
@@ -247,6 +247,7 @@ void Shader::checkCompileErrors(unsigned int shader, std::string type)
         {
             glGetShaderInfoLog(shader, 1024, NULL, infoLog);
             std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+            std::cout << "Path: " << path << '\n';
         }
     }
     else
@@ -256,6 +257,7 @@ void Shader::checkCompileErrors(unsigned int shader, std::string type)
         {
             glGetProgramInfoLog(shader, 1024, NULL, infoLog);
             std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+			std::cout << "Path: " << path << '\n';
         }
     }
 }

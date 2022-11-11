@@ -1,6 +1,7 @@
 #pragma once
 #include<memory>
 #include<vector>
+#include<mutex>
 
 class Camera;
 class UniformBuffer;
@@ -74,5 +75,8 @@ public:
 	std::shared_ptr<UniformBuffer> uniformVPBuffer;
 	std::shared_ptr<UniformBuffer> uniformPointLightBuffer;
 	std::shared_ptr<UniformBuffer> uniformDirectionLightBuffer;
+
+public:
+	std::mutex mtx;
 };
 

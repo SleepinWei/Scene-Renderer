@@ -201,16 +201,16 @@ void main(){
         finalColor += brdf * radiance;
     }
     //directional lights
-    // for(int i =0;i<dLightNum;i++){
-    //     DirectionLight light = directionLights[i];
-    //     vec3 L = normalize(light.Direction);
-    //     vec3 brdf = BRDF(N,V,L,thickness);
+    for(int i =0;i<dLightNum;i++){
+        DirectionLight light = directionLights[i];
+        vec3 L = normalize(light.Direction);
+        vec3 brdf = BRDF(N,V,L,thickness,ambient);
 
-    //     float attenuation = 1.0f;
-    //     vec3 radiance = light.Color * attenuation; 
-    //     finalColor += brdf * radiance;
-    //     // finalColor += computeDirectionShading(object,directionLights[i],material);
-    // }
+        float attenuation = 1.0f;
+        vec3 radiance = light.Color * attenuation; 
+        finalColor += brdf * radiance;
+        // finalColor += computeDirectionShading(object,directionLights[i],material);
+    }
 
     FragColor = vec4(finalColor,1.0f);
 

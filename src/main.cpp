@@ -4,6 +4,7 @@
 #include<fstream>
 #include<glfw/glfw3.h>
 #include<glm/glm.hpp>
+#include<thread>
 //utils
 #include"utils/Utils.h"
 #include"utils/Camera.h"
@@ -46,7 +47,7 @@ extern std::unique_ptr<InputManager> inputManager;
 
 //#define TEST
 #ifndef TEST
-
+void loadModel(std::shared_ptr<RenderScene> scene);
 void render() {
 	glfwInit();
 	GLFWwindow* window; 
@@ -61,10 +62,6 @@ void render() {
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 	glEnable(GL_PROGRAM_POINT_SIZE);
-
-	// gui 
-	Gui gui(window);
-
 	// init Managers 
 	{
 		inputManager = std::make_unique<InputManager>();
@@ -75,7 +72,94 @@ void render() {
 	}
 	//std::shared_ptr<RenderScene>& scene = renderScene;
 	std::shared_ptr<RenderScene> scene = std::make_shared<RenderScene>();
+	// Camera
+	{
+		std::shared_ptr<Camera> camera = std::make_shared<Camera>();
+		scene->main_camera = camera;
+	}
+	//gui
+	Gui gui(window);
 
+#define MULTI
+#ifdef MULTI
+	auto loadModelThread = std::thread(loadModel, scene);
+	loadModelThread.detach();
+#endif
+#ifndef MULTI
+	loadModel(scene);
+#endif // !MULTI
+
+	while (!glfwWindowShouldClose(window)) {
+		//mtx.lock();
+		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		//glClearColor(0.6, 0.6, 0.6, 1.0);
+		//glEnable(GL_DEPTH_TEST);
+
+		gui.window(scene);
+		glfwPollEvents();
+		//input manager tick
+		inputManager->tick();
+		
+		glCheckError();
+		// camera tick
+		scene->main_camera->tick();
+
+		renderManager->render(scene);
+
+		gui.render();
+		inputManager->reset();
+		glfwSwapBuffers(window);
+		//mtx.unlock();
+	}
+	//glDeleteBuffers()
+	gui.destroy();
+	glfwDestroyWindow(window);
+	glfwTerminate();
+#ifdef MULTI
+	if(loadModelThread.joinable()) {
+		loadModelThread.join();
+	}
+#endif
+}
+#endif
+
+void test_print(glm::mat4& model) {
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < 4; j++) {
+			std::cout << model[i][j] << ' '; 
+		}
+		std::cout << '\n';
+	}
+}
+
+//int* a;
+//void new_thread() {
+//	*a = 2;
+//}
+//void test() {
+//	a = new int;
+//	*a = 1;
+//
+//	std::thread thread_a = std::thread(new_thread);
+//	thread_a.detach();
+//
+//	while (true) {
+//		std::cout << *a << '\n';
+//	}
+//
+//	thread_a.join();
+//}
+
+#include"PT/PathTracing.h"
+int main() {
+	// 
+	render();
+	//test();
+	//PT::render();
+	return 0; 
+}
+
+void loadModel(std::shared_ptr<RenderScene> scene) {
 	//skybox
 	if(0)
 	{
@@ -104,8 +188,12 @@ void render() {
 		json data = json::parse(f);
 		std::shared_ptr<GameObject> object = std::make_shared<GameObject>();
 		object->loadFromJson(data);
+		//mtx.lock();
 		scene->addObject(object);
+		//mtx.unlock();
 	}
+
+	//if(0)
 	{
 		std::ifstream f("./asset/objects/sphere2.json");
 		json data = json::parse(f);
@@ -113,6 +201,7 @@ void render() {
 		object->loadFromJson(data);
 		scene->addObject(object);
 	}
+	//if(0)
 	{
 		std::ifstream f("./asset/objects/backpack.json");
 		json data = json::parse(f);
@@ -121,9 +210,8 @@ void render() {
 		scene->addObject(object);
 	}
 
-
-
 	// light 
+	//if(0)
 	{
 		std::shared_ptr<GameObject> pLight = std::make_shared<GameObject>();
 		std::shared_ptr<PointLight>&& light = pLight->addComponent<PointLight>(); 
@@ -165,11 +253,6 @@ void render() {
 		scene->addObject(dLight);
 	}
 
-	// Camera
-	{
-		std::shared_ptr<Camera> camera = std::make_shared<Camera>();
-		scene->main_camera = camera;
-	}
 
 	// object
 	if (0)
@@ -292,64 +375,20 @@ void render() {
 		scene->addObject(plane);
 	}
 	// atmosphere
-	float* sunAngle;
-	AtmosphereParameters* parameters; 
+	//if(0)
+	
+	//Sleep(10000);
+	double t = glfwGetTime();
+	while (glfwGetTime() - t < 10.0) {
+		;
+	}
 	{
 		//std::shared_ptr<GameObject> atm = std::make_shared<GameObject>();
 		//auto&& atmosphere = atm->addComponent<Atmosphere>();
 
 		std::shared_ptr<Sky> sky = std::make_shared<Sky>();
-
-		sunAngle = &(sky->atmosphere->sunAngle);
-		parameters = &(sky->atmosphere->atmosphere);
-
 		//scene->addObject(atm);
 		scene->addSky(sky);
 	}
-	glCheckError();
 	
-	while (!glfwWindowShouldClose(window)) {
-		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		//glClearColor(0.6, 0.6, 0.6, 1.0);
-		//glEnable(GL_DEPTH_TEST);
-
-		gui.window(scene,sunAngle,parameters);
-		glfwPollEvents();
-		//input manager tick
-		inputManager->tick();
-		
-		// camera tick
-		scene->main_camera->tick();
-
-		glCheckError();
-		renderManager->render(scene);
-
-		gui.render();
-		inputManager->reset();
-		glfwSwapBuffers(window);
-	}
-	//glDeleteBuffers()
-	gui.destroy();
-	glfwDestroyWindow(window);
-	glfwTerminate();
-
-}
-#endif
-
-void test_print(glm::mat4& model) {
-	for (int i = 0; i < 4; i++) {
-		for (int j = 0; j < 4; j++) {
-			std::cout << model[i][j] << ' '; 
-		}
-		std::cout << '\n';
-	}
-}
-
-#include"PT/PathTracing.h"
-int main() {
-	// 
-	render();
-	//test();
-	//PT::render();
-	return 0; 
 }
