@@ -1,4 +1,3 @@
-
 #version 430 
 layout(location=0) in vec3 aPos; 
 layout(location=1) in vec3 aNormal; 
@@ -12,8 +11,10 @@ layout(std140,binding=0) uniform VP{
     mat4 view;
 };
 
+out float Depth; 
+
 void main(){
-    gl_Position = projection * view * model * vec4(aPos,1.0);
-    // gl_Position = projection * view * vec4(object_gs.Position,1.0);
-    // gl_Position = model * vec4(aPos,1.0);
+    vec4 CamSpace = view * model * vec4(aPos,1.0f);
+    Depth = CamSpace.z/ CamSpace.w;
+    gl_Position = projection * view * model * vec4(aPos,1.0f);
 }
