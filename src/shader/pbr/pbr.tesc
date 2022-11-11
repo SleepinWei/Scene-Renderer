@@ -39,10 +39,12 @@ float computeLOD(float dist){
 
 void main(){
     // gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
-    object_ts[gl_InvocationID] = object_tc[gl_InvocationID];
-    // object_ts[gl_InvocationID].Position = object_tc[gl_InvocationID].Position;
-    // object_ts[gl_InvocationID].Normal = object_tc[gl_InvocationID].Normal;
-    // object_ts[gl_InvocationID].TexCoords = object_tc[gl_InvocationID].TexCoords;
+    // object_ts[gl_InvocationID] = object_tc[gl_InvocationID];
+    object_ts[gl_InvocationID].Position = object_tc[gl_InvocationID].Position;
+    object_ts[gl_InvocationID].Normal = object_tc[gl_InvocationID].Normal;
+    object_ts[gl_InvocationID].TexCoords = object_tc[gl_InvocationID].TexCoords;
+    object_ts[gl_InvocationID].Tangent= object_tc[gl_InvocationID].Tangent;
+    object_ts[gl_InvocationID].Bitangent= object_tc[gl_InvocationID].Bitangent;
 
     if (gl_InvocationID == 0){
         float dist0 = length((view * vec4(object_tc[0].Position,1.0f)).xyz); 

@@ -24,6 +24,8 @@ void main(){
     object_tc.Position = vec3(model * vec4(aPos,1.0)) ;
     object_tc.Normal = mat3(transpose(inverse(model))) * aNormal;
     object_tc.TexCoords = TexCoords;
+    object_tc.Tangent = Tangent;
+    object_tc.Bitangent =Bitangent;
 
     // gl_Position = projection * view * model * vec4(aPos,1.0);
     // gl_Position = projection * view * vec4(object.Position,1.0);
