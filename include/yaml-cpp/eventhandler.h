@@ -36,7 +36,7 @@ class EventHandler {
   virtual void OnMapEnd() = 0;
 
   virtual void OnAnchor(const Mark& /*mark*/,
-                        const std::string& /*anchor_name*/) {
+                        const std::string& anchor/*anchor_name*/) {
     // empty default implementation for compatibility
   }
 };

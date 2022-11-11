@@ -37,6 +37,7 @@ class YAML_CPP_API node_data {
   void set_mark(const Mark& mark);
   void set_type(NodeType::value type);
   void set_tag(const std::string& tag);
+  void set_anchor(const std::string& anchor);
   void set_null();
   void set_scalar(const std::string& scalar);
   void set_style(EmitterStyle::value style);
@@ -48,6 +49,7 @@ class YAML_CPP_API node_data {
   }
   const std::string& scalar() const { return m_scalar; }
   const std::string& tag() const { return m_tag; }
+  const std::string& anchor() const { return m_anchor; }
   EmitterStyle::value style() const { return m_style; }
 
   // size/iterator
@@ -102,6 +104,7 @@ class YAML_CPP_API node_data {
   Mark m_mark;
   NodeType::value m_type;
   std::string m_tag;
+  std::string m_anchor;
   EmitterStyle::value m_style;
 
   // scalar

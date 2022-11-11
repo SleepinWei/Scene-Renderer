@@ -169,6 +169,17 @@ inline const std::string& Node::Scalar() const {
   return m_pNode ? m_pNode->scalar() : detail::node_data::empty_scalar();
 }
 
+inline const std::string& Node::Anchor() const {
+  if (!m_isValid)
+    throw InvalidNode(m_invalidKey);
+  return m_pNode ? m_pNode->anchor() : detail::node_data::empty_scalar();
+}
+
+inline void Node::SetAnchor(const std::string& anchor) {
+  EnsureNodeExists();
+  m_pNode->set_anchor(anchor);
+}
+
 inline const std::string& Node::Tag() const {
   if (!m_isValid)
     throw InvalidNode(m_invalidKey);

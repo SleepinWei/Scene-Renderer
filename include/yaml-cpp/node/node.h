@@ -71,6 +71,9 @@ class YAML_CPP_API Node {
   const std::string& Tag() const;
   void SetTag(const std::string& tag);
 
+  const std::string& Anchor() const;
+  void SetAnchor(const std::string& anchor);
+
   // style
   // WARNING: This API might change in future releases.
   EmitterStyle::value Style() const;

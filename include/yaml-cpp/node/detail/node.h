@@ -37,6 +37,7 @@ class node {
 
   const std::string& scalar() const { return m_pRef->scalar(); }
   const std::string& tag() const { return m_pRef->tag(); }
+  const std::string& anchor() const { return m_pRef->anchor(); }
   EmitterStyle::value style() const { return m_pRef->style(); }
 
   template <typename T>
@@ -89,6 +90,10 @@ class node {
   void set_tag(const std::string& tag) {
     mark_defined();
     m_pRef->set_tag(tag);
+  }
+  void set_anchor(const std::string& anchor) {
+    mark_defined();
+    m_pRef->set_anchor(anchor);
   }
 
   // style

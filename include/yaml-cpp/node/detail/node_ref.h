@@ -25,6 +25,7 @@ class node_ref {
   NodeType::value type() const { return m_pData->type(); }
   const std::string& scalar() const { return m_pData->scalar(); }
   const std::string& tag() const { return m_pData->tag(); }
+  const std::string& anchor() const { return m_pData->anchor(); }
   EmitterStyle::value style() const { return m_pData->style(); }
 
   void mark_defined() { m_pData->mark_defined(); }
@@ -33,6 +34,7 @@ class node_ref {
   void set_mark(const Mark& mark) { m_pData->set_mark(mark); }
   void set_type(NodeType::value type) { m_pData->set_type(type); }
   void set_tag(const std::string& tag) { m_pData->set_tag(tag); }
+  void set_anchor(const std::string& anchor) { m_pData->set_anchor(anchor); }
   void set_null() { m_pData->set_null(); }
   void set_scalar(const std::string& scalar) { m_pData->set_scalar(scalar); }
   void set_style(EmitterStyle::value style) { m_pData->set_style(style); }

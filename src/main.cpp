@@ -3,7 +3,6 @@
 #include<iostream>
 #include<glfw/glfw3.h>
 #include<glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
 //utils
 #include"utils/Utils.h"
 #include"utils/Camera.h"
@@ -30,6 +29,7 @@
 #include"./component/Atmosphere.h"
 // yaml
 #include"../include/yaml-cpp/yaml.h"
+
 extern "C" __declspec(dllexport) long long NvOptimusEnablement = 0x00000001;
 extern "C" __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 0x00000001;
 
@@ -58,10 +58,10 @@ void render() {
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 	glEnable(GL_PROGRAM_POINT_SIZE);
-
+	//YAML::EventHandler::OnAnchor;
 	// gui 
 	Gui gui(window);
-
+	
 	// init Managers 
 	{
 		inputManager = std::make_unique<InputManager>();
@@ -248,52 +248,46 @@ void render() {
 	
 	// 读取预制体文件
 	auto building = YAML::LoadAllFromFile("./asset/model/PFB_Building_Full.yml");
-	auto objs = vector<std::unordered_map<std::string, YAML::Node>>();
-	int componentCount = 0;
-	for (auto obj : building)
+	const std::string tag = "tag:unity3d.com,2011:";
+	auto comps = std::unordered_map<std::string, YAML::Node>();
+	auto objAnchors = std::set<std::string>();
+	for (auto comp : building)
 	{
-		// 读取新物体
-		if (componentCount == 0)
-		{
-			componentCount = obj["GameObject"]["m_Component"].size();
-			objs.push_back(std::unordered_map<std::string, YAML::Node>());
-		}
-		// 为物体添加组件
-		else
-		{
-			for (auto com : obj)
-			{
-				std::string key = com.first.as<std::string>();
-				YAML::Node value = com.second;
-				objs[objs.size() - 1].emplace(key, value);
-			}
-			componentCount--;
-		}
+		comps.emplace(comp.Anchor(), comp);
+		if (comp.Tag() == tag + "1")
+			objAnchors.emplace(comp.Anchor());
 	}
 
 	// 在场景中创建物体
-	for (auto obj : objs)
+	for (auto objAnchor : objAnchors)
 	{
-		if (obj.find("MeshFilter") == obj.end() || obj.find("MeshRenderer") == obj.end())
+		// 查找该物体的所有组件
+		auto& obj = comps[objAnchor];
+		auto obj_comps = std::unordered_map<std::string, YAML::Node>();
+		for (auto comp : obj["GameObject"]["m_Component"])
+		{
+			std::string anchor = comp["component"]["fileID"].as<std::string>();
+			std::string tag = comps[anchor].Tag().substr(comps[anchor].Tag().find_last_of(':') + 1);
+			if (tag == "4")
+				obj_comps.emplace("Transform", comps[anchor]);
+			else if (tag == "33")
+				obj_comps.emplace("MeshFilter", comps[anchor]);
+			else if (tag == "23")
+				obj_comps.emplace("MeshRenderer", comps[anchor]);
+		}
+		if (obj_comps.find("MeshFilter") == obj_comps.end() || 
+			obj_comps.find("MeshRenderer") == obj_comps.end())
 			continue;
+
 		// 设置位置
 		std::shared_ptr<GameObject> model = std::make_shared<GameObject>();
-		auto&& trans = model->addComponent<Transform>();
-		YAML::Node pos = obj["Transform"]["m_LocalPosition"];
-		YAML::Node rot = obj["Transform"]["m_LocalRotation"];
-		YAML::Node scale = obj["Transform"]["m_LocalScale"];
-		float scaler = 0.012;
-		trans->position = glm::vec3(pos["x"].as<float>(), pos["y"].as<float>(), pos["z"].as<float>());
-		trans->rotation = glm::vec3(glm::eulerAngles(glm::quat(rot["w"].as<float>(), rot["x"].as<float>(), rot["y"].as<float>(), rot["z"].as<float>())));
-		trans->rotation.x = glm::degrees(trans->rotation.x);
-		trans->rotation.y = -glm::degrees(trans->rotation.y);
-		trans->rotation.z = glm::degrees(trans->rotation.z);
-		trans->scale = glm::vec3(scale["x"].as<float>() * scaler, scale["y"].as<float>() * scaler, scale["z"].as<float>() * scaler);
+		auto&& trans = model->addComponent<Transform>(Transform::GetWorldTransform(comps, obj_comps["Transform"].Anchor()));
+		
 		// 导入网格
-		std::string guid = obj["MeshFilter"]["m_Mesh"]["guid"].as<std::string>();
+		std::string guid = obj_comps["MeshFilter"]["MeshFilter"]["m_Mesh"]["guid"].as<std::string>();
 		model->addComponent<MeshFilter>(Model::loadModel(resourceManager->guidMap[guid], false));
-		// 导入材质
-		for (auto mat : obj["MeshRenderer"]["m_Materials"])
+		// 导入材质（这个循环确定只会跑一次）
+		for (auto mat : obj_comps["MeshRenderer"]["MeshRenderer"]["m_Materials"])
 			guid = mat["guid"].as<std::string>();
 		auto&& renderer = model->addComponent<MeshRenderer>();
 		renderer->setShader(ShaderType::PBR);
