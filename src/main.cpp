@@ -56,7 +56,7 @@ void render() {
 	glCullFace(GL_BACK);
 	glEnable(GL_PROGRAM_POINT_SIZE);
 
-	// gui 
+	// gui
 	Gui gui(window);
 
 	// init Managers 
