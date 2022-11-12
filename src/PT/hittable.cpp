@@ -1,9 +1,18 @@
 #include"hittable.h"
+#include"PTAABB.h"
+#include"PTRay.h"
+#include"PTMaterial.h"
+using namespace PT;
+
+void hittable::addTexture(std::shared_ptr<Material>& mat) {
+
+}
+
+
 PT::Sphere::Sphere(const vec3& center, double radius, std::shared_ptr<Material> material) :
 	center(center),radius(radius),mat_ptr(material) {
 	
 }
-
 
 void PT::hitRecord::set_face_normal(const Ray& r, const vec3& outward_normal) {
 	this->front_face = dot(r.dir, outward_normal) < 0;
@@ -53,7 +62,7 @@ bool PT::hittable_list::bounding_box(double time0, double time1, AABB& output_bo
 
 	for (const auto& object : objects) {
 		if (!object->bounding_box(time0, time1, temp_box)) return false;
-		output_box = first_box ? temp_box : surrounding_box(output_box, temp_box);
+		output_box = first_box ? temp_box : AABB::surrounding_box(output_box, temp_box);
 		first_box = false;
 	}
 
@@ -109,3 +118,9 @@ bool PT::Sphere::hit(const Ray& r,double t_min,double t_max,hitRecord& rec)const
 
 	return true;
 }
+
+void PT::Sphere::addTexture(std::shared_ptr<Material>& mat) {
+	this->mat_ptr = mat;
+}
+
+

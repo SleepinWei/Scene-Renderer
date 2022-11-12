@@ -1,4 +1,14 @@
+#include"PTRay.h"
+#include"PTAABB.h"
 #include"BVH.h"
+#include<algorithm>
+
+using namespace PT;
+
+BVH_Node::BVH_Node() {
+
+}
+
 PT::BVH_Node::BVH_Node(const hittable_list& list, double time0, double time1):
 	BVH_Node(list.objects,0,list.objects.size(),time0,time1) {
 	
@@ -44,7 +54,7 @@ PT::BVH_Node::BVH_Node(
 		!right->bounding_box(time0, time1, box_right)) {
 
 	}
-	box = surrounding_box(box_left, box_right);
+	box = AABB::surrounding_box(box_left, box_right);
 }
 
 bool PT::BVH_Node::hit(const Ray& r, double t_min, double t_max, hitRecord& rec) const {
@@ -60,6 +70,7 @@ bool PT::BVH_Node::bounding_box(double time0, double time1, AABB& output_box) co
 	output_box = box;
 	return true;
 }
+
 inline bool PT::box_compare(const std::shared_ptr<hittable> a, const std::shared_ptr<hittable> b, int axis) {
 	AABB box_a;
 	AABB box_b;
@@ -71,7 +82,7 @@ inline bool PT::box_compare(const std::shared_ptr<hittable> a, const std::shared
 }
 
 
-inline bool PT::box_x_compare(const std::shared_ptr<hittable> a, const std::shared_ptr<hittable> b) {
+bool PT::box_x_compare(const std::shared_ptr<hittable> a, const std::shared_ptr<hittable> b) {
 	return box_compare(a, b, 0);
 }
 

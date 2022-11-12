@@ -170,12 +170,16 @@
     <ClCompile Include="src\object\SkyBox.cpp" />
     <ClCompile Include="src\object\Terrain.cpp" />
     <ClCompile Include="src\PT\BVH.cpp" />
+    <ClCompile Include="src\PT\glm_vec3.cpp" />
     <ClCompile Include="src\PT\hittable.cpp" />
+    <ClCompile Include="src\PT\hittable\Rect.cpp" />
     <ClCompile Include="src\PT\PathTracing.cpp" />
     <ClCompile Include="src\PT\PTAABB.cpp" />
     <ClCompile Include="src\PT\PTCamera.cpp" />
     <ClCompile Include="src\PT\PTMaterial.cpp" />
+    <ClCompile Include="src\PT\PTrandom.cpp" />
     <ClCompile Include="src\PT\PTRay.cpp" />
+    <ClCompile Include="src\PT\PTTexture.cpp" />
     <ClCompile Include="src\PT\PTVec.cpp" />
     <ClCompile Include="src\renderer\Material.cpp" />
     <ClCompile Include="src\renderer\Mesh_Filter.cpp" />
@@ -210,6 +214,7 @@
     <ClInclude Include="src\PT\BVH.h" />
     <ClInclude Include="src\PT\glm_vec3.h" />
     <ClInclude Include="src\PT\hittable.h" />
+    <ClInclude Include="src\PT\hittable\Rect.h" />
     <ClInclude Include="src\PT\PathTracing.h" />
     <ClInclude Include="src\PT\PTAABB.h" />
     <ClInclude Include="src\PT\PTCamera.h" />

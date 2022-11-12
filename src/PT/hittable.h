@@ -1,15 +1,14 @@
 #pragma once
-//#include"PTVec.h"
-#include"PTRay.h"
-#include"PTAABB.h"
 #include<memory>
+#include<vector>
 #include<glm/glm.hpp>
 
 using glm::vec3;
-//#include"PTMaterial.h"
 
 namespace PT {
 	class Material; 
+	class AABB;
+	class Ray;
 
 	class hitRecord {
 	public:
@@ -30,6 +29,7 @@ namespace PT {
 	public:
 		virtual bool hit(const Ray& r, double t_min, double t_max, hitRecord& rec)const =0;
 		virtual bool bounding_box(double time0, double time1, AABB& output_box)const = 0;
+		virtual void addTexture(std::shared_ptr<Material>& mat);
 	};
 
 	class hittable_list : public hittable {
@@ -53,7 +53,8 @@ namespace PT {
 
 		virtual bool hit(const Ray& r, double t_min, double t_max, hitRecord& rec) const override;
 		virtual bool bounding_box(double time0, double time1, AABB& output_box)const;
-		
+		virtual void addTexture(std::shared_ptr<Material>& mat);
+
 		static void get_sphere_uv(const vec3& p, float& u, float& v);
 	public:
 		vec3 center;

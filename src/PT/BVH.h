@@ -1,14 +1,17 @@
 #pragma once
-
-#include"hittable.h"
 #include<vector>
 #include<memory>
 #include<iostream>
 
+#include"hittable.h"
+
 namespace PT {
+	class AABB;
+	class Ray;
+
 	class BVH_Node : public hittable {
 	public:
-		BVH_Node() = default;
+		BVH_Node();
 		BVH_Node(const hittable_list& list, double time0, double time1);
 		BVH_Node(
 			const std::vector<std::shared_ptr<hittable>>& src_objects,

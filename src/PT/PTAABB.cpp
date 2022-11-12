@@ -1,7 +1,16 @@
+#include<utility>
 #include"PTAABB.h"
+#include"PTRay.h"
+
+using namespace PT;
 
 PT::AABB::AABB(const vec3& a, const vec3& b):
 	minimum(a),maximum(b) {
+}
+
+AABB::AABB(const AABB& box_) {
+    minimum = box_.minimum;
+    maximum = box_.maximum;
 }
 
 bool PT::AABB::hit(const Ray& r, double t_min, double t_max)const {
@@ -19,7 +28,7 @@ bool PT::AABB::hit(const Ray& r, double t_min, double t_max)const {
     return true;
 }
 
-PT::AABB PT::surrounding_box(const AABB& box0, const AABB& box1) {
+AABB AABB::surrounding_box(const AABB& box0, const AABB& box1) {
     vec3 small(fmin(box0.minimum.x, box1.minimum.x),
         fmin(box0.minimum.y, box1.minimum.y),
         fmin(box0.minimum.z, box1.minimum.z));

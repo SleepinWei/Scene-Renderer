@@ -36,6 +36,9 @@
     <Filter Include="src\buffer">
       <UniqueIdentifier>{4a8485d4-519f-41a1-9657-a6211eb7ba20}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\PT\hittable">
+      <UniqueIdentifier>{a0085f29-6253-404a-b07f-1c3262ae585f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="include\imgui\imgui.cpp">
@@ -75,9 +78,6 @@
       <Filter>src\object</Filter>
     </ClCompile>
     <ClCompile Include="src\PT\BVH.cpp">
-      <Filter>src\PT</Filter>
-    </ClCompile>
-    <ClCompile Include="src\PT\hittable.cpp">
       <Filter>src\PT</Filter>
     </ClCompile>
     <ClCompile Include="src\PT\PathTracing.cpp">
@@ -164,6 +164,21 @@
     <ClCompile Include="src\buffer\RenderBuffer.cpp">
       <Filter>src\buffer</Filter>
     </ClCompile>
+    <ClCompile Include="src\PT\PTTexture.cpp">
+      <Filter>src\PT</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PT\hittable.cpp">
+      <Filter>src\PT\hittable</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PT\hittable\Rect.cpp">
+      <Filter>src\PT\hittable</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PT\PTrandom.cpp">
+      <Filter>src\PT</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PT\glm_vec3.cpp">
+      <Filter>src\PT</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\GUI.h">
@@ -185,9 +200,6 @@
       <Filter>src\object</Filter>
     </ClInclude>
     <ClInclude Include="src\PT\BVH.h">
-      <Filter>src\PT</Filter>
-    </ClInclude>
-    <ClInclude Include="src\PT\hittable.h">
       <Filter>src\PT</Filter>
     </ClInclude>
     <ClInclude Include="src\PT\PathTracing.h">
@@ -294,6 +306,12 @@
     </ClInclude>
     <ClInclude Include="src\buffer\RenderBuffer.h">
       <Filter>src\buffer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PT\hittable.h">
+      <Filter>src\PT\hittable</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PT\hittable\Rect.h">
+      <Filter>src\PT\hittable</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
