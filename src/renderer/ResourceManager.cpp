@@ -15,6 +15,11 @@ ResourceManager::ResourceManager()
 	std::vector<std::string> dirs = { "meshes","materials","textures"};
 	for (std::string dir : dirs)
 	{
+		if (!std::filesystem::is_directory(root + dir))
+		{
+			std::cout << "ERROR: ResourceManager can't find directory: " + root + dir << std::endl;
+			continue;
+		}
 		for (auto& i : std::filesystem::directory_iterator(root + dir))
 		{
 			std::string path = i.path().string();

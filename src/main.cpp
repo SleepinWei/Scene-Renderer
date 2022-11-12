@@ -47,6 +47,7 @@ extern std::unique_ptr<ResourceManager> resourceManager;
 extern std::unique_ptr<InputManager> inputManager;
 //extern std::shared_ptr<RenderScene> renderScene;
 //std::unique_ptr<MetaRegister> meta;
+std::shared_ptr<GameObject> loadFromJson(const std::string& path);
 
 //#define TEST
 #ifndef TEST
@@ -368,58 +369,68 @@ void loadModel(std::shared_ptr<RenderScene> scene) {
 		scene->addObject(model);
 	}
 	
-	// ��ȡԤ�����ļ�
-	auto building = YAML::LoadAllFromFile("./asset/model/PFB_Building_Full.yml");
-	const std::string tag = "tag:unity3d.com,2011:";
-	auto comps = std::unordered_map<std::string, YAML::Node>();
-	auto objAnchors = std::set<std::string>();
-	for (auto comp : building)
+	if (0)
 	{
-		comps.emplace(comp.Anchor(), comp);
-		if (comp.Tag() == tag + "1")
-			objAnchors.emplace(comp.Anchor());
-	}
-
-	// �ڳ����д�������
-	for (auto objAnchor : objAnchors)
-	{
-		// ���Ҹ�������������
-		auto& obj = comps[objAnchor];
-		auto obj_comps = std::unordered_map<std::string, YAML::Node>();
-		for (auto comp : obj["GameObject"]["m_Component"])
+		// ��ȡԤ�����ļ�
+		auto building = YAML::LoadAllFromFile("./asset/model/PFB_Building_Full.yml");
+		const std::string tag = "tag:unity3d.com,2011:";
+		auto comps = std::unordered_map<std::string, YAML::Node>();
+		auto objAnchors = std::set<std::string>();
+		for (auto comp : building)
 		{
-			std::string anchor = comp["component"]["fileID"].as<std::string>();
-			std::string tag = comps[anchor].Tag().substr(comps[anchor].Tag().find_last_of(':') + 1);
-			if (tag == "4")
-				obj_comps.emplace("Transform", comps[anchor]);
-			else if (tag == "33")
-				obj_comps.emplace("MeshFilter", comps[anchor]);
-			else if (tag == "23")
-				obj_comps.emplace("MeshRenderer", comps[anchor]);
+			comps.emplace(comp.Anchor(), comp);
+			if (comp.Tag() == tag + "1")
+				objAnchors.emplace(comp.Anchor());
 		}
-		if (obj_comps.find("MeshFilter") == obj_comps.end() || 
-			obj_comps.find("MeshRenderer") == obj_comps.end())
-			continue;
 
-		// ����λ��
-		std::shared_ptr<GameObject> model = std::make_shared<GameObject>();
-		auto&& trans = model->addComponent(Transform::GetWorldTransform(comps, obj_comps["Transform"].Anchor()));
-		
-		// ��������
-		std::string guid = obj_comps["MeshFilter"]["MeshFilter"]["m_Mesh"]["guid"].as<std::string>();
-		auto& meshfilter = model->addComponent<MeshFilter>();
-		meshfilter->addMesh(Model::loadModel(resourceManager->guidMap[guid], false));
-		// ������ʣ����ѭ��ȷ��ֻ����һ�Σ�
-		for (auto mat : obj_comps["MeshRenderer"]["MeshRenderer"]["m_Materials"])
-			guid = mat["guid"].as<std::string>();
-		auto&& renderer = model->addComponent<MeshRenderer>();
-		renderer->setShader(ShaderType::PBR);
-		renderer->setMaterial(Material::loadModel(resourceManager->guidMap[guid]));
-		renderer->setDrawMode(GL_TRIANGLES);
-		//renderer->setPolyMode(GL_LINE);
-		scene->addObject(model);
+		// �ڳ����д�������
+		for (auto objAnchor : objAnchors)
+		{
+			// ���Ҹ�������������
+			auto& obj = comps[objAnchor];
+			auto obj_comps = std::unordered_map<std::string, YAML::Node>();
+			for (auto comp : obj["GameObject"]["m_Component"])
+			{
+				std::string anchor = comp["component"]["fileID"].as<std::string>();
+				std::string tag = comps[anchor].Tag().substr(comps[anchor].Tag().find_last_of(':') + 1);
+				if (tag == "4")
+					obj_comps.emplace("Transform", comps[anchor]);
+				else if (tag == "33")
+					obj_comps.emplace("MeshFilter", comps[anchor]);
+				else if (tag == "23")
+					obj_comps.emplace("MeshRenderer", comps[anchor]);
+			}
+			if (obj_comps.find("MeshFilter") == obj_comps.end() ||
+				obj_comps.find("MeshRenderer") == obj_comps.end())
+				continue;
+
+			// ����λ��
+			std::shared_ptr<GameObject> model = std::make_shared<GameObject>();
+			auto&& trans = model->addComponent(Transform::GetWorldTransform(comps, obj_comps["Transform"].Anchor()));
+
+			// ��������
+			std::string guid = obj_comps["MeshFilter"]["MeshFilter"]["m_Mesh"]["guid"].as<std::string>();
+			auto& meshfilter = model->addComponent<MeshFilter>();
+			meshfilter->addMesh(Model::loadModel(resourceManager->guidMap[guid], false));
+			// ������ʣ����ѭ��ȷ��ֻ����һ�Σ�
+			for (auto mat : obj_comps["MeshRenderer"]["MeshRenderer"]["m_Materials"])
+				guid = mat["guid"].as<std::string>();
+			auto&& renderer = model->addComponent<MeshRenderer>();
+			renderer->setShader(ShaderType::PBR);
+			renderer->setMaterial(Material::loadModel(resourceManager->guidMap[guid]));
+			renderer->setDrawMode(GL_TRIANGLES);
+			//renderer->setPolyMode(GL_LINE);
+			scene->addObject(model);
+		}
 	}
 
+	if (0)
+	{
+		scene->addObject(loadFromJson("./asset/objects/sphere.json"));
+		scene->addObject(loadFromJson("./asset/objects/sphere2.json"));
+		scene->addObject(loadFromJson("./asset/objects/backpack.json"));
+	}
+#pragma endregion
 	//plane
 	if (0)
 	{
@@ -440,7 +451,6 @@ void loadModel(std::shared_ptr<RenderScene> scene) {
 
 		scene->addObject(plane);
 	}
-#pragma endregion
 
 	// atmosphere
 	//if(0)
@@ -459,4 +469,22 @@ void loadModel(std::shared_ptr<RenderScene> scene) {
 		scene->addSky(sky);
 	}
 	
+}
+
+#include"PT/PathTracing.h"
+int main() {
+	// 
+	render();
+	//test();
+	//PT::render();
+	return 0; 
+}
+
+std::shared_ptr<GameObject> loadFromJson(const std::string& path)
+{
+	std::ifstream f(path);
+	json data = json::parse(f);
+	std::shared_ptr<GameObject> object = std::make_shared<GameObject>();
+	object->loadFromJson(data);
+	return object;
 }
