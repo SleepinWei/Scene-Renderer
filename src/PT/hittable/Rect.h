@@ -12,7 +12,7 @@ namespace PT {
 
     class xy_rect : public hittable {
     public:
-        xy_rect() {}
+        xy_rect();
 
         xy_rect(double _x0, double _x1, double _y0, double _y1, double _k,
             shared_ptr<Material> mat);
