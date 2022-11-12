@@ -78,6 +78,80 @@ void render() {
 	//std::shared_ptr<RenderScene>& scene = renderScene;
 	std::shared_ptr<RenderScene> scene = std::make_shared<RenderScene>();
 
+<<<<<<< Updated upstream
+=======
+	while (!glfwWindowShouldClose(window)) {
+		//mtx.lock();
+		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		//glClearColor(0.6, 0.6, 0.6, 1.0);
+		//glEnable(GL_DEPTH_TEST);
+
+		gui.window(scene);
+		glfwPollEvents();
+		//input manager tick
+		inputManager->tick();
+		
+		glCheckError();
+		// camera tick
+		scene->main_camera->tick();
+
+		renderManager->render(scene);
+
+		gui.render();
+		inputManager->reset();
+		glfwSwapBuffers(window);
+		//mtx.unlock();
+	}
+	//glDeleteBuffers()
+	gui.destroy();
+	glfwDestroyWindow(window);
+	glfwTerminate();
+#ifdef MULTI
+	if(loadModelThread.joinable()) {
+		loadModelThread.join();
+	}
+#endif
+}
+#endif
+
+void test_print(glm::mat4& model) {
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < 4; j++) {
+			std::cout << model[i][j] << ' '; 
+		}
+		std::cout << '\n';
+	}
+}
+
+//int* a;
+//void new_thread() {
+//	*a = 2;
+//}
+//void test() {
+//	a = new int;
+//	*a = 1;
+//
+//	std::thread thread_a = std::thread(new_thread);
+//	thread_a.detach();
+//
+//	while (true) {
+//		std::cout << *a << '\n';
+//	}
+//
+//	thread_a.join();
+//}
+
+#include"PT/PathTracing.h"
+int main() {
+	// 
+	//render();
+	//test();
+	PT::render();
+	return 0; 
+}
+
+void loadModel(std::shared_ptr<RenderScene> scene) {
+>>>>>>> Stashed changes
 	//skybox
 	if(0)
 	{
