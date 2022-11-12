@@ -12,12 +12,14 @@ extern std::unique_ptr<RenderManager> renderManager;
 Atmosphere::Atmosphere() {
 	Component::name = "Atmosphere";
 	
-	initTextures();
+	//initTextures();
 	initAtmosphereParameters();
-	initShaders();
+	//initShaders();
 
 	//debug 
 	sunAngle = 10.0f;
+
+	initDone = false;
 }
 void Atmosphere::initTextures() {
 	transmittanceTexture = std::make_shared<ImageTexture>();
@@ -171,6 +173,11 @@ Atmosphere::~Atmosphere() {
 }
 
 void Atmosphere::constructCall() {
+	if (!initDone) {
+		initDone = true;
+		initTextures();
+		initShaders();
+	}
 	prepareAtmosphere();
 	computeDrawCall();
 }

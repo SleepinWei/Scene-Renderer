@@ -80,5 +80,6 @@ private:
 	void prepareAtmosphere();
 	void computeDrawCall(); 
 	void renderDrawCall(const std::shared_ptr<Shader>& shader);
+	bool initDone; // whether initShaders & initTextures is called
 };
 

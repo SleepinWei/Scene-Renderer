@@ -1,3 +1,5 @@
+#include<glad/glad.h>
+#include<glfw/glfw3.h>
 #include"Mesh_Filter.h"
 #include"Material.h"
 #include"Texture.h"
@@ -5,12 +7,6 @@
 #include<glfw/glfw3.h>
 
 #define PI 3.1415926
-//using namespace rttr;
-//RTTR_REGISTRATION{
-//	registration::class_<MeshFilter>("MeshFilter")
-//	.constructor<>()(rttr::policy::ctor::as_std_shared_ptr);
-//	//.constructor<>()(rttr::policy::ctor::as_raw_ptr);
-//}
 
 Mesh::Mesh() {
 	VAO = 0, VBO = 0, EBO = 0;
@@ -238,3 +234,38 @@ void MeshFilter::loadFromJson(json& data) {
 		}
 	}
 }
+
+void Mesh::genVAO() {
+	glGenBuffers(1, &VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex),
+		&(vertices[0]), GL_STATIC_DRAW);
+	glGenBuffers(1, &EBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int),
+		&(indices[0]), GL_STATIC_DRAW);
+
+	glGenVertexArrays(1, &VAO);
+	glBindVertexArray(VAO);
+	{
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(Vertex), (void*)offsetof(Vertex, Position));
+		glVertexAttribPointer(1, 3, GL_FLOAT, false, sizeof(Vertex), (void*)offsetof(Vertex, Normal));
+		glVertexAttribPointer(2, 2, GL_FLOAT, false, sizeof(Vertex), (void*)offsetof(Vertex, TexCoords));
+		glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Tangent));
+		glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Bitangent));
+
+		glEnableVertexAttribArray(0);
+		glEnableVertexAttribArray(1);
+		glEnableVertexAttribArray(2);
+		glEnableVertexAttribArray(3);
+		glEnableVertexAttribArray(4);
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	}
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	// Material
+
+}
+

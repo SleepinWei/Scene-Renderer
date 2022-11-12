@@ -41,8 +41,8 @@ PointLight::PointLight() {
 	far = 100.f;
 
 	// TODO: add texture generation
-	shadowTex = std::make_shared<Texture>();
-	shadowTex->genCubeMap(GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT);
+	//shadowTex = std::make_shared<Texture>();
+	//shadowTex->genCubeMap(GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT);
 }
 
 tuple<glm::mat4,glm::mat4> PointLight::getLightTransform(int face) {
@@ -105,8 +105,8 @@ DirectionLight::DirectionLight() {
 	};
 
 	// TODO: add Texture generation
-	shadowTex = std::make_shared<Texture>();
-	shadowTex->genTexture(GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT);
+	//shadowTex = std::make_shared<Texture>();
+	//shadowTex->genTexture(GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT);
 }
 
 DirectionLight::~DirectionLight() {

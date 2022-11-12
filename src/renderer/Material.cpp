@@ -12,6 +12,7 @@ extern std::unique_ptr<ResourceManager> resourceManager;
 
 Material::Material() {
 	hasSubSurface = false;
+	initDone= false;
 }
 Material::~Material() {
 }
@@ -24,6 +25,7 @@ std::shared_ptr<Material> Material::loadPBR(const std::string& folder) {
 		->addTexture(resourceManager->getResource(folder + "normal.png"),"material.normal")
 		->addTexture(resourceManager->getResource(folder + "ao.png"),"material.ao")
 		->addTexture(resourceManager->getResource(folder + "height.png"),"material.height");
+	material->initDone= true;
 	return material;
 }
 
@@ -31,18 +33,21 @@ std::shared_ptr<Material> Material::loadTerrain(const std::string& folder){
 	auto material = std::make_shared<Material>(); 
 	material->addTexture(resourceManager->getResource(folder + "heightMap.png"),"heightMap")
 		->addTexture(resourceManager->getResource(folder + "normalMap.png"),"heightMap");
+	material->initDone= true;
 	return material;
 }
 
 std::shared_ptr<Material> Material::addTexture(std::shared_ptr<Texture> tex,std::string type) {
 	//textures.push_back(tex);
 	this->textures.insert({ type,tex });
+	this->initDone= true;
 	return shared_from_this();
 }
 
 std::shared_ptr<Material> Material::addTexture(std::string tex_path, std::string type) {
 	auto& tex = resourceManager->getResource(tex_path);
 	this->textures.insert({ type,tex });
+	this->initDone= true;
 	return shared_from_this();
 }
 
@@ -90,6 +95,7 @@ std::shared_ptr<Material> Material::loadCubeMap(const std::string& folder_path) 
 	//tex->type = "skybox";
 	std::shared_ptr<Material> mat = std::make_shared<Material>();
 	mat->addTexture(tex,"skybox");
+	mat->initDone= true;
 	return mat;
 }
 
@@ -130,6 +136,7 @@ std::shared_ptr<Material> Material::loadCustomModel(const std::string& folder)
 		->addTexture(folder + "normal.png", "material.normal")
 		->addTexture(folder + "roughness.png", "material.roughness");
 		//->addTexture("height.png", "material.height");
+	material->initDone= true;
 	return material;
 }
 
@@ -139,10 +146,21 @@ void Material::loadFromJson(json& data) {
 		for (auto iter = mat.begin(); iter != mat.end(); ++iter) {
 			auto& mat_type = iter.key();
 			auto& mat_path = iter.value().get<std::string>();
-			this->addTexture(mat_path, mat_type);
+			//this->addTexture(mat_path, mat_type);
+			texture_path.insert({ mat_type,mat_path });
 		}
+		initDone= false;
 	}
 	if (data.find("hasSubSurface") != data.end()) {
 		this->hasSubSurface = data["hasSubSurface"].get<bool>();
+	}
+}
+
+void Material::genTexture() {
+	if (!initDone) {
+		initDone= true;
+		for (auto iter = texture_path.begin(); iter != texture_path.end(); ++iter) {
+			this->addTexture(iter->second,iter->first);
+		}
 	}
 }

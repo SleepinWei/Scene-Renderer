@@ -46,6 +46,7 @@ public:
 	static std::shared_ptr<Mesh> initPlane();
 	static std::shared_ptr<Mesh> initPoint(); 
 	static std::shared_ptr<Mesh> initCube();
+	void genVAO();
 };
 
 class MeshFilter :public Component {

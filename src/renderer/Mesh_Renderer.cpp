@@ -9,6 +9,7 @@
 #include"Mesh_Filter.h"
 #include"Texture.h"
 #include"../utils/Shader.h"
+#include"../utils/Utils.h"
 #include <memory>
 // #include<shader/Shader.h>
 #include"../utils/Shader.h"
@@ -57,6 +58,7 @@ std::shared_ptr<MeshRenderer> MeshRenderer::setShader(std::string type) {
 	else if (type == "skybox") {
 		shadertype = ShaderType::SKYBOX;
 	}
+	//glCheckError();
 
 	shader = renderManager->getShader(shadertype);
 	return shared_from_this();
@@ -86,6 +88,7 @@ MeshRenderer::MeshRenderer():drawMode(GL_TRIANGLES),polyMode(GL_FILL) {
 	//EBO = 0;
 }
 
+
 /// <summary>
 /// @param: useShader: determines whether the renderer
 /// should use its shader. In Shadow Pass or G buffer pass
@@ -111,6 +114,8 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 	if (!mesh_filter) {
 		return;
 	}
+
+	material->genTexture();
 	
 	//std::shared_ptr<Shader> shader = material->shader; 
 	for (auto& mesh : mesh_filter->meshes) {
@@ -120,36 +125,8 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 		auto& vertices = mesh->vertices;
 		auto& indices = mesh->indices;
 		if (VAO == 0) {
-			glGenBuffers(1, &VBO);
-			glBindBuffer(GL_ARRAY_BUFFER, VBO);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex),
-				&(vertices[0]), GL_STATIC_DRAW);
-			glGenBuffers(1, &EBO);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int),
-				&(indices[0]), GL_STATIC_DRAW);
-
-			glGenVertexArrays(1, &VAO);
-			glBindVertexArray(VAO);
-			{
-				glBindBuffer(GL_ARRAY_BUFFER, VBO);
-				glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(Vertex), (void*)offsetof(Vertex, Position));
-				glVertexAttribPointer(1, 3, GL_FLOAT, false, sizeof(Vertex), (void*)offsetof(Vertex, Normal));
-				glVertexAttribPointer(2, 2, GL_FLOAT, false, sizeof(Vertex), (void*)offsetof(Vertex, TexCoords));
-				glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Tangent));
-				glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Bitangent));
-
-				glEnableVertexAttribArray(0);
-				glEnableVertexAttribArray(1);
-				glEnableVertexAttribArray(2);
-				glEnableVertexAttribArray(3);
-				glEnableVertexAttribArray(4);
-
-				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-			}
-			glBindBuffer(GL_ARRAY_BUFFER, 0);
+			mesh->genVAO();
 		}
-
 
 		if (!outShader && shader)
 		{

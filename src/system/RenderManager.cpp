@@ -18,6 +18,10 @@
 RenderManager::RenderManager() {
 	int ShaderTypeNum = static_cast<int>(ShaderType::KIND_COUNT);
 	m_shader = std::vector<std::shared_ptr<Shader>>(ShaderTypeNum,nullptr);
+	// init Shaders
+	for (int i = 0; i < ShaderTypeNum; i++) {
+		m_shader[i] = generateShader(ShaderType(i));
+	}
 
 	// setting
 	setting = RenderSetting{
@@ -139,20 +143,24 @@ void RenderManager::preparePointLightData(const std::shared_ptr<RenderScene>& sc
 	int dataSize = 32; // data size for a single light (under std140 layout)
 	for (int i = 0; i < lightNum; i++) {
 		auto& light = scene->pointLights[i]; 
-		if (!light->dirty) {
-			// if not dirty, then pass
-			continue;
+		if (light) {
+			if (!light->dirty) {
+				// if not dirty, then pass
+				continue;
+			}
+			PointLightData& data = light->data;
+			std::shared_ptr<Transform>&& transform = std::static_pointer_cast<Transform>(
+				light->gameObject->GetComponent("Transform"));
+			if (transform) {
+				glBufferSubData(GL_UNIFORM_BUFFER,
+					0 + i * dataSize,
+					sizeof(glm::vec3), glm::value_ptr(data.color)); //color 
+				glBufferSubData(GL_UNIFORM_BUFFER,
+					16 + i * dataSize,
+					sizeof(glm::vec3), glm::value_ptr(transform->position)); //position
+			}
+			light->setDirtyFlag(false); // ?
 		}
-		PointLightData& data = scene->pointLights[i]->data; 
-		std::shared_ptr<Transform>&& transform = std::dynamic_pointer_cast<Transform>(
-			scene->pointLights[i]->gameObject->GetComponent("Transform"));
-		glBufferSubData(GL_UNIFORM_BUFFER, 
-			0 + i * dataSize, 
-			sizeof(glm::vec3), glm::value_ptr(data.color)); //color 
-		glBufferSubData(GL_UNIFORM_BUFFER, 
-			16 + i * dataSize, 
-			sizeof(glm::vec3), glm::value_ptr(transform->position)); //position
-		light->setDirtyFlag(false); // ?
 	}
 	// add the number of lights to UBO
 	glBufferSubData(GL_UNIFORM_BUFFER,
@@ -177,26 +185,28 @@ void RenderManager::prepareDirectionLightData(const std::shared_ptr<RenderScene>
 	int dataSize = 48; // data size for a single light (under std140 layout)
 	for (int i = 0; i < lightNum; i++) {
 		auto& light = scene->directionLights[i];
-		std::shared_ptr<Transform>&& transform = std::dynamic_pointer_cast<Transform>(
-			scene->directionLights[i]->gameObject->GetComponent("Transform"));
+		if (light) {
+			std::shared_ptr<Transform>&& transform = std::dynamic_pointer_cast<Transform>(
+				light->gameObject->GetComponent("Transform"));
 
-		if (!light->dirty) {
-			continue;
+			if (!light->dirty) {
+				continue;
+			}
+			DirectionLightData& data = light->data;
+			glBufferSubData(GL_UNIFORM_BUFFER,
+				0 + i * dataSize,
+				sizeof(glm::vec3), glm::value_ptr(data.color)); // ambient
+			glBufferSubData(GL_UNIFORM_BUFFER,
+				16 + i * dataSize,
+				sizeof(glm::vec3), glm::value_ptr(transform->position)); //
+			glBufferSubData(GL_UNIFORM_BUFFER,
+				32 + i * dataSize,
+				sizeof(glm::vec3), glm::value_ptr(data.direction));
+			//glBufferSubData(GL_UNIFORM_BUFFER, 
+				//48 + i * dataSize, 
+				//sizeof(glm::vec3), glm::value_ptr(data.direction));
+			light->setDirtyFlag(false);
 		}
-		DirectionLightData& data = scene->directionLights[i]->data; 
-		glBufferSubData(GL_UNIFORM_BUFFER, 
-			0 + i * dataSize, 
-			sizeof(glm::vec3), glm::value_ptr(data.color)); // ambient
-		glBufferSubData(GL_UNIFORM_BUFFER, 
-			16 + i * dataSize, 
-			sizeof(glm::vec3), glm::value_ptr(transform->position)); //
-		glBufferSubData(GL_UNIFORM_BUFFER, 
-			32 + i * dataSize, 
-			sizeof(glm::vec3), glm::value_ptr(data.direction));
-		//glBufferSubData(GL_UNIFORM_BUFFER, 
-			//48 + i * dataSize, 
-			//sizeof(glm::vec3), glm::value_ptr(data.direction));
-		light->setDirtyFlag(false);
 	}
 	glBufferSubData(GL_UNIFORM_BUFFER, 10 * dataSize, 
 		sizeof(int), &lightNum);
@@ -222,7 +232,7 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	// shadow pass
 
 	// depth pass (camera space)
-	depthPass->render(scene);
+	//depthPass->render(scene);
 
 	// base pass 
 	if (setting.enableHDR) {
@@ -238,10 +248,11 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 
 std::shared_ptr<Shader> RenderManager::getShader(ShaderType type) {
 	int index = static_cast<int>(type);
-	if(!m_shader[index]){
-		//if not initialized 
-		m_shader[index] = RenderManager::generateShader(type);
-	}
+	//if(!m_shader[index]){
+	//	//if not initialized 
+	//	m_shader[index] = RenderManager::generateShader(type);
+	//}
+	//glCheckError();
 	return m_shader[index];
 }
 
@@ -313,6 +324,7 @@ std::shared_ptr<Shader> RenderManager::generateShader(ShaderType type) {
 			return std::make_shared<Shader>(
 				"./src/shader/pbr/pbr.vs","./src/shader/pbr/sss.fs"
 				);
+			break;
 		case ShaderType::DEPTH:
 			return std::make_shared<Shader>(
 				"./src/shader/shadow/depth.vs","./src/shader/shadow/shadow.fs"

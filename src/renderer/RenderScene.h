@@ -3,6 +3,7 @@
 #include<string>
 #include<vector>
 #include<json/json.hpp>
+#include<mutex>
 using json = nlohmann::json;
 
 class GameObject;
@@ -33,6 +34,8 @@ public:
 	std::shared_ptr<RenderScene> addSky(std::shared_ptr<Sky>skybox);
 	void loadFromJson(json& data);
 	void destroy();
+public:
+	std::mutex mtx;
 };
 
 //namespace RenderPass {

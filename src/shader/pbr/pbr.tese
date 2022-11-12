@@ -22,6 +22,8 @@ out struct Object{
     vec3 Position; 
     vec3 Normal; 
     vec2 TexCoords;
+    vec3 Tangent;
+    vec3 Bitangent;
 } object;
 
 in Object object_ts[];
@@ -35,6 +37,8 @@ void main()
     object.TexCoords = object_ts[0].TexCoords * u + object_ts[1].TexCoords * v + object_ts[2].TexCoords * w; 
     object.Normal = normalize(object_ts[0].Normal * u + object_ts[1].Normal * v + object_ts[2].Normal * w); 
     object.Position = object_ts[0].Position * u + object_ts[1].Position * v + object_ts[2].Position * w;
+    object.Tangent = object_ts[0].Tangent* u + object_ts[1].Tangent* v + object_ts[2].Tangent* w;
+    object.Bitangent = object_ts[0].Bitangent* u + object_ts[1].Bitangent* v + object_ts[2].Bitangent* w;
 
     float height = texture(material.height,object.TexCoords).r;
     float heightScale = 0.05f; 
