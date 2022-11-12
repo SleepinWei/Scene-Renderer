@@ -1,7 +1,11 @@
+#include"PTRay.h"
+#include"hittable.h"
 #include"PTMaterial.h"
 #include"PTTexture.h"
 #include"glm_vec3.h"
+#include"PTrandom.h"
 
+using namespace PT;
 using glm::normalize;
 
 PT::Lambertian::Lambertian(const vec3& a)
@@ -71,4 +75,24 @@ double PT::Dielectric::reflectance(double cosine, double ref_idx) {
 	return r0 + (1 - r0) * pow((1 - cosine), 5);
 }
 	
+
+bool DiffuseLight::scatter(const Ray& r_in, const hitRecord& rec, vec3& attenuation, Ray& scattered)const {
+	// lights have no scattering
+	return false; 
+}
+
+vec3 DiffuseLight::emitted(float u, float v, const vec3& p)const {
+	// 
+	return emit->value(u, v, p);
+}
+
+DiffuseLight::DiffuseLight(vec3 c) {
+	emit = std::static_pointer_cast<Texture>(
+		std::make_shared<SolidColor>(c));
+	intensity = 1.0f;
+}
+DiffuseLight::DiffuseLight(std::shared_ptr<Texture> a) :emit(a) 
+{
+	intensity = 1.0f;
+};
 
