@@ -170,14 +170,14 @@
     <ClCompile Include="src\PT\hittable.cpp">
       <Filter>src\PT\hittable</Filter>
     </ClCompile>
-    <ClCompile Include="src\PT\hittable\Rect.cpp">
-      <Filter>src\PT\hittable</Filter>
-    </ClCompile>
     <ClCompile Include="src\PT\PTrandom.cpp">
       <Filter>src\PT</Filter>
     </ClCompile>
     <ClCompile Include="src\PT\glm_vec3.cpp">
       <Filter>src\PT</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PT\hittable\Rect.cpp">
+      <Filter>src\PT\hittable</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

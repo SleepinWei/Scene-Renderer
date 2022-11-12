@@ -91,11 +91,11 @@ void PT::render() {
 	freopen("./out.ppm", "w", stdout);
 
 	// image plane  
-	double aspect_ratio = 16.0 / 9.0;
+	double aspect_ratio = 1.0f;
 	//Camera camera(vec3(-2,2,1),vec3(0,0,-1),vec3(0,1,0),90.0,aspect_ratio);
-	Camera camera(vec3(1.5f,0.0f,0.0f),vec3(0,0,0.0f),vec3(0,1,0),90.0,aspect_ratio);
+	Camera camera(vec3(278.0f,278.0f,-800.0f),vec3(278.0f,278.0f,0.0f),vec3(0,1,0),40.0,aspect_ratio);
 
-	int h = 450;
+	int h = 600;
 	int w= int(camera.aspect_ratio * h);
 
 	// world 
@@ -137,7 +137,7 @@ void PT::render() {
 
 	world = cornell_box();
 
-	int samples_per_pixel = 50;
+	int samples_per_pixel = 200;
 	int max_depth =10;
 
 	std::cout << "P3\n" << w << ' ' << h << "\n255\n";
