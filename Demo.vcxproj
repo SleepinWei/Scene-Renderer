@@ -181,6 +181,7 @@
     <ClCompile Include="src\PT\PTRay.cpp" />
     <ClCompile Include="src\PT\PTTexture.cpp" />
     <ClCompile Include="src\PT\PTVec.cpp" />
+    <ClCompile Include="src\PT\Renderer.cpp" />
     <ClCompile Include="src\renderer\Material.cpp" />
     <ClCompile Include="src\renderer\Mesh_Filter.cpp" />
     <ClCompile Include="src\renderer\Mesh_Renderer.cpp" />
@@ -223,6 +224,7 @@
     <ClInclude Include="src\PT\PTRay.h" />
     <ClInclude Include="src\PT\PTTexture.h" />
     <ClInclude Include="src\PT\PTVec.h" />
+    <ClInclude Include="src\PT\Renderer.h" />
     <ClInclude Include="src\renderer\Material.h" />
     <ClInclude Include="src\renderer\Mesh_Filter.h" />
     <ClInclude Include="src\renderer\Mesh_Renderer.h" />

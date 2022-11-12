@@ -12,7 +12,7 @@ namespace PT {
             vec3 lookat,
             vec3 up,
             float fov,
-            float aspect_ratio
+            int width, int height
         );
         Ray get_ray(float u, float v)const;
 
@@ -26,5 +26,7 @@ namespace PT {
         float viewport_height;
         float viewport_width;
         float focal_length;
+
+        int width, height;
     };
 }

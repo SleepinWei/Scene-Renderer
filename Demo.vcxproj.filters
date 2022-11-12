@@ -179,6 +179,9 @@
     <ClCompile Include="src\PT\hittable\Rect.cpp">
       <Filter>src\PT\hittable</Filter>
     </ClCompile>
+    <ClCompile Include="src\PT\Renderer.cpp">
+      <Filter>src\PT</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\GUI.h">
@@ -312,6 +315,9 @@
     </ClInclude>
     <ClInclude Include="src\PT\hittable\Rect.h">
       <Filter>src\PT\hittable</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PT\Renderer.h">
+      <Filter>src\PT</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

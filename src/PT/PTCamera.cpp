@@ -1,16 +1,21 @@
 #include"PTCamera.h"
 
 using glm::radians;
+using namespace PT;
+
 PT::Camera::Camera(
-	vec3 lookfrom,vec3 lookat,
+	vec3 lookfrom, vec3 lookat,
 	vec3 vup,
-	float fov,float aspect_ratio
+	float fov,
+	int width, int height
 ) {
 	focal_length = 1.0;
+	this->width = width;
+	this->height = height;
 
-	this->aspect_ratio = aspect_ratio;
+	this->aspect_ratio = width * 1.0f / height;
 	auto theta = radians(fov);
-	auto h = tan(theta / 2) * focal_length;
+	auto h = tanf(theta / 2) * focal_length;
 	viewport_height = 2.0 * h;
 	viewport_width = aspect_ratio * viewport_height;
 
