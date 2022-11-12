@@ -78,8 +78,6 @@ void render() {
 	//std::shared_ptr<RenderScene>& scene = renderScene;
 	std::shared_ptr<RenderScene> scene = std::make_shared<RenderScene>();
 
-<<<<<<< Updated upstream
-=======
 	while (!glfwWindowShouldClose(window)) {
 		//mtx.lock();
 		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -151,7 +149,6 @@ int main() {
 }
 
 void loadModel(std::shared_ptr<RenderScene> scene) {
->>>>>>> Stashed changes
 	//skybox
 	if(0)
 	{
