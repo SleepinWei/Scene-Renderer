@@ -10,7 +10,7 @@
 
 using namespace PT;
 
-void Renderer::write_color(const vec3& color, int samples_per_pixel) {
+void Renderer::write_color(const vec3& color, int samples_per_pixel,int pos) {
 	auto r = color.x; 
 	auto g = color.y;
 	auto b = color.z;
@@ -24,9 +24,14 @@ void Renderer::write_color(const vec3& color, int samples_per_pixel) {
 	//g = scale * g;
 	//b = scale * b;
 
-	std::cout << int(256 * clamp(r, 0.0, 0.999)) << ' '
-		<< int(256 * clamp(g, 0.0, 0.999)) << ' '
-		<< int(256 * clamp(b, 0.0, 0.999)) << '\n';
+	int index = (pos) * 3;
+
+	writeMtx.lock();
+	resultImage[index] = int(255 * clamp(r, 0.0, 1.0));
+	resultImage[index+1] = int(255 * clamp(g, 0.0, 1.0));
+	resultImage[index+2] = int(255 * clamp(b, 0.0, 1.0));
+	++pixelCnt;
+	writeMtx.unlock();
 }
 
 Renderer::Renderer(int samples,int max_depth) {
@@ -34,12 +39,11 @@ Renderer::Renderer(int samples,int max_depth) {
 	camera = nullptr;
 	this->samples = samples;
 	this->max_depth = max_depth;
+	this->pixelCnt = 0;
 }
 
 Renderer::~Renderer() {
-	for (int i = 0; i < threads.size(); i++) {
-		threads[i].join();
-	}
+	delete[] resultImage;
 }
 
 void Renderer::addCam(std::shared_ptr<Camera> cam) {
@@ -53,15 +57,19 @@ void Renderer::addObject(std::shared_ptr<hittable> object) {
 void Renderer::render(int threadNum) {
 	int w = camera->width;
 	int h = camera->height;
+
+	// allocate space 
+	resultImage = new int[w * h * 3];
+
 	int interval = h / threadNum;
 	if (interval * threadNum != h) {
 		interval += 1;
 	}
 
-	std::cout << "P3\n" << w << ' ' << h << "\n255\n";
+
 	for (int i = 0; i < threadNum; i++) {
 		int start = i * interval;
-		int end = std::min(start + interval, h - 1);
+		int end = std::min(start + interval-1, h - 1);
 		std::thread t(&Renderer::threadRender,this,start, end);
 		threads.push_back(std::move(t));
 	}
@@ -113,10 +121,27 @@ void Renderer::threadRender(int start, int end) {
 				color = color + rayColor(r, max_depth);
 			}
 			
-			writeMtx.lock();
-			write_color(color, samples_per_pixel);
-			writeMtx.unlock();
+			int pos = j * w + i;
+			write_color(color, samples_per_pixel,pos);
 		}
 	}
+}
+void Renderer::writeToFile(const std::string& filename) {
+	for (int i = 0; i < threads.size(); i++) {
+		threads[i].join();
+	}
+	
+	int w = camera->width;
+	int h = camera->height;
+	freopen(filename.c_str(), "w", stdout);
+	std::cout << "P3\n" <<w<< ' ' << h<< "\n255\n";
 
+	for (int j = h-1; j >=0; j--) {
+		for (int i = 0; i < w; i++) {
+			int index = j * w + i; 
+			std::cout << resultImage[3 * index] << ' ' << resultImage[3 * index + 1]
+				<<' ' << resultImage[3 * index + 2] << '\n';
+		}
+	}
+	fclose(stdout);
 }

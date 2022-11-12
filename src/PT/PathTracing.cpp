@@ -45,11 +45,9 @@ void PT::render() {
 
 	// world 
 	cornell_box(renderer);
-	freopen("./out.ppm", "w", stdout);
 
 	int threadNum = 7;
 	renderer->render(threadNum);
-
-	fclose(stdout);
+	renderer->writeToFile("./out.ppm");
 }
 
