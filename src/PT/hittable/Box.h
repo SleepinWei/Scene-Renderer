@@ -19,7 +19,7 @@ namespace PT {
         Box();
 		Box(const point3& p0, const point3& p1, shared_ptr<Material> ptr);
 
-        void setModel(glm::mat4 model);
+        void setModel(glm::mat4 model) override;
 
         virtual bool hit(const Ray& r, double t_min, double t_max, hitRecord& rec) const override;
 

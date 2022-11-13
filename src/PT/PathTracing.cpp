@@ -4,6 +4,7 @@
 #include"PTCamera.h"
 #include<memory>
 #include<glm/glm.hpp>
+#include<glm/gtc/matrix_transform.hpp>
 #include<iostream>
 #include"PTrandom.h"
 #include"PTMaterial.h"
@@ -11,6 +12,7 @@
 #include"PTTexture.h"
 #include"hittable/Rect.h"
 #include"Renderer.h"
+#include"hittable/Box.h"
 
 using namespace PT;
 class PT::Material;
@@ -31,10 +33,18 @@ void cornell_box(std::shared_ptr<Renderer>& renderer) {
 
 	renderer->addObject(make_shared<yz_rect>(0, 555, 0, 555, 555, green));
 	renderer->addObject(make_shared<yz_rect>(0, 555, 0, 555, 0, red));
-	renderer->addObject(make_shared<xz_rect>(0, 343-213, 555- (332-227), 555, 554, light));
+	renderer->addObject(make_shared<xz_rect>(213, 343, 227, 332, 554, light));
 	renderer->addObject(make_shared<xz_rect>(0, 555, 0, 555, 0, white));
 	renderer->addObject(make_shared<xz_rect>(0, 555, 0, 555, 555, white));
 	renderer->addObject(make_shared<xy_rect>(0, 555, 0, 555, 555, white));
+	std::shared_ptr<Box> b1 = make_shared<Box>(vec3(0.0f,0.0f,0.0f), vec3(295, 165, 230), white);
+	std::shared_ptr<Box> b2 = make_shared<Box>(vec3(265, 0, 295), vec3(430, 330, 460), white);
+	glm::mat4 model1 = glm::mat4(1.0f);
+	model1 = glm::translate(model1, vec3(130.0f, 0.0f, 65.0f));
+	model1 = glm::rotate(model1, 15.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+	b1->setModel(model1);
+	renderer->addObject(b1);
+	renderer->addObject(b2);
 }
 
 void PT::render() {

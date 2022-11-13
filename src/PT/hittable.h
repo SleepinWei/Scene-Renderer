@@ -34,6 +34,7 @@ namespace PT {
 		virtual bool hit(const Ray& r, double t_min, double t_max, hitRecord& rec)const =0;
 		virtual bool bounding_box(double time0, double time1, AABB& output_box)const = 0;
 		virtual void addTexture(std::shared_ptr<Material>& mat);
+		virtual void setModel(glm::mat4 model) {}
 	};
 
 	class hittable_list : public hittable {
