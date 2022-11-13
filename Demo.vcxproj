@@ -172,7 +172,9 @@
     <ClCompile Include="src\PT\BVH.cpp" />
     <ClCompile Include="src\PT\glm_vec3.cpp" />
     <ClCompile Include="src\PT\hittable.cpp" />
+    <ClCompile Include="src\PT\hittable\Box.cpp" />
     <ClCompile Include="src\PT\hittable\Rect.cpp" />
+    <ClCompile Include="src\PT\hittable\TransHittable.cpp" />
     <ClCompile Include="src\PT\PathTracing.cpp" />
     <ClCompile Include="src\PT\PTAABB.cpp" />
     <ClCompile Include="src\PT\PTCamera.cpp" />
@@ -215,7 +217,9 @@
     <ClInclude Include="src\PT\BVH.h" />
     <ClInclude Include="src\PT\glm_vec3.h" />
     <ClInclude Include="src\PT\hittable.h" />
+    <ClInclude Include="src\PT\hittable\Box.h" />
     <ClInclude Include="src\PT\hittable\Rect.h" />
+    <ClInclude Include="src\PT\hittable\TransHittable.h" />
     <ClInclude Include="src\PT\PathTracing.h" />
     <ClInclude Include="src\PT\PTAABB.h" />
     <ClInclude Include="src\PT\PTCamera.h" />

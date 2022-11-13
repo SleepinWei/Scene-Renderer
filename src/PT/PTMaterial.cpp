@@ -11,6 +11,7 @@ using glm::normalize;
 PT::Lambertian::Lambertian(const vec3& a)
 	:albedo(std::make_shared<SolidColor>(a)){
 }
+#include<iostream>
 bool PT::Lambertian::scatter(
 	const Ray& r,const hitRecord & rec,
 	vec3& attenuation, 
@@ -18,7 +19,7 @@ bool PT::Lambertian::scatter(
 ) const 
 {
 	//auto scatter_direction = random_in_hemisphere(rec.normal);
-	auto scatter_direction = rec.normal + random_in_unit_sphere();
+	auto scatter_direction = rec.normal + random_unit_vector();
 	if (nearZero(scatter_direction)) {
 		scatter_direction = rec.normal;
 	}

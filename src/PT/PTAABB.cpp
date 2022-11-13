@@ -8,6 +8,14 @@ PT::AABB::AABB(const vec3& a, const vec3& b):
 	minimum(a),maximum(b) {
 }
 
+vec3 AABB::max() {
+    return maximum;
+}
+
+vec3 AABB::min() {
+    return minimum;
+}
+
 AABB::AABB(const AABB& box_) {
     minimum = box_.minimum;
     maximum = box_.maximum;

@@ -15,7 +15,7 @@ namespace PT {
 	public:
 		virtual bool scatter(
 			const Ray& r_in, const hitRecord& rec, vec3& attenuation, Ray& scattered) const = 0;
-		virtual vec3 emitted(float u, float v, const vec3& p)const { return vec3(0.0f); };
+		virtual vec3 emitted(float u, float v, const vec3& p)const { return vec3(0.0f,0.0f,0.0f); };
 	};
 
 	class Lambertian :public Material {

@@ -12,6 +12,10 @@ namespace PT {
 
 	class hitRecord {
 	public:
+		hitRecord() {
+			mat_ptr = nullptr;
+		}
+	public:
 		vec3 p;
 		vec3 normal;
 		float t;

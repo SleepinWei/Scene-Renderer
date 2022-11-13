@@ -14,8 +14,6 @@ namespace PT {
 	//const vec3 background = vec3(0.5, 0.7, 1.0);
 	const vec3 background = vec3(0.0, 0.0, 0.0);
 
-	vec3 rayColor(const Ray& r,const hittable& world,int depth);
-
 	void render();
 }
 

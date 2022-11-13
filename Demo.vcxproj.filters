@@ -182,6 +182,12 @@
     <ClCompile Include="src\PT\Renderer.cpp">
       <Filter>src\PT</Filter>
     </ClCompile>
+    <ClCompile Include="src\PT\hittable\TransHittable.cpp">
+      <Filter>src\PT\hittable</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PT\hittable\Box.cpp">
+      <Filter>src\PT\hittable</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\GUI.h">
@@ -318,6 +324,12 @@
     </ClInclude>
     <ClInclude Include="src\PT\Renderer.h">
       <Filter>src\PT</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PT\hittable\TransHittable.h">
+      <Filter>src\PT\hittable</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PT\hittable\Box.h">
+      <Filter>src\PT\hittable</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

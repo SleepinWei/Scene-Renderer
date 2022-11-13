@@ -17,6 +17,9 @@ namespace PT {
 		bool hit(const Ray& r, double t_min, double t_max)const;
 
 		static AABB surrounding_box(const AABB& box0, const AABB& box1);
+
+		vec3 max();
+		vec3 min();
 	public:
 		vec3 minimum;
 		vec3 maximum;

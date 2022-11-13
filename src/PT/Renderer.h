@@ -11,6 +11,7 @@ namespace PT {
 	class hittable;
 	class Camera;
 	class Ray;
+	class hitRecord;
 	
 	class Renderer {
 	public:

@@ -15,11 +15,11 @@ void Renderer::write_color(const vec3& color, int samples_per_pixel,int pos) {
 	auto g = color.y;
 	auto b = color.z;
 
-	auto scale = 1.0 / samples_per_pixel;
+	float scale = 1.0f / samples_per_pixel;
 
-	r = sqrt(scale * r);
-	g = sqrt(scale * g);
-	b = sqrt(scale * b);
+	r = sqrtf(scale * r);
+	g = sqrtf(scale * g);
+	b = sqrtf(scale * b);
 	//r = scale * r;
 	//g = scale * g;
 	//b = scale * b;
@@ -87,16 +87,23 @@ vec3 Renderer::rayColor(const Ray& r,int depth) {
 		return background;
 	}
 	Ray scattered;
-	vec3 attenuation;
+	vec3 attenuation; // color of the surface brdf
 	vec3 emitted = rec.mat_ptr->emitted(rec.u, rec.v, rec.p);
 
 	bool hasScatter = rec.mat_ptr->scatter(r, rec, attenuation, scattered);
 	if (!hasScatter) {
+		//float distAtten = std::min(1.0f, 1.0f / (rec.t * rec.t));
+		//return emitted *distAtten;
 		return emitted;
 	}
 
-	vec3 color = rayColor(scattered, depth - 1);
-	vec3 finalColor = emitted + attenuation * color;
+	vec3 radiance = rayColor(scattered, depth - 1);
+
+	//float NoL = dot(scattered.dir, rec.normal);
+	float NoL = 1.0f;
+	//std::cout << "Attenuation" << attenuation.x << ' ' << attenuation.y << ' ' << attenuation.z << '\n';
+	//std::cout << "radiance: " << radiance.x << ' ' << radiance.y<<' ' << radiance.z << '\n';
+	vec3 finalColor = emitted + attenuation * NoL * radiance;
 	return finalColor;
 }
 
@@ -108,9 +115,11 @@ void Renderer::threadRender(int start, int end) {
 	auto id = std::this_thread::get_id();
 
 	for (int j = end; j >=start; j--) {
-		printMtx.lock();
-		std::cerr << "Thread: " << id << " Progress: " << (end-j) *1.0/ (end-start) *100 << " % \n";
-		printMtx.unlock();
+		if ((end - j) % 5 == 0) {
+			printMtx.lock();
+			std::cerr << "Thread: " << id << " Progress: " << (end - j) * 1.0 / (end - start) * 100 << " % \n";
+			printMtx.unlock();
+		}
 
 		for (int i = 0; i < w; i++) {
 			vec3 color(0, 0, 0);

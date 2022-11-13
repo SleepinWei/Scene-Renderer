@@ -27,26 +27,27 @@ void cornell_box(std::shared_ptr<Renderer>& renderer) {
 	auto red = make_shared<Lambertian>(vec3(.65, .05, .05));
 	auto white = make_shared<Lambertian>(vec3(.73, .73, .73));
 	auto green = make_shared<Lambertian>(vec3(.12, .45, .15));
-	auto light = make_shared<DiffuseLight>(vec3(15, 15, 15));
+	auto light = make_shared<DiffuseLight>(vec3(1.0f, 1.0f, 1.0f) * 15.0f);
 
 	renderer->addObject(make_shared<yz_rect>(0, 555, 0, 555, 555, green));
 	renderer->addObject(make_shared<yz_rect>(0, 555, 0, 555, 0, red));
-	renderer->addObject(make_shared<xz_rect>(213, 343, 227, 332, 554, light));
+	renderer->addObject(make_shared<xz_rect>(0, 343-213, 555- (332-227), 555, 554, light));
 	renderer->addObject(make_shared<xz_rect>(0, 555, 0, 555, 0, white));
 	renderer->addObject(make_shared<xz_rect>(0, 555, 0, 555, 555, white));
 	renderer->addObject(make_shared<xy_rect>(0, 555, 0, 555, 555, white));
 }
 
 void PT::render() {
-	int samples = 200;
-	int max_depth = 10;
+	srand(time(0));
+	int samples = 50;
+	int max_depth = 20;
 
 	std::shared_ptr<Renderer> renderer = std::make_shared<Renderer>(samples,max_depth);
 
 	// world 
 	cornell_box(renderer);
 
-	int threadNum = 7;
+	int threadNum = 9;
 	renderer->render(threadNum);
 	renderer->writeToFile("./out.ppm");
 }
