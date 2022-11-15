@@ -16,6 +16,7 @@ public:
 	~ResourceManager();
 	std::shared_ptr<Texture> find(std::string tex_name);
 	std::shared_ptr<Texture> getResource(const std::string& file_path);
+	std::shared_ptr<Texture> getResourceAsync(const std::string& filename);
 
 public:
 	//const int maxlen = 10;

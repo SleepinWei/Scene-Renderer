@@ -186,7 +186,7 @@ void RenderManager::prepareDirectionLightData(const std::shared_ptr<RenderScene>
 	for (int i = 0; i < lightNum; i++) {
 		auto& light = scene->directionLights[i];
 		if (light) {
-			std::shared_ptr<Transform>&& transform = std::dynamic_pointer_cast<Transform>(
+			std::shared_ptr<Transform>&& transform = std::static_pointer_cast<Transform>(
 				light->gameObject->GetComponent("Transform"));
 
 			if (!light->dirty) {
@@ -232,7 +232,7 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	// shadow pass
 
 	// depth pass (camera space)
-	//depthPass->render(scene);
+	depthPass->render(scene);
 
 	// base pass 
 	if (setting.enableHDR) {

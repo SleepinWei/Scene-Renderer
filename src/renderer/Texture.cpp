@@ -3,16 +3,21 @@
 #define STB_IMAGE_IMPLEMENTATION
 
 Texture::Texture() {
-	width = height = 0;
+	width = height = channels = 0;
 	//type = ""; 
 	name = ""; 
 	id = 0;
+	//pbo = 0;
+	data = nullptr;
 }
 
 Texture::~Texture() {
 	if (id) {
 		glDeleteTextures(1, &id);
 	}
+	//if (pbo) {
+		//glDeleteBuffers(1, &pbo);
+	//}
 }
 //std::string pathToTexName(std::string file_path) {
 //	std::string name; 
@@ -22,7 +27,40 @@ Texture::~Texture() {
 //	name = dir.substr(index+1,dir.length()-index-1)+"_" + tex->type;  // name 用于统一区分
 //	return name; 
 //}
+std::shared_ptr<Texture> Texture::loadFromFileAsync(const std::string& filename) {
+	std::shared_ptr<Texture> tex = std::make_shared<Texture>(); 
+	tex->name = filename;
 
+	stbi_set_flip_vertically_on_load(true);
+	unsigned char* data = stbi_load((filename).c_str(), &tex->width, &tex->height, &tex->channels, 0);
+	if (data)
+	{
+		GLenum format;
+		switch (tex->channels)
+		{
+		case 1:
+			format = GL_RED;
+			break;
+		case 3:
+			format = GL_RGB;
+			break;
+		case 4:
+			format = GL_RGBA;
+			break;
+		default:
+			break;
+		}
+		tex->format = format;
+		tex->internalformat = format;
+		tex->data = data;
+	}
+	else
+	{
+		std::cout << "Failed to load " <<filename<< std::endl;
+	}
+
+	return tex; 
+}
 
 std::shared_ptr<Texture> Texture::loadFromFile(const std::string& file_path) {
 	std::shared_ptr<Texture> tex = std::make_shared<Texture>(); 
@@ -80,11 +118,14 @@ std::shared_ptr<Texture> Texture::loadFromFile(const std::string& file_path) {
 	//return shared_from_this();
 //}
 
-std::shared_ptr<Texture> Texture::genTexture(unsigned int DataType,unsigned int channelType,int width, int height) {
+std::shared_ptr<Texture> Texture::genTexture(unsigned int internalformat,unsigned int format,int width, int height) {
 	if (id)
 		glDeleteTextures(1, &id);
 	this->width = width;
 	this->height = height;
+	this->internalformat = internalformat;
+	this->format = format;
+
 	glGenTextures(1, &id);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, id);
@@ -93,14 +134,51 @@ std::shared_ptr<Texture> Texture::genTexture(unsigned int DataType,unsigned int 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	unsigned int dType; 
-	if (DataType == GL_RGBA32F)
+	switch (internalformat)
+	{
+	case GL_RGBA32F:
 		dType = GL_FLOAT;
-	else if (DataType == GL_RGBA)
+		break;
+	case GL_RGBA:
 		dType = GL_UNSIGNED_BYTE;
-	else if (DataType == GL_DEPTH_COMPONENT)
+		break;
+	case GL_RGB:
+		dType = GL_UNSIGNED_BYTE;
+		break;
+	case GL_RED:
+		dType = GL_UNSIGNED_BYTE;
+		break;
+	case GL_DEPTH_COMPONENT:
 		dType = GL_FLOAT;
-	glTexImage2D(GL_TEXTURE_2D, 0, DataType, width, height, 0, channelType,
+		break;
+	default:
+		break;
+	}
+
+	switch (format)
+	{
+	case GL_RGBA:
+		this->channels = 4;
+		break;
+	case GL_RGB:
+		this->channels = 3;
+		break;
+	case GL_RED:
+		this->channels = 1;
+		break;
+	default:
+		break;
+	}
+
+	glTexImage2D(GL_TEXTURE_2D, 0, internalformat, width, height, 0, format,
 		dType, NULL);
+
+	return shared_from_this();
+}
+
+
+std::shared_ptr<Texture> Texture::genTextureAsync(unsigned int DataType, unsigned int channelType, int width, int height) {
+	//
 	return shared_from_this();
 }
 

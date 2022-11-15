@@ -11,13 +11,20 @@ public:
 	~Texture();
 public:
 	static std::shared_ptr<Texture> loadFromFile(const std::string& file_path);
+	static std::shared_ptr<Texture> loadFromFileAsync(const std::string& filename);
 	//std::shared_ptr<Texture> setType(const std::string& type);
 	std::shared_ptr<Texture> genTexture(unsigned int DataType,unsigned int channelType,int width,int height);
+	std::shared_ptr<Texture> genTextureAsync(unsigned int DataType, unsigned int channelType, int width, int height);
 	std::shared_ptr<Texture> genCubeMap(GLenum format, int width,int height);
 
 public:
-	int width, height;
+	int width, height,channels;
 	//std::string type; // type is now recorded in material.
 	std::string name; // Î¨Ò»id£¬path
 	unsigned int id;
+	//unsigned int pbo;
+	unsigned char* data;
+	unsigned int internalformat;
+	unsigned int format;
+
 };
