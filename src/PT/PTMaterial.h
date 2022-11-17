@@ -10,6 +10,7 @@ namespace PT {
 	class SolidColor;
 	class Ray;
 	class hittable;
+	class hitRecord;
 
 	class Material {
 	public:

@@ -15,6 +15,7 @@ namespace PT{
 	public:
 		vec3 orig;
 		vec3 dir;
+		float time;
 	};
 
 }

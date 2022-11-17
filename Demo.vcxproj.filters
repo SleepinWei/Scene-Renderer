@@ -39,6 +39,9 @@
     <Filter Include="src\PT\hittable">
       <UniqueIdentifier>{a0085f29-6253-404a-b07f-1c3262ae585f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\PT\material">
+      <UniqueIdentifier>{0d3f5b12-c8d3-4a98-8b8c-d9f9654f9643}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="include\imgui\imgui.cpp">
@@ -87,9 +90,6 @@
       <Filter>src\PT</Filter>
     </ClCompile>
     <ClCompile Include="src\PT\PTCamera.cpp">
-      <Filter>src\PT</Filter>
-    </ClCompile>
-    <ClCompile Include="src\PT\PTMaterial.cpp">
       <Filter>src\PT</Filter>
     </ClCompile>
     <ClCompile Include="src\PT\PTRay.cpp">
@@ -191,6 +191,15 @@
     <ClCompile Include="src\PT\hittable\TransHittable.cpp">
       <Filter>src\PT\hittable</Filter>
     </ClCompile>
+    <ClCompile Include="src\PT\hittable\medium.cpp">
+      <Filter>src\PT\hittable</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PT\PTMaterial.cpp">
+      <Filter>src\PT\material</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PT\material\isotropic.cpp">
+      <Filter>src\PT\material</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\GUI.h">
@@ -221,9 +230,6 @@
       <Filter>src\PT</Filter>
     </ClInclude>
     <ClInclude Include="src\PT\PTCamera.h">
-      <Filter>src\PT</Filter>
-    </ClInclude>
-    <ClInclude Include="src\PT\PTMaterial.h">
       <Filter>src\PT</Filter>
     </ClInclude>
     <ClInclude Include="src\PT\PTrandom.h">
@@ -336,6 +342,18 @@
     </ClInclude>
     <ClInclude Include="src\PT\hittable\TransHittable.h">
       <Filter>src\PT\hittable</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PT\hittable\medium.h">
+      <Filter>src\PT\hittable</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PT\PTMaterial.h">
+      <Filter>src\PT\material</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PT\material\isotropic.h">
+      <Filter>src\PT\material</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PT\PTHeader.h">
+      <Filter>src\PT</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

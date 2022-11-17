@@ -1,19 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include"PathTracing.h"
 //#include"PTVec.h"
-#include"PTCamera.h"
-#include<memory>
-#include<glm/glm.hpp>
-#include<glm/gtc/matrix_transform.hpp>
-#include<iostream>
-#include"PTrandom.h"
-#include"PTMaterial.h"
-#include"hittable.h"
-#include"PTTexture.h"
-#include"hittable/Rect.h"
-#include"Renderer.h"
-#include"hittable/Box.h"
-#include"hittable/TransHittable.h"
+#include"PTHeader.h"
 
 using namespace PT;
 class PT::Material;
@@ -38,14 +26,18 @@ void cornell_box(std::shared_ptr<Renderer>& renderer) {
 	renderer->addObject(make_shared<xz_rect>(0, 555, 0, 555, 0, white));
 	renderer->addObject(make_shared<xz_rect>(0, 555, 0, 555, 555, white));
 	renderer->addObject(make_shared<xy_rect>(0, 555, 0, 555, 555, white));
+
 	std::shared_ptr<Box> b1 = make_shared<Box>(vec3(0.0f,0.0f,0.0f), vec3(165, 330, 165), white);
+	std::shared_ptr<Medium> med_b1 = make_shared<Medium>(b1, 0.01, vec3(0.0f, 0.0f, 0.0f));
 	std::shared_ptr<Box> b2 = make_shared<Box>(vec3(0, 0, 0), vec3(165, 165, 165), white);
+
 	glm::mat4 model1 = glm::mat4(1.0f);
 	model1 = glm::translate(model1, vec3(265.0f, 0.0f, 295.0f));
 	model1 = glm::rotate(model1, glm::radians(15.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	std::shared_ptr<TransHittable> b1_model = make_shared<TransHittable>(
-		std::static_pointer_cast<hittable>(b1), model1);
+		std::static_pointer_cast<hittable>(med_b1), model1);
 	renderer->addObject(b1_model);
+
 	glm::mat4 model2 = glm::translate(glm::mat4(1.0f),vec3(130, 0, 65));
 	model2 = glm::rotate(model2, glm::radians(-18.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	std::shared_ptr<TransHittable> b2_model = make_shared<TransHittable>(
@@ -55,7 +47,7 @@ void cornell_box(std::shared_ptr<Renderer>& renderer) {
 
 void PT::render() {
 	srand(time(0));
-	int samples = 20;
+	int samples = 100;
 	int max_depth = 10;
 
 	std::shared_ptr<Renderer> renderer = std::make_shared<Renderer>(samples,max_depth);
