@@ -19,14 +19,14 @@ namespace PT {
         Box();
 		Box(const point3& p0, const point3& p1, shared_ptr<Material> ptr);
 
-        void setModel(glm::mat4 model) override;
+        //void setModel(glm::mat4 model) override;
 
         virtual bool hit(const Ray& r, double t_min, double t_max, hitRecord& rec) const override;
 
         virtual bool bounding_box(double time0, double time1, AABB& output_box) const override;
     public:
         // TODO: add model transformation to all;
-        glm::mat4 model;
+        //glm::mat4 model;
 
         vec3 box_min;
         vec3 box_max;

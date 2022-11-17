@@ -19,10 +19,10 @@ namespace PT {
 
         virtual bool hit(const Ray& r, double t_min, double t_max, hitRecord& rec) const override;
         virtual bool bounding_box(double time0, double time1, AABB& output_box) const override;
-        virtual void setModel(glm::mat4 model) override;
+        //virtual void setModel(glm::mat4 model) override;
 
     public:
-        glm::mat4 model;
+        //glm::mat4 model;
         shared_ptr<Material> mp;
         double x0, x1, y0, y1, k;
     };
@@ -38,10 +38,10 @@ namespace PT {
 
         virtual bool bounding_box(double time0, double time1, AABB& output_box) const override;
 
-        virtual void setModel(glm::mat4 model) override;
+        //virtual void setModel(glm::mat4 model) override;
 
     public:
-        glm::mat4 model;
+        //glm::mat4 model;
         shared_ptr<Material> mp;
         double x0, x1, z0, z1, k;
     };
@@ -57,10 +57,10 @@ namespace PT {
 
         virtual bool bounding_box(double time0, double time1, AABB& output_box) const override;
     
-        virtual void setModel(glm::mat4 model);
+        //virtual void setModel(glm::mat4 model);
 
     public:
-        glm::mat4 model;
+        //glm::mat4 model;
         shared_ptr<Material> mp;
         double y0, y1, z0, z1, k;
     };
