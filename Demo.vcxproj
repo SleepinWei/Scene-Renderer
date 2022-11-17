@@ -157,6 +157,7 @@
     <ClCompile Include="include\imgui\imgui_widgets.cpp" />
     <ClCompile Include="src\buffer\FrameBuffer.cpp" />
     <ClCompile Include="src\buffer\ImageTexture.cpp" />
+    <ClCompile Include="src\buffer\PBO.cpp" />
     <ClCompile Include="src\buffer\RenderBuffer.cpp" />
     <ClCompile Include="src\buffer\SSBO.cpp" />
     <ClCompile Include="src\buffer\UniformBuffer.cpp" />
@@ -202,6 +203,7 @@
     <ClInclude Include="src\buffer\buffer.h" />
     <ClInclude Include="src\buffer\FrameBuffer.h" />
     <ClInclude Include="src\buffer\ImageTexture.h" />
+    <ClInclude Include="src\buffer\PBO.h" />
     <ClInclude Include="src\buffer\RenderBuffer.h" />
     <ClInclude Include="src\buffer\SSBO.h" />
     <ClInclude Include="src\buffer\UniformBuffer.h" />

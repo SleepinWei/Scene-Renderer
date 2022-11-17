@@ -182,10 +182,13 @@
     <ClCompile Include="src\PT\Renderer.cpp">
       <Filter>src\PT</Filter>
     </ClCompile>
-    <ClCompile Include="src\PT\hittable\TransHittable.cpp">
+    <ClCompile Include="src\PT\hittable\Box.cpp">
       <Filter>src\PT\hittable</Filter>
     </ClCompile>
-    <ClCompile Include="src\PT\hittable\Box.cpp">
+    <ClCompile Include="src\buffer\PBO.cpp">
+      <Filter>src\buffer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PT\hittable\TransHittable.cpp">
       <Filter>src\PT\hittable</Filter>
     </ClCompile>
   </ItemGroup>
@@ -325,10 +328,13 @@
     <ClInclude Include="src\PT\Renderer.h">
       <Filter>src\PT</Filter>
     </ClInclude>
-    <ClInclude Include="src\PT\hittable\TransHittable.h">
+    <ClInclude Include="src\PT\hittable\Box.h">
       <Filter>src\PT\hittable</Filter>
     </ClInclude>
-    <ClInclude Include="src\PT\hittable\Box.h">
+    <ClInclude Include="src\buffer\PBO.h">
+      <Filter>src\buffer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PT\hittable\TransHittable.h">
       <Filter>src\PT\hittable</Filter>
     </ClInclude>
   </ItemGroup>
