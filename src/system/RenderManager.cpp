@@ -44,6 +44,7 @@ void RenderManager::initRenderPass() {
 	hdrPass = std::make_shared<HDRPass>(); 
 	basePass = std::make_shared<BasePass>();
 	depthPass = std::make_shared<DepthPass>();
+	deferredPass = std::make_shared<DeferredPass>();
 }
 
 void RenderManager::initVPbuffer() {
@@ -230,20 +231,25 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	prepareCompData(scene);
 
 	// shadow pass
+	
+	// deferred pass
+	deferredPass->renderGbuffer(scene);
 
-	// depth pass (camera space)
-	depthPass->render(scene);
+	//if (0) {
+		// depth pass (camera space)
+		depthPass->render(scene);
 
-	// base pass 
-	if (setting.enableHDR) {
-		hdrPass->bindBuffer();
-	}
-	basePass->render(scene,nullptr);
+		// base pass 
+		if (setting.enableHDR) {
+			hdrPass->bindBuffer();
+		}
+		basePass->render(scene, nullptr);
 
-	// hdr pass 
-	if (setting.enableHDR) {
-		hdrPass->render();
-	}
+		// hdr pass 
+		if (setting.enableHDR) {
+			hdrPass->render();
+		}
+	//}
 }
 
 std::shared_ptr<Shader> RenderManager::getShader(ShaderType type) {

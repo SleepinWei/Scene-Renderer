@@ -10,8 +10,8 @@ class Shader
 {
 public:
     unsigned int ID;
-    // constructor generates the shader on the fly
-    // ------------------------------------------------------------------------
+    bool requireMat;
+public:
     Shader(const char *vertexPath, 
         const char *fragmentPath, 
         const char *geometryPath = nullptr,

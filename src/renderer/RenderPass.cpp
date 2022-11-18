@@ -45,13 +45,6 @@ void BasePass::render(const std::shared_ptr<RenderScene>& scene,const std::share
 	if (sky && sky->atmosphere->shader) {
 		sky->render(outShader);
 	}
-
-	// render skybox 
-	//std::shared_ptr<SkyBox>& skybox = scene->skybox;
-	//if (skybox && skybox->shader) {
-	//	skybox->shader->use();
-	//	//skybox->render();
-	//}
 }
 
 HDRPass::HDRPass() {
@@ -151,7 +144,7 @@ void ShadowPass::directionLightShadow(const std::shared_ptr<RenderScene>& scene)
 		if (!light || !light->castShadow) {
 			continue;
 		}
-		frameBuffer->bindTexture(light->shadowTex, GL_DEPTH_ATTACHMENT, TextureType::FLAT);
+		frameBuffer->bindTexture(light->shadowTex, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D);
 		glDrawBuffer(GL_NONE);
 		glReadBuffer(GL_NONE);
 		// 画所有的物体
@@ -162,6 +155,7 @@ DepthPass::DepthPass() {
 	// TODO :
 	// shader
 	depthShader = renderManager->getShader(ShaderType::DEPTH);
+	depthShader->requireMat = false;
 
 	//frame buffer
 	frameBuffer = std::make_shared<FrameBuffer>();
@@ -187,7 +181,7 @@ void DepthPass::render(const std::shared_ptr<RenderScene>& scene) {
 		frontDepth->genTexture(GL_RGBA32F, GL_RGBA, inputManager->width, inputManager->height);
 		backDepth->genTexture(GL_RGBA32F, GL_RGBA, inputManager->width, inputManager->height);
 		renderBuffer->genBuffer(inputManager->width, inputManager->height);
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderBuffer->rbo);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, renderBuffer->rbo);
 		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 			std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
 		dirty = false;
@@ -201,7 +195,7 @@ void DepthPass::render(const std::shared_ptr<RenderScene>& scene) {
 	depthShader->use();
 	//depthShader->setMat4("projection_", projection_);
 
-	frameBuffer->bindTexture(frontDepth,GL_COLOR_ATTACHMENT0,TextureType::FLAT);
+	frameBuffer->bindTexture(frontDepth,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D);
 
 	glViewport(0, 0, inputManager->width, inputManager->height);
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
@@ -216,7 +210,7 @@ void DepthPass::render(const std::shared_ptr<RenderScene>& scene) {
 		}
 	}
 
-	frameBuffer->bindTexture(backDepth,GL_COLOR_ATTACHMENT0,TextureType::FLAT);
+	frameBuffer->bindTexture(backDepth,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D);
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);//black
 	glCullFace(GL_FRONT);
@@ -241,4 +235,84 @@ void DepthPass::render(const std::shared_ptr<RenderScene>& scene) {
 	sssShader->setInt("backDepth", 19);
 	sssShader->setInt("screen_width", inputManager->width);
 	sssShader->setInt("screen_height", inputManager->height);
+}
+
+
+DeferredPass::DeferredPass() {
+	initShader();
+	initTextures();
+}
+
+void DeferredPass::initShader() {
+	gBufferShader= std::make_shared<Shader>("./src/shader/deferred/gBuffer.vs", "./src/shader/deferred/gBuffer.fs");
+	gBufferShader->requireMat = true;
+}
+
+void DeferredPass::initTextures() {
+	gBuffer = std::make_shared<FrameBuffer>();
+	rbo = std::make_shared<RenderBuffer>();
+
+	gPosition = std::make_shared<Texture>();
+	gNormal = std::make_shared<Texture>();
+	gAlbedoSpec = std::make_shared<Texture>();
+	gPBR = std::make_shared<Texture>();
+}
+
+DeferredPass::~DeferredPass() {
+	
+}
+
+void DeferredPass::renderGbuffer(const std::shared_ptr<RenderScene>& scene) {
+	if (gBuffer->dirty || inputManager->viewPortChange) {
+		gPosition->genTexture(GL_RGBA16F, GL_RGBA,inputManager->width,inputManager->height);
+		gNormal->genTexture(GL_RGBA16F, GL_RGBA, inputManager->width, inputManager->height);
+		gAlbedoSpec->genTexture(GL_RGBA16F, GL_RGBA, inputManager->width, inputManager->height);
+		gPBR->genTexture(GL_RGBA16F, GL_RGBA, inputManager->width, inputManager->height);
+		
+		rbo->genBuffer(inputManager->width, inputManager->height);
+	}
+
+	if (gBuffer->dirty) {
+		// set attachments
+		gBuffer->dirty = false;
+
+		gBuffer->bindTexture(gPosition, GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D);
+		gBuffer->bindTexture(gNormal, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D);
+		gBuffer->bindTexture(gAlbedoSpec, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D);
+		gBuffer->bindTexture(gPBR, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D);
+
+		gBuffer->bindBuffer();
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo->rbo);
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+			std::cout << "Framebuffer not complete!" << std::endl;
+		// finally check if framebuffer is complete
+		unsigned int attachments[] = { 
+			GL_COLOR_ATTACHMENT0, 
+			GL_COLOR_ATTACHMENT1, 
+			GL_COLOR_ATTACHMENT2,
+			GL_COLOR_ATTACHMENT3
+		};
+		glDrawBuffers(4, attachments);
+	}
+
+	gBuffer->bindBuffer();
+	glViewport(0, 0, inputManager->width, inputManager->height);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+	gBufferShader->use();
+
+	for (auto object : scene->objects) {
+		std::shared_ptr<MeshRenderer>&& renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
+		if (renderer && renderer->shader) {
+			renderer->render(gBufferShader);
+		}
+	}
+	std::shared_ptr<Terrain>& terrain = scene->terrain;
+	if (terrain && terrain->shader) {
+		//terrain->shader->use();
+		glCheckError();
+		terrain->render(gBufferShader);
+	}
+	// no sky
 }

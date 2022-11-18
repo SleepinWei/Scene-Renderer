@@ -118,6 +118,9 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 	material->genTexture();
 	
 	//std::shared_ptr<Shader> shader = material->shader; 
+	
+	auto actualShader= (outShader == nullptr) ? shader : outShader;
+
 	for (auto& mesh : mesh_filter->meshes) {
 		unsigned int& VAO = mesh->VAO;
 		unsigned int& VBO = mesh->VBO;
@@ -128,12 +131,12 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 			mesh->genVAO();
 		}
 
-		if (!outShader && shader)
+		actualShader->use();
+		actualShader->setMat4("model", model);
+		if (actualShader->requireMat==true)
 		{
-			shader->use();
 			//glEnable(GL_DEPTH_TEST);
 			//glEnable(GL_CULL_FACE);
-			shader->setMat4("model", model);
 
 			// bind textures 
 			if (material) {
@@ -145,7 +148,7 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 					//将加载的图片纹理句柄，绑定到纹理单元0的Texture2D上。
 					glBindTexture(GL_TEXTURE_2D, iterator->second->id);
 					//设置Shader程序从纹理单元0读取颜色数据
-					shader->setInt((iterator->first).c_str(), texture_index);
+					actualShader->setInt((iterator->first).c_str(), texture_index);
 					++texture_index;
 				}
 				if (material->hasSubSurface) {
@@ -153,11 +156,6 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 				}
 			}
 		}
-		else if (outShader) {
-			outShader->use();
-			outShader->setMat4("model",model);
-		}
-
 
 		glBindVertexArray(VAO);
 		assert(VAO > 0);

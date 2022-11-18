@@ -17,6 +17,8 @@ public:
 	std::shared_ptr<Texture> genTextureAsync(unsigned int DataType, unsigned int channelType, int width, int height);
 	std::shared_ptr<Texture> genCubeMap(GLenum format, int width,int height);
 
+	void bind(unsigned int target, int binding);
+
 public:
 	int width, height,channels;
 	//std::string type; // type is now recorded in material.

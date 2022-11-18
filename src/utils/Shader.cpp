@@ -4,6 +4,7 @@
 
 Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath,const char* tessControlPath,const char* tessEvalPath)
 {
+    this->requireMat = true;
     // 1. retrieve the vertex/fragment source code from filePath
     std::string vertexCode;
     std::string fragmentCode;
@@ -128,6 +129,7 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geo
 
 Shader::Shader(const char* computePath)
 {
+    requireMat = false;
     // 1. retrieve the vertex/fragment source code from filePath
     std::string computeCode;
     std::ifstream computeShaderFile;

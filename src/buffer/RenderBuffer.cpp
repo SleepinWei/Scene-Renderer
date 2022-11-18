@@ -20,5 +20,5 @@ void RenderBuffer::unbindBuffer() {
 
 void RenderBuffer::genBuffer(int width, int height) {
 	bindBuffer();
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
 }

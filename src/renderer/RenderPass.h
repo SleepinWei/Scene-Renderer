@@ -7,6 +7,8 @@ class FrameBuffer;
 class Texture;
 class RenderBuffer;
 
+using std::shared_ptr;
+
 class HDRPass {
 public:
 	HDRPass();
@@ -76,5 +78,23 @@ private:
 
 //TODO:
 class DeferredPass {
+public:
+	DeferredPass();
+	~DeferredPass();
 
+	void renderGbuffer(const std::shared_ptr<RenderScene>& scene);
+	void render(const std::shared_ptr<RenderScene>& scene);
+
+public:
+	std::shared_ptr<Shader> gBufferShader;
+	std::shared_ptr<FrameBuffer> gBuffer;
+	std::shared_ptr<RenderBuffer> rbo;
+	std::shared_ptr<Texture> gPosition;
+	std::shared_ptr<Texture> gNormal;
+	shared_ptr<Texture> gAlbedoSpec;
+	shared_ptr<Texture>gPBR;
+	//shared_ptr<Texture> gPBR;
+private:
+	void initShader();
+	void initTextures();
 };

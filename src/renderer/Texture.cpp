@@ -119,14 +119,15 @@ std::shared_ptr<Texture> Texture::loadFromFile(const std::string& file_path) {
 //}
 
 std::shared_ptr<Texture> Texture::genTexture(unsigned int internalformat,unsigned int format,int width, int height) {
-	if (id)
-		glDeleteTextures(1, &id);
+	//if (id)
+		//glDeleteTextures(1, &id);
 	this->width = width;
 	this->height = height;
 	this->internalformat = internalformat;
 	this->format = format;
 
-	glGenTextures(1, &id);
+	if(id == 0)
+		glGenTextures(1, &id);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, id);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -137,6 +138,9 @@ std::shared_ptr<Texture> Texture::genTexture(unsigned int internalformat,unsigne
 	switch (internalformat)
 	{
 	case GL_RGBA32F:
+		dType = GL_FLOAT;
+		break;
+	case GL_RGBA16F:
 		dType = GL_FLOAT;
 		break;
 	case GL_RGBA:
@@ -195,4 +199,9 @@ std::shared_ptr<Texture> Texture::genCubeMap(GLenum format, int width,int height
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 	return shared_from_this();
+}
+
+void Texture::bind(unsigned int target, int binding) {
+	glActiveTexture(GL_TEXTURE0 + binding);
+	glBindTexture(target,this->id);
 }

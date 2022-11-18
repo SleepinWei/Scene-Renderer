@@ -11,6 +11,7 @@ class Shader;
 class HDRPass;
 class BasePass;
 class DepthPass;
+class DeferredPass;
 
 enum class ShaderType {
 	SIMPLE = 0,
@@ -69,7 +70,7 @@ public:
 	std::shared_ptr<BasePass> basePass;
 	std::shared_ptr<DepthPass> depthPass;
 	//std::shared_ptr<ShadowPass> shadowPass;
-	//std::shared_ptr<DeferredPass> deferredPass;
+	std::shared_ptr<DeferredPass> deferredPass;
 
 	// uniform buffer
 	std::shared_ptr<UniformBuffer> uniformVPBuffer;
