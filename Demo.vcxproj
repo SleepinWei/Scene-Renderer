@@ -196,6 +196,7 @@
     <ClCompile Include="src\renderer\Texture.cpp" />
     <ClCompile Include="src\system\InputManager.cpp" />
     <ClCompile Include="src\system\meta_register.cpp" />
+    <ClCompile Include="src\system\ModelLoader.cpp" />
     <ClCompile Include="src\system\RenderManager.cpp" />
     <ClCompile Include="src\utils\Camera.cpp" />
     <ClCompile Include="src\utils\Shader.cpp" />
@@ -247,6 +248,7 @@
     <ClInclude Include="src\system\InputManager.h" />
     <ClInclude Include="src\system\Key.h" />
     <ClInclude Include="src\system\meta_register.h" />
+    <ClInclude Include="src\system\ModelLoader.h" />
     <ClInclude Include="src\system\RenderManager.h" />
     <ClInclude Include="src\utils\Camera.h" />
     <ClInclude Include="src\utils\global.h" />

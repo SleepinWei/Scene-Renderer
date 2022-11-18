@@ -200,6 +200,9 @@
     <ClCompile Include="src\PT\material\isotropic.cpp">
       <Filter>src\PT\material</Filter>
     </ClCompile>
+    <ClCompile Include="src\system\ModelLoader.cpp">
+      <Filter>src\system</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\GUI.h">
@@ -354,6 +357,9 @@
     </ClInclude>
     <ClInclude Include="src\PT\PTHeader.h">
       <Filter>src\PT</Filter>
+    </ClInclude>
+    <ClInclude Include="src\system\ModelLoader.h">
+      <Filter>src\system</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
