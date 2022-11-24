@@ -10,6 +10,10 @@ const float PI = 3.1415926f;
 #include"../system/meta_register.h"
 //#include<rttr/registration.h>
 
+GameObject::GameObject() {
+
+}
+
 GameObject::GameObject(std::string name) {
 	name = name;
 }

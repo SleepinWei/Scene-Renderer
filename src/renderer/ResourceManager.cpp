@@ -12,6 +12,9 @@ ResourceManager::ResourceManager()
 {
 	std::string root = std::filesystem::current_path().string() + "\\asset\\model\\";
 	// 只读取这三个重要文件夹
+	// clear
+	std::unordered_map<std::string, std::string>().swap(guidMap); 
+
 	std::vector<std::string> dirs = { "meshes","materials","textures"};
 	for (std::string dir : dirs)
 	{

@@ -13,7 +13,7 @@ using json = nlohmann::json;
 
 class GameObject:public std::enable_shared_from_this<GameObject> {
 public:
-	GameObject() = default;
+	GameObject();
 	GameObject(std::string name);
 	virtual ~GameObject();
 

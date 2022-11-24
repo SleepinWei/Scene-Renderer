@@ -6,6 +6,8 @@
 #include<memory>
 #include"../component/Component.h"
 #include<tuple>
+#include<json/json.hpp>
+using json = nlohmann::json;
 
 class Texture;
 using std::tuple;
@@ -57,6 +59,7 @@ public:
 	//void initVertexObject();
 	tuple<glm::mat4,glm::mat4> getLightTransform(int face);
 	std::shared_ptr<PointLight> setCastShadow(bool castShadow);
+	virtual void loadFromJson(json& data)override;
 
 public:
 	PointLightData data; 

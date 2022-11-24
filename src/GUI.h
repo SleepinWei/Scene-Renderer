@@ -2,14 +2,23 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_opengl3.h>
+#include<imgui/imfilebrowser.h>
 // #include<glfw/glfw3.h>
 #include<glm/glm.hpp>
+#include"system/ModelLoader.h"
 #include"renderer/RenderScene.h"
 #include"./component/Lights.h"
 #include"./component/Transform.h"
 #include"./component/Atmosphere.h"
+#include<filesystem>
+using namespace std::filesystem;
+
+extern std::shared_ptr<ModelLoader> modelLoader;
 
 class Gui {
+public:
+	ImGui::FileBrowser fileDialog;
+	const std::string base_path = "./asset/objects";
 public:
 	Gui(GLFWwindow* window) {
 		const char* glsl_version = "#version 330";
@@ -18,6 +27,9 @@ public:
 		ImGui::StyleColorsLight();
 		ImGui_ImplGlfw_InitForOpenGL(window, true);
 		ImGui_ImplOpenGL3_Init(glsl_version);
+
+		fileDialog.SetTypeFilters({ ".json" });
+		fileDialog.SetPwd(base_path);
 	}
 	void destroy() {
 		ImGui_ImplOpenGL3_Shutdown();
@@ -30,6 +42,25 @@ public:
 		ImGui::NewFrame();
 
 		ImGui::Begin("Info");
+
+		if (ImGui::Button("Select Scene")) {
+			fileDialog.Open();
+		}
+		//{
+		//	ImGui::Text("Scenes");
+		//	ImGui::BeginChild("Scrolling");
+		//	path scene_path("./asset/objects");
+		//	if (!exists(scene_path)) {
+		//		std::cout << "path doesn't exist\n";
+		//		return;
+		//	}
+		//	directory_iterator list(scene_path);
+		//	for (auto& iter : list) {
+		//		ImGui::Text(iter.path().filename().string().c_str());
+		//	}
+		//	ImGui::EndChild();
+		//}
+
 		auto& lights = scene->pointLights;
 		for (int i = 0; i < lights.size(); i++) {
 			char title[] = "Lighti Position";
@@ -67,6 +98,18 @@ public:
 		//ImGui::SliderFloat("Intensity", &lightColor, 0.5f, 20.0f);
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		ImGui::End();
+
+		{
+			// file dialog
+			fileDialog.Display();
+			if (fileDialog.HasSelected()) {
+				std::string selected = fileDialog.GetSelected().string();
+				// 
+				//std::cout << selected << '\n';
+				modelLoader->loadSceneAsync(scene, selected);
+				fileDialog.ClearSelected();
+			}
+		}
 
 		ImGui::Render();
 	}
