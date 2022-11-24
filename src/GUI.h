@@ -46,20 +46,11 @@ public:
 		if (ImGui::Button("Select Scene")) {
 			fileDialog.Open();
 		}
-		//{
-		//	ImGui::Text("Scenes");
-		//	ImGui::BeginChild("Scrolling");
-		//	path scene_path("./asset/objects");
-		//	if (!exists(scene_path)) {
-		//		std::cout << "path doesn't exist\n";
-		//		return;
-		//	}
-		//	directory_iterator list(scene_path);
-		//	for (auto& iter : list) {
-		//		ImGui::Text(iter.path().filename().string().c_str());
-		//	}
-		//	ImGui::EndChild();
-		//}
+		//ImGui::Separator();
+		if (scene->main_camera) {
+			// exposure
+			ImGui::SliderFloat("exposure",&(scene->main_camera->exposure),0.5f,6.0f);
+		}
 
 		auto& lights = scene->pointLights;
 		for (int i = 0; i < lights.size(); i++) {
@@ -74,6 +65,7 @@ public:
 			ImGui::SliderFloat("Z", &(lightTrans->position.z), -8.0f, 8.0f);
 			lights[i]->setDirtyFlag(true);
 		}
+
 		auto& dlights = scene->directionLights;
 		for (int i = 0; i < dlights.size(); i++) {
 			char title[] = "Direction Lighti Position";
@@ -108,6 +100,7 @@ public:
 				//std::cout << selected << '\n';
 				modelLoader->loadSceneAsync(scene, selected);
 				fileDialog.ClearSelected();
+				//fileDialog.Close();
 			}
 		}
 

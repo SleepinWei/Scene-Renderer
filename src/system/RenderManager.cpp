@@ -25,8 +25,8 @@ RenderManager::RenderManager() {
 
 	// setting
 	setting = RenderSetting{
-		true // enableHDR
-		//false
+		true, // enableHDR
+		true //useDeferred
 	};
 
 }
@@ -78,6 +78,9 @@ RenderManager::~RenderManager() {
 
 void RenderManager::prepareVPData(const std::shared_ptr<RenderScene>& renderScene) {
 	const std::shared_ptr<Camera>& camera = renderScene->main_camera;
+	if (camera == nullptr) {
+		return;
+	}
 
 	const glm::mat4& projection = camera->GetPerspective();
 	const glm::mat4& view = camera->GetViewMatrix();
@@ -229,13 +232,14 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	preparePointLightData(scene);
 	prepareDirectionLightData(scene);
 	prepareCompData(scene);
-
-	// shadow pass
 	
 	// deferred pass
-	deferredPass->renderGbuffer(scene);
-
-	//if (0) {
+	if (setting.useDefer) {
+		deferredPass->renderGbuffer(scene);
+		deferredPass->render(scene);
+	}
+	else 
+	{
 		// depth pass (camera space)
 		depthPass->render(scene);
 
@@ -249,7 +253,7 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 		if (setting.enableHDR) {
 			hdrPass->render();
 		}
-	//}
+	}
 }
 
 std::shared_ptr<Shader> RenderManager::getShader(ShaderType type) {

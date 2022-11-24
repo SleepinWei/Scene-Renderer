@@ -28,6 +28,9 @@ void ModelLoader::loadObject(std::shared_ptr<RenderScene>& scene, const std::str
 }
 
 void ModelLoader::loadSceneAsync(std::shared_ptr<RenderScene>& scene, const std::string& filename) {
+	//clear scene 
+	scene->destroy();
+
 	std::ifstream f(filename);
 	json data = json::parse(f);
 	if (data.find("objects") != data.end()) {

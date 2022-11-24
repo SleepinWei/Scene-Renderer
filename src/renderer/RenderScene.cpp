@@ -53,6 +53,5 @@ void RenderScene::destroy() {
 	skybox = nullptr;
 	std::vector<shared_ptr<DirectionLight>>().swap(directionLights);
 	std::vector<shared_ptr<PointLight>>().swap(pointLights);
-
 	//main_camera = nullptr;
 }

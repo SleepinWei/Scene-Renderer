@@ -33,6 +33,7 @@ enum class ShaderType {
 
 struct RenderSetting {
 	bool enableHDR;
+	bool useDefer;
 };
 
 class RenderManager {
@@ -43,20 +44,20 @@ public:
 	void init();
 	void render(const std::shared_ptr<RenderScene>& scene);
 
-	std::shared_ptr<Shader> getShader(ShaderType type); 
+	std::shared_ptr<Shader> getShader(ShaderType type);
 
 private:
 	// shader 
 	static std::shared_ptr<Shader> generateShader(ShaderType type);
 	// buffer
-	void prepareVPData(const std::shared_ptr<RenderScene>& renderScene); 
+	void prepareVPData(const std::shared_ptr<RenderScene>& renderScene);
 	void preparePointLightData(const std::shared_ptr<RenderScene>& renderScene);
 	void prepareDirectionLightData(const std::shared_ptr<RenderScene>& renderScene);
 	void prepareCompData(const std::shared_ptr<RenderScene>& scene);
 
 	void initRenderPass();
-	void initVPbuffer(); 
-	void initPointLightBuffer(); 
+	void initVPbuffer();
+	void initPointLightBuffer();
 	void initDirectionLightBuffer();
 public:
 	// shaders
@@ -76,8 +77,5 @@ public:
 	std::shared_ptr<UniformBuffer> uniformVPBuffer;
 	std::shared_ptr<UniformBuffer> uniformPointLightBuffer;
 	std::shared_ptr<UniformBuffer> uniformDirectionLightBuffer;
-
-public:
-	std::mutex mtx;
 };
 

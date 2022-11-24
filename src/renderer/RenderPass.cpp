@@ -246,6 +246,8 @@ DeferredPass::DeferredPass() {
 void DeferredPass::initShader() {
 	gBufferShader= std::make_shared<Shader>("./src/shader/deferred/gBuffer.vs", "./src/shader/deferred/gBuffer.fs");
 	gBufferShader->requireMat = true;
+	lightingShader = std::make_shared<Shader>("./src/shader/deferred/deferred.vs", "./src/shader/deferred/deferred.fs");
+	lightingShader->requireMat = true;
 }
 
 void DeferredPass::initTextures() {
@@ -316,4 +318,35 @@ void DeferredPass::renderGbuffer(const std::shared_ptr<RenderScene>& scene) {
 		terrain->render(gBufferShader);
 	}
 	// no sky
+}
+
+void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
+	// renderScene
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	lightingShader->use();
+	// bind textures
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, gPosition->id);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, gNormal->id);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, gAlbedoSpec->id);
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D, gPBR->id);
+
+	lightingShader->setInt("gPosition", 0);
+	lightingShader->setInt("gNormal", 1);
+	lightingShader->setInt("gAlbedoSpec", 2);
+	lightingShader->setInt("gPBR", 3);
+
+	// set uniforms
+	if (scene->main_camera) {
+		lightingShader->setVec3("camPos", scene->main_camera->Position);
+		lightingShader->setFloat("exposure", scene->main_camera->exposure);
+	}
+
+	// render quad
+	renderQuad();
 }

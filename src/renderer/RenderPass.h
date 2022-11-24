@@ -86,13 +86,15 @@ public:
 	void render(const std::shared_ptr<RenderScene>& scene);
 
 public:
-	std::shared_ptr<Shader> gBufferShader;
-	std::shared_ptr<FrameBuffer> gBuffer;
-	std::shared_ptr<RenderBuffer> rbo;
-	std::shared_ptr<Texture> gPosition;
-	std::shared_ptr<Texture> gNormal;
+	shared_ptr<Shader> gBufferShader;
+	shared_ptr<Shader> lightingShader;
+	shared_ptr<FrameBuffer> gBuffer;
+	shared_ptr<RenderBuffer> rbo;
+
+	shared_ptr<Texture> gPosition;
+	shared_ptr<Texture> gNormal;
 	shared_ptr<Texture> gAlbedoSpec;
-	shared_ptr<Texture>gPBR;
+	shared_ptr<Texture> gPBR;
 	//shared_ptr<Texture> gPBR;
 private:
 	void initShader();
