@@ -365,5 +365,13 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	// forward rendering 
-	
+	for (auto& object : scene->objects) {
+		if (!object->isDeferred()) {
+			std::shared_ptr<MeshRenderer>&& renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
+			if (renderer && renderer->shader) {
+				renderer->render(renderer->shader);
+			}
+
+		}
+	}
 }

@@ -107,6 +107,6 @@ bool GameObject::isDeferred()const {
 	return this->m_isDeferred;
 }
 
-bool GameObject::setDeferred(bool _isDeferred) {
+void GameObject::setDeferred(bool _isDeferred) {
 	this->m_isDeferred = _isDeferred;
 }

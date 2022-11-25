@@ -39,7 +39,7 @@ public:
 
 	virtual void loadFromJson(json& data);
 	bool isDeferred()const;
-	bool setDeferred(bool _isDeferred);
+	void setDeferred(bool _isDeferred);
 
 public:
 	std::string name; 
