@@ -371,7 +371,11 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 			if (renderer && renderer->shader) {
 				renderer->render(renderer->shader);
 			}
-
 		}
+	}
+
+	// forward rendering : sky
+	if (scene->sky) {
+		scene->sky->render(nullptr);
 	}
 }

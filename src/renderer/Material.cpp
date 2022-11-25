@@ -44,8 +44,15 @@ std::shared_ptr<Material> Material::addTexture(std::shared_ptr<Texture> tex,std:
 	return shared_from_this();
 }
 
-std::shared_ptr<Material> Material::addTexture(std::string tex_path, std::string type) {
+std::shared_ptr<Material> Material::addTextureAsync(std::string tex_path, std::string type) {
 	auto& tex = resourceManager->getResourceAsync(tex_path);
+	this->textures.insert({ type,tex });
+	//this->initDone= true;
+	return shared_from_this();
+}
+
+std::shared_ptr<Material> Material::addTexture(std::string tex_path, std::string type) {
+	auto& tex = resourceManager->getResource(tex_path);
 	this->textures.insert({ type,tex });
 	//this->initDone= true;
 	return shared_from_this();
@@ -146,7 +153,7 @@ void Material::loadFromJson(json& data) {
 		for (auto iter = mat.begin(); iter != mat.end(); ++iter) {
 			auto& mat_type = iter.key();
 			auto& mat_path = iter.value().get<std::string>();
-			this->addTexture(mat_path, mat_type);
+			this->addTextureAsync(mat_path, mat_type);
 			//texture_path.insert({ mat_type,mat_path });
 		}
 		initDone= false;
