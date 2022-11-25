@@ -16,9 +16,10 @@ public:
 	~Terrain();
 	std::shared_ptr<Terrain>loadHeightmap(const std::string& folder);
 	std::shared_ptr<Terrain>loadHeightmap_(const std::string& folder);
-	std::shared_ptr<Terrain> addShader(ShaderType st);
+	//std::shared_ptr<Terrain> addShader(ShaderType st);
 	std::shared_ptr<Terrain> addMaterial(std::shared_ptr<Material> material); // append 
 
+	virtual void loadFromJson(json& data) override;
 	// render pass
 	void render(const std::shared_ptr<Shader>& outShader);
 
@@ -41,6 +42,8 @@ public:
 	std::shared_ptr<Material> terrainMaterial; 
 
 	std::shared_ptr<Shader> shader;
+	std::shared_ptr<Shader> terrainGBuffer; 
+
 	std::shared_ptr<Shader> computeShader;
 	std::shared_ptr<Shader> complodMapShader;
 	std::shared_ptr<Shader> compGenPatchShader;

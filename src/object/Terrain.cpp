@@ -158,15 +158,15 @@ Terrain::~Terrain() {
 	glDeleteVertexArrays(1,&VAO);
 }
 
-std::shared_ptr<Terrain> Terrain::addShader(ShaderType st){
-	shader = renderManager->getShader(st);
-	return std::dynamic_pointer_cast<Terrain>(shared_from_this());
-}
+//std::shared_ptr<Terrain> Terrain::addShader(ShaderType st){
+//	shader = renderManager->getShader(st);
+//	return std::dynamic_pointer_cast<Terrain>(shared_from_this());
+//}
 
 std::shared_ptr<Terrain>Terrain::addMaterial(std::shared_ptr<Material> mat) {
 	// push back materials
 	this->material = mat;
-	return  std::dynamic_pointer_cast<Terrain>(shared_from_this());
+	return  std::static_pointer_cast<Terrain>(shared_from_this());
 }
 
 void Terrain::tessDrawCall(){
@@ -251,10 +251,20 @@ Terrain::Terrain(){
 	//--- 
 	indirectDrawSSBO = std::make_shared<SSBO>(64);
 	indirectDrawSSBO->setBinding(5);
+
+	// shaders
+	shader = renderManager->getShader(ShaderType::TERRAIN);
+	shader->requireMat = true;
+	terrainGBuffer = std::make_shared<Shader>("./src/shader/terrain/terrain.vs", "./src/shader/deferred/gBuffer.fs");
+	terrainGBuffer->requireMat = true;
+
 	glCheckError();
 	//isIn = true;
 }
 
+/// <summary>
+/// prepare data for computation & rendering
+/// </summary>
 void Terrain::prepareData() {
 	// set indirect draw SSBO
 	indirectDrawSSBO->bindBuffer();
@@ -280,7 +290,7 @@ void Terrain::prepareData() {
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 4, &nodeCnt);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 4, 4, &one);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 8, 4, &one);
-	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 16, nodeIndex.size() * sizeof(unsigned int), &nodeIndex[0]);
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 16, nodeIndex.size() * sizeof(unsigned int), nodeIndex.data());
 
 	outQueueSSBO->bindBuffer();
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 4, 4, &one);
@@ -293,8 +303,8 @@ void Terrain::prepareData() {
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 8, 4, &one);
 
 	// set render shader 
-	shader->use();
-	shader->setMat4("model", model);
+	//shader->use();
+	//shader->setMat4("model", model);
 	//shader->setInt("normalMap", 1);
 
 	// set shader 
@@ -328,6 +338,9 @@ void Terrain::computeDrawCall() {
 	compGeneratePatchCall();
 }
 
+/// <summary>
+/// compute view-dependent lod
+/// </summary>
 void Terrain::compLodCall() {
 	// set binding 
 	finalNodeList->setBinding(2);
@@ -357,6 +370,9 @@ void Terrain::compLodCall() {
 	}
 }
 
+/// <summary>
+/// generate lod map (a texture) 
+/// </summary>
 void Terrain::compLodMapCall() {
 	// set binding
 	lodMapTexture->setBinding(5);
@@ -367,6 +383,9 @@ void Terrain::compLodMapCall() {
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT|GL_COMMAND_BARRIER_BIT);
 }
 
+/// <summary>
+/// generate mesh grids
+/// </summary>
 void Terrain::compGeneratePatchCall() {
 	//TODO;
 	// set bindings
@@ -382,17 +401,17 @@ void Terrain::compGeneratePatchCall() {
 	glDispatchComputeIndirect(0);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |GL_COMMAND_BARRIER_BIT);
 
-	//freopen("./output.txt", "w",stdout);
-	//patchesSSBO->bindBuffer();
-	//float* data = (float*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-	//for (int i = 0; i < 1000; i++) {
-	//	for (int j = 0; j < 24; j++) {
-	//		std::cout << data[24 * i + j] << ' ';
-	//	}
-	//	std::cout << '\n';
-	//}
-	//glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-	// end for 
+//freopen("./output.txt", "w",stdout);
+//patchesSSBO->bindBuffer();
+//float* data = (float*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+//for (int i = 0; i < 1000; i++) {
+//	for (int j = 0; j < 24; j++) {
+//		std::cout << data[24 * i + j] << ' ';
+//	}
+//	std::cout << '\n';
+//}
+//glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+// end for 
 }
 
 void Terrain::renderCall(const std::shared_ptr<Shader>& outShader) {
@@ -401,7 +420,7 @@ void Terrain::renderCall(const std::shared_ptr<Shader>& outShader) {
 
 	glBindVertexArray(VAO);
 	glMemoryBarrier(GL_ALL_BARRIER_BITS);
-	
+
 	//EBO
 	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indicesSSBO->ssbo);
 
@@ -412,36 +431,32 @@ void Terrain::renderCall(const std::shared_ptr<Shader>& outShader) {
 	//glEnableVertexAttribArray(0);
 	//glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)16);
 	//glEnableVertexAttribArray(1);
+	auto actualShader= (outShader == nullptr) ? shader : outShader;
 
-	if (!outShader && shader) {
-		shader->use();
-
-		// bind normal map
-		//auto& normalTex = terrainMaterial->textures["normalMap"];
-		//glActiveTexture(GL_TEXTURE1);
-		//glBindTexture(GL_TEXTURE_2D, normalTex->id);
-		//bind pbr textures
-		int beginIndex = 2;  // heightMap, normalMap
-		if (material) {
-			auto& textures = material->textures;
-			int texture_index = 0;
-			for (auto iterator = textures.begin(); iterator != textures.end(); ++iterator) {
-				//激活纹理单元0
-				glActiveTexture(GL_TEXTURE0 + beginIndex + texture_index);
-				//将加载的图片纹理句柄，绑定到纹理单元0的Texture2D上。
-				glBindTexture(GL_TEXTURE_2D, iterator->second->id);
-				//设置Shader程序从纹理单元0读取颜色数据
-				shader->setInt((iterator->first).c_str(), beginIndex + texture_index);
-				++texture_index;
-			}
+	actualShader->use();
+	actualShader->setMat4("model", model);
+	// bind normal map
+	//auto& normalTex = terrainMaterial->textures["normalMap"];
+	//glActiveTexture(GL_TEXTURE1);
+	//glBindTexture(GL_TEXTURE_2D, normalTex->id);
+	//bind pbr textures
+	int beginIndex = 2;  // heightMap, normalMap
+	if (actualShader->requireMat==true && material) {
+		auto& textures = material->textures;
+		int texture_index = 0;
+		for (auto iterator = textures.begin(); iterator != textures.end(); ++iterator) {
+			//激活纹理单元0
+			glActiveTexture(GL_TEXTURE0 + beginIndex + texture_index);
+			//将加载的图片纹理句柄，绑定到纹理单元0的Texture2D上。
+			glBindTexture(GL_TEXTURE_2D, iterator->second->id);
+			//设置Shader程序从纹理单元0读取颜色数据
+			actualShader->setInt((iterator->first).c_str(), beginIndex + texture_index);
+			++texture_index;
 		}
-	}
-	else {
-		outShader->use();
 	}
 
 	if (polyMode == GL_LINE) {
-		glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	}
 	glCullFace(GL_FRONT);
 
@@ -453,18 +468,42 @@ void Terrain::renderCall(const std::shared_ptr<Shader>& outShader) {
 
 	glCullFace(GL_BACK);
 	//glEnable(GL_CULL_FACE);
-	if(polyMode == GL_LINE)
-		glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+	if (polyMode == GL_LINE)
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 void Terrain::constructCall() {
-	prepareData(); 
+	prepareData();
 	computeDrawCall();
 }
+
+/// <summary>
+/// render terrain with .vs,.fs shader
+/// </summary>
+/// <param name="outShader">
+/// outShader -> nullptr: use terrain->shader | terrainGbuffer : used when rendering gBuffer
+/// </param>
 void Terrain::render(const std::shared_ptr<Shader>& outShader) {
 	renderCall(outShader);
 }
 
 void Terrain::setPolyMode(unsigned int polyMode_) {
+	// GL_POLYGON_MODE : GL_FILL / GL_LINE
 	this->polyMode = polyMode_;
+}
+
+void Terrain::loadFromJson(json& data) {
+	// load terrain data from json file
+	if (data.find("heightMap") != data.end()) {
+		std::string heightmap_path = data["heightMap"].get < std::string>();
+		this->loadHeightmap(heightmap_path);
+	}
+	if (data.find("material") != data.end()) {
+		json& mat = data["material"];
+		for (auto iter = mat.begin(); iter != mat.end(); ++iter) {
+			std::string mat_type = iter.key();
+			std::string mat_path = iter.value().get < std::string>();
+			this->material->addTexture(mat_path, mat_type);
+		}
+	}
 }
