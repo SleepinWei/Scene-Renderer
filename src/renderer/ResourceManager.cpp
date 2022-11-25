@@ -10,39 +10,39 @@
 */
 ResourceManager::ResourceManager()
 {
-	std::string root = std::filesystem::current_path().string() + "\\asset\\model\\";
-	// 只读取这三个重要文件夹
-	// clear
-	std::unordered_map<std::string, std::string>().swap(guidMap); 
+	//std::string root = std::filesystem::current_path().string() + "\\asset\\model\\";
+	//// 只读取这三个重要文件夹
+	//// clear
+	//std::unordered_map<std::string, std::string>().swap(guidMap); 
 
-	std::vector<std::string> dirs = { "meshes","materials","textures"};
-	for (std::string dir : dirs)
-	{
-		if (!std::filesystem::is_directory(root + dir))
-		{
-			std::cout << "ERROR: ResourceManager can't find directory: " + root + dir << std::endl;
-			continue;
-		}
-		for (auto& i : std::filesystem::directory_iterator(root + dir))
-		{
-			std::string path = i.path().string();
-			if (path.substr(path.find_last_of('.') + 1) == "meta")
-			{
-				// 解析meta文件中的guid
-				std::ifstream meta_ifs(path, std::ios::in);
-				std::string guid;
-				do
-				{
-					meta_ifs >> guid;
-				} while (guid != "guid:");
-				meta_ifs >> guid;
-				meta_ifs.close();
+	//std::vector<std::string> dirs = { "meshes","materials","textures"};
+	//for (std::string dir : dirs)
+	//{
+	//	if (!std::filesystem::is_directory(root + dir))
+	//	{
+	//		std::cout << "ERROR: ResourceManager can't find directory: " + root + dir << std::endl;
+	//		continue;
+	//	}
+	//	for (auto& i : std::filesystem::directory_iterator(root + dir))
+	//	{
+	//		std::string path = i.path().string();
+	//		if (path.substr(path.find_last_of('.') + 1) == "meta")
+	//		{
+	//			// 解析meta文件中的guid
+	//			std::ifstream meta_ifs(path, std::ios::in);
+	//			std::string guid;
+	//			do
+	//			{
+	//				meta_ifs >> guid;
+	//			} while (guid != "guid:");
+	//			meta_ifs >> guid;
+	//			meta_ifs.close();
 
-				// 添加文件guid索引
-				guidMap.emplace(guid, path.substr(0, path.size() - 5));
-			}
-		}
-	}
+	//			// 添加文件guid索引
+	//			guidMap.emplace(guid, path.substr(0, path.size() - 5));
+	//		}
+	//	}
+	//}
 }
 
 std::shared_ptr<Texture> ResourceManager::find(std::string tex_name) {
