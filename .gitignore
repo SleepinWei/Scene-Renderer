@@ -1,5 +1,4 @@
 build/
-asset/
 dll/
 # lib/
 .vs/
@@ -18,3 +17,8 @@ RenderDoc/
 *.pptx
 .VSCodeCounter/
 *.zip
+asset/heightmap
+asset/model
+asset/pbr
+asset/skybox
+asset/tex

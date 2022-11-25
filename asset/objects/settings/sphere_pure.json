@@ -1,0 +1,28 @@
+{
+    "name":"sphere_pure",
+    "components":
+    {
+        "Transform":{
+            "position":[-1.0,0.0,1.0],
+            "rotation":[0.0,0.0,0.0],
+            "scale":[0.25,0.25,0.25]
+        },
+        "MeshFilter":{
+            "shape":"sphere"
+        },
+        "MeshRenderer":{
+            "material":{
+                "textures":{
+                    "material.albedo":"./asset/pbr/pure/albedo.jpg",
+                    "material.ao":"./asset/pbr/pure/ao.png",
+                    "material.metallic":"./asset/pbr/pure/metallic.png",
+                    "material.normal": "./asset/pbr/pure/normal.jpg",
+                    "material.roughness":"./asset/pbr/pure/roughness.jpg"
+                }
+            },
+            "shader":"pbr",
+            "drawmode":"triangles"
+        }
+    }
+    
+}
