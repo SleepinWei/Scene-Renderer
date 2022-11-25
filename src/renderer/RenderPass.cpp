@@ -311,11 +311,12 @@ void DeferredPass::renderGbuffer(const std::shared_ptr<RenderScene>& scene) {
 			renderer->render(gBufferShader);
 		}
 	}
+
 	std::shared_ptr<Terrain>& terrain = scene->terrain;
 	if (terrain && terrain->shader) {
 		//terrain->shader->use();
 		glCheckError();
-		terrain->render(gBufferShader);
+		terrain->render(terrain->terrainGBuffer);
 	}
 	// no sky
 }
@@ -323,7 +324,7 @@ void DeferredPass::renderGbuffer(const std::shared_ptr<RenderScene>& scene) {
 void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 	// renderScene
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
 	lightingShader->use();
 	// bind textures
@@ -349,4 +350,17 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 
 	// render quad
 	renderQuad();
+
+	// copy renderbuffer
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer->FBO);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	int width = inputManager->width;
+	int height = inputManager->height;
+	glBlitFramebuffer(0, 0, width, height,
+		0, 0, width, height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	// forward rendering 
+	
 }
