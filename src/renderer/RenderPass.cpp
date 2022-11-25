@@ -306,9 +306,12 @@ void DeferredPass::renderGbuffer(const std::shared_ptr<RenderScene>& scene) {
 
 	for (int i = 0; i < scene->objects.size();i++) {
 		auto& object = scene->objects[i];
-		std::shared_ptr<MeshRenderer>&& renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
-		if (renderer && renderer->shader) {
-			renderer->render(gBufferShader);
+		// only render deferred objects in gbuffer phase
+		if (object->isDeferred()) {
+			std::shared_ptr<MeshRenderer>&& renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
+			if (renderer && renderer->shader) {
+				renderer->render(gBufferShader);
+			}
 		}
 	}
 

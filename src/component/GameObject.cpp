@@ -11,11 +11,12 @@ const float PI = 3.1415926f;
 //#include<rttr/registration.h>
 
 GameObject::GameObject() {
-
+	this->m_isDeferred = true; // true by default
 }
 
 GameObject::GameObject(std::string name) {
 	name = name;
+	this->m_isDeferred = true;
 }
 
 GameObject::~GameObject() {
@@ -65,28 +66,47 @@ std::shared_ptr<Component> GameObject::GetComponent(std::string component_type_n
 void GameObject::loadFromJson(json& data) {
 	std::string name_ = data["name"].get<std::string>();
 	this->name = name_;
-	json components = data["components"];
-	for (auto iter = components.begin(); iter != components.end(); ++iter) {
-		auto comp = Meta::generateComponent(iter.key());
-		comp->loadFromJson(iter.value());
+	if (data.find("components") != data.end()) {
+		json components = data["components"];
+		for (auto iter = components.begin(); iter != components.end(); ++iter) {
+			auto comp = Meta::generateComponent(iter.key());
+			comp->loadFromJson(iter.value());
 
-		this->addComponent(comp);
+			this->addComponent(comp);
+		}
+	}
+	else {
+		//error
+	}
+	if (data.find("isDeferred") != data.end()) {
+		auto _isDeferred = data["isDeferred"].get<bool>();
+		this->setDeferred(_isDeferred);
+	}
+	else {
+		// no error
 	}
 }
 
 std::shared_ptr<GameObject> GameObject::addComponent(const std::shared_ptr<Component>& component)
 {
-		component->setGameObject(shared_from_this());
-		std::string component_type_name = component->name;
-		if (component_type_instance_map.find(component_type_name) == component_type_instance_map.end()) {
-			//std::vector<std::shared_ptr<Component>> component_vec;
-			//component_vec.push_back(component);
-			component_type_instance_map[component_type_name] = component;
-		}
-		else {
-			//component_type_instance_map[component_type_name] = component;
-			std::cout << "Component: " << component_type_name << " has already existed\n";
-		}
-		return shared_from_this();
+	component->setGameObject(shared_from_this());
+	std::string component_type_name = component->name;
+	if (component_type_instance_map.find(component_type_name) == component_type_instance_map.end()) {
+		//std::vector<std::shared_ptr<Component>> component_vec;
+		//component_vec.push_back(component);
+		component_type_instance_map[component_type_name] = component;
 	}
+	else {
+		//component_type_instance_map[component_type_name] = component;
+		std::cout << "Component: " << component_type_name << " has already existed\n";
+	}
+	return shared_from_this();
+}
 
+bool GameObject::isDeferred()const {
+	return this->m_isDeferred;
+}
+
+bool GameObject::setDeferred(bool _isDeferred) {
+	this->m_isDeferred = _isDeferred;
+}

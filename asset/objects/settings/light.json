@@ -17,6 +17,6 @@
             "shader":"light",
             "drawmode":"point"
         }
-    }
-    
+    },
+    "isDeferred":false
 }
