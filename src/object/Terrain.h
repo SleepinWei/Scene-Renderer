@@ -14,6 +14,7 @@ class Terrain:public GameObject{
 public:
 	Terrain();
 	~Terrain();
+	void init();
 	std::shared_ptr<Terrain>loadHeightmap(const std::string& folder);
 	std::shared_ptr<Terrain>loadHeightmap_(const std::string& folder);
 	//std::shared_ptr<Terrain> addShader(ShaderType st);
@@ -36,6 +37,7 @@ public:
 	float yScale;
 	float yShift;
 	unsigned int polyMode;
+	bool dirty;
 
 	glm::mat4 model;
 	std::shared_ptr<Material> material;

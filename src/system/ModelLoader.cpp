@@ -52,8 +52,8 @@ void ModelLoader::loadSceneAsync(std::shared_ptr<RenderScene>& scene, const std:
 	}
 	if (data.find("terrain") != data.end()) {
 		std::string path = data["terrain"].get<std::string>();
-		//this->loadTerrainAsync(scene, path);
-		this->loadTerrain(scene, path);
+		this->loadTerrainAsync(scene, path);
+		//this->loadTerrain(scene, path);
 	}
 }
 
@@ -69,7 +69,7 @@ void ModelLoader::loadSky(std::shared_ptr<RenderScene>& scene, const std::string
 }
 
 void ModelLoader::loadTerrainAsync(std::shared_ptr<RenderScene>& scene, const std::string& filename) {
-	std::thread loadThread = std::thread(&ModelLoader::loadSky, this, scene, filename);
+	std::thread loadThread = std::thread(&ModelLoader::loadTerrain, this, scene, filename);
 	threadpool.push_back(std::move(loadThread));
 }
 

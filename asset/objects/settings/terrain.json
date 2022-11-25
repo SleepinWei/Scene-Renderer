@@ -1,0 +1,12 @@
+{
+    "name":"terrain",
+    "heightMap":"./asset/heightmap/mountain/",
+    "material":{
+        "material.albedo":"./asset/heightmap/mountain/albedo.png",
+        "material.ao":"./asset/heightmap/mountain/ao.png",
+        "material.metallic":"./asset/heightmap/mountain/metallic.jpg",
+        "material.normal": "./asset/heightmap/mountain/normal.png",
+        "material.roughness":"./asset/heightmap/mountain/roughness.png"
+    },
+    "shader":"pbr"
+}

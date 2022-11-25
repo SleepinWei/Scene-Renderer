@@ -87,62 +87,37 @@ std::shared_ptr<Terrain> Terrain::loadHeightmap_(const std::string& path){
 }
 std::shared_ptr<Terrain> Terrain::loadHeightmap(const std::string& path){
 	int width, height, nrChannels; 
-	yScale = 50.0f;
-	yShift = -10.0f; 
 	//xzScale = 10.0f;
-	std::shared_ptr<Texture> heightTex = Texture::loadFromFile(path + "heightMap.png");
+	std::shared_ptr<Texture> heightTex = Texture::loadFromFileAsync(path + "heightMap.png");
 	width = heightTex->width;
 	height = heightTex->height;
 	terrainMaterial->addTexture(heightTex,"heightMap");
 	//terrainMaterial->addTexture(Texture::loadFromFile(path+"normalMap.png"),"normalMap");
 	//resourceManager.getResource();
 	// indices
-	float xzScale = 100.0f;
+	yScale = 10.0f;
+	yShift = -10.0f; 
+	float xzScale = 20.0f;
 	//float xzScale = 1.0f;
 	model = glm::mat4(1);
-	//model[0][0] = xzScale;//x scale
-	//model[2][2] = xzScale; //z scale
 	model = glm::translate(model, glm::vec3(0.0f, yShift,0.0f));
 	model = glm::scale(model, glm::vec3(xzScale, yScale, xzScale));
 
 	rez = 5; 
 
 	// generate chunk vertex
-	//std::vector<float>((rez + 1) * (rez + 1) * 4).swap(vertices);
-	//std::vector<float>((rez + 1) * (rez + 1) * 2).swap(texCoords);
 	std::vector<unsigned int>(rez * rez * 2).swap(nodeIndex);
 	for (unsigned i = 0; i < rez; i++)
 	{
 		for (unsigned j = 0; j < rez; j++)
 		{
-			//int index = 4 * (i * (rez+1) + j);
-			//vertices[index++] = - 1.0f + 2 * j / (float)rez; // v.x
-			//vertices[index++] = 0.0f; // v.y
-			//vertices[index++] = -1.0f + 2 * i / (float)rez; // v.z
-			//vertices[index++] = 0.0f; // v.w
-			//int index_ = 2 * (i * (rez + 1) + j);
-			//texCoords[index_] = j / (float)rez; 
-			//texCoords[index_ + 1] = i / (float)rez;
 			int index = 2 * (i * rez + j);
 			nodeIndex[index] = j;
 			nodeIndex[index + 1] = i;
 		}
 	}
 
-	// generate node indices
-	/*std::vector<unsigned int>(rez * rez * 4).swap(nodeIndex);
-	for (int i = 0; i < rez; i++) {
-		for (int j = 0; j < rez; j++) {
-			int index = 4 * (i * rez + j);
-			unsigned int upper_left = i * (rez + 1) + j; 
-			nodeIndex[index++] = upper_left; 
-			nodeIndex[index++] = upper_left + 1;
-			nodeIndex[index++] = upper_left + 1 + (1 + rez);
-			nodeIndex[index++] = upper_left + (1 + rez);
-		}
-	}*/
-
-	return std::dynamic_pointer_cast<Terrain> (shared_from_this());
+	return std::static_pointer_cast<Terrain> (shared_from_this());
 }
 
 void Terrain::initVertexObject() {
@@ -217,15 +192,33 @@ void Terrain::tessDrawCall(){
 	//std::cerr << "Terrain Done" << "\n";
 }
 
-Terrain::Terrain(){
-	material = std::make_shared<Material>();
-	terrainMaterial = std::make_shared<Material>();
-	name = "Terrain";
-	polyMode = GL_FILL;
-
+Terrain::Terrain() {
 	// VAO
 	VAO = 0, VBO = 0;
 	rez = 5;
+	dirty = true;
+
+	material = std::make_shared<Material>();
+	terrainMaterial = std::make_shared<Material>();
+
+	shader = nullptr;
+	terrainGBuffer = nullptr;
+	computeShader = nullptr;
+	complodMapShader = nullptr;
+	compGenPatchShader = nullptr;
+
+	patchesSSBO = nullptr;
+	//std::shared_ptr<SSBO> indicesSSBO;
+	outQueueSSBO = nullptr;
+	indirectDrawSSBO = nullptr;
+	finalNodeList = nullptr;
+	nodeDescriptor = nullptr;
+	lodMapTexture = nullptr;
+}
+
+void Terrain::init(){
+	name = "Terrain";
+	polyMode = GL_FILL;
 
 	// compute shader related buffers
 	computeShader = std::make_shared<Shader>("./src/shader/terrain/terrain.comp");
@@ -473,6 +466,12 @@ void Terrain::renderCall(const std::shared_ptr<Shader>& outShader) {
 }
 
 void Terrain::constructCall() {
+	if (dirty) {
+		init();
+		terrainMaterial->genTexture();
+		material->genTexture();
+		dirty = false;
+	}
 	prepareData();
 	computeDrawCall();
 }
@@ -503,7 +502,7 @@ void Terrain::loadFromJson(json& data) {
 		for (auto iter = mat.begin(); iter != mat.end(); ++iter) {
 			std::string mat_type = iter.key();
 			std::string mat_path = iter.value().get < std::string>();
-			this->material->addTexture(mat_path, mat_type);
+			this->material->addTextureAsync(mat_path, mat_type);
 		}
 	}
 }

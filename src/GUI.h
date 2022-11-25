@@ -80,14 +80,28 @@ public:
 			dlights[i]->setDirtyFlag(true);
 		}
 
+		// sky 
 		if (scene->sky) {
+			ImGui::Text("Atmosphere");
 			auto& sunAngle = scene->sky->atmosphere->sunAngle;
 			ImGui::SliderFloat("sunAngle", &sunAngle, -10.0f, 90.0f);
 			//ImGui::SliderFloat("RayLeigh Scattering",0.0e-3,)
 		}
 
-		ImGui::Text("Light Intensity");
-		//ImGui::SliderFloat("Intensity", &lightColor, 0.5f, 20.0f);
+		// object list
+		ImGui::Text("Game Objects");
+		ImGui::BeginChild("Scrolling");
+		for (auto& object : scene->objects) {
+			ImGui::Text("%s",object->name.c_str());
+		}
+		if (scene->sky) {
+			ImGui::Text("sky");
+		}
+		if (scene->terrain) {
+			ImGui::Text("terrain");
+		}
+		ImGui::EndChild();
+
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		ImGui::End();
 

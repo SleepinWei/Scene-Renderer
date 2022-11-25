@@ -6,8 +6,8 @@
 
 // #define MIN_DISTANCE 0
 // #define MAX_DISTANCE 2
-#define MIN_DISTANCE 5
-#define MAX_DISTANCE 50
+#define MIN_DISTANCE 1
+#define MAX_DISTANCE 15
 
 #define INITIAL_NODE_NUM 5
 

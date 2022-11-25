@@ -8,7 +8,7 @@
         "light":"./asset/objects/settings/light.json",
         "metal":"./asset/objects/settings/metal.json"
     },
-    "terrain":"./asset/objects/terrain.json",
-    "sky": "./asset/objects/sky.json",
-    "main_camera":"./asset/objects/main_camera.json"
+    "terrain":"./asset/objects/settings/terrain.json",
+    "sky": "./asset/objects/settings/sky.json",
+    "main_camera":"./asset/objects/settings/main_camera.json"
 }

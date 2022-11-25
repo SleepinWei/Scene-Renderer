@@ -163,6 +163,11 @@ void Material::loadFromJson(json& data) {
 	}
 }
 
+/// <summary>
+/// for async loading: texture data are asynchornously loaded into material::data
+/// in this function, a coresponding texture object is generated and holds the texture data
+/// this process is necessary because it is not allowed to operate Opengl objects in multi-thread style
+/// </summary>
 void Material::genTexture() {
 	if (!initDone) {
 		initDone= true;
