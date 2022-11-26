@@ -27,12 +27,12 @@ Texture::~Texture() {
 //	name = dir.substr(index+1,dir.length()-index-1)+"_" + tex->type;  // name 用于统一区分
 //	return name; 
 //}
-std::shared_ptr<Texture> Texture::loadFromFileAsync(const std::string& filename) {
+std::shared_ptr<Texture> Texture::loadFromFileAsync(const std::string& filename,int desired_channels) {
 	std::shared_ptr<Texture> tex = std::make_shared<Texture>(); 
 	tex->name = filename;
 
 	stbi_set_flip_vertically_on_load(true);
-	unsigned char* data = stbi_load((filename).c_str(), &tex->width, &tex->height, &tex->channels, 0);
+	unsigned char* data = stbi_load((filename).c_str(), &tex->width, &tex->height, &tex->channels, desired_channels);
 	if (data)
 	{
 		GLenum format;
@@ -62,7 +62,7 @@ std::shared_ptr<Texture> Texture::loadFromFileAsync(const std::string& filename)
 	return tex; 
 }
 
-std::shared_ptr<Texture> Texture::loadFromFile(const std::string& file_path) {
+std::shared_ptr<Texture> Texture::loadFromFile(const std::string& file_path,int desired_channels) {
 	std::shared_ptr<Texture> tex = std::make_shared<Texture>(); 
 
 	//int index = file_path.find_last_of("/");
@@ -84,7 +84,7 @@ std::shared_ptr<Texture> Texture::loadFromFile(const std::string& file_path) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	stbi_set_flip_vertically_on_load(true);
-	unsigned char* data = stbi_load((file_path).c_str(), &tex->width, &tex->height, &nrChannels, 0);
+	unsigned char* data = stbi_load((file_path).c_str(), &tex->width, &tex->height, &nrChannels, desired_channels);
 	if (data)
 	{
 		GLenum format;

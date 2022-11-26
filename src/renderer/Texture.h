@@ -10,8 +10,8 @@ public:
 	Texture();
 	~Texture();
 public:
-	static std::shared_ptr<Texture> loadFromFile(const std::string& file_path);
-	static std::shared_ptr<Texture> loadFromFileAsync(const std::string& filename);
+	static std::shared_ptr<Texture> loadFromFile(const std::string& file_path,int desired_channels=0);
+	static std::shared_ptr<Texture> loadFromFileAsync(const std::string& filename,int desired_channels=0);
 	//std::shared_ptr<Texture> setType(const std::string& type);
 	std::shared_ptr<Texture> genTexture(unsigned int DataType,unsigned int channelType,int width,int height);
 	std::shared_ptr<Texture> genTextureAsync(unsigned int DataType, unsigned int channelType, int width, int height);

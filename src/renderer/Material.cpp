@@ -202,3 +202,44 @@ void Material::genTexture() {
 		}
 	}
 }
+
+void Material::genTextureFloat() {
+	if (!initDone) {
+		initDone= true;
+		/*for (auto iter = texture_path.begin(); iter != texture_path.end(); ++iter) {
+			this->addTexture(iter->second,iter->first);
+		}*/
+		// ------------- not working (deprecated) 
+		for (auto iter = textures.begin(); iter != textures.end(); ++iter) {
+			auto& tex = iter->second;
+			if (!tex->id && tex->data != nullptr) {
+				glGenTextures(1, &tex->id);
+				//glActiveTexture(GL_TEXTURE0);
+				if (tex->id == 0) {
+					std::cout << "Error: texture id is 0" << '\n';
+				}
+				glBindTexture(GL_TEXTURE_2D, tex->id); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
+				// set the texture wrapping parameters
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+				// set texture filtering parameters
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				
+				assert(tex->channels == 1);
+				float* float_data = new float[tex->width * tex->height];
+				for (int i = 0; i < tex->width * tex->height;++i) {
+					float_data[i] = (float)tex->data[i] / 255;
+				}
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, tex->width, tex->height, 0, GL_RED, GL_FLOAT, float_data);
+				glGenerateMipmap(GL_TEXTURE_2D);
+				glBindTexture(GL_TEXTURE_2D, 0);
+
+				// free data
+				delete[] float_data;
+				stbi_image_free(tex->data);
+				tex->data = nullptr;
+			}
+		}
+	}
+}

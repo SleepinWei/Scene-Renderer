@@ -88,15 +88,15 @@ std::shared_ptr<Terrain> Terrain::loadHeightmap_(const std::string& path){
 std::shared_ptr<Terrain> Terrain::loadHeightmap(const std::string& path){
 	int width, height, nrChannels; 
 	//xzScale = 10.0f;
-	std::shared_ptr<Texture> heightTex = Texture::loadFromFileAsync(path + "heightMap.png");
+	std::shared_ptr<Texture> heightTex = Texture::loadFromFileAsync(path + "heightMap.png",1); // read as gray scale
 	width = heightTex->width;
 	height = heightTex->height;
 	terrainMaterial->addTexture(heightTex,"heightMap");
 	//terrainMaterial->addTexture(Texture::loadFromFile(path+"normalMap.png"),"normalMap");
 	//resourceManager.getResource();
 	// indices
-	yScale = 10.0f;
-	yShift = -10.0f; 
+	yScale = 5.0f;
+	yShift = 0.0f; 
 	float xzScale = 20.0f;
 	//float xzScale = 1.0f;
 	model = glm::mat4(1);
@@ -468,7 +468,7 @@ void Terrain::renderCall(const std::shared_ptr<Shader>& outShader) {
 void Terrain::constructCall() {
 	if (dirty) {
 		init();
-		terrainMaterial->genTexture();
+		terrainMaterial->genTextureFloat();
 		material->genTexture();
 		dirty = false;
 	}

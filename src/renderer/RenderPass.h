@@ -32,7 +32,7 @@ public:
 };
 
 /// <summary>
-/// base pass: renders scene objects, 
+/// base pass: renders scene objects to framebuffer in forward-rendering pipeline, 
 /// this is not a base class for other render pass classes
 /// this class should not have any functions to operate on framebuffers
 /// </summary>
@@ -84,17 +84,23 @@ public:
 
 	void renderGbuffer(const std::shared_ptr<RenderScene>& scene);
 	void render(const std::shared_ptr<RenderScene>& scene);
+	void postProcess(const std::shared_ptr<RenderScene>& scene);
 
 public:
 	shared_ptr<Shader> gBufferShader;
 	shared_ptr<Shader> lightingShader;
+	shared_ptr<Shader> postProcessShader;
 	shared_ptr<FrameBuffer> gBuffer;
+	shared_ptr<FrameBuffer> postBuffer;
+
 	shared_ptr<RenderBuffer> rbo;
+	shared_ptr<RenderBuffer> postRbo;
 
 	shared_ptr<Texture> gPosition;
 	shared_ptr<Texture> gNormal;
 	shared_ptr<Texture> gAlbedoSpec;
 	shared_ptr<Texture> gPBR;
+	shared_ptr<Texture> postTexture;
 	//shared_ptr<Texture> gPBR;
 private:
 	void initShader();

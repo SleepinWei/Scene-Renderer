@@ -34,7 +34,7 @@ public:
 
 	void loadFromJson(json& data);
 	void genTexture();
-
+	void genTextureFloat();
 public:
 	//std::string type; 
 	bool hasSubSurface;

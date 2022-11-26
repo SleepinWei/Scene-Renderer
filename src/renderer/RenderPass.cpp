@@ -248,16 +248,22 @@ void DeferredPass::initShader() {
 	gBufferShader->requireMat = true;
 	lightingShader = std::make_shared<Shader>("./src/shader/deferred/deferred.vs", "./src/shader/deferred/deferred.fs");
 	lightingShader->requireMat = true;
+	postProcessShader = std::make_shared<Shader>("./src/shader/post/hdr.vs", "./src/shader/post/hdr.fs");
+	postProcessShader->requireMat = false;
 }
 
 void DeferredPass::initTextures() {
 	gBuffer = std::make_shared<FrameBuffer>();
+	postBuffer = std::make_shared<FrameBuffer>();
+	
 	rbo = std::make_shared<RenderBuffer>();
+	postRbo = std::make_shared<RenderBuffer>();
 
 	gPosition = std::make_shared<Texture>();
 	gNormal = std::make_shared<Texture>();
 	gAlbedoSpec = std::make_shared<Texture>();
 	gPBR = std::make_shared<Texture>();
+	postTexture = std::make_shared<Texture>();
 }
 
 DeferredPass::~DeferredPass() {
@@ -270,8 +276,10 @@ void DeferredPass::renderGbuffer(const std::shared_ptr<RenderScene>& scene) {
 		gNormal->genTexture(GL_RGBA16F, GL_RGBA, inputManager->width, inputManager->height);
 		gAlbedoSpec->genTexture(GL_RGBA16F, GL_RGBA, inputManager->width, inputManager->height);
 		gPBR->genTexture(GL_RGBA16F, GL_RGBA, inputManager->width, inputManager->height);
+		postTexture->genTexture(GL_RGBA16F, GL_RGBA, inputManager->width, inputManager->height);
 		
 		rbo->genBuffer(inputManager->width, inputManager->height);
+		postRbo->genBuffer(inputManager->width, inputManager->height);
 	}
 
 	if (gBuffer->dirty) {
@@ -295,6 +303,14 @@ void DeferredPass::renderGbuffer(const std::shared_ptr<RenderScene>& scene) {
 			GL_COLOR_ATTACHMENT3
 		};
 		glDrawBuffers(4, attachments);
+
+		// post buffer
+		postBuffer->bindTexture(postTexture, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
+		postBuffer->bindBuffer();
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, postRbo->rbo);
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+			std::cout << "Framebuffer not complete!" << std::endl;
+		// finally check if framebuffer is complete
 	}
 
 	gBuffer->bindBuffer();
@@ -326,7 +342,8 @@ void DeferredPass::renderGbuffer(const std::shared_ptr<RenderScene>& scene) {
 
 void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 	// renderScene
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	postBuffer->bindBuffer();
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
 	lightingShader->use();
@@ -348,7 +365,6 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 	// set uniforms
 	if (scene->main_camera) {
 		lightingShader->setVec3("camPos", scene->main_camera->Position);
-		lightingShader->setFloat("exposure", scene->main_camera->exposure);
 	}
 
 	// render quad
@@ -356,13 +372,15 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 
 	// copy renderbuffer
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer->FBO);
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	//glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, postBuffer->FBO);
 	int width = inputManager->width;
 	int height = inputManager->height;
 	glBlitFramebuffer(0, 0, width, height,
 		0, 0, width, height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	postBuffer->bindBuffer();
 
 	// forward rendering 
 	for (auto& object : scene->objects) {
@@ -378,4 +396,18 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 	if (scene->sky) {
 		scene->sky->render(nullptr);
 	}
+}
+
+void DeferredPass::postProcess(const std::shared_ptr<RenderScene>& scene) {
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, postTexture->id);
+
+	postProcessShader->use();
+	postProcessShader->setFloat("exposure", scene->main_camera->exposure);
+	postProcessShader->setInt("hdrBuffer", 0);
+
+	renderQuad();
 }

@@ -83,8 +83,13 @@ public:
 		// sky 
 		if (scene->sky) {
 			ImGui::Text("Atmosphere");
-			auto& sunAngle = scene->sky->atmosphere->sunAngle;
+			auto& atmos = scene->sky->atmosphere;
+			auto& atmosParam = atmos->atmosphere;
+			auto& sunAngle = atmos->sunAngle;
 			ImGui::SliderFloat("sunAngle", &sunAngle, -10.0f, 90.0f);
+			ImGui::SliderFloat("mie_g", &atmosParam.mie_g, 0.0f, 1.0f);
+			ImGui::SliderFloat3("rayleigh_scattering", (float*) & atmosParam.rayleigh_scattering, 0.0f, 1.0f);
+
 			//ImGui::SliderFloat("RayLeigh Scattering",0.0e-3,)
 		}
 

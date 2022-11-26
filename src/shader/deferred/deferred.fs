@@ -31,7 +31,7 @@ layout(std140,binding=2) uniform DirectionLightBuffer{
 };
 
 uniform vec3 camPos; 
-uniform float exposure;
+
 
 // global variable
 vec3 albedo;
@@ -165,12 +165,9 @@ vec3 shading(){
 }
 
 void main(){
-    const float gamma = 2.2;
-
-    vec3 hdrColor = shading();
+    vec3 color = shading();
 
     // color correction
-    vec3 mapped = vec3(1.0f) - exp(-hdrColor * exposure);
-    mapped = pow(mapped,vec3(1.0f/gamma));
-    FragColor = vec4(mapped,1.0f);
+    
+    FragColor = vec4(color,1.0f);
 }
