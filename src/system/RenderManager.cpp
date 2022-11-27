@@ -9,6 +9,7 @@
 #include"../utils/Shader.h"
 #include"../component/Lights.h"
 #include"../component/transform.h"
+#include"../component/TerrainComponent.h"
 #include"../renderer/RenderPass.h"
 #include"../utils/Utils.h"
 #include"../component/Atmosphere.h"
@@ -223,7 +224,10 @@ void RenderManager::prepareDirectionLightData(const std::shared_ptr<RenderScene>
 void RenderManager::prepareCompData(const std::shared_ptr<RenderScene>& scene) {
 	// compute terrain
 	if (scene->terrain) {
-		scene->terrain->constructCall();
+		auto& terrainComponent = std::static_pointer_cast<TerrainComponent>(scene->terrain->GetComponent("TerrainComponent"));
+		if (terrainComponent) {
+			terrainComponent->constructCall();
+		}
 	}
 	if (scene->sky) {
 		auto& atmosphere = std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));
