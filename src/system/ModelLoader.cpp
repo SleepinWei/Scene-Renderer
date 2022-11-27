@@ -63,8 +63,12 @@ void ModelLoader::loadSkyAsync(std::shared_ptr<RenderScene>& scene, const std::s
 }
 
 void ModelLoader::loadSky(std::shared_ptr<RenderScene>& scene, const std::string& filename) {
+	std::ifstream f(filename);
+	json data = json::parse(f);
+
 	std::shared_ptr<Sky> sky = std::make_shared<Sky>();
 	//scene->addObject(atm);
+	sky->loadFromJson(data);
 	scene->addSky(sky);
 }
 

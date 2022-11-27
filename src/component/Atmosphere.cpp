@@ -7,6 +7,8 @@
 #include"../utils/Shader.h"
 #include"../system/RenderManager.h"
 #include"../utils/Utils.h"
+#include"../object/SkyBox.h"
+#include"../renderer/Material.h"
 
 extern std::unique_ptr<RenderManager> renderManager;
 
@@ -157,6 +159,13 @@ void Atmosphere::renderDrawCall(const std::shared_ptr<Shader>& outShader) {
 	if (!outShader) {
 		shader->use();
 		shader->setInt("skyViewLut", 8);
+		// load skybox 
+		auto& skybox = std::static_pointer_cast<Sky>(Component::gameObject)->skybox;
+		if (skybox) {
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_CUBE_MAP,skybox->textures["skybox"]->id);
+			shader->setInt("skybox", 1);
+		}
 		//shader->setInt("tex", 8);
 	}
 	else {
@@ -171,7 +180,9 @@ void Atmosphere::renderDrawCall(const std::shared_ptr<Shader>& outShader) {
 
 
 void Atmosphere::render(const std::shared_ptr<Shader>& shader) {
-	renderDrawCall(shader);
+	if (initDone) {
+		renderDrawCall(shader);
+	}
 }
 
 Atmosphere::~Atmosphere() {

@@ -6,6 +6,12 @@
 
 using std::shared_ptr;
 
+RenderScene::RenderScene() {
+	sky = nullptr;
+	terrain = nullptr;
+	main_camera = nullptr;
+}
+
 std::shared_ptr<RenderScene> RenderScene::addObject(std::shared_ptr<GameObject> object) {
 	//
 	objects.push_back(object);
@@ -50,8 +56,8 @@ void RenderScene::destroy() {
 	//
 	terrain = nullptr;
 	std::vector<shared_ptr<GameObject>>().swap(objects);
-	skybox = nullptr;
 	std::vector<shared_ptr<DirectionLight>>().swap(directionLights);
 	std::vector<shared_ptr<PointLight>>().swap(pointLights);
+	sky = nullptr;
 	//main_camera = nullptr;
 }

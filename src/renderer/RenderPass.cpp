@@ -42,7 +42,7 @@ void BasePass::render(const std::shared_ptr<RenderScene>& scene,const std::share
 	}
 
 	std::shared_ptr<Sky>& sky = scene->sky;
-	if (sky && sky->atmosphere->shader) {
+	if (sky) {
 		sky->render(outShader);
 	}
 }

@@ -83,7 +83,7 @@ public:
 		// sky 
 		if (scene->sky) {
 			ImGui::Text("Atmosphere");
-			auto& atmos = scene->sky->atmosphere;
+			auto& atmos = std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));
 			auto& atmosParam = atmos->atmosphere;
 			auto& sunAngle = atmos->sunAngle;
 			ImGui::SliderFloat("sunAngle", &sunAngle, -10.0f, 90.0f);

@@ -20,7 +20,6 @@ class RenderScene : public std::enable_shared_from_this<RenderScene> {
 public:
 	std::shared_ptr<Terrain> terrain; 
 	std::vector<std::shared_ptr<GameObject>> objects;
-	std::shared_ptr<SkyBox> skybox; 
 	std::shared_ptr<Sky> sky;
 	std::vector<std::shared_ptr<DirectionLight>> directionLights;
 	std::vector<std::shared_ptr<PointLight>> pointLights;
@@ -28,7 +27,7 @@ public:
 	std::shared_ptr<Camera> main_camera;
 
 public:
-	RenderScene() = default;
+	RenderScene();
 	std::shared_ptr<RenderScene> addObject(std::shared_ptr<GameObject> object);
 	std::shared_ptr<RenderScene> addTerrain(std::shared_ptr<Terrain>terrain);
 	std::shared_ptr<RenderScene> addSky(std::shared_ptr<Sky>skybox);
