@@ -2,6 +2,7 @@
 #include<stb/stb_image.h>
 #include<glm/gtc/matrix_transform.hpp>
 #include<glm/gtc/type_ptr.hpp>
+#include<fstream>
 #include"Terrain.h"
 #include"../utils/Utils.h"
 #include"../renderer/Texture.h"
@@ -88,10 +89,30 @@ std::shared_ptr<Terrain> Terrain::loadHeightmap_(const std::string& path){
 std::shared_ptr<Terrain> Terrain::loadHeightmap(const std::string& path){
 	int width, height, nrChannels; 
 	//xzScale = 10.0f;
-	std::shared_ptr<Texture> heightTex = Texture::loadFromFileAsync(path + "heightMap.png",1); // read as gray scale
+	//std::shared_ptr<Texture> heightTex = Texture::loadFromFileAsync(path + "heightMap.png",1); // read as gray scale
+	//TODO:read directly from height.txt; 
+	std::shared_ptr<Texture> heightTex = std::make_shared<Texture>();
+	heightTex->width = 8192;
+	heightTex->height = 8192;
+	heightTex->internalformat = GL_R32F;
+	heightTex->format = GL_RED;
+	this->terrainMaterial->addTexture(heightTex, "heightMap");
+
+	// load from txt
+	std::string heightPath = path + "heightMap.txt";
+	heightData = new float[heightTex->width * heightTex->height];
+	std::ifstream fin(heightPath,std::ios::binary);
+	//for (int i = 0; i < heightTex->width * heightTex->height; ++i) {
+		//if (fin.peek() == EOF)
+			//break;
+		//fin >> heightData[i];
+	//}
+	fin.read((char*)heightData, heightTex->width * heightTex->height * sizeof(float));
+	
 	width = heightTex->width;
 	height = heightTex->height;
-	terrainMaterial->addTexture(heightTex,"heightMap");
+	nrChannels = 1;
+	//terrainMaterial->addTexture(heightTex,"heightMap");
 	//terrainMaterial->addTexture(Texture::loadFromFile(path+"normalMap.png"),"normalMap");
 	//resourceManager.getResource();
 	// indices
@@ -468,7 +489,42 @@ void Terrain::renderCall(const std::shared_ptr<Shader>& outShader) {
 void Terrain::constructCall() {
 	if (dirty) {
 		init();
-		terrainMaterial->genTextureFloat();
+
+		//init heightMap
+		if (!terrainMaterial->initDone) {
+			terrainMaterial->initDone= true;
+			auto& mat = terrainMaterial->textures;
+			if (mat.find("heightMap") == mat.end()) {
+				return;
+			}
+			auto& tex = mat["heightMap"];
+			if (!tex->id) {
+				glGenTextures(1, &tex->id);
+				//glActiveTexture(GL_TEXTURE0);
+				if (tex->id == 0) {
+					std::cout << "Error: texture id is 0" << '\n';
+				}
+				glBindTexture(GL_TEXTURE_2D, tex->id); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
+				// set the texture wrapping parameters
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+				// set texture filtering parameters
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				
+				assert(heightData != nullptr);
+				//assert(tex->channels == 1);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, tex->width, tex->height, 0, GL_RED, GL_FLOAT, heightData);
+				glGenerateMipmap(GL_TEXTURE_2D);
+				glBindTexture(GL_TEXTURE_2D, 0);
+
+				// free data
+				delete[] heightData;
+				//stbi_image_free(tex->data);
+				tex->data = nullptr;
+			}
+		}
+
 		material->genTexture();
 		dirty = false;
 	}
