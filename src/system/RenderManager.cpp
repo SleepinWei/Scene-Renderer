@@ -41,10 +41,14 @@ void RenderManager::init() {
 
 void RenderManager::initRenderPass() {
 	// render Pass initialization 
-	hdrPass = std::make_shared<HDRPass>(); 
-	basePass = std::make_shared<BasePass>();
-	depthPass = std::make_shared<DepthPass>();
-	deferredPass = std::make_shared<DeferredPass>();
+	if (setting.useDefer) {
+		deferredPass = std::make_shared<DeferredPass>();
+	}
+	else {
+		hdrPass = std::make_shared<HDRPass>();
+		basePass = std::make_shared<BasePass>();
+		depthPass = std::make_shared<DepthPass>();
+	}
 }
 
 void RenderManager::initVPbuffer() {
@@ -237,6 +241,7 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	if (setting.useDefer) {
 		deferredPass->renderGbuffer(scene);
 		deferredPass->render(scene);
+		deferredPass->postProcess(scene);
 	}
 	else 
 	{
@@ -308,6 +313,7 @@ std::shared_ptr<Shader> RenderManager::generateShader(ShaderType type) {
 				//);
 			return std::make_shared<Shader>(
 				"./src/shader/terrain/terrain.vs","./src/shader/pbr/pbr.fs"
+				//"./src/shader/terrain/terrain.vs","./src/shader/terrain/terrain.fs"
 				);
 			break;
 		case ShaderType::HDR:

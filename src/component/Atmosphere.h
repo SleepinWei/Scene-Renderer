@@ -55,11 +55,13 @@ public:
 	AtmosphereParameters atmosphere;
 	std::shared_ptr<ImageTexture> transmittanceTexture;
 	std::shared_ptr<ImageTexture> skyViewTexture;
+	std::shared_ptr<ImageTexture> multiTexture;
 	std::shared_ptr<UniformBuffer> atmBuffer;
 
 	//shader 
 	std::shared_ptr<Shader> compTransShader;
 	std::shared_ptr<Shader> compskyViewShader;
+	std::shared_ptr<Shader>compMultiShader;
 	std::shared_ptr<Shader> shader;
 
 	// const members
@@ -67,6 +69,8 @@ public:
 	const unsigned int skyViewHeight = 100;
 	const unsigned int transWidth = 256;
 	const unsigned int transHeight = 64;
+	const unsigned int multiWidth = 32;
+	const unsigned int multiHeight = 32;
 
 	//debug 
 	float sunAngle;
@@ -74,6 +78,7 @@ public:
 private:
 	void computeTransTexture();
 	void computeSkyViewTexutre();
+	void computeMultiTexture();
 	void initShaders(); 
 	void initAtmosphereParameters();
 	void initTextures();

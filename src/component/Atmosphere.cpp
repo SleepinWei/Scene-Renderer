@@ -2,6 +2,7 @@
 #include<glm/gtc/type_ptr.hpp>
 #include"Atmosphere.h"
 #include"../buffer/ImageTexture.h"
+#include"../renderer/Texture.h"
 #include"../buffer/UniformBuffer.h"
 #include"../utils/Shader.h"
 #include"../system/RenderManager.h"
@@ -29,6 +30,9 @@ void Atmosphere::initTextures() {
 	skyViewTexture = std::make_shared<ImageTexture>();
 	skyViewTexture->genImageTexture(GL_RGBA32F, GL_RGBA, skyViewWidth, skyViewHeight);
 	skyViewTexture->setBinding(1);
+
+	multiTexture = std::make_shared<ImageTexture>();
+	multiTexture->genImageTexture(GL_RGBA32F, GL_RGBA, multiWidth, multiHeight);
 
 	const int ParameterSize = 100;
 	atmBuffer = std::make_shared<UniformBuffer>(ParameterSize);
@@ -59,13 +63,14 @@ void Atmosphere::initShaders() {
 	// TODO: add compute shader to RenderManager;
 	compTransShader = std::make_shared<Shader>("./src/shader/sky/transmittance.comp");
 	compskyViewShader = std::make_shared<Shader>("./src/shader/sky/skyview.comp");
+	compMultiShader = std::make_shared<Shader>("./src/shader/sky/multi.comp");
 	shader = renderManager->getShader(ShaderType::SKY);
 	// only for debug
 	//shader = renderManager->getShader(ShaderType::TEST);
 }
 
 void Atmosphere::prepareAtmosphere() {
-	if (atmBuffer->dirty) {
+	//if (atmBuffer->dirty) {
 		atmBuffer->setDirtyFlag(false);
 
 		AtmosphereParameters& data = this->atmosphere;
@@ -94,7 +99,7 @@ void Atmosphere::prepareAtmosphere() {
 		//for (int i = 0; i < 30; i++) {
 		//	std::cout << content[i] << '\n';
 		//}
-	}
+	//}
 }
 
 void Atmosphere::computeTransTexture() {
@@ -139,6 +144,7 @@ void Atmosphere::computeSkyViewTexutre() {
 void Atmosphere::computeDrawCall() {
 	computeTransTexture();
 	computeSkyViewTexutre();
+	computeMultiTexture();
 }
 
 void Atmosphere::renderDrawCall(const std::shared_ptr<Shader>& outShader) {
@@ -180,4 +186,16 @@ void Atmosphere::constructCall() {
 	}
 	prepareAtmosphere();
 	computeDrawCall();
+}
+
+void Atmosphere::computeMultiTexture() {
+	multiTexture->setBinding(0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, transmittanceTexture->tex->id);
+
+	compMultiShader->use();
+	compMultiShader->setInt("transmittance", 0);
+	const int THREAD_GROUP_SIZE = 4;
+	glDispatchCompute(multiWidth / THREAD_GROUP_SIZE, multiHeight /THREAD_GROUP_SIZE, 1);
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
