@@ -1,4 +1,5 @@
 #include<glad/glad.h>
+#include<glfw/glfw3.h>
 #include<glm/gtc/type_ptr.hpp>
 #include"Atmosphere.h"
 #include"../buffer/ImageTexture.h"
@@ -165,6 +166,11 @@ void Atmosphere::renderDrawCall(const std::shared_ptr<Shader>& outShader) {
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_CUBE_MAP,skybox->textures["skybox"]->id);
 			shader->setInt("skybox", 1);
+
+			float time = glfwGetTime();
+			static const float coeff = 0.05f;
+			glm::mat4 trans = glm::rotate(glm::mat4(1.0f), time * coeff, glm::vec3(-1.0f, 1.0f, -1.0f));
+			shader->setMat4("trans", trans);
 		}
 		//shader->setInt("tex", 8);
 	}
