@@ -16,6 +16,12 @@
 extern std::unique_ptr<ResourceManager> resourceManager;
 extern std::unique_ptr<RenderManager> renderManager;
 
+/// <summary>
+/// this is a deprecated function for loading heightmaps
+/// this implementation is designed for tessellation shaders
+/// </summary>
+/// <param name="path"></param>
+/// <returns></returns>
 std::shared_ptr<TerrainComponent> TerrainComponent::loadHeightmap_(const std::string& path){
 	int width, height, nrChannels; 
 	yScale = 1.0f;
@@ -86,6 +92,16 @@ std::shared_ptr<TerrainComponent> TerrainComponent::loadHeightmap_(const std::st
 	//stbi_image_free(data);
 	return std::dynamic_pointer_cast<TerrainComponent> (shared_from_this());
 }
+
+/// <summary>
+/// load height map data 
+/// In the current design, this function reads binary data from a heightmap.txt file
+/// the data is stored in `terrainData` and released the first time Terrain::render() is called 
+/// The terrainData will be passed to a texture buffer. Texture construction and data loading 
+/// are seperated due to multi-thread concerns, which is a confusing and unnecessary problem in OPENGL
+/// </summary>
+/// <param name="path"></param>
+/// <returns></returns>
 std::shared_ptr<TerrainComponent> TerrainComponent::loadHeightmap(const std::string& path){
 	int width, height, nrChannels; 
 	//xzScale = 10.0f;
@@ -116,9 +132,9 @@ std::shared_ptr<TerrainComponent> TerrainComponent::loadHeightmap(const std::str
 	//terrainMaterial->addTexture(Texture::loadFromFile(path+"normalMap.png"),"normalMap");
 	//resourceManager.getResource();
 	// indices
-	yScale = 5.0f;
-	yShift = 0.0f; 
-	float xzScale = 20.0f;
+	yScale = 50.0f;
+	yShift = -25.0f; 
+	float xzScale = 100.0f;
 	//float xzScale = 1.0f;
 	model = glm::mat4(1);
 	model = glm::translate(model, glm::vec3(0.0f, yShift,0.0f));
@@ -165,6 +181,11 @@ std::shared_ptr<TerrainComponent>TerrainComponent::addMaterial(std::shared_ptr<M
 	return  std::static_pointer_cast<TerrainComponent>(shared_from_this());
 }
 
+/// <summary>
+/// this function is deprecated as current terrain surface construction abandons 
+/// the tessellation style, rather a more custom and smart way using compute shaders
+/// is used.
+/// </summary>
 void TerrainComponent::tessDrawCall(){
 	/// <summary>
 	/// this draw call uses tessellation shader and implements drawing through GL_PATCHES
@@ -238,6 +259,11 @@ TerrainComponent::TerrainComponent() {
 	lodMapTexture = nullptr;
 }
 
+/// <summary>
+/// init() is called seperately from the constructor because opengl doesn't allow 
+/// async operations on opengl state machine. Thus init() is only allowed in 
+/// main render loop. 
+/// </summary>
 void TerrainComponent::init(){
 	name = "TerrainComponent";
 	polyMode = GL_FILL;
@@ -347,6 +373,9 @@ void TerrainComponent::prepareData() {
 
 }
 
+/// <summary>
+/// calls all compute shaders to construct terrain surface.
+/// </summary>
 void TerrainComponent::computeDrawCall() {
 	compLodCall();
 	compLodMapCall();
@@ -529,6 +558,7 @@ void TerrainComponent::constructCall() {
 		material->genTexture();
 		dirty = false;
 	}
+	//TODO: seperate prepareData() from compute Draw call
 	prepareData();
 	computeDrawCall();
 }
