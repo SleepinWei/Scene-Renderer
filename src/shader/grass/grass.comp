@@ -1,0 +1,87 @@
+#version 450 core
+#define WORKGROUP_SIZE 5
+#define PI 3.1415926f
+
+layout(local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE) in;
+
+const float WindStrength = 0.65;
+const vec2 WindFrequency = vec2(0.05, 0.05);
+
+const vec4 RAND_FACTOR = vec4(12.9898, 78.233, 45.164, 94.673);
+
+struct Patch{// 1 patch : 16 by 16 grid
+    vec4 Position[4];
+    vec2 TexCoords[4];
+};
+// 1 node: 8 by 8 patches
+layout(std140,binding=0) buffer GrassPatches{
+    uint grassCnt;
+    uint grassOne;
+    uint grass_One;
+    Patch grassPatches[];
+};
+
+layout(binding = 1, std140) buffer OutPose {
+	mat4 outPose[];
+};
+
+layout(binding = 2,std140) buffer IndirectBuff {
+	uint  count;
+	uint  instanceCount;
+	uint  first;
+	uint  baseInstance;
+} indirect;
+
+// layout(rgba32f,binding=5) uniform image2D lodMap;
+
+float random(vec3 seed, float i){
+	vec4 seed4 = vec4(seed, i);
+	float dotProduct = dot(seed4, RAND_FACTOR);
+	return fract(sin(dotProduct) * 43758.5453);
+}
+
+mat4 RotY4(float r) {
+	float cosR = cos(r);
+	float sinR = sin(r);
+	return mat4(
+		cosR, 0.0, -sinR, 0.0,
+		0.0,  1.0, 0.0,   0.0,
+		sinR, 0.0, cosR,  0.0,
+		0.0,  0.0, 0.0,   1.0
+	);
+}
+
+mat4 Translate(vec3 t){
+	return mat4(
+		1.0, 0.0, 0.0, 0.0,
+		0.0, 1.0, 0.0, 0.0,
+		0.0, 0.0, 1.0, 0.0,
+		t.x, t.y, t.z, 1.0
+	);
+}
+
+void main() {
+	uint curIndex = gl_WorkGroupID.x; // current patch
+	uvec2 localIndex = uvec2(gl_LocalInvocationID.xy); //current grass
+	vec2 uv = vec2(localIndex) / WORKGROUP_SIZE;
+	Patch p = grassPatches[curIndex];
+
+	vec3 posx01 = uv.x * p.Position[1].xyz + (1-uv.x) * p.Position[0].xyz;
+	vec3 posx23 = uv.x * p.Position[2].xyz + (1-uv.x) * p.Position[3].xyz;
+	vec3 pos = uv.y * posx23 + (1-uv.y) * posx01;
+
+	const float randscale = 0.5f;
+	vec2 offset = vec2(random(pos,0.1) * randscale,random(pos,0.2) * randscale);
+	pos += vec3(offset.x,0.0f,offset.y);
+	mat4 translate = Translate(pos);
+
+	// construct model matrix 
+	const float scale = 0.5f; 
+	// random rotation
+	float angle = PI * random(pos,0.3);
+	mat4 rotMat = RotY4(angle);
+
+	mat4 model = translate * rotMat;
+	outPose[atomicAdd(indirect.instanceCount,1)] = model;
+	// outPose[atomicAdd(indirect.instanceCount,1)] = mat4(1.0f);
+}
