@@ -11,6 +11,7 @@ float MapLatitudeToUnit(float latitude){
 
 out vec4 FragColor;
 in vec3 viewDirection; 
+uniform mat4 trans;
 
 void main(){
     vec3 viewDir = normalize(viewDirection);
@@ -29,7 +30,10 @@ void main(){
 
     // skybox
     float ratio = 4.0f;
-    vec3 skyColor = pow(texture(skybox,viewDir).rgb,vec3(2.2)) / ratio;
+
+    // vec3 skyBoxViewDir = vec3(cos(Lat) * sin(Lon), sin(Lat),cos(Lat) * cos(Lon));
+    vec3 skyBoxViewDir =vec3(trans* vec4(viewDir,1.0f));
+    vec3 skyColor = pow(texture(skybox,skyBoxViewDir).rgb,vec3(2.2)) / ratio;
 
     vec3 mixColor = color;
     float alpha = length(mixColor) / (length(mixColor) + length(skyColor));

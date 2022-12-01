@@ -206,6 +206,9 @@
     <ClCompile Include="src\component\TerrainComponent.cpp">
       <Filter>src\component</Filter>
     </ClCompile>
+    <ClCompile Include="src\component\Grass.cpp">
+      <Filter>src\component</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\GUI.h">

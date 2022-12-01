@@ -8,5 +8,6 @@
         "material.normal": "./asset/heightmap/mountain/normal.png",
         "material.roughness":"./asset/heightmap/mountain/roughness.png"
     },
-    "shader":"pbr"
+    "shader":"pbr",
+    "grass":"true"
 }

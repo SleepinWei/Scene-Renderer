@@ -163,6 +163,7 @@
     <ClCompile Include="src\buffer\UniformBuffer.cpp" />
     <ClCompile Include="src\component\Atmosphere.cpp" />
     <ClCompile Include="src\component\GameObject.cpp" />
+    <ClCompile Include="src\component\Grass.cpp" />
     <ClCompile Include="src\component\Lights.cpp" />
     <ClCompile Include="src\component\Model.cpp" />
     <ClCompile Include="src\component\TerrainComponent.cpp" />
