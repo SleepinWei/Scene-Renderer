@@ -12,6 +12,7 @@
 #include"../object/SkyBox.h"
 #include"../component/Atmosphere.h"
 #include"../component/TerrainComponent.h"
+#include"../component/Grass.h"
 #include"../buffer/FrameBuffer.h"
 #include"../component/Lights.h"
 #include"../renderer/Texture.h"
@@ -336,10 +337,11 @@ void DeferredPass::renderGbuffer(const std::shared_ptr<RenderScene>& scene) {
 	if (terrain) {
 		//terrain->shader->use();
 		glCheckError();
-		auto& terrainComponent = std::static_pointer_cast<TerrainComponent>(terrain->GetComponent("TerrainComponent"));
-		if (terrainComponent) {
-			terrainComponent->render(terrainComponent->terrainGBuffer);
-		}
+		//auto& terrainComponent = std::static_pointer_cast<TerrainComponent>(terrain->GetComponent("TerrainComponent"));
+		//if (terrainComponent) {
+			//terrainComponent->render(terrainComponent->terrainGBuffer);
+		//}
+		terrain->render(nullptr);
 	}
 	// no sky
 }

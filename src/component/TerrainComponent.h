@@ -27,6 +27,8 @@ public:
 
 	// compute Shader 
 	void constructCall();
+	void prepareData(); 
+
 	void setPolyMode(unsigned int polyMode_);
 private:
 	void initVertexObject();
@@ -38,7 +40,7 @@ public:
 	float yScale;
 	float yShift;
 	unsigned int polyMode;
-	bool dirty;
+	bool initDone;
 
 	glm::mat4 model;
 	std::shared_ptr<Material> material;
@@ -71,8 +73,6 @@ private:
 	void compLodCall();
 	void compLodMapCall();
 	void compGeneratePatchCall();
-	void prepareData(); 
-	void computeDrawCall(); // compute shader
 	void renderCall(const std::shared_ptr<Shader>& outShader);
 };
 

@@ -12,6 +12,8 @@
 #include"../utils/Shader.h"
 #include"../buffer/SSBO.h"
 #include"../buffer/ImageTexture.h"
+#include"Grass.h"
+#include"GameObject.h"
 
 extern std::unique_ptr<ResourceManager> resourceManager;
 extern std::unique_ptr<RenderManager> renderManager;
@@ -133,7 +135,7 @@ std::shared_ptr<TerrainComponent> TerrainComponent::loadHeightmap(const std::str
 	//resourceManager.getResource();
 	// indices
 	yScale = 50.0f;
-	yShift = -25.0f; 
+	yShift = -10.0f; 
 	float xzScale = 100.0f;
 	//float xzScale = 1.0f;
 	model = glm::mat4(1);
@@ -239,7 +241,7 @@ TerrainComponent::TerrainComponent() {
 	Component::name = "TerrainComponent";
 	VAO = 0, VBO = 0;
 	rez = 5;
-	dirty = true;
+	initDone = false;
 
 	material = std::make_shared<Material>();
 	terrainMaterial = std::make_shared<Material>();
@@ -308,6 +310,48 @@ void TerrainComponent::init(){
 /// </summary>
 void TerrainComponent::prepareData() {
 	// set indirect draw SSBO
+	if (!initDone) {
+		init();
+
+		//init heightMap
+		if (!terrainMaterial->initDone) {
+			terrainMaterial->initDone= true;
+			auto& mat = terrainMaterial->textures;
+			if (mat.find("heightMap") == mat.end()) {
+				return;
+			}
+			auto& tex = mat["heightMap"];
+			if (!tex->id) {
+				glGenTextures(1, &tex->id);
+				//glActiveTexture(GL_TEXTURE0);
+				if (tex->id == 0) {
+					std::cout << "Error: texture id is 0" << '\n';
+				}
+				glBindTexture(GL_TEXTURE_2D, tex->id); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
+				// set the texture wrapping parameters
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+				// set texture filtering parameters
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				
+				assert(heightData != nullptr);
+				//assert(tex->channels == 1);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, tex->width, tex->height, 0, GL_RED, GL_FLOAT, heightData);
+				glGenerateMipmap(GL_TEXTURE_2D);
+				glBindTexture(GL_TEXTURE_2D, 0);
+
+				// free data
+				delete[] heightData;
+				//stbi_image_free(tex->data);
+				tex->data = nullptr;
+			}
+		}
+
+		material->genTexture();
+		initDone = true;
+	}
+
 	indirectDrawSSBO->bindBuffer();
 
 	unsigned int zero = 0; 
@@ -374,15 +418,6 @@ void TerrainComponent::prepareData() {
 }
 
 /// <summary>
-/// calls all compute shaders to construct terrain surface.
-/// </summary>
-void TerrainComponent::computeDrawCall() {
-	compLodCall();
-	compLodMapCall();
-	compGeneratePatchCall();
-}
-
-/// <summary>
 /// compute view-dependent lod
 /// </summary>
 void TerrainComponent::compLodCall() {
@@ -431,12 +466,16 @@ void TerrainComponent::compLodMapCall() {
 /// generate mesh grids
 /// </summary>
 void TerrainComponent::compGeneratePatchCall() {
-	//TODO;
 	// set bindings
 	finalNodeList->setBinding(2);
 	patchesSSBO->setBinding(0);
 	lodMapTexture->setBinding(5);
 	indirectDrawSSBO->setBinding(5);
+	// grass patches binding
+	auto& grassComponent = std::static_pointer_cast<Grass>(this->gameObject->GetComponent("Grass"));
+	if (grassComponent) {
+		grassComponent->grassPatchesBuffer->setBinding(1);
+	}
 	
 	// for debug
 	compGenPatchShader->use();
@@ -459,7 +498,9 @@ void TerrainComponent::compGeneratePatchCall() {
 }
 
 void TerrainComponent::renderCall(const std::shared_ptr<Shader>& outShader) {
-	// test renderCall
+	// bind patches
+	this->patchesSSBO->setBinding(0);
+
 	initVertexObject();
 
 	glBindVertexArray(VAO);
@@ -517,50 +558,11 @@ void TerrainComponent::renderCall(const std::shared_ptr<Shader>& outShader) {
 }
 
 void TerrainComponent::constructCall() {
-	if (dirty) {
-		init();
-
-		//init heightMap
-		if (!terrainMaterial->initDone) {
-			terrainMaterial->initDone= true;
-			auto& mat = terrainMaterial->textures;
-			if (mat.find("heightMap") == mat.end()) {
-				return;
-			}
-			auto& tex = mat["heightMap"];
-			if (!tex->id) {
-				glGenTextures(1, &tex->id);
-				//glActiveTexture(GL_TEXTURE0);
-				if (tex->id == 0) {
-					std::cout << "Error: texture id is 0" << '\n';
-				}
-				glBindTexture(GL_TEXTURE_2D, tex->id); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
-				// set the texture wrapping parameters
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-				// set texture filtering parameters
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-				
-				assert(heightData != nullptr);
-				//assert(tex->channels == 1);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, tex->width, tex->height, 0, GL_RED, GL_FLOAT, heightData);
-				glGenerateMipmap(GL_TEXTURE_2D);
-				glBindTexture(GL_TEXTURE_2D, 0);
-
-				// free data
-				delete[] heightData;
-				//stbi_image_free(tex->data);
-				tex->data = nullptr;
-			}
-		}
-
-		material->genTexture();
-		dirty = false;
-	}
 	//TODO: seperate prepareData() from compute Draw call
-	prepareData();
-	computeDrawCall();
+	//prepareData();
+	compLodCall();
+	compLodMapCall();
+	compGeneratePatchCall();
 }
 
 /// <summary>

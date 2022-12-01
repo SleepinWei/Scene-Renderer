@@ -20,5 +20,8 @@ public:
 public:
 	void render(const std::shared_ptr<Shader>& shader);
 	virtual void loadFromJson(json& data) override;
+
+	void constructCall();
+private:
 };
 

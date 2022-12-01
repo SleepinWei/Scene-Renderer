@@ -224,10 +224,7 @@ void RenderManager::prepareDirectionLightData(const std::shared_ptr<RenderScene>
 void RenderManager::prepareCompData(const std::shared_ptr<RenderScene>& scene) {
 	// compute terrain
 	if (scene->terrain) {
-		auto& terrainComponent = std::static_pointer_cast<TerrainComponent>(scene->terrain->GetComponent("TerrainComponent"));
-		if (terrainComponent) {
-			terrainComponent->constructCall();
-		}
+		scene->terrain->constructCall();
 	}
 	if (scene->sky) {
 		auto& atmosphere = std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));
