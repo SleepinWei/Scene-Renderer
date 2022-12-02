@@ -130,7 +130,7 @@ void main(){
     uint currentPatchIndex = atomicAdd(primCount,1);
     patches[currentPatchIndex] = p;
 
-    if(curLod <= 2){
+    if(curLod <= 1){
         grassPatches[atomicAdd(grassCnt,1)] = p;
     }
 }

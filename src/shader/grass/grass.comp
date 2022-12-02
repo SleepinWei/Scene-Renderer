@@ -1,5 +1,5 @@
 #version 450 core
-#define WORKGROUP_SIZE 1
+#define WORKGROUP_SIZE 2
 #define PI 3.1415926f
 
 layout(local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE) in;
@@ -60,29 +60,31 @@ mat4 Translate(vec3 t){
 	);
 }
 
+uniform mat4 terrainModel;
+
 void main() {
 	uint curIndex = gl_WorkGroupID.x; // current patch
 	vec2 uv = vec2(gl_LocalInvocationID.xy)/ WORKGROUP_SIZE; //current grass uv
 
 	Patch p = grassPatches[curIndex];
+	const float randscale = 0.5f;
+	vec2 offset = vec2(random(vec3(p.Position[0]),0.1*uv.x) * randscale,random(vec3(p.Position[2]),0.1*uv.y) * randscale);
+	uv = uv + offset;
 
 	vec3 posx01 = uv.x * p.Position[1].xyz + (1-uv.x) * p.Position[0].xyz;
 	vec3 posx23 = uv.x * p.Position[2].xyz + (1-uv.x) * p.Position[3].xyz;
 	vec3 pos = uv.y * posx23 + (1-uv.y) * posx01;
 
-	const float randscale = 0.5f;
-	vec2 offset = vec2(random(pos,0.1) * randscale,random(pos,0.2) * randscale);
-	pos += vec3(offset.x,0.0f,offset.y);
+	// pos += vec3(offset.x,0.0f,offset.y);
+	pos = vec3(terrainModel * vec4(pos,1.0f)); // scale move pos vector, don't scale actual grass
+
 	mat4 translate = Translate(pos);
 
-	// construct model matrix 
-	const float scale = 0.5f; 
 	// random rotation
-	float angle = PI * random(pos,0.3);
+	float angle = PI/2 * random(vec3(p.Position[1]),0.3);
 	mat4 rotMat = RotY4(angle);
 
 	mat4 model = translate * rotMat;
-	// atomicAdd(indirect.instanceCount,1);
+	// mat4 model = translate;
 	outPose[atomicAdd(indirect.instanceCount,1)] = model;
-	// outPose[atomicAdd(indirect.instanceCount,1)] = mat4(1.0f);
 }

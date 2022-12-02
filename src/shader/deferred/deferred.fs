@@ -132,12 +132,18 @@ vec3 shading(){
     albedo = texture(gAlbedoSpec,TexCoords).rgb;
     metallic = texture(gPBR,TexCoords).g;
     roughness = texture(gPBR,TexCoords).r;
+
+    float isGrass = texture(gAlbedoSpec,TexCoords).a;
  
     for(int i=0;i<pLightNum;i++){
         PointLight light = pointLights[i];
         vec3 L = normalize(light.Position - Position);
-        vec3 brdf = BRDF(N,V,L);
-        float NdotL = max(dot(N,L),0.0);
+        vec3 N_ = N;
+        if(isGrass>0.5f && dot(N,L)<0.0f){
+            N_ = -N;
+        }
+        vec3 brdf = BRDF(N_,V,L);
+        float NdotL = max(dot(N_,L),0.0);
 
         float attenuation = 1.0f;
         vec3 radiance = light.Color * attenuation; 
@@ -147,8 +153,14 @@ vec3 shading(){
     for(int i =0;i<dLightNum;i++){
         DirectionLight light = directionLights[i];
         vec3 L = normalize(light.Direction);
-        vec3 brdf = BRDF(N,V,L);
-        float NdotL = max(dot(N,L),0.0);
+        vec3 N_ = N;
+        if(isGrass>0.5f && dot(N,L)<0.0f){
+            // if is grass, back is still bright;
+            N_ = -N;
+        }
+
+        vec3 brdf = BRDF(N_,V,L);
+        float NdotL = max(dot(N_,L),0.0);
 
         float attenuation = 1.0f;
         vec3 radiance = light.Color * attenuation; 

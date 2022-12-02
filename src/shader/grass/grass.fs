@@ -21,11 +21,12 @@ in struct Object{
 
 void main() {
 	gAlbedoSpec.rgb =mix(BottomColor, TopColor, object.TexCoords.y);
+    gAlbedoSpec.a = 1.0f; // is grass channel
     gPosition.rgb = object.Position;
 	gNormal.rgb = object.Normal;
 	// FragRoughMetal = GrassRM;
     gPBR.r = 1.0f; // roughness
-    gPBR.g = 0.0f;
-    gPBR.b = 1.0f;
-    gPBR.a = 0.0f;
+    gPBR.g = 0.0f; // metallic
+    gPBR.b = 1.0f; //ao
+    gPBR.a = 0.0f; // height
 }

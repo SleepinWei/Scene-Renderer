@@ -45,42 +45,42 @@ public:
 
 		ImGui::Begin("Info");
 
+		ImGui::Text("Scene loading");
 		if (ImGui::Button("Select Scene")) {
 			fileDialog.Open();
 		}
-		//ImGui::Separator();
+		ImGui::Separator();
+		ImGui::Text("Camera");
 		if (scene->main_camera) {
 			// exposure
 			ImGui::SliderFloat("exposure",&(scene->main_camera->exposure),0.5f,6.0f);
 		}
 
+		ImGui::Separator();
+		ImGui::Text("Point Light");
 		auto& lights = scene->pointLights;
 		for (int i = 0; i < lights.size(); i++) {
 			char title[] = "Lighti Position";
-			title[5] = '0' + 0;
+			title[5] = '0' + i;
 			ImGui::Text(title);
 			//auto& light = lights[0]; 
 			auto&& lightTrans = std::static_pointer_cast<Transform>(
 				lights[i]->gameObject->GetComponent("Transform"));
-			ImGui::SliderFloat("X", &(lightTrans->position.x), -8.0f, 8.0f);
-			ImGui::SliderFloat("Y", &(lightTrans->position.y), -8.0f, 8.0f);
-			ImGui::SliderFloat("Z", &(lightTrans->position.z), -8.0f, 8.0f);
+			ImGui::SliderFloat3("Position", (float*)&lightTrans->position, -10.0f, 10.0f);
 			lights[i]->setDirtyFlag(true);
 		}
 
-		auto& dlights = scene->directionLights;
-		for (int i = 0; i < dlights.size(); i++) {
-			char title[] = "Direction Lighti Position";
-			title[15] = '0' + 0;
-			ImGui::Text(title);
-			//auto& light = lights[0]; 
-			auto&& lightTrans = std::static_pointer_cast<Transform>(
-				dlights[i]->gameObject->GetComponent("Transform"));
-			ImGui::SliderFloat("X", &(lightTrans->position.x), -8.0f, 8.0f);
-			ImGui::SliderFloat("Y", &(lightTrans->position.y), -8.0f, 8.0f);
-			ImGui::SliderFloat("Z", &(lightTrans->position.z), -8.0f, 8.0f);
-			dlights[i]->setDirtyFlag(true);
-		}
+		//auto& dlights = scene->directionLights;
+		//for (int i = 0; i < dlights.size(); i++) {
+		//	char title[] = "Direction Lighti Position";
+		//	title[15] = '0' + 0;
+		//	ImGui::Text(title);
+		//	//auto& light = lights[0]; 
+		//	auto&& lightTrans = std::static_pointer_cast<Transform>(
+		//		dlights[i]->gameObject->GetComponent("Transform"));
+		//	ImGui::SliderFloat3("Position", (float*)&lightTrans->position, -10.0f, 1.0f);
+		//	dlights[i]->setDirtyFlag(true);
+		//}
 
 		// sky 
 		if (scene->sky) {

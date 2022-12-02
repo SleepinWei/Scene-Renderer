@@ -57,6 +57,7 @@ void main()
     gNormal.rgb = normalize(N);
     // and the diffuse per-fragment color
     gAlbedoSpec.rgb = pow(texture(material.albedo, uv).rgb,vec3(2.2f));
+    gAlbedoSpec.a = 0.0f; // 是否透光，对草渲染有用
     // store specular intensity in gAlbedoSpec's alpha component
 
     gPBR.r = texture(material.roughness,uv).r;
