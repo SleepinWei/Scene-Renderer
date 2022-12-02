@@ -11,12 +11,12 @@ uniform sampler2D gPBR;
 struct PointLight{
     // vec3 Color;
     vec3 Color;
-    vec3 Position; 
+    vec3 Position;
 };
 
 layout(std140,binding=1) uniform PointLightBuffer {
     PointLight pointLights[10];
-    int pLightNum; 
+    int pLightNum;
 };
 
 struct DirectionLight{
@@ -26,11 +26,11 @@ struct DirectionLight{
 };
 
 layout(std140,binding=2) uniform DirectionLightBuffer{
-    DirectionLight directionLights[10]; 
+    DirectionLight directionLights[10];
     int dLightNum;
 };
 
-uniform vec3 camPos; 
+uniform vec3 camPos;
 
 
 // global variable
@@ -86,16 +86,16 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 }
 
 vec3 BRDF(vec3 N, vec3 V,vec3 L){
-    // F0 : plastic, albedo : metallic 
+    // F0 : plastic, albedo : metallic
     vec3 F0 = vec3(0.04);
     F0 = mix(F0,albedo,metallic);
 
-    // vec3 Lo = vec3(0.0); 
+    // vec3 Lo = vec3(0.0);
     // vec3 L = normalize(light.Position - objectPosition);
     vec3 H = normalize(V+L);
     // float attenuation = calculateAtten(object.Position,light.Position);
     // float attenuation = 1.0f;
-    // vec3 radiance = light.Color * attenuation; 
+    // vec3 radiance = light.Color * attenuation;
 
     // cook-tolerance brdf
     float NDF = DistributionGGX(N,H,roughness);
@@ -105,7 +105,7 @@ vec3 BRDF(vec3 N, vec3 V,vec3 L){
 
     vec3 numerator= NDF*G*F;
     float denominator= 4.0 * max(dot(N,V),0.0)*max(dot(N,L),0.0) + 0.0001;
-    vec3 specular = numerator / denominator; 
+    vec3 specular = numerator / denominator;
     // vec3 energyCompensation = 1.0 + F0 * (1.0f / numerator.y -1.0f);
     // specular *= energyCompensation;
 
@@ -121,7 +121,7 @@ vec3 BRDF(vec3 N, vec3 V,vec3 L){
 }
 
 vec3 shading(){
-    // radiance; 
+    // radiance;
     vec3 finalColor = vec3(0.0f);
     // point lights
     vec3 N = texture(gNormal,TexCoords).rgb;
@@ -134,7 +134,7 @@ vec3 shading(){
     roughness = texture(gPBR,TexCoords).r;
 
     float isGrass = texture(gAlbedoSpec,TexCoords).a;
- 
+
     for(int i=0;i<pLightNum;i++){
         PointLight light = pointLights[i];
         vec3 L = normalize(light.Position - Position);
@@ -146,7 +146,7 @@ vec3 shading(){
         float NdotL = max(dot(N_,L),0.0);
 
         float attenuation = 1.0f;
-        vec3 radiance = light.Color * attenuation; 
+        vec3 radiance = light.Color * attenuation;
         finalColor += brdf * radiance * NdotL;
     }
     //directional lights
@@ -163,15 +163,25 @@ vec3 shading(){
         float NdotL = max(dot(N_,L),0.0);
 
         float attenuation = 1.0f;
-        vec3 radiance = light.Color * attenuation; 
+        vec3 radiance = light.Color * attenuation;
         finalColor += brdf * radiance * NdotL;
         // finalColor += computeDirectionShading(object,directionLights[i],material);
     }
-    vec3 albedo = texture(gAlbedoSpec,TexCoords).rgb;
-    float ao = texture(gPBR,TexCoords).a; 
-    vec3 ambient = vec3(0.03) * albedo * ao; 
+    //spotlight
+    // attenuation
+    // float distance = length(light.position - fragPos);
+    // float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
+    // // spotlight intensity
+    // float theta = dot(lightDir, normalize(-light.direction));
+    // float epsilon = light.cutOff - light.outerCutOff;
+    // float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
 
-    finalColor += ambient; 
+
+    vec3 albedo = texture(gAlbedoSpec,TexCoords).rgb;
+    float ao = texture(gPBR,TexCoords).a;
+    vec3 ambient = vec3(0.03) * albedo * ao;
+
+    finalColor += ambient;
 
     return finalColor;
 }
@@ -180,6 +190,6 @@ void main(){
     vec3 color = shading();
 
     // color correction
-    
+
     FragColor = vec4(color,1.0f);
 }
