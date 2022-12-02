@@ -30,6 +30,22 @@ layout(std140,binding=2) uniform DirectionLightBuffer{
     int dLightNum;
 };
 
+
+struct SpotLight{
+    vec3 Color;
+    float cutOff;
+    vec3 Position;
+    float outerCutOff;
+    vec3 Direction;
+};
+
+layout(std140,binding=3) uniform SpotLightBuffer{
+    SpotLight SpotLights[10];
+    int sLightNum;
+};
+
+
+
 uniform vec3 camPos;
 
 
@@ -168,14 +184,30 @@ vec3 shading(){
         // finalColor += computeDirectionShading(object,directionLights[i],material);
     }
     //spotlight
-    // attenuation
-    // float distance = length(light.position - fragPos);
-    // float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
-    // // spotlight intensity
-    // float theta = dot(lightDir, normalize(-light.direction));
-    // float epsilon = light.cutOff - light.outerCutOff;
-    // float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
+    for(int i =0;i<sLightNum;i++){
+        SpotLight light = SpotLights[i];
+        vec3 L = normalize(light.Direction);
+        vec3 N_ = N;
+        if(isGrass>0.5f && dot(N,L)<0.0f){
+            // if is grass, back is still bright;
+            N_ = -N;
+        }
 
+        vec3 brdf = BRDF(N_,V,L);
+        float NdotL = max(dot(N_,L),0.0);
+
+        // spotlight intensity
+        float theta = dot(L, normalize(-light.Direction));
+        float epsilon = light.cutOff - light.outerCutOff;
+        float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
+        // float intensity = 1.0;
+        // attenuation
+        // float distance = length(light.position - fragPos);
+        // float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
+        float attenuation = 1.0f;
+        vec3 radiance = light.Color * attenuation * intensity;
+        finalColor += brdf * radiance * NdotL;
+    }
 
     vec3 albedo = texture(gAlbedoSpec,TexCoords).rgb;
     float ao = texture(gPBR,TexCoords).a;
