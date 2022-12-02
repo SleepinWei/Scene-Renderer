@@ -77,6 +77,14 @@ void RenderManager::initDirectionLightBuffer() {
 	uniformDirectionLightBuffer->setBinding(2);
 }
 
+void RenderManager::initSpotLightBuffer() {
+	const int maxLight = 10;
+	int lightBufferSize = maxLight * (48) + 16;
+	uniformSpotLightBuffer = std::make_shared<UniformBuffer>(lightBufferSize);
+	// set binding point
+	uniformSpotLightBuffer->setBinding(3);
+}
+
 RenderManager::~RenderManager() {
 
 }
@@ -206,6 +214,52 @@ void RenderManager::prepareDirectionLightData(const std::shared_ptr<RenderScene>
 		}
 	}
 	glBufferSubData(GL_UNIFORM_BUFFER, 10 * dataSize, 
+		sizeof(int), &lightNum);
+}
+
+void RenderManager::prepareSpotLightData(const std::shared_ptr<RenderScene>& scene) {
+	// update light data only when dirty 
+	//if (uniformSpotLightBuffer->dirty) {
+	//	uniformSpotLightBuffer->dirty = false;
+	//	for (std::shared_ptr<Shader>& shader : m_shader) {
+	//		if (shader) {
+	//			shader->setUniformBuffer("DirectionLightBuffer", uniformSpotLightBuffer->binding);
+	//		}
+	//	}
+	//}
+	uniformSpotLightBuffer->bindBuffer();
+	unsigned int UBO = uniformSpotLightBuffer->UBO;
+	int lightNum = scene->spotLights.size();
+	int dataSize = 48; // data size for a single light (under std140 layout)
+	for (int i = 0; i < lightNum; i++) {
+		auto& light = scene->spotLights[i];
+		if (light) {
+			std::shared_ptr<Transform>&& transform = std::static_pointer_cast<Transform>(
+				light->gameObject->GetComponent("Transform"));
+
+			if (!light->dirty) {
+				continue;
+			}
+			SpotLightData& data = light->data;
+			glBufferSubData(GL_UNIFORM_BUFFER,
+				0 + i * dataSize,
+				sizeof(glm::vec3), glm::value_ptr(data.color)); // ambient
+			glBufferSubData(GL_UNIFORM_BUFFER,
+				12 + i * dataSize,
+				sizeof(float), &data.cutOff);
+			glBufferSubData(GL_UNIFORM_BUFFER,
+				16 + i * dataSize,
+				sizeof(glm::vec3), glm::value_ptr(transform->position)); //
+			glBufferSubData(GL_UNIFORM_BUFFER,
+				28 + i * dataSize,
+				sizeof(float), &data.outerCutOff);
+			light->setDirtyFlag(false);
+			glBufferSubData(GL_UNIFORM_BUFFER,
+				32 + i * dataSize,
+				sizeof(glm::vec3), glm::value_ptr(data.direction));
+		}
+	}
+	glBufferSubData(GL_UNIFORM_BUFFER, 10 * dataSize,
 		sizeof(int), &lightNum);
 }
 

@@ -13,6 +13,7 @@ class Light;
 class Camera;
 class PointLight;
 class DirectionLight;
+class SpotLight;
 class Sky;
 
 class RenderScene : public std::enable_shared_from_this<RenderScene> {
@@ -23,6 +24,7 @@ public:
 	std::shared_ptr<Sky> sky;
 	std::vector<std::shared_ptr<DirectionLight>> directionLights;
 	std::vector<std::shared_ptr<PointLight>> pointLights;
+	std::vector<std::shared_ptr<SpotLight>> spotLights;
 
 	std::shared_ptr<Camera> main_camera;
 
