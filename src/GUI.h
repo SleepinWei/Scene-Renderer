@@ -10,6 +10,8 @@
 #include"./component/Lights.h"
 #include"./component/Transform.h"
 #include"./component/Atmosphere.h"
+#include"./component/TerrainComponent.h"
+#include<imgui/imgui_toggle.h>
 #include<filesystem>
 using namespace std::filesystem;
 
@@ -82,6 +84,7 @@ public:
 
 		// sky 
 		if (scene->sky) {
+			ImGui::Separator();
 			ImGui::Text("Atmosphere");
 			auto& atmos = std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));
 			auto& atmosParam = atmos->atmosphere;
@@ -92,8 +95,22 @@ public:
 
 			//ImGui::SliderFloat("RayLeigh Scattering",0.0e-3,)
 		}
+		if (scene->terrain) {
+			ImGui::Separator();
+			ImGui::Text("Terrain");
+			auto& terrainComp = std::static_pointer_cast<TerrainComponent>(scene->terrain->GetComponent("TerrainComponent"));
+			static bool useWireFrame = false;
+			ImGui::Toggle("Wire Frame mode", &useWireFrame);
+			if (useWireFrame) {
+				terrainComp->setPolyMode(GL_LINE);
+			}
+			else {
+				terrainComp->setPolyMode(GL_FILL);
+			}
+		}
 
 		// object list
+		ImGui::Separator();
 		ImGui::Text("Game Objects");
 		ImGui::BeginChild("Scrolling");
 		for (auto& object : scene->objects) {

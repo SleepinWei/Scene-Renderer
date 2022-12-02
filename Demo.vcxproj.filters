@@ -209,6 +209,9 @@
     <ClCompile Include="src\component\Grass.cpp">
       <Filter>src\component</Filter>
     </ClCompile>
+    <ClCompile Include="include\imgui\imgui_toggle.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\GUI.h">

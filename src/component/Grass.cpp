@@ -24,8 +24,8 @@ void Grass::init() {
 	shader = std::make_shared<Shader>("./src/shader/grass/grass.vs","./src/shader/grass/grass.fs");
 	computeShader = std::make_shared<Shader>("./src/shader/grass/grass.comp");
 
-	outPoseBuffer = std::make_shared<SSBO>(8192 * 4);
-	grassPatchesBuffer = std::make_shared<SSBO>(8192 * 4);
+	outPoseBuffer = std::make_shared<SSBO>(1024 * 1024 * 1);
+	grassPatchesBuffer = std::make_shared<SSBO>(1024 * 1024 * 32); 
 	indirectBuffer = std::make_shared<SSBO>(32);
 }
 
@@ -94,6 +94,7 @@ void Grass::constructCall() {
 	//}
 	//fclose(fp);
 	//glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+	computeShader->use();
 
 	glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, this->grassPatchesBuffer->ssbo);
 	glDispatchComputeIndirect(0);
@@ -106,9 +107,9 @@ void Grass::render(const std::shared_ptr<Shader>& outShader) {
 
 	if (VAO == 0) {
 		float data[] = {
-		   -0.1f,0.0f,0.0f,   0.0f,0.0f,-1.0f,0.0f,0.0f,// x
-			0.0f,0.5f,0.0f,   0.0f,0.0f,-1.0f,0.5f,1.0f,// y
-			0.0f,0.0f,0.1f,   0.0f,0.0f,-1.0f,1.0f,0.0f // z
+		   -0.05f,0.0f,0.0f,   0.0f,0.0f,-1.0f,0.0f,0.0f,// x
+			0.0f,0.25f,0.0f,   0.0f,0.0f,-1.0f,0.5f,1.0f,// y
+			0.0f,0.0f,0.05f,   0.0f,0.0f,-1.0f,1.0f,0.0f // z
 		};
 		glGenVertexArrays(1, &VAO);
 		glGenBuffers(1, &VBO);
@@ -126,6 +127,15 @@ void Grass::render(const std::shared_ptr<Shader>& outShader) {
 	}
 
 	glBindVertexArray(VAO);
+	//debug
+	//indirectBuffer->bindBuffer();
+	//auto data = (unsigned int*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+	//auto fp = fopen("./output.txt", "w");
+	//fprintf(fp, "%d,%d,%d,%d\n", data[0], data[1], data[2], data[3]);
+	//glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+	//fclose(fp);
+
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectBuffer->ssbo); // indirect draw
 
 	glDisable(GL_CULL_FACE);
