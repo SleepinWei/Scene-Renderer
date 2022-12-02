@@ -98,18 +98,6 @@ void RenderManager::prepareVPData(const std::shared_ptr<RenderScene>& renderScen
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(projection));
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4),sizeof(glm::mat4), glm::value_ptr(view));
 	}
-	// update the first time
-	//if (uniformVPBuffer->dirty) {
-	//	//if dirty, set shader bindings of UBO
-	//	for (std::shared_ptr<Shader>& shader : m_shader) {
-	//		if (shader) {
-	//			//if shader is not null
-	//			shader->use();
-	//			shader->setUniformBuffer("VP", uniformVPBuffer->binding);
-	//		}
-	//	}
-	//	uniformVPBuffer->setDirtyFlag(false);
-	//}
 
 	// update every frame: skybox view
 	glm::mat4 view_for_skybox = glm::mat4(glm::mat3(camera->GetViewMatrix()));
@@ -241,6 +229,7 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	
 	// deferred pass
 	if (setting.useDefer) {
+		//
 		deferredPass->renderGbuffer(scene);
 		deferredPass->render(scene);
 		deferredPass->postProcess(scene);
