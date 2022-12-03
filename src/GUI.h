@@ -57,7 +57,7 @@ public:
 		}
 
 		ImGui::Separator();
-		ImGui::Text("Point Light");
+		ImGui::Text("Light");
 		auto& lights = scene->pointLights;
 		for (int i = 0; i < lights.size(); i++) {
 			char title[] = "Lighti Position";
@@ -70,17 +70,21 @@ public:
 				lights[i]->setDirtyFlag(true);
 		}
 
-		//auto& dlights = scene->directionLights;
-		//for (int i = 0; i < dlights.size(); i++) {
-		//	char title[] = "Direction Lighti Position";
-		//	title[15] = '0' + 0;
-		//	ImGui::Text(title);
-		//	//auto& light = lights[0]; 
-		//	auto&& lightTrans = std::static_pointer_cast<Transform>(
-		//		dlights[i]->gameObject->GetComponent("Transform"));
-		//	ImGui::SliderFloat3("Position", (float*)&lightTrans->position, -10.0f, 1.0f);
-		//	dlights[i]->setDirtyFlag(true);
-		//}
+		auto& dlights = scene->directionLights;
+		for (int i = 0; i < dlights.size(); i++) {
+			char title[] = "Direction Lighti Position";
+			title[15] = '0' + 0;
+			ImGui::Text(title);
+			//auto& light = lights[0]; 
+			auto&& lightTrans = std::static_pointer_cast<Transform>(
+				dlights[i]->gameObject->GetComponent("Transform"));
+			auto&& lightData = dlights[i]->data;
+			bool change1 = ImGui::SliderFloat3("Position", (float*)&lightTrans->position, -10.0f, 1.0f);
+			bool change2 = ImGui::SliderFloat3("Direction", (float*)&lightData.direction, -1.0f, 1.0f);
+			if (change1 || change2) {
+				dlights[i]->setDirtyFlag(true);
+			}
+		}
 
 		// sky 
 		if (scene->sky) {

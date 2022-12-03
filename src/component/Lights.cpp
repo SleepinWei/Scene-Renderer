@@ -144,6 +144,20 @@ std::shared_ptr<DirectionLight> DirectionLight::setCastShadow(bool castShadow_) 
 	return std::dynamic_pointer_cast<DirectionLight>(shared_from_this());
 }
 
+void DirectionLight::loadFromJson(json& json_data) {
+	if (json_data.find("color") != json_data.end()) {
+		for (int i = 0; i < 3; i++) {
+			data.color[i] = json_data["color"][i].get<float>();
+		}
+	}
+	if (json_data.find("direction") != json_data.end()) {
+		auto& dir = json_data["direction"];
+		for (int i = 0; i < 3; i++) {
+			data.direction[i] = dir[i].get<float>();
+		}
+	}
+}
+
 SpotLight::SpotLight()
 {
 	Component::name = "SpotLight";

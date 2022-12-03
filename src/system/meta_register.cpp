@@ -31,6 +31,10 @@ std::shared_ptr<Component> Meta::generateComponent(const std::string& name) {
 		std::shared_ptr<PointLight> pointLight = std::make_shared<PointLight>();
 		return std::static_pointer_cast<Component>(pointLight);
 	}
+	else if (name == "DirectionLight") {
+		std::shared_ptr<DirectionLight> directionLight = std::make_shared<DirectionLight>();
+		return std::static_pointer_cast<Component>(directionLight);
+	}
 	return nullptr;
 	//if(name == "")
 }

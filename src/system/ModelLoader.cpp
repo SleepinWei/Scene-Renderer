@@ -24,7 +24,7 @@ void ModelLoader::loadObject(std::shared_ptr<RenderScene>& scene, const std::str
 	json data = json::parse(f);
 	std::shared_ptr<GameObject> object = std::make_shared<GameObject>();
 	object->loadFromJson(data);
-	//mtx.lock();
+
 	scene->addObject(object);
 }
 
