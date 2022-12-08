@@ -14,14 +14,23 @@ RenderScene::RenderScene() {
 
 std::shared_ptr<RenderScene> RenderScene::addObject(std::shared_ptr<GameObject> object) {
 	//
-	objects.push_back(object);
-	if (object->GetComponent("PointLight")) {
-		std::shared_ptr<PointLight> light = std::static_pointer_cast<PointLight> (object->GetComponent("PointLight"));
-		this->pointLights.push_back(light);
+	mtx.lock();
+	objects.emplace_back(object);
+	mtx.unlock();
+
+	auto& Plight= object->GetComponent("PointLigt");
+	if (Plight) {
+		std::shared_ptr<PointLight> light = std::static_pointer_cast<PointLight> (Plight);
+		lightMtx.lock();
+		this->pointLights.emplace_back(light);
+		lightMtx.unlock();
 	}
-	if (object->GetComponent("DirectionLight")) {
-		std::shared_ptr<DirectionLight> light = std::static_pointer_cast<DirectionLight> (object->GetComponent("DirectionLight"));
-		this->directionLights.push_back(light);
+	auto& Dlight = object->GetComponent("DirectionLight");
+	if (Dlight) {
+		std::shared_ptr<DirectionLight> light = std::static_pointer_cast<DirectionLight> (Dlight);
+		lightMtx.lock();
+		this->directionLights.emplace_back(light);
+		lightMtx.unlock();
 	}
 	//
 	return shared_from_this();
