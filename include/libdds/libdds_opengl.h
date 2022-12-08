@@ -27,37 +27,35 @@
 #define	_LIBDDS_OPENGL_H
 
 #include <libdds/dds_types.h>
-
-#ifdef	__cplusplus
-extern "C" {
-#endif
+#include<memory>
+using std::shared_ptr;
+class Texture;
 
     /** OpenGL texture info */
-    typedef struct _DDS_GL_TextureInfo {
-        dds_int     width;
-        dds_int     height;
-        dds_uint    format;
-        dds_int     internal_format;
-        dds_uint    id;
-        dds_uint    num_mipmaps;
-    } DDS_GL_TextureInfo;
+    //typedef struct _DDS_GL_TextureInfo {
+        //dds_int     width;
+        //dds_int     height;
+        //dds_uint    format;
+        //dds_int     internal_format;
+        //dds_uint    id;
+        //dds_uint    num_mipmaps;
+    //} DDS_GL_TextureInfo;
 
     /** Load OpenGL texture
      * @par filename Texture filename
      * @par texture Texture to load to
      * @return Error code
      */
-    DDS_API dds_uint DDS_APIENTRY ddsGL_load (const char* filename,
-            DDS_GL_TextureInfo* texture);
+DDS_API dds_uint DDS_APIENTRY ddsGL_load(const char* filename,
+    //DDS_GL_TextureInfo* texture);
+    shared_ptr<Texture> texture);
+            
 
     /** Release OpenGL texture
      * @par texture Texture to release
      */
-    DDS_API void DDS_APIENTRY ddsGL_free (DDS_GL_TextureInfo* texture);
+//DDS_API void DDS_APIENTRY ddsGL_free(shared_ptr<Texture> texture);//DDS_GL_TextureInfo* texture);
 
-#ifdef	__cplusplus
-}
-#endif
 
 #endif	/* _LIBDDS_OPENGL_H */
 

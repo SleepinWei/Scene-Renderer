@@ -26,29 +26,13 @@
 #include<glad/glad.h>
 #include <libdds/libdds_opengl.h>
 #include <libdds/libdds.h>
+#include"../../src/renderer/Texture.h"
 
-//#include <GL/gl.h>
-//#include <GL/glext.h>
 #include <stdlib.h>
 
-PFNGLCOMPRESSEDTEXIMAGE2DARBPROC ddsglCompressedTexImage2D = NULL;
+//PFNGLCOMPRESSEDTEXIMAGE2DARBPROC ddsglCompressedTexImage2D = NULL;
 
-static int ddsgl_init () {
-    if (ddsglCompressedTexImage2D) {
-        return (1);
-    }
-#ifdef _WIN32
-    ddsglCompressedTexImage2D = (PFNGLCOMPRESSEDTEXIMAGE2DARBPROC) wglGetProcAddress ("glCompressedTexImage2DARB");
-#else
-    ddsglCompressedTexImage2D = (PFNGLCOMPRESSEDTEXIMAGE2DARBPROC) glXGetProcAddress ((const dds_ubyte*) "glCompressedTexImage2DARB");
-#endif
-    return (ddsglCompressedTexImage2D != NULL);
-}
-
-dds_uint ddsGL_load (const char* filename, DDS_GL_TextureInfo* texture) {
-    if (!ddsgl_init ()) {
-        return DDS_NO_GL_SUPPORT;
-    }
+dds_uint ddsGL_load (const char* filename, shared_ptr<Texture> texture) {
     DDSTextureInfo textureInfo;
     dds_int error = dds_load (filename, &textureInfo);
     if (error != DDS_OK) {
@@ -59,16 +43,16 @@ dds_uint ddsGL_load (const char* filename, DDS_GL_TextureInfo* texture) {
     texture->num_mipmaps = textureInfo.surface.mip_level;
     switch (textureInfo.surface.format.fourcc) {
         case DDS_FOURCC_DXT1:
-            texture->format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
-            texture->internal_format = 3;
+            texture->internalformat= GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+            texture->format= GL_RGBA;
             break;
         case DDS_FOURCC_DXT3:
-            texture->format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
-            texture->internal_format = 4;
+            texture->internalformat= GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+            texture->format= GL_RGBA;
             break;
         case DDS_FOURCC_DXT5:
-            texture->format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-            texture->internal_format = 4;
+            texture->internalformat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+            texture->format= GL_RGBA;
             break;
         //case DDS_FOURCC_BC4U:
             //texture->format = GL_COMPRESSED_RED_RGTC1_EXT; 
@@ -117,8 +101,8 @@ dds_uint ddsGL_load (const char* filename, DDS_GL_TextureInfo* texture) {
     return DDS_OK;
 }
 
-void ddsGL_free (DDS_GL_TextureInfo* texture) {
-    if (texture->id) {
-        glDeleteTextures (1, &texture->id);
-    }
-}
+//void ddsGL_free (DDS_GL_TextureInfo* texture) {
+    //if (texture->id) {
+        //glDeleteTextures (1, &texture->id);
+    //}
+//}

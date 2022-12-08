@@ -1,5 +1,6 @@
 #include<glad/glad.h>
 #include"Texture.h"
+#include<libdds/libdds_opengl.h>
 #define STB_IMAGE_IMPLEMENTATION
 
 Texture::Texture() {
@@ -9,6 +10,7 @@ Texture::Texture() {
 	id = 0;
 	//pbo = 0;
 	data = nullptr;
+	num_mipmaps = 0;
 }
 
 Texture::~Texture() {
@@ -31,32 +33,42 @@ std::shared_ptr<Texture> Texture::loadFromFileAsync(const std::string& filename,
 	std::shared_ptr<Texture> tex = std::make_shared<Texture>(); 
 	tex->name = filename;
 
-	stbi_set_flip_vertically_on_load(true);
-	unsigned char* data = stbi_load((filename).c_str(), &tex->width, &tex->height, &tex->channels, desired_channels);
-	if (data)
-	{
-		GLenum format;
-		switch (tex->channels)
-		{
-		case 1:
-			format = GL_RED;
-			break;
-		case 3:
-			format = GL_RGB;
-			break;
-		case 4:
-			format = GL_RGBA;
-			break;
-		default:
-			break;
-		}
-		tex->format = format;
-		tex->internalformat = format;
-		tex->data = data;
+	// ext 
+	auto ext_pos = filename.find_last_of('.');
+	auto ext = filename.substr(ext_pos + 1);
+	if (ext == "kxt") {
+		// dxt format
+		ddsGL_load(filename.c_str(), tex);
 	}
-	else
-	{
-		std::cout << "Failed to load " <<filename<< std::endl;
+	else {
+		// ext: png,jpg,bmp,...
+		stbi_set_flip_vertically_on_load(true);
+		unsigned char* data = stbi_load((filename).c_str(), &tex->width, &tex->height, &tex->channels, desired_channels);
+		if (data)
+		{
+			GLenum format;
+			switch (tex->channels)
+			{
+			case 1:
+				format = GL_RED;
+				break;
+			case 3:
+				format = GL_RGB;
+				break;
+			case 4:
+				format = GL_RGBA;
+				break;
+			default:
+				break;
+			}
+			tex->format = format;
+			tex->internalformat = format;
+			tex->data = data;
+		}
+		else
+		{
+			std::cout << "Failed to load " << filename << std::endl;
+		}
 	}
 
 	return tex; 
