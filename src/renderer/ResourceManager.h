@@ -20,7 +20,7 @@ public:
 
 public:
 	//const int maxlen = 10;
-	std::unordered_map<std::string, std::string> guidMap;
+	//std::unordered_map<std::string, std::string> guidMap;
 	std::vector <std::shared_ptr<Texture>> resource;
 	std::unordered_map<std::string, std::shared_ptr<Texture>> resourceMap; 
 };

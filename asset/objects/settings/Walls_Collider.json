@@ -1,1 +1,0 @@
-{"name":"Walls_Collider","components":{"Transform":{"position":[0.12,0,0],"rotation":[2.504478E-06,0,0],"scale":[0.01,0.01,0.01]},"MeshFilter":{"pack":"./asset/model/meshes/Walls_Collider.FBX"},"MeshRenderer":{"material":{"textures":{}},"shader":"pbr","drawmode":"triangles"}},"isDeferred":true}

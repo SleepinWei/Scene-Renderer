@@ -110,28 +110,28 @@ std::shared_ptr<Material> Material::loadCubeMap(const std::string& folder_path) 
 std::shared_ptr<Material> Material::loadModel(const std::string& file)
 {
 	auto material = std::make_shared<Material>();
-	auto mat = YAML::LoadFile(file)["Material"]["m_SavedProperties"]["m_TexEnvs"];
-	std::string guid;
-	if (mat[5]["_MainTex"]["m_Texture"].size() == 3)
-	{
-		guid = mat[5]["_MainTex"]["m_Texture"]["guid"].as<std::string>();
-		material->addTexture(resourceManager->guidMap[guid], "material.albedo");
-	}
-	if (mat[7]["_OcclusionMap"]["m_Texture"].size() == 3)
-	{
-		guid = mat[7]["_OcclusionMap"]["m_Texture"]["guid"].as<std::string>();
-		material->addTexture(resourceManager->guidMap[guid], "material.ao");
-	}
-	if (mat[6]["_MetallicGlossMap"]["m_Texture"].size() == 3)
-	{
-		guid = mat[6]["_MetallicGlossMap"]["m_Texture"]["guid"].as<std::string>();
-		material->addTexture(resourceManager->guidMap[guid], "material.metallic");
-	}
-	if (mat[0]["_BumpMap"]["m_Texture"].size() == 3)
-	{
-		guid = mat[0]["_BumpMap"]["m_Texture"]["guid"].as<std::string>();
-		material->addTexture(resourceManager->guidMap[guid], "material.normal");
-	}
+	//auto mat = YAML::LoadFile(file)["Material"]["m_SavedProperties"]["m_TexEnvs"];
+	//std::string guid;
+	//if (mat[5]["_MainTex"]["m_Texture"].size() == 3)
+	//{
+	//	guid = mat[5]["_MainTex"]["m_Texture"]["guid"].as<std::string>();
+	//	material->addTexture(resourceManager->guidMap[guid], "material.albedo");
+	//}
+	//if (mat[7]["_OcclusionMap"]["m_Texture"].size() == 3)
+	//{
+	//	guid = mat[7]["_OcclusionMap"]["m_Texture"]["guid"].as<std::string>();
+	//	material->addTexture(resourceManager->guidMap[guid], "material.ao");
+	//}
+	//if (mat[6]["_MetallicGlossMap"]["m_Texture"].size() == 3)
+	//{
+	//	guid = mat[6]["_MetallicGlossMap"]["m_Texture"]["guid"].as<std::string>();
+	//	material->addTexture(resourceManager->guidMap[guid], "material.metallic");
+	//}
+	//if (mat[0]["_BumpMap"]["m_Texture"].size() == 3)
+	//{
+	//	guid = mat[0]["_BumpMap"]["m_Texture"]["guid"].as<std::string>();
+	//	material->addTexture(resourceManager->guidMap[guid], "material.normal");
+	//}
 	return material;
 }
 

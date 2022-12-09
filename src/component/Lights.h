@@ -153,6 +153,7 @@ public:
 	SpotLight();
 	~SpotLight();
 	tuple<glm::mat4, glm::mat4> getLightTransform();
+	virtual void loadFromJson(json& data)override;
 };
 
 

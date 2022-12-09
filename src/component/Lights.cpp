@@ -200,3 +200,23 @@ tuple<glm::mat4, glm::mat4> SpotLight::getLightTransform() {
 	//}
 	return std::make_tuple(view, proj);
 }
+
+void SpotLight::loadFromJson(json& json_data) {
+	if (json_data.find("color") != json_data.end()) {
+		for (int i = 0; i < 3; i++) {
+			data.color[i] = json_data["color"][i].get<float>();
+		}
+	}
+	if (json_data.find("direction") != json_data.end()) {
+		auto& dir = json_data["direction"];
+		for (int i = 0; i < 3; i++) {
+			data.direction[i] = dir[i].get<float>();
+		}
+	}
+	if (json_data.find("cutOff") != json_data.end()) {
+		data.cutOff = json_data["cutOff"].get<float>();
+	}
+	if (json_data.find("outerCutOff") != json_data.end()) {
+		data.outerCutOff = json_data["outerCutOff"].get<float>();
+	}
+}
