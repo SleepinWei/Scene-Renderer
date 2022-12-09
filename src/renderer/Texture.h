@@ -16,6 +16,8 @@ public:
 	std::shared_ptr<Texture> genTexture(unsigned int DataType,unsigned int channelType,int width,int height);
 	std::shared_ptr<Texture> genTextureAsync(unsigned int DataType, unsigned int channelType, int width, int height);
 	std::shared_ptr<Texture> genCubeMap(GLenum format, int width,int height);
+	//generate a arrray texture for CSM
+	std::shared_ptr<Texture> genTextureArray(GLenum internalformat, GLenum format, GLenum type, int width, int height, int mipmap_level,int layers);
 
 	void bind(unsigned int target, int binding);
 

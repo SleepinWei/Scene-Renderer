@@ -42,7 +42,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
@@ -260,6 +260,19 @@
     <ClInclude Include="src\utils\header.h" />
     <ClInclude Include="src\utils\Shader.h" />
     <ClInclude Include="src\utils\Utils.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="src\shader\hdr.fs" />
+    <None Include="src\shader\hdr.vs" />
+    <None Include="src\shader\light.fs" />
+    <None Include="src\shader\light.vs" />
+    <None Include="src\shader\simple.fs" />
+    <None Include="src\shader\simple.vs" />
+    <None Include="src\shader\skybox.fs" />
+    <None Include="src\shader\skybox.vs" />
+    <None Include="src\shader\test.fs" />
+    <None Include="src\shader\test.vs" />
+    <None Include="src\shader\water.fs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

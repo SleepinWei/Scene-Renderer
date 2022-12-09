@@ -55,6 +55,9 @@ void ModelLoader::loadSceneAsync(std::shared_ptr<RenderScene>& scene, const std:
 		this->loadTerrainAsync(scene, path);
 		//this->loadTerrain(scene, path);
 	}
+	for (auto& t : threadpool) {
+		t.join();
+	}
 }
 
 void ModelLoader::loadSkyAsync(std::shared_ptr<RenderScene>& scene, const std::string& filename) {

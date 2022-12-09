@@ -1,6 +1,8 @@
 #pragma once
 #include<memory>
-
+#include <vector>
+#include <glm\glm.hpp>
+#include "../component/Lights.h"
 class RenderScene; 
 class Shader;
 class FrameBuffer;
@@ -60,6 +62,7 @@ public:
 	bool dirty;
 private:
 	std::shared_ptr<RenderBuffer> renderBuffer;
+	
 };
 
 class ShadowPass {
@@ -69,11 +72,26 @@ public:
 
 	void render(const std::shared_ptr<RenderScene>& scene);
 public:
-	std::shared_ptr<Shader> shadowShader; 
-	std::shared_ptr<FrameBuffer> frameBuffer; 
+	std::shared_ptr<Shader> shadowShader_dir; 
+	std::shared_ptr<Shader> shadowShader_point;
+	std::vector<std::shared_ptr<FrameBuffer>> frameBuffer_dirs; 
+	std::vector<std::shared_ptr<FrameBuffer>> frameBuffer_points; 
 private:
 	void pointLightShadow(const std::shared_ptr<RenderScene>& scene);
 	void directionLightShadow(const std::shared_ptr<RenderScene>& scene);
+	glm::mat4 get_stratified_matrix(const std::vector<glm::vec4>& points, const std::shared_ptr<DirectionLight>& light);
+	std::vector<glm::vec4> get_frustum_points(const float nearplane, const float farplane, const std::shared_ptr<RenderScene>& scene);
+	std::vector<glm::mat4> get_stratified_matrices(const std::shared_ptr<RenderScene>& scene, const std::shared_ptr<DirectionLight>);
+	void init_framebuffers(const std::shared_ptr<RenderScene>& scene);
+	unsigned int cube_map_resolution = 1024;
+	unsigned int cascaded_map_resolution = 2048;
+	unsigned int cascaded_lays = 5;
+	float shadow_limiter[4] = { 0,0,0,0 };
+	unsigned int  matrixUBO=0;
+	float near_for_pointlight = 0.0;
+	float far_for_pointlight = 0.0;  // the perspective parameter in generating shadow cube map
+	bool dirty = 0;
+
 };
 
 //TODO:

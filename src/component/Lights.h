@@ -96,6 +96,7 @@ public:
 	float far;
 	float ortho_width;
 
+	
 	//glm::mat4 lightView; 
 	//glm::mat4 lightProj;
 
