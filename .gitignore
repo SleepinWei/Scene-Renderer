@@ -29,3 +29,4 @@ package.json
 node_modules/
 *.js
 *.json
+*.rar

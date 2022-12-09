@@ -229,7 +229,7 @@ void MeshFilter::loadFromJson(json& data) {
 		}
 		else {
 			auto filename = iter.value().get<std::string>();
-			std::shared_ptr<Mesh> mesh = Model::loadModel(filename, false);
+			std::shared_ptr<Mesh> mesh = Model::loadModel(filename, true);
 			mesh->name = iter.key();
 			this->addMesh(mesh);
 		}

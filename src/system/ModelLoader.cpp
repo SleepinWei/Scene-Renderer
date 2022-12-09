@@ -41,15 +41,12 @@ void ModelLoader::loadSceneAsync(std::shared_ptr<RenderScene>& scene, const std:
 		auto objects = data["objects"];
 		for (auto iter = objects.begin(); iter != objects.end(); ++iter) {
 			std::string path = iter.value().get<std::string>();
-			if (threadQueue.size() < maxThread) {
-				// add a thread to queue
-				this->loadObjectAsync(scene, path);
-			}
-			else {
+			if (threadQueue.size() >= maxThread) {
 				// wait for one thread to end
 				threadQueue.front().join();
 				threadQueue.pop();
 			}
+			this->loadObjectAsync(scene, path);
 		}
 	}
 	if (data.find("sky") != data.end()) {
