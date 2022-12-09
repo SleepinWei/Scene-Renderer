@@ -26,7 +26,7 @@
 #ifndef _LIBDDS_H
 #define	_LIBDDS_H
 
-#include <dds_types.h>
+#include <libdds/dds_types.h>
 
 #ifdef	__cplusplus
 extern "C" {
@@ -63,7 +63,7 @@ extern "C" {
         dds_uint    depth;
         dds_uint    mip_level;
         dds_uint    alpha_bit_depth;
-        dds_uint    __reserved;
+        dds_uint    _reserved;
         dds_uint    surface;
         DDColorKey  dest_overlay;
         DDColorKey  dest_blit;

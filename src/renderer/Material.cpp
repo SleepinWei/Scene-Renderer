@@ -191,8 +191,33 @@ void Material::genTexture() {
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 				
-				glTexImage2D(GL_TEXTURE_2D, 0, tex->internalformat, tex->width, tex->height, 0, tex->format, GL_UNSIGNED_BYTE, tex->data);
-				glGenerateMipmap(GL_TEXTURE_2D);
+				if (tex->internalformat == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT || tex->internalformat == GL_COMPRESSED_RGBA_S3TC_DXT3_EXT|| tex->internalformat == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT) {
+					// compressed texture
+					size_t mip;
+					unsigned int mipWidth = tex->width;
+					unsigned int mipHeight = tex->height;
+					unsigned int mipSize;
+					size_t blockSize = tex->internalformat== GL_COMPRESSED_RGBA_S3TC_DXT1_EXT ? 8 : 16;
+					size_t offset = 0;
+					for (mip = 0; mip < tex->num_mipmaps; ++mip){
+						mipSize = ((mipWidth + 3) / 4) * ((mipHeight + 3) / 4) * blockSize;
+		
+						glCompressedTexImage2DARB(GL_TEXTURE_2D, mip, tex->internalformat,
+							mipWidth, mipHeight, 0, mipSize,
+							tex->data + offset);
+
+						mipWidth = std::max(mipWidth >> 1, 1u);
+						mipHeight = std::max(mipHeight >> 1, 1u);
+
+						offset += mipSize;
+					}
+					free(tex->data);
+				}
+				else {
+					// normal texture
+					glTexImage2D(GL_TEXTURE_2D, 0, tex->internalformat, tex->width, tex->height, 0, tex->format, GL_UNSIGNED_BYTE, tex->data);
+					glGenerateMipmap(GL_TEXTURE_2D);
+				}
 				glBindTexture(GL_TEXTURE_2D, 0);
 
 				// free data

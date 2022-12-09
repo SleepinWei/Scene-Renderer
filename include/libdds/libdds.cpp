@@ -24,7 +24,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <libdds.h>
+#include <libdds/libdds.h>
 
 #include <stdlib.h>
 #include <stdio.h>

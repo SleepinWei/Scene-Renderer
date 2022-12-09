@@ -18,7 +18,7 @@ std::shared_ptr<RenderScene> RenderScene::addObject(std::shared_ptr<GameObject> 
 	objects.emplace_back(object);
 	mtx.unlock();
 
-	auto& Plight= object->GetComponent("PointLigt");
+	auto& Plight= object->GetComponent("PointLight");
 	if (Plight) {
 		std::shared_ptr<PointLight> light = std::static_pointer_cast<PointLight> (Plight);
 		lightMtx.lock();

@@ -13,21 +13,14 @@
         "MeshRenderer":{
             "material":{
                 "textures":{
-                    "material.albedo":"./asset/pbr/jade/albedo.jpg",
-                    "material.ao":"./asset/pbr/jade/ao.jpg",
-                    "material.metallic":"./asset/pbr/jade/metallic.jpg",
-                    "material.normal": "./asset/pbr/jade/normal.png",
-                   "material.roughness":"./asset/pbr/jade/roughness.jpg"
-                },
-                "float":{
-                    "material.subsurfacePower":0.2
-                },
-                "vec3":{
-                    "material.subsurfaceColor":[0.1,0.2,0.3]
-                },
-                "hasSubSurface":true
+                    "material.albedo":"./asset/pbr/rust/albedo.ktx",
+                    "material.ao":"./asset/pbr/rust/ao.ktx",
+                    "material.metallic":"./asset/pbr/rust/metallic.ktx",
+                    "material.normal": "./asset/pbr/rust/normal.ktx",
+                   "material.roughness":"./asset/pbr/rust/roughness.ktx"
+                }
             },
-            "shader":"pbr_sss",
+            "shader":"pbr",
             "drawmode":"triangles"
         }
     }

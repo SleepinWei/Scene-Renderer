@@ -1,14 +1,7 @@
 {
-    "objects":{
-        "sphere1":"./asset/objects/settings/sphere.json",
-        "sphere2":"./asset/objects/settings/sphere2.json",
-        "sphere3":"./asset/objects/settings/sphere_clearcoat.json",
-        "sphere4":"./asset/objects/settings/sphere_pure.json",
-        "sphere5":"./asset/objects/settings/sphere_ani.json",
-        "light":"./asset/objects/settings/light.json",
-        "metal":"./asset/objects/settings/metal.json"
+    "objects": {
+        "PointLight (6)": ".\\asset\\objects\\settings\\PointLight (6).json",
+        "sphere":"./asset/objects/sphere.json"
     },
-    "terrain":"./asset/objects/settings/terrain.json",
-    "sky": "./asset/objects/settings/sky.json",
-    "main_camera":"./asset/objects/settings/main_camera.json"
+    "main_camera": "./asset/objects/main_camera.json"
 }

@@ -36,7 +36,7 @@ std::shared_ptr<Texture> Texture::loadFromFileAsync(const std::string& filename,
 	// ext 
 	auto ext_pos = filename.find_last_of('.');
 	auto ext = filename.substr(ext_pos + 1);
-	if (ext == "kxt") {
+	if (ext == "ktx") {
 		// dxt format
 		ddsGL_load(filename.c_str(), tex);
 	}

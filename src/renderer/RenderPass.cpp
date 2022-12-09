@@ -351,6 +351,7 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	postBuffer->bindBuffer();
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
 	lightingShader->use();
 	// bind textures
