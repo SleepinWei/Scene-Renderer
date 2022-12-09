@@ -18,5 +18,6 @@ public:
 	virtual void bindBuffer();
 	virtual void unbindBuffer();
 	
+	void bindShadowTexture(const std::shared_ptr<Texture>& tex, GLenum attachment);
 	void bindTexture(const std::shared_ptr<Texture>& tex,GLenum attachment,GLenum textarget);
 };

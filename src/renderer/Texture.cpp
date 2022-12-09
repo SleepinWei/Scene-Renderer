@@ -213,7 +213,27 @@ std::shared_ptr<Texture> Texture::genCubeMap(GLenum format, int width,int height
 	return shared_from_this();
 }
 
+std::shared_ptr<Texture> Texture::genTextureArray(GLenum internalformat, GLenum format, GLenum type, int width, int height, int mipmap_level,int layers)
+{
+	if (this->id)
+		return shared_from_this();
+	glGenTextures(1, &this->id);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, this->id);
+	glTexImage3D(
+		GL_TEXTURE_2D_ARRAY, mipmap_level, internalformat, width, height, layers, 0, format, type, nullptr
+	);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+	constexpr float bordercolor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	glTexParameterfv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, bordercolor);
+	return shared_from_this();
+
+}
+
 void Texture::bind(unsigned int target, int binding) {
 	glActiveTexture(GL_TEXTURE0 + binding);
-	glBindTexture(target,this->id);
+	glBindTexture(target, this->id);
 }
