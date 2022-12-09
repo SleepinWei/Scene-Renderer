@@ -42,6 +42,9 @@
     <Filter Include="src\PT\material">
       <UniqueIdentifier>{0d3f5b12-c8d3-4a98-8b8c-d9f9654f9643}</UniqueIdentifier>
     </Filter>
+    <Filter Include="libdds">
+      <UniqueIdentifier>{6053c5ab-ccd1-409b-a627-8229e5a47052}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="include\imgui\imgui.cpp">
@@ -146,9 +149,6 @@
     <ClCompile Include="src\utils\Camera.cpp">
       <Filter>src\utils</Filter>
     </ClCompile>
-    <ClCompile Include="src\glad.c">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="src\buffer\FrameBuffer.cpp">
       <Filter>src\buffer</Filter>
     </ClCompile>
@@ -211,6 +211,15 @@
     </ClCompile>
     <ClCompile Include="include\imgui\imgui_toggle.cpp">
       <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\glad.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="include\libdds\libdds.cpp">
+      <Filter>libdds</Filter>
+    </ClCompile>
+    <ClCompile Include="include\libdds\libdds_opengl.cpp">
+      <Filter>libdds</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -376,5 +385,27 @@
     <ClInclude Include="src\component\TerrainComponent.h">
       <Filter>src\component</Filter>
     </ClInclude>
+    <ClInclude Include="include\libdds\dds_types.h">
+      <Filter>libdds</Filter>
+    </ClInclude>
+    <ClInclude Include="include\libdds\libdds.h">
+      <Filter>libdds</Filter>
+    </ClInclude>
+    <ClInclude Include="include\libdds\libdds_opengl.h">
+      <Filter>libdds</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="src\shader\hdr.fs" />
+    <None Include="src\shader\hdr.vs" />
+    <None Include="src\shader\light.fs" />
+    <None Include="src\shader\light.vs" />
+    <None Include="src\shader\simple.fs" />
+    <None Include="src\shader\simple.vs" />
+    <None Include="src\shader\skybox.fs" />
+    <None Include="src\shader\skybox.vs" />
+    <None Include="src\shader\test.fs" />
+    <None Include="src\shader\test.vs" />
+    <None Include="src\shader\water.fs" />
   </ItemGroup>
 </Project>

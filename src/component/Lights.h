@@ -97,6 +97,7 @@ public:
 	float far;
 	float ortho_width;
 
+	
 	//glm::mat4 lightView; 
 	//glm::mat4 lightProj;
 
@@ -109,6 +110,7 @@ public:
 	std::shared_ptr<DirectionLight> setDirection(const glm::vec3& dir);
 	std::shared_ptr<DirectionLight> setCastShadow(bool castShadow);
 	tuple<glm::mat4,glm::mat4> getLightTransform();
+	virtual void loadFromJson(json& data)override;
 };
 
 

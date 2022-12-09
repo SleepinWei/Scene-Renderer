@@ -37,6 +37,7 @@ public:
 	void destroy();
 public:
 	std::mutex mtx;
+	std::mutex lightMtx;
 };
 
 //namespace RenderPass {

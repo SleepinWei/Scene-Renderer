@@ -1,0 +1,1 @@
+{"name":"PointLight (4)","components":{"Transform":{"position":[-3.513,1.8,1.739],"rotation":[0,0,0],"scale":[0.01,0.01,0.01]},"MeshFilter":{"shape":"point"},"MeshRenderer":{"material":{"textures":{}},"shader":"light","drawmode":"point"},"PointLight":{"color":[1,1,1]}},"isDeferred":false}

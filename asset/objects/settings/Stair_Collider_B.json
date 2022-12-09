@@ -1,0 +1,1 @@
+{"name":"Stair_Collider_B","components":{"Transform":{"position":[-13.724,-0.014,-0.277],"rotation":[2.504478E-06,0,0],"scale":[0.0070297,0.01,0.01]},"MeshFilter":{"pack":"./asset/model/meshes/Stair_Collider_B.FBX"},"MeshRenderer":{"material":{"textures":{}},"shader":"pbr","drawmode":"triangles"}},"isDeferred":true}

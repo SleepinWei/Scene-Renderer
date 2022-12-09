@@ -148,6 +148,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="include\glad\glad.c" />
     <ClCompile Include="include\imgui\imgui.cpp" />
     <ClCompile Include="include\imgui\imgui_demo.cpp" />
     <ClCompile Include="include\imgui\imgui_draw.cpp" />
@@ -156,6 +157,8 @@
     <ClCompile Include="include\imgui\imgui_tables.cpp" />
     <ClCompile Include="include\imgui\imgui_toggle.cpp" />
     <ClCompile Include="include\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="include\libdds\libdds.cpp" />
+    <ClCompile Include="include\libdds\libdds_opengl.cpp" />
     <ClCompile Include="src\buffer\FrameBuffer.cpp" />
     <ClCompile Include="src\buffer\ImageTexture.cpp" />
     <ClCompile Include="src\buffer\PBO.cpp" />
@@ -169,7 +172,6 @@
     <ClCompile Include="src\component\Model.cpp" />
     <ClCompile Include="src\component\TerrainComponent.cpp" />
     <ClCompile Include="src\component\transform.cpp" />
-    <ClCompile Include="src\glad.c" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\object\SkyBox.cpp" />
     <ClCompile Include="src\object\Terrain.cpp" />
@@ -206,6 +208,9 @@
     <ClCompile Include="src\utils\Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\libdds\dds_types.h" />
+    <ClInclude Include="include\libdds\libdds.h" />
+    <ClInclude Include="include\libdds\libdds_opengl.h" />
     <ClInclude Include="src\buffer\buffer.h" />
     <ClInclude Include="src\buffer\FrameBuffer.h" />
     <ClInclude Include="src\buffer\ImageTexture.h" />

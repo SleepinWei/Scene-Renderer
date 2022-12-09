@@ -1,0 +1,1 @@
+{"name":"Spot_B_Emissive","components":{"Transform":{"position":[-2.33,3.800004,2.69],"rotation":[4.999995,0,0],"scale":[0.01,0.01,0.01]},"MeshFilter":{"pack":"./asset/model/meshes/Spot_B_Emissive.FBX"},"MeshRenderer":{"material":{"textures":{}},"shader":"pbr","drawmode":"triangles"}},"isDeferred":true}

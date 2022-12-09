@@ -1,5 +1,6 @@
 #include<glad/glad.h>
 #include<memory>
+#include<assert.h>
 //#include<utility>
 #include"Material.h"
 #include"../utils/Shader.h"
@@ -191,13 +192,38 @@ void Material::genTexture() {
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 				
-				glTexImage2D(GL_TEXTURE_2D, 0, tex->internalformat, tex->width, tex->height, 0, tex->format, GL_UNSIGNED_BYTE, tex->data);
-				glGenerateMipmap(GL_TEXTURE_2D);
+				if (tex->internalformat == GL_COMPRESSED_RGB_S3TC_DXT1_EXT){
+					// compressed texture
+					size_t mip;
+					unsigned int mipWidth = tex->width;
+					unsigned int mipHeight = tex->height;
+					unsigned int mipSize;
+					size_t blockSize = 8;
+					size_t offset = 0;
+					for (mip = 0; mip < tex->num_mipmaps; ++mip){
+						mipSize = ((mipWidth + 3) / 4) * ((mipHeight + 3) / 4) * blockSize;
+		
+						glCompressedTexImage2DARB(GL_TEXTURE_2D, mip, tex->internalformat,
+							mipWidth, mipHeight, 0, mipSize,
+							tex->data + offset);
+
+						mipWidth = std::max(mipWidth >> 1, 1u);
+						mipHeight = std::max(mipHeight >> 1, 1u);
+
+						offset += mipSize;
+					}
+					free(tex->data);
+				}
+				else {
+					// normal texture
+					glTexImage2D(GL_TEXTURE_2D, 0, tex->internalformat, tex->width, tex->height, 0, tex->format, GL_UNSIGNED_BYTE, tex->data);
+					glGenerateMipmap(GL_TEXTURE_2D);
+					stbi_image_free(tex->data);
+					tex->data = nullptr;
+				}
 				glBindTexture(GL_TEXTURE_2D, 0);
 
 				// free data
-				stbi_image_free(tex->data);
-				tex->data = nullptr;
 			}
 		}
 	}

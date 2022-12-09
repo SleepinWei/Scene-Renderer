@@ -161,7 +161,8 @@ vec3 shading(){
         vec3 brdf = BRDF(N_,V,L);
         float NdotL = max(dot(N_,L),0.0);
 
-        float attenuation = 1.0f;
+        // float attenuation = 1.0f;
+        float attenuation = calculateAtten(Position,light.Position);
         vec3 radiance = light.Color * attenuation;
         finalColor += brdf * radiance * NdotL;
     }

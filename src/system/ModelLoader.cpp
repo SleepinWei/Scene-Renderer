@@ -10,9 +10,6 @@ ModelLoader::ModelLoader() {
 }
 
 ModelLoader::~ModelLoader() {
-	for (auto& t : threadpool) {
-		t.join();
-	}
 }
 void ModelLoader::loadObjectAsync(std::shared_ptr<RenderScene>& scene, const std::string& filename) {
 	std::thread loadThread = std::thread(&ModelLoader::loadObject, this, scene, filename);
@@ -24,7 +21,7 @@ void ModelLoader::loadObject(std::shared_ptr<RenderScene>& scene, const std::str
 	json data = json::parse(f);
 	std::shared_ptr<GameObject> object = std::make_shared<GameObject>();
 	object->loadFromJson(data);
-	//mtx.lock();
+
 	scene->addObject(object);
 }
 
@@ -55,6 +52,12 @@ void ModelLoader::loadSceneAsync(std::shared_ptr<RenderScene>& scene, const std:
 		this->loadTerrainAsync(scene, path);
 		//this->loadTerrain(scene, path);
 	}
+
+	// wait for all threads to end
+	for (auto& t : threadpool) {
+		t.join();
+	}
+
 }
 
 void ModelLoader::loadSkyAsync(std::shared_ptr<RenderScene>& scene, const std::string& filename) {
