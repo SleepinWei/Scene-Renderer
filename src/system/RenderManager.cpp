@@ -57,7 +57,7 @@ void RenderManager::initRenderPass() {
 void RenderManager::initVPbuffer() {
 	// initialize a UBO for VP matrices
 	uniformVPBuffer = std::make_shared<UniformBuffer>(
-			2 * sizeof(glm::mat4)
+			2 * sizeof(glm::mat4) + 2* sizeof(glm::vec3)
 		); 
 	// set binding point
 	uniformVPBuffer->setBinding(0);
@@ -99,6 +99,7 @@ void RenderManager::prepareVPData(const std::shared_ptr<RenderScene>& renderScen
 
 	const glm::mat4& projection = camera->GetPerspective();
 	const glm::mat4& view = camera->GetViewMatrix();
+	const glm::vec3& pos = camera->Position;
 	//glm::mat4 skyboxView = glm::mat4(glm::mat3(view));
 	
 	// update every frame
@@ -107,6 +108,7 @@ void RenderManager::prepareVPData(const std::shared_ptr<RenderScene>& renderScen
 		GLuint UBO = uniformVPBuffer->UBO;
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(projection));
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4),sizeof(glm::mat4), glm::value_ptr(view));
+		glBufferSubData(GL_UNIFORM_BUFFER, 128, sizeof(glm::vec3), glm::value_ptr(pos));
 	}
 
 	// update every frame: skybox view
@@ -286,7 +288,7 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	prepareCompData(scene);
 	
 	//TODO:
-	rsmPass->render(scene);
+	// rsmPass->render(scene);
 
 	// deferred pass
 	if (setting.useDefer) {

@@ -221,6 +221,9 @@
     <ClCompile Include="include\libdds\libdds_opengl.cpp">
       <Filter>libdds</Filter>
     </ClCompile>
+    <ClCompile Include="src\component\Ocean.cpp">
+      <Filter>src\component</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\GUI.h">
@@ -407,5 +410,8 @@
     <None Include="src\shader\test.fs" />
     <None Include="src\shader\test.vs" />
     <None Include="src\shader\water.fs" />
+    <ClInclude Include="src\component\Ocean.h">
+      <Filter>src\component</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
