@@ -68,7 +68,7 @@ public:
 				//auto& light = lights[0]; 
 				auto&& lightTrans = std::static_pointer_cast<Transform>(
 					lights[i]->gameObject->GetComponent("Transform"));
-				std::cout << "Light Transform :" << &lightTrans->position << '\n';
+				//std::cout << "Light Transform :" << &lightTrans->position << '\n';
 				if (ImGui::SliderFloat3("Position", (float*)&lightTrans->position, -10.0f, 10.0f))
 					lights[i]->setDirtyFlag(true);
 			}
