@@ -143,6 +143,7 @@ public:
 	bool dirty;
 private:
 	const GLuint RSM_WIDTH = 1024, RSM_HEIGHT = 1024;
+	const float light_near_plane = 0.5f, light_far_plane = 20.0f;
 	void initShader();
 	GLuint createRandomTexture(int size=64);
 	void initTextures();

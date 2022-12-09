@@ -56,7 +56,7 @@ void main()
     vec3 N = getNormalFromMap();
     normal.rgb = normalize(N);
 
-    vec3 lightDir = normalize(light.Position - object.Position);
-	float diff = max(0.0, dot(norm, lightDir));
-	flux = diff*pow(texture(material.albedo, uv).rgb,vec3(2.2f))*light.Color;
+    vec3 lightDir = normalize(light.Position - worldPos.rgb);
+	float diff = max(0.0, dot(normal.rgb, lightDir));
+	flux.rgb = diff*texture(material.albedo, object.TexCoords).xyz*light.Color;
 }
