@@ -146,7 +146,7 @@ void RenderManager::preparePointLightData(const std::shared_ptr<RenderScene>& sc
 	int lightNum = scene->pointLights.size();
 	int dataSize = 32; // data size for a single light (under std140 layout)
 	for (int i = 0; i < lightNum; i++) {
-		auto& light = scene->pointLights[i]; 
+		auto light = scene->pointLights[i]; 
 		if (light) {
 			if (!light->dirty) {
 				// if not dirty, then pass

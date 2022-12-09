@@ -22,3 +22,5 @@ asset/model
 asset/pbr
 asset/skybox
 asset/tex
+asset/objects/settings
+asset/objects/lights
