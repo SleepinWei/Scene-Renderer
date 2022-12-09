@@ -22,6 +22,7 @@ asset/model
 asset/pbr
 asset/skybox
 asset/tex
+asset/objects
 package-lock.json
 package.json
 node_modules/

@@ -219,6 +219,7 @@
     <ClInclude Include="src\buffer\SSBO.h" />
     <ClInclude Include="src\buffer\UniformBuffer.h" />
     <ClInclude Include="src\component\Atmosphere.h" />
+    <ClInclude Include="src\component\Cloud.h" />
     <ClInclude Include="src\component\Component.h" />
     <ClInclude Include="src\component\GameObject.h" />
     <ClInclude Include="src\component\Grass.h" />

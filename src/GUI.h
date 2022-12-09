@@ -59,7 +59,7 @@ public:
 		}
 
 		ImGui::Separator();
-		if (ImGui::CollapsingHeader("Light")) {
+		if (ImGui::CollapsingHeader("Point Light")) {
 			auto& lights = scene->pointLights;
 			for (int i = 0; i < lights.size(); i++) {
 				char title[] = "Lighti Position";
@@ -68,11 +68,12 @@ public:
 				//auto& light = lights[0]; 
 				auto&& lightTrans = std::static_pointer_cast<Transform>(
 					lights[i]->gameObject->GetComponent("Transform"));
-				//std::cout << "Light Transform :" << lightTrans.get() << '\n';
+				std::cout << "Light Transform :" << &lightTrans->position << '\n';
 				if (ImGui::SliderFloat3("Position", (float*)&lightTrans->position, -10.0f, 10.0f))
 					lights[i]->setDirtyFlag(true);
 			}
-
+		}
+		if(ImGui::CollapsingHeader("Direction Light")){
 			auto& dlights = scene->directionLights;
 			for (int i = 0; i < dlights.size(); i++) {
 				char title[] = "Direction Lighti Position";

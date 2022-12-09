@@ -4,7 +4,8 @@
 #include<fstream>
 #include<json/json.hpp>
 #include<thread>
-#include<vector>
+//#include<vector>
+#include<queue>
 
 using json = nlohmann::json;
 
@@ -19,7 +20,9 @@ public:
 
 public:
 	//std::mutex istream_lock;
-	std::vector<std::thread> threadpool;
+	//std::vector<std::thread> threadpool;
+	std::queue<std::thread> threadQueue;
+	const int maxThread = 16;
 
 public:
 	void loadObject(std::shared_ptr<RenderScene>& scene, const std::string& filename);

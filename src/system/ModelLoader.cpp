@@ -13,7 +13,8 @@ ModelLoader::~ModelLoader() {
 }
 void ModelLoader::loadObjectAsync(std::shared_ptr<RenderScene>& scene, const std::string& filename) {
 	std::thread loadThread = std::thread(&ModelLoader::loadObject, this, scene, filename);
-	threadpool.push_back(std::move(loadThread));
+	//threadpool.push_back(std::move(loadThread));
+	threadQueue.push(std::move(loadThread));
 }
 
 void ModelLoader::loadObject(std::shared_ptr<RenderScene>& scene, const std::string& filename) {
@@ -28,10 +29,10 @@ void ModelLoader::loadObject(std::shared_ptr<RenderScene>& scene, const std::str
 void ModelLoader::loadSceneAsync(std::shared_ptr<RenderScene>& scene, const std::string& filename) {
 	//clear scene 
 	// wait for all threads to end
-	for (auto& t : threadpool) {
-		t.join();
+	while(threadQueue.size()){
+		threadQueue.front().join();
+		threadQueue.pop();
 	}
-	std::vector<std::thread>().swap(threadpool);
 	scene->destroy(); // destroy scene
 
 	std::ifstream f(filename);
@@ -40,7 +41,15 @@ void ModelLoader::loadSceneAsync(std::shared_ptr<RenderScene>& scene, const std:
 		auto objects = data["objects"];
 		for (auto iter = objects.begin(); iter != objects.end(); ++iter) {
 			std::string path = iter.value().get<std::string>();
-			this->loadObjectAsync(scene, path);
+			if (threadQueue.size() < maxThread) {
+				// add a thread to queue
+				this->loadObjectAsync(scene, path);
+			}
+			else {
+				// wait for one thread to end
+				threadQueue.front().join();
+				threadQueue.pop();
+			}
 		}
 	}
 	if (data.find("sky") != data.end()) {
@@ -54,15 +63,20 @@ void ModelLoader::loadSceneAsync(std::shared_ptr<RenderScene>& scene, const std:
 	}
 
 	// wait for all threads to end
-	for (auto& t : threadpool) {
-		t.join();
+	//for (auto& t : threadpool) {
+		//t.join();
+	//}
+	while (threadQueue.size()) {
+		threadQueue.front().join();
+		threadQueue.pop();
 	}
 
 }
 
 void ModelLoader::loadSkyAsync(std::shared_ptr<RenderScene>& scene, const std::string& filename) {
 	std::thread loadThread = std::thread(&ModelLoader::loadSky, this, scene, filename);
-	threadpool.push_back(std::move(loadThread));
+	//threadpool.push_back(std::move(loadThread));
+	threadQueue.push(std::move(loadThread));
 }
 
 void ModelLoader::loadSky(std::shared_ptr<RenderScene>& scene, const std::string& filename) {
@@ -77,7 +91,8 @@ void ModelLoader::loadSky(std::shared_ptr<RenderScene>& scene, const std::string
 
 void ModelLoader::loadTerrainAsync(std::shared_ptr<RenderScene>& scene, const std::string& filename) {
 	std::thread loadThread = std::thread(&ModelLoader::loadTerrain, this, scene, filename);
-	threadpool.push_back(std::move(loadThread));
+	//threadpool.push_back(std::move(loadThread));
+	threadQueue.push(std::move(loadThread));
 }
 
 void ModelLoader::loadTerrain(std::shared_ptr<RenderScene>& scene, const std::string& filename) {

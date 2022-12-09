@@ -44,6 +44,7 @@ void RenderManager::initRenderPass() {
 	// render Pass initialization 
 	if (setting.useDefer) {
 		deferredPass = std::make_shared<DeferredPass>();
+		rsmPass = std::make_shared<RSMPass>();
 	}
 	else {
 		hdrPass = std::make_shared<HDRPass>();
@@ -278,10 +279,13 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	prepareVPData(scene);
 	glCheckError();
 	preparePointLightData(scene);
+	glCheckError();
 	prepareDirectionLightData(scene);
+	glCheckError();
 	prepareCompData(scene);
 	
-	rsmPass->render(scene);
+	//TODO:
+	//rsmPass->render(scene);
 
 	// deferred pass
 	if (setting.useDefer) {
