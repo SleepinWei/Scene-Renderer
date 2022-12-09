@@ -663,7 +663,7 @@ void RSMPass::initShader() {
 	RSMShader = std::make_shared<Shader>("./src/shader/rsm/lightSpace.vs", "./src/shader/rsm/lightSpace.fs");
 	RSMShader->requireMat = true;
 
-	RSMShader->use();
+	//RSMShader->use();
 }
 
 GLuint RSMPass::createRandomTexture(int size) {
@@ -692,6 +692,11 @@ GLuint RSMPass::createRandomTexture(int size) {
 }
 void RSMPass::initTextures() {
 	rsmFBO = std::make_shared<FrameBuffer>();
+
+	depthMap = std::make_shared<Texture>();
+	normalMap = std::make_shared<Texture>();
+	worldPosMap = std::make_shared<Texture>();
+	fluxMap = std::make_shared<Texture>();
 	GLuint randomMap = createRandomTexture();
 	depthMap->genTexture(GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, RSM_WIDTH, RSM_HEIGHT);
 	normalMap->genTexture(GL_RGBA16F, GL_RGBA, RSM_WIDTH, RSM_HEIGHT);
@@ -728,6 +733,15 @@ void RSMPass::render(const std::shared_ptr<RenderScene>& scene) {
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
 	//TODO:set light uniform
+	glm::vec3 lightPos = glm::vec3(0.0f, 0.0f, 0.0f);
+	glm::vec3 lightColor = glm::vec3(0.6f, 0.6f, 0.6f);
+	glm::mat4 lightProjection = glm::perspective(glm::radians(60.0f), (float)RSM_WIDTH / (float)RSM_HEIGHT, light_near_plane, light_far_plane);
+	glm::mat4 lightView = glm::lookAt(lightPos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+	RSMShader->use();
+	RSMShader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
+	RSMShader->setVec3("light.Position", lightPos);
+	RSMShader->setVec3("light.Color", lightColor);
 
 	for (int i = 0; i < scene->objects.size(); i++) {
 		auto& object = scene->objects[i];

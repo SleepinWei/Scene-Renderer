@@ -30,9 +30,9 @@ std::shared_ptr<Mesh> Model::loadModel(const std:: string& path,bool flipUV) {
 	if (flipUV)
 		pFlags |= aiProcess_FlipUVs;
 	const aiScene* scene = importer.ReadFile(path,pFlags);
-	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
+	if (!scene)//|| scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
 	{
-		std::cout << "ERROR::ASSIMP:: " << importer.GetErrorString() << std::endl;
+		std::cout << "ERROR::ASSIMP:: Failed to load file: " << path << std::endl;
 		return nullptr;
 	}
 

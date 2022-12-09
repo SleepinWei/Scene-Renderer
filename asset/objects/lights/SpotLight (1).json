@@ -1,1 +1,0 @@
-{"name":"SpotLight (1)","components":{"Transform":{"position":[3.901999,3.359396,-3.42],"rotation":[0,0,0],"scale":[0.01,0.01,0.01]},"MeshFilter":{"shape":"point"},"MeshRenderer":{"material":{"textures":{}},"shader":"light","drawmode":"point"},"SpotLight":{"color":[1,1,1],"direction":[-6.400393E-08,-1,2.17557E-05],"cutOff":12,"outerCutOff":120}},"isDeferred":false}
