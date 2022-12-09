@@ -32,6 +32,13 @@ std::shared_ptr<RenderScene> RenderScene::addObject(std::shared_ptr<GameObject> 
 		this->directionLights.emplace_back(light);
 		lightMtx.unlock();
 	}
+	auto& Slight = object->GetComponent("SpotLight");
+	if (Slight) {
+		std::shared_ptr<SpotLight> light = std::static_pointer_cast<SpotLight> (Slight);
+		lightMtx.lock();
+		this->spotLights.emplace_back(light);
+		lightMtx.unlock();
+	}
 	//
 	return shared_from_this();
 }

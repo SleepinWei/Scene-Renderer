@@ -1,1 +1,0 @@
-{"name":"cup","components":{"Transform":{"position":[-12.94481,0.7420001,3.78696],"rotation":[9.334668E-06,0,0],"scale":[0.01,0.01,0.01]},"MeshFilter":{"pack":"./asset/model/meshes/cup.FBX"},"MeshRenderer":{"material":{"textures":{}},"shader":"pbr","drawmode":"triangles"}},"isDeferred":true}

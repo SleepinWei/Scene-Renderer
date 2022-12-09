@@ -281,7 +281,7 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	prepareDirectionLightData(scene);
 	prepareCompData(scene);
 	
-	rsmPass->render(scene);
+	//rsmPass->render(scene);
 
 	// deferred pass
 	if (setting.useDefer) {
