@@ -18,6 +18,7 @@
 #include"../renderer/Texture.h"
 #include"../buffer/RenderBuffer.h"
 #include<memory>
+#include<random>
 
 extern std::unique_ptr<InputManager> inputManager;
 extern std::unique_ptr<RenderManager> renderManager;
@@ -416,4 +417,106 @@ void DeferredPass::postProcess(const std::shared_ptr<RenderScene>& scene) {
 	postProcessShader->setInt("hdrBuffer", 0);
 
 	renderQuad();
+}
+
+RSMPass::RSMPass() {
+	initShader();
+	initTextures();
+}
+
+RSMPass::~RSMPass() {
+
+}
+void RSMPass::initShader() {
+	RSMShader = std::make_shared<Shader>("./src/shader/rsm/lightSpace.vs", "./src/shader/rsm/lightSpace.fs");
+	RSMShader->requireMat = true;
+
+	RSMShader->use();
+}
+
+GLuint RSMPass::createRandomTexture(int size) {
+	std::default_random_engine eng;
+	std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+	eng.seed(std::time(0));
+	float PI = std::cos(-1.0f);
+	glm::vec3* randomData = new glm::vec3[size];
+	for (int i = 0; i < size; ++i) {
+		float r1 = dist(eng);
+		float r2 = dist(eng);
+		randomData[i].x = r1 * std::sin(2 * PI * r2);
+		randomData[i].y = r1 * std::cos(2 * PI * r2);
+		randomData[i].z = r1 * r1;
+	}
+	GLuint randomTexture;
+	glGenTextures(1, &randomTexture);
+	glBindTexture(GL_TEXTURE_2D, randomTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, size, 1, 0, GL_RGB, GL_FLOAT, randomData);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	delete[] randomData;
+	return randomTexture;
+}
+void RSMPass::initTextures() {
+	rsmFBO = std::make_shared<FrameBuffer>();
+	GLuint randomMap = createRandomTexture();
+	depthMap->genTexture(GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, RSM_WIDTH, RSM_HEIGHT);
+	normalMap->genTexture(GL_RGBA16F, GL_RGBA, RSM_WIDTH, RSM_HEIGHT);
+	worldPosMap->genTexture(GL_RGBA16F, GL_RGBA, RSM_WIDTH, RSM_HEIGHT);
+	fluxMap->genTexture(GL_RGBA16F, GL_RGBA, RSM_WIDTH, RSM_HEIGHT);
+}
+
+void RSMPass::render(const std::shared_ptr<RenderScene>& scene) {
+	if (rsmFBO->dirty) {
+		// set attachments
+		rsmFBO->dirty = false;
+
+		rsmFBO->bindTexture(depthMap, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D);
+		rsmFBO->bindTexture(normalMap, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
+		rsmFBO->bindTexture(worldPosMap, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D);
+		rsmFBO->bindTexture(fluxMap, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D);
+
+		rsmFBO->bindBuffer();
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+			std::cout << "Framebuffer not complete!" << std::endl;
+		// finally check if framebuffer is complete
+		unsigned int attachments[] = {
+			GL_COLOR_ATTACHMENT0,
+			GL_COLOR_ATTACHMENT1,
+			GL_COLOR_ATTACHMENT2
+		};
+		glDrawBuffers(3, attachments);
+	}
+
+	rsmFBO->bindBuffer();
+	glClear(GL_DEPTH_BUFFER_BIT);
+	glViewport(0, 0, RSM_WIDTH, RSM_HEIGHT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+	//TODO:set light uniform
+
+	for (int i = 0; i < scene->objects.size(); i++) {
+		auto& object = scene->objects[i];
+		//// only render deferred objects in gbuffer phase
+		//if (object->isDeferred()) {
+		std::shared_ptr<MeshRenderer>&& renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
+		if (renderer && renderer->shader) {
+			renderer->render(RSMShader);
+		}
+		//}
+	}
+
+	//std::shared_ptr<Terrain>& terrain = scene->terrain;
+	//if (terrain) {
+	//	//terrain->shader->use();
+	//	glCheckError();
+	//	//auto& terrainComponent = std::static_pointer_cast<TerrainComponent>(terrain->GetComponent("TerrainComponent"));
+	//	//if (terrainComponent) {
+	//		//terrainComponent->render(terrainComponent->terrainGBuffer);
+	//	//}
+	//	terrain->render(nullptr);
+	//}
+	// no sky
 }
