@@ -431,7 +431,7 @@ void RSMPass::initShader() {
 	RSMShader = std::make_shared<Shader>("./src/shader/rsm/lightSpace.vs", "./src/shader/rsm/lightSpace.fs");
 	RSMShader->requireMat = true;
 
-	RSMShader->use();
+	//RSMShader->use();
 }
 
 GLuint RSMPass::createRandomTexture(int size) {
@@ -460,6 +460,11 @@ GLuint RSMPass::createRandomTexture(int size) {
 }
 void RSMPass::initTextures() {
 	rsmFBO = std::make_shared<FrameBuffer>();
+
+	depthMap = std::make_shared<Texture>();
+	normalMap = std::make_shared<Texture>();
+	worldPosMap = std::make_shared<Texture>();
+	fluxMap = std::make_shared<Texture>();
 	GLuint randomMap = createRandomTexture();
 	depthMap->genTexture(GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, RSM_WIDTH, RSM_HEIGHT);
 	normalMap->genTexture(GL_RGBA16F, GL_RGBA, RSM_WIDTH, RSM_HEIGHT);
