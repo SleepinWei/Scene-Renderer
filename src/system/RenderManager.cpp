@@ -42,6 +42,7 @@ void RenderManager::init() {
 
 void RenderManager::initRenderPass() {
 	// render Pass initialization 
+	rsmPass = std::make_shared<RSMPass>();
 	if (setting.useDefer) {
 		deferredPass = std::make_shared<DeferredPass>();
 		rsmPass = std::make_shared<RSMPass>();
