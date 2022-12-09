@@ -35,15 +35,15 @@ public:
 	}
 
 	std::shared_ptr<GameObject> addComponent(const std::shared_ptr<Component>& component);
-	std::shared_ptr<Component> GetComponent(std::string component_type_name);
+	std::shared_ptr<Component> GetComponent(std::string component_type_name) ;
 
-	void loadFromJson(json& data);
-
-	// get all components with the same name 
-	//std::vector<std::shared_ptr<Component>>& GetComponents(std::string component_type_name);
+	virtual void loadFromJson(json& data);
+	bool isDeferred()const;
+	void setDeferred(bool _isDeferred);
 
 public:
 	std::string name; 
 	std::unordered_map<std::string, std::shared_ptr<Component>> component_type_instance_map;
+	bool m_isDeferred; // render with forward or deferred
 };
 

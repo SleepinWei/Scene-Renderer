@@ -1,0 +1,117 @@
+#version 450 core
+#define WORKGROUP_SIZE 2
+#define PI 3.1415926f
+
+layout(local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE) in;
+
+const float WindStrength = 0.65;
+const vec2 WindFrequency = vec2(0.05, 0.05);
+
+const vec4 RAND_FACTOR = vec4(12.9898, 78.233, 45.164, 94.673);
+
+struct Patch{// 1 patch : 16 by 16 grid
+    vec4 Position[4];
+    vec2 TexCoords[4];
+};
+// 1 node: 8 by 8 patches
+layout(std140,binding=0) buffer GrassPatches{
+    uint grassCnt;
+    uint grassOne;
+    uint grass_One;
+    Patch grassPatches[];
+};
+
+layout(binding = 1, std140) buffer OutPose {
+	mat4 outPose[];
+};
+
+layout(binding = 2,std140) buffer IndirectBuff {
+	uint  count;
+	uint  instanceCount;
+	uint  first;
+	uint  baseInstance;
+} indirect;
+
+// layout(rgba32f,binding=5) uniform image2D lodMap;
+
+float random(vec3 seed, float i){
+	vec4 seed4 = vec4(seed, i);
+	float dotProduct = dot(seed4, RAND_FACTOR);
+	return fract(sin(dotProduct) * 43758.5453);
+}
+
+mat4 RotY4(float r) {
+	float cosR = cos(r);
+	float sinR = sin(r);
+	return mat4(
+		cosR, 0.0, -sinR, 0.0,
+		0.0,  1.0, 0.0,   0.0,
+		sinR, 0.0, cosR,  0.0,
+		0.0,  0.0, 0.0,   1.0
+	);
+}
+
+mat4 Translate(vec3 t){
+	return mat4(
+		1.0, 0.0, 0.0, 0.0,
+		0.0, 1.0, 0.0, 0.0,
+		0.0, 0.0, 1.0, 0.0,
+		t.x, t.y, t.z, 1.0
+	);
+}
+
+mat3 AngleAxis3x3(float angle, vec3 axis) {
+	float c = cos(angle), s = sin(angle);
+
+	float t = 1.0 - c;
+	float x = axis.x;
+	float y = axis.y;
+	float z = axis.z;
+	
+	return mat3(
+		t * x * x + c, t * x * y + s * z, t * x * z - s * y,
+		t * x * y - s * z, t * y * y + c, t * y * z + s * x,
+		t * x * z + s * y, t * y * z - s * x, t * z * z + c
+	);
+}
+
+uniform float time;
+uniform sampler2D distortion;
+
+mat3 GetWindMat(vec2 pos) {
+	vec2 uv =  pos*0.5f + 0.5f + WindFrequency * time;
+	vec2 windSample = texture(distortion, uv).xy * 2.0 - 1.0;
+	windSample *= WindStrength;
+	vec3 wind = normalize(vec3(windSample.x, windSample.y, 0.0));
+	mat3 windRotation = AngleAxis3x3(PI * windSample.x, wind);
+	return windRotation;
+}
+
+uniform mat4 terrainModel;
+
+void main() {
+	uint curIndex = gl_WorkGroupID.x; // current patch
+	vec2 uv = vec2(gl_LocalInvocationID.xy)/ WORKGROUP_SIZE; //current grass uv
+
+	Patch p = grassPatches[curIndex];
+	const float randscale = 0.5f;
+	vec2 offset = vec2(random(vec3(p.Position[0]),0.1*uv.x) * randscale,random(vec3(p.Position[2]),0.1*uv.y) * randscale);
+	uv = uv + offset;
+
+	vec3 posx01 = uv.x * p.Position[1].xyz + (1-uv.x) * p.Position[0].xyz;
+	vec3 posx23 = uv.x * p.Position[2].xyz + (1-uv.x) * p.Position[3].xyz;
+	vec3 pos = uv.y * posx23 + (1-uv.y) * posx01;
+
+	// pos += vec3(offset.x,0.0f,offset.y);
+	pos = vec3(terrainModel * vec4(pos,1.0f)); // scale move pos vector, don't scale actual grass
+
+	mat4 translate = Translate(pos);
+
+	// random rotation
+	float angle = PI/2 * random(vec3(p.Position[1]),0.3);
+	mat4 rotMat = RotY4(angle);
+
+	mat4 model = translate * rotMat;
+	// mat4 model = translate;
+	outPose[atomicAdd(indirect.instanceCount,1)] = model;
+}

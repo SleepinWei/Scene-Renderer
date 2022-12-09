@@ -75,7 +75,7 @@ std::shared_ptr<Texture> ResourceManager::getResourceAsync(const std::string& fi
 	if (iter == resourceMap.end()) {
 		// can't find
 		auto tex = Texture::loadFromFileAsync(filename);
-		resource.push_back(tex);
+		//resource.push_back(tex);
 		resourceMap.insert(std::make_pair(tex->name,tex));
 		return tex;
 	}

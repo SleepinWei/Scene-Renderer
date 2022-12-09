@@ -22,5 +22,8 @@ asset/model
 asset/pbr
 asset/skybox
 asset/tex
-asset/objects/settings
-asset/objects/lights
+package-lock.json
+package.json
+node_modules/
+*.js
+*.json

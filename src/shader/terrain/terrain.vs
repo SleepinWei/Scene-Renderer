@@ -16,7 +16,7 @@ layout(binding=0,std140) uniform VP{
 };
 uniform mat4 model;
 // uniform sampler2D heightMap;
-uniform sampler2D normalMap;
+// uniform sampler2D normalMap;
 
 out struct Object{
     vec3 Position; 

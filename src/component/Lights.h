@@ -16,7 +16,8 @@ using std::shared_ptr;
 
 enum class LightType {
 	POINT,
-	DIRECTIONAL	
+	DIRECTIONAL,
+	SPOT
 };
 class Light :public Component, public std::enable_shared_from_this<Light> {
 public:
@@ -96,6 +97,7 @@ public:
 	float far;
 	float ortho_width;
 
+	
 	//glm::mat4 lightView; 
 	//glm::mat4 lightProj;
 
@@ -108,5 +110,51 @@ public:
 	std::shared_ptr<DirectionLight> setDirection(const glm::vec3& dir);
 	std::shared_ptr<DirectionLight> setCastShadow(bool castShadow);
 	tuple<glm::mat4,glm::mat4> getLightTransform();
+	virtual void loadFromJson(json& data)override;
 };
+
+
+struct SpotLightData {
+	glm::vec3 color;
+	//glm::vec3 position; // get position from transform
+	glm::vec3 direction;
+
+	float cutOff;
+	float outerCutOff;
+
+	float constant;
+	float linear;
+	float quadratic;
+	// not used
+	glm::vec3 ambient;
+	glm::vec3 diffuse;
+	glm::vec3 specular;
+};
+
+class SpotLight : public Light {
+public:
+	SpotLightData data;
+
+	float near;
+	float far;
+	float fov;
+	float aspect;
+
+	//glm::mat4 lightView; 
+	//glm::mat4 lightProj;
+
+	// shadow mapping texture
+	std::shared_ptr<Texture> depthMap;
+	std::shared_ptr<Texture> normalMap;
+	std::shared_ptr<Texture> worldPosMap;
+	std::shared_ptr<Texture> fluxMap;
+
+public:
+	SpotLight();
+	~SpotLight();
+	tuple<glm::mat4, glm::mat4> getLightTransform();
+	virtual void loadFromJson(json& data)override;
+};
+
+
 

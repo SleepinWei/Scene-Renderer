@@ -218,6 +218,7 @@ void generateLODData(uvec2 nodeLoc,uint currentLod){
     if(currentLevel + currentLod < MAX_LEVEL){
         // 生成新的点继续细分
 
+        // 0,1,2,3 in clock-wise order
         uint curNodeIndex = atomicAdd(outQueue.nodeCnt,4);
         outQueue.nodes[curNodeIndex] = nodeLoc * 2;
         outQueue.nodes[curNodeIndex+1] = nodeLoc * 2 + uvec2(1,0);

@@ -144,3 +144,79 @@ std::shared_ptr<DirectionLight> DirectionLight::setCastShadow(bool castShadow_) 
 	return std::dynamic_pointer_cast<DirectionLight>(shared_from_this());
 }
 
+void DirectionLight::loadFromJson(json& json_data) {
+	if (json_data.find("color") != json_data.end()) {
+		for (int i = 0; i < 3; i++) {
+			data.color[i] = json_data["color"][i].get<float>();
+		}
+	}
+	if (json_data.find("direction") != json_data.end()) {
+		auto& dir = json_data["direction"];
+		for (int i = 0; i < 3; i++) {
+			data.direction[i] = dir[i].get<float>();
+		}
+	}
+}
+
+SpotLight::SpotLight()
+{
+	Component::name = "SpotLight";
+	Light::type = LightType::SPOT;
+	Light::castShadow = true;
+	Light::dirty = true;
+
+	data = {
+		glm::vec3(1.0f),//color
+		//glm::vec3(0.0f),//position
+		glm::vec3(1.0f),//direction
+		glm::cos(glm::radians(12.5f)),//cutoff
+		glm::cos(glm::radians(15.0f)),//outercutoff
+		1.0f, //constant
+		0.09f, //linear
+		0.032f,  //quadratic
+		glm::vec3(0.0f),//ambient
+		glm::vec3(1.0f),//diffuse
+		glm::vec3(1.0f), //specular
+	};
+
+	aspect = Light::SHADOW_HEIGHT * 1.0 / Light::SHADOW_WIDTH;
+	fov = 90.0f;
+	near = 0.1f;
+	far = 100.f;
+}
+
+SpotLight::~SpotLight()
+{
+
+}
+
+tuple<glm::mat4, glm::mat4> SpotLight::getLightTransform() {
+		glm::vec3 lightPos = std::static_pointer_cast<Transform>(
+			gameObject->GetComponent("Transform")
+			)->position;
+		glm::mat4 proj = glm::perspective(glm::radians(fov), (float)Light::SHADOW_WIDTH / (float)Light::SHADOW_HEIGHT, near, far);
+		glm::mat4 view = glm::lookAt(lightPos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		//lightProj = proj;
+	//}
+	return std::make_tuple(view, proj);
+}
+
+void SpotLight::loadFromJson(json& json_data) {
+	if (json_data.find("color") != json_data.end()) {
+		for (int i = 0; i < 3; i++) {
+			data.color[i] = json_data["color"][i].get<float>();
+		}
+	}
+	if (json_data.find("direction") != json_data.end()) {
+		auto& dir = json_data["direction"];
+		for (int i = 0; i < 3; i++) {
+			data.direction[i] = dir[i].get<float>();
+		}
+	}
+	if (json_data.find("cutOff") != json_data.end()) {
+		data.cutOff = json_data["cutOff"].get<float>();
+	}
+	if (json_data.find("outerCutOff") != json_data.end()) {
+		data.outerCutOff = json_data["outerCutOff"].get<float>();
+	}
+}

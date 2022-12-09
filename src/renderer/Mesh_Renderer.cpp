@@ -96,7 +96,7 @@ MeshRenderer::MeshRenderer():drawMode(GL_TRIANGLES),polyMode(GL_FILL) {
 /// </summary>
 /// <param name="useShader"></param>
 void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
-	const std::shared_ptr<Transform>& transform = std::dynamic_pointer_cast<Transform>(gameObject->GetComponent("Transform"));
+	const std::shared_ptr<Transform>& transform = std::static_pointer_cast<Transform>(gameObject->GetComponent("Transform"));
 
 	if (!transform) {
 		return;

@@ -5,7 +5,6 @@
 #include<json/json.hpp>
 #include<thread>
 #include<vector>
-#include<mutex>
 
 using json = nlohmann::json;
 
@@ -27,5 +26,7 @@ public:
 	void loadObjectAsync(std::shared_ptr<RenderScene>& scene,const std::string& filename);
 	void loadSky(std::shared_ptr<RenderScene>& scene, const std::string& filename);
 	void loadSkyAsync(std::shared_ptr<RenderScene>& scene, const std::string& filename);
+	void loadTerrain(std::shared_ptr<RenderScene>& scene, const std::string& filename);
+	void loadTerrainAsync(std::shared_ptr<RenderScene>& scene, const std::string& filename);
 };
 

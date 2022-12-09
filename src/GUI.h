@@ -10,6 +10,8 @@
 #include"./component/Lights.h"
 #include"./component/Transform.h"
 #include"./component/Atmosphere.h"
+#include"./component/TerrainComponent.h"
+#include<imgui/imgui_toggle.h>
 #include<filesystem>
 using namespace std::filesystem;
 
@@ -43,51 +45,96 @@ public:
 
 		ImGui::Begin("Info");
 
-		if (ImGui::Button("Select Scene")) {
-			fileDialog.Open();
+		if (ImGui::CollapsingHeader("Scene loading")) {
+			if (ImGui::Button("Select Scene")) {
+				fileDialog.Open();
+			}
 		}
-		//ImGui::Separator();
-		if (scene->main_camera) {
-			// exposure
-			ImGui::SliderFloat("exposure",&(scene->main_camera->exposure),0.5f,6.0f);
-		}
-
-		auto& lights = scene->pointLights;
-		for (int i = 0; i < lights.size(); i++) {
-			char title[] = "Lighti Position";
-			title[5] = '0' + 0;
-			ImGui::Text(title);
-			//auto& light = lights[0]; 
-			auto&& lightTrans = std::static_pointer_cast<Transform>(
-				lights[i]->gameObject->GetComponent("Transform"));
-			ImGui::SliderFloat("X", &(lightTrans->position.x), -8.0f, 8.0f);
-			ImGui::SliderFloat("Y", &(lightTrans->position.y), -8.0f, 8.0f);
-			ImGui::SliderFloat("Z", &(lightTrans->position.z), -8.0f, 8.0f);
-			lights[i]->setDirtyFlag(true);
+		ImGui::Separator();
+		if (ImGui::CollapsingHeader("Camera")) {
+			if (scene->main_camera) {
+				// exposure
+				ImGui::SliderFloat("exposure", &(scene->main_camera->exposure), 0.5f, 6.0f);
+			}
 		}
 
-		auto& dlights = scene->directionLights;
-		for (int i = 0; i < dlights.size(); i++) {
-			char title[] = "Direction Lighti Position";
-			title[15] = '0' + 0;
-			ImGui::Text(title);
-			//auto& light = lights[0]; 
-			auto&& lightTrans = std::static_pointer_cast<Transform>(
-				dlights[i]->gameObject->GetComponent("Transform"));
-			ImGui::SliderFloat("X", &(lightTrans->position.x), -8.0f, 8.0f);
-			ImGui::SliderFloat("Y", &(lightTrans->position.y), -8.0f, 8.0f);
-			ImGui::SliderFloat("Z", &(lightTrans->position.z), -8.0f, 8.0f);
-			dlights[i]->setDirtyFlag(true);
+		ImGui::Separator();
+		if (ImGui::CollapsingHeader("Light")) {
+			auto& lights = scene->pointLights;
+			for (int i = 0; i < lights.size(); i++) {
+				char title[] = "Lighti Position";
+				title[5] = '0' + i;
+				ImGui::Text(title);
+				//auto& light = lights[0]; 
+				auto&& lightTrans = std::static_pointer_cast<Transform>(
+					lights[i]->gameObject->GetComponent("Transform"));
+				//std::cout << "Light Transform :" << lightTrans.get() << '\n';
+				if (ImGui::SliderFloat3("Position", (float*)&lightTrans->position, -10.0f, 10.0f))
+					lights[i]->setDirtyFlag(true);
+			}
+
+			auto& dlights = scene->directionLights;
+			for (int i = 0; i < dlights.size(); i++) {
+				char title[] = "Direction Lighti Position";
+				title[15] = '0' + 0;
+				ImGui::Text(title);
+				//auto& light = lights[0]; 
+				auto&& lightTrans = std::static_pointer_cast<Transform>(
+					dlights[i]->gameObject->GetComponent("Transform"));
+				auto&& lightData = dlights[i]->data;
+				bool change1 = ImGui::SliderFloat3("Position", (float*)&lightTrans->position, -10.0f, 1.0f);
+				bool change2 = ImGui::SliderFloat3("Direction", (float*)&lightData.direction, -1.0f, 1.0f);
+				if (change1 || change2) {
+					dlights[i]->setDirtyFlag(true);
+				}
+			}
 		}
 
+		// sky 
 		if (scene->sky) {
-			auto& sunAngle = scene->sky->atmosphere->sunAngle;
-			ImGui::SliderFloat("sunAngle", &sunAngle, -10.0f, 90.0f);
+			ImGui::Separator();
+			if (ImGui::CollapsingHeader("Atmosphere")) {
+				auto& atmos = std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));
+				auto& atmosParam = atmos->atmosphere;
+				auto& sunAngle = atmos->sunAngle;
+				ImGui::SliderFloat("sunAngle", &sunAngle, -10.0f, 90.0f);
+				ImGui::SliderFloat("mie_g", &atmosParam.mie_g, 0.0f, 1.0f);
+				ImGui::SliderFloat3("rayleigh_scattering", (float*)&atmosParam.rayleigh_scattering, 0.0f, 1.0f);
+			}
+
 			//ImGui::SliderFloat("RayLeigh Scattering",0.0e-3,)
 		}
+		if (scene->terrain) {
+			ImGui::Separator();
+			if (ImGui::CollapsingHeader("Terrain")) {
+				auto& terrainComp = std::static_pointer_cast<TerrainComponent>(scene->terrain->GetComponent("TerrainComponent"));
+				static bool useWireFrame = false;
+				ImGui::Toggle("Wire Frame mode", &useWireFrame);
+				if (useWireFrame) {
+					terrainComp->setPolyMode(GL_LINE);
+				}
+				else {
+					terrainComp->setPolyMode(GL_FILL);
+				}
+			}
+		}
 
-		ImGui::Text("Light Intensity");
-		//ImGui::SliderFloat("Intensity", &lightColor, 0.5f, 20.0f);
+		// object list
+		ImGui::Separator();
+		if (ImGui::CollapsingHeader("Game Objects")) {
+			ImGui::BeginChild("Scrolling");
+			for (auto& object : scene->objects) {
+				ImGui::Text("%s", object->name.c_str());
+			}
+			if (scene->sky) {
+				ImGui::Text("sky");
+			}
+			if (scene->terrain) {
+				ImGui::Text("terrain");
+			}
+			ImGui::EndChild();
+		}
+
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		ImGui::End();
 

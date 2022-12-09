@@ -9,6 +9,7 @@
 #include"../utils/Shader.h"
 #include"../component/Lights.h"
 #include"../component/transform.h"
+#include"../component/TerrainComponent.h"
 #include"../renderer/RenderPass.h"
 #include"../utils/Utils.h"
 #include"../component/Atmosphere.h"
@@ -41,10 +42,14 @@ void RenderManager::init() {
 
 void RenderManager::initRenderPass() {
 	// render Pass initialization 
-	hdrPass = std::make_shared<HDRPass>(); 
-	basePass = std::make_shared<BasePass>();
-	depthPass = std::make_shared<DepthPass>();
-	deferredPass = std::make_shared<DeferredPass>();
+	if (setting.useDefer) {
+		deferredPass = std::make_shared<DeferredPass>();
+	}
+	else {
+		hdrPass = std::make_shared<HDRPass>();
+		basePass = std::make_shared<BasePass>();
+		depthPass = std::make_shared<DepthPass>();
+	}
 }
 
 void RenderManager::initVPbuffer() {
@@ -72,6 +77,14 @@ void RenderManager::initDirectionLightBuffer() {
 	uniformDirectionLightBuffer->setBinding(2);
 }
 
+void RenderManager::initSpotLightBuffer() {
+	const int maxLight = 10;
+	int lightBufferSize = maxLight * (48) + 16;
+	uniformSpotLightBuffer = std::make_shared<UniformBuffer>(lightBufferSize);
+	// set binding point
+	uniformSpotLightBuffer->setBinding(3);
+}
+
 RenderManager::~RenderManager() {
 
 }
@@ -93,18 +106,6 @@ void RenderManager::prepareVPData(const std::shared_ptr<RenderScene>& renderScen
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(projection));
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4),sizeof(glm::mat4), glm::value_ptr(view));
 	}
-	// update the first time
-	//if (uniformVPBuffer->dirty) {
-	//	//if dirty, set shader bindings of UBO
-	//	for (std::shared_ptr<Shader>& shader : m_shader) {
-	//		if (shader) {
-	//			//if shader is not null
-	//			shader->use();
-	//			shader->setUniformBuffer("VP", uniformVPBuffer->binding);
-	//		}
-	//	}
-	//	uniformVPBuffer->setDirtyFlag(false);
-	//}
 
 	// update every frame: skybox view
 	glm::mat4 view_for_skybox = glm::mat4(glm::mat3(camera->GetViewMatrix()));
@@ -146,7 +147,7 @@ void RenderManager::preparePointLightData(const std::shared_ptr<RenderScene>& sc
 	int lightNum = scene->pointLights.size();
 	int dataSize = 32; // data size for a single light (under std140 layout)
 	for (int i = 0; i < lightNum; i++) {
-		auto light = scene->pointLights[i]; 
+		auto& light = scene->pointLights[i]; 
 		if (light) {
 			if (!light->dirty) {
 				// if not dirty, then pass
@@ -216,13 +217,60 @@ void RenderManager::prepareDirectionLightData(const std::shared_ptr<RenderScene>
 		sizeof(int), &lightNum);
 }
 
+void RenderManager::prepareSpotLightData(const std::shared_ptr<RenderScene>& scene) {
+	// update light data only when dirty 
+	//if (uniformSpotLightBuffer->dirty) {
+	//	uniformSpotLightBuffer->dirty = false;
+	//	for (std::shared_ptr<Shader>& shader : m_shader) {
+	//		if (shader) {
+	//			shader->setUniformBuffer("DirectionLightBuffer", uniformSpotLightBuffer->binding);
+	//		}
+	//	}
+	//}
+	uniformSpotLightBuffer->bindBuffer();
+	unsigned int UBO = uniformSpotLightBuffer->UBO;
+	int lightNum = scene->spotLights.size();
+	int dataSize = 48; // data size for a single light (under std140 layout)
+	for (int i = 0; i < lightNum; i++) {
+		auto& light = scene->spotLights[i];
+		if (light) {
+			std::shared_ptr<Transform>&& transform = std::static_pointer_cast<Transform>(
+				light->gameObject->GetComponent("Transform"));
+
+			if (!light->dirty) {
+				continue;
+			}
+			SpotLightData& data = light->data;
+			glBufferSubData(GL_UNIFORM_BUFFER,
+				0 + i * dataSize,
+				sizeof(glm::vec3), glm::value_ptr(data.color)); // ambient
+			glBufferSubData(GL_UNIFORM_BUFFER,
+				12 + i * dataSize,
+				sizeof(float), &data.cutOff);
+			glBufferSubData(GL_UNIFORM_BUFFER,
+				16 + i * dataSize,
+				sizeof(glm::vec3), glm::value_ptr(transform->position)); //
+			glBufferSubData(GL_UNIFORM_BUFFER,
+				28 + i * dataSize,
+				sizeof(float), &data.outerCutOff);
+			light->setDirtyFlag(false);
+			glBufferSubData(GL_UNIFORM_BUFFER,
+				32 + i * dataSize,
+				sizeof(glm::vec3), glm::value_ptr(data.direction));
+		}
+	}
+	glBufferSubData(GL_UNIFORM_BUFFER, 10 * dataSize,
+		sizeof(int), &lightNum);
+}
+
 void RenderManager::prepareCompData(const std::shared_ptr<RenderScene>& scene) {
 	// compute terrain
 	if (scene->terrain) {
 		scene->terrain->constructCall();
 	}
 	if (scene->sky) {
-		scene->sky->atmosphere->constructCall();
+		auto& atmosphere = std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));
+		atmosphere->constructCall();
 	}
 }
 
@@ -233,10 +281,14 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	prepareDirectionLightData(scene);
 	prepareCompData(scene);
 	
+	//rsmPass->render(scene);
+
 	// deferred pass
 	if (setting.useDefer) {
+		//
 		deferredPass->renderGbuffer(scene);
 		deferredPass->render(scene);
+		deferredPass->postProcess(scene);
 	}
 	else 
 	{
@@ -308,6 +360,7 @@ std::shared_ptr<Shader> RenderManager::generateShader(ShaderType type) {
 				//);
 			return std::make_shared<Shader>(
 				"./src/shader/terrain/terrain.vs","./src/shader/pbr/pbr.fs"
+				//"./src/shader/terrain/terrain.vs","./src/shader/terrain/terrain.fs"
 				);
 			break;
 		case ShaderType::HDR:

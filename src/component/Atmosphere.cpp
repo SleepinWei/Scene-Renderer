@@ -1,11 +1,15 @@
 #include<glad/glad.h>
+#include<glfw/glfw3.h>
 #include<glm/gtc/type_ptr.hpp>
 #include"Atmosphere.h"
 #include"../buffer/ImageTexture.h"
+#include"../renderer/Texture.h"
 #include"../buffer/UniformBuffer.h"
 #include"../utils/Shader.h"
 #include"../system/RenderManager.h"
 #include"../utils/Utils.h"
+#include"../object/SkyBox.h"
+#include"../renderer/Material.h"
 
 extern std::unique_ptr<RenderManager> renderManager;
 
@@ -29,6 +33,9 @@ void Atmosphere::initTextures() {
 	skyViewTexture = std::make_shared<ImageTexture>();
 	skyViewTexture->genImageTexture(GL_RGBA32F, GL_RGBA, skyViewWidth, skyViewHeight);
 	skyViewTexture->setBinding(1);
+
+	multiTexture = std::make_shared<ImageTexture>();
+	multiTexture->genImageTexture(GL_RGBA32F, GL_RGBA, multiWidth, multiHeight);
 
 	const int ParameterSize = 100;
 	atmBuffer = std::make_shared<UniformBuffer>(ParameterSize);
@@ -59,13 +66,14 @@ void Atmosphere::initShaders() {
 	// TODO: add compute shader to RenderManager;
 	compTransShader = std::make_shared<Shader>("./src/shader/sky/transmittance.comp");
 	compskyViewShader = std::make_shared<Shader>("./src/shader/sky/skyview.comp");
+	compMultiShader = std::make_shared<Shader>("./src/shader/sky/multi.comp");
 	shader = renderManager->getShader(ShaderType::SKY);
 	// only for debug
 	//shader = renderManager->getShader(ShaderType::TEST);
 }
 
 void Atmosphere::prepareAtmosphere() {
-	if (atmBuffer->dirty) {
+	//if (atmBuffer->dirty) {
 		atmBuffer->setDirtyFlag(false);
 
 		AtmosphereParameters& data = this->atmosphere;
@@ -94,7 +102,7 @@ void Atmosphere::prepareAtmosphere() {
 		//for (int i = 0; i < 30; i++) {
 		//	std::cout << content[i] << '\n';
 		//}
-	}
+	//}
 }
 
 void Atmosphere::computeTransTexture() {
@@ -139,6 +147,7 @@ void Atmosphere::computeSkyViewTexutre() {
 void Atmosphere::computeDrawCall() {
 	computeTransTexture();
 	computeSkyViewTexutre();
+	computeMultiTexture();
 }
 
 void Atmosphere::renderDrawCall(const std::shared_ptr<Shader>& outShader) {
@@ -151,6 +160,18 @@ void Atmosphere::renderDrawCall(const std::shared_ptr<Shader>& outShader) {
 	if (!outShader) {
 		shader->use();
 		shader->setInt("skyViewLut", 8);
+		// load skybox 
+		auto& skybox = std::static_pointer_cast<Sky>(Component::gameObject)->skybox;
+		if (skybox) {
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_CUBE_MAP,skybox->textures["skybox"]->id);
+			shader->setInt("skybox", 1);
+
+			float time = glfwGetTime();
+			static const float coeff = 0.05f;
+			glm::mat4 trans = glm::rotate(glm::mat4(1.0f), time * coeff, glm::vec3(-1.0f, 1.0f, -1.0f));
+			shader->setMat4("trans", trans);
+		}
 		//shader->setInt("tex", 8);
 	}
 	else {
@@ -165,7 +186,9 @@ void Atmosphere::renderDrawCall(const std::shared_ptr<Shader>& outShader) {
 
 
 void Atmosphere::render(const std::shared_ptr<Shader>& shader) {
-	renderDrawCall(shader);
+	if (initDone) {
+		renderDrawCall(shader);
+	}
 }
 
 Atmosphere::~Atmosphere() {
@@ -180,4 +203,16 @@ void Atmosphere::constructCall() {
 	}
 	prepareAtmosphere();
 	computeDrawCall();
+}
+
+void Atmosphere::computeMultiTexture() {
+	multiTexture->setBinding(0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, transmittanceTexture->tex->id);
+
+	compMultiShader->use();
+	compMultiShader->setInt("transmittance", 0);
+	const int THREAD_GROUP_SIZE = 4;
+	glDispatchCompute(multiWidth / THREAD_GROUP_SIZE, multiHeight /THREAD_GROUP_SIZE, 1);
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
