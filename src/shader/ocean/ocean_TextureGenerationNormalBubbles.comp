@@ -1,0 +1,75 @@
+#version 430 core
+
+layout(local_size_x=8,local_size_y=8,local_size_z=1) in;//一个线程组的线程信息
+
+// layout(rgba32f,binding=7) uniform image2D DisplaceRT;
+// layout(rgba32f,binding=8) uniform image2D NormalRT;
+// layout(rgba32f,binding=9) uniform image2D BubblesRT;
+layout(rgba32f,binding=7) uniform image2D DisplaceRT;
+layout(rgba32f,binding=5) uniform image2D NormalRT;
+layout(rgba32f,binding=6) uniform image2D BubblesRT;
+
+
+uniform int N;
+uniform float OceanLength;
+uniform float BubblesScale;
+uniform float BubblesThreshold;
+
+
+//生成法线和泡沫纹理
+void TextureGenerationNormalBubbles(uvec3 SV_DispatchThreadID)
+{
+    uvec3 id=SV_DispatchThreadID;
+
+    //计算法线
+    float uintLength = OceanLength / (N - 1.0f);//两点间单位长度
+    //获取当前点，周围4个点的uv坐标
+    uvec2 uvX1 = uvec2(int((id.x - 1.0f + N)) % N, id.y);
+    uvec2 uvX2 = uvec2(int((id.x + 1.0f + N)) % N, id.y);
+    uvec2 uvZ1 = uvec2(id.x, int((id.y - 1.0f + N)) % N);
+    uvec2 uvZ2 = uvec2(id.x, int((id.y + 1.0f + N)) % N);
+
+    //以当前点为中心，获取周围4个点的偏移值
+    vec3 x1D = imageLoad(DisplaceRT,ivec2(uvX1)).xyz;
+    vec3 x2D = imageLoad(DisplaceRT,ivec2(uvX2)).xyz;
+    vec3 z1D = imageLoad(DisplaceRT,ivec2(uvZ1)).xyz;
+    vec3 z2D = imageLoad(DisplaceRT,ivec2(uvZ2)).xyz;
+
+    // vec3 x1D = DisplaceRT[uvX1].xyz;//在x轴 第一个点的偏移值
+    // vec3 x2D = DisplaceRT[uvX2].xyz;//在x轴 第二个点的偏移值
+    // vec3 z1D = DisplaceRT[uvZ1].xyz;//在z轴 第一个点的偏移值
+    // vec3 z2D = DisplaceRT[uvZ2].xyz;//在z轴 第二个点的偏移值
+
+    //以当前点为原点，构建周围4个点的坐标
+    vec3 x1 = vec3(x1D.x - uintLength, x1D.yz);//在x轴 第一个点的坐标
+    vec3 x2 = vec3(x2D.x + uintLength, x2D.yz);//在x轴 第二个点的坐标
+    vec3 z1 = vec3(z1D.xy, z1D.z - uintLength);//在z轴 第一个点的坐标
+    vec3 z2 = vec3(z1D.xy, z1D.z + uintLength);//在z轴 第二个点的坐标
+
+    //计算两个切向量
+    vec3 tangentX = x2 - x1;
+    vec3 tangentZ = z2 - z1;
+
+    //计算法线
+    vec3 normal = normalize(cross(tangentZ, tangentX));
+
+
+    //计算泡沫
+    vec3 ddx = x2D - x1D;
+    vec3 ddz = z2D - z1D;
+    //雅可比行列式
+    float jacobian = (1.0f + ddx.x) * (1.0f + ddz.z) - ddx.z * ddz.x;
+    jacobian = clamp(max(0, BubblesThreshold - clamp(jacobian,0.0f,1.0f)) * BubblesScale,0.0f,1.0f);
+
+    imageStore(NormalRT,ivec2(id.xy),vec4(normal, 0));
+    imageStore(BubblesRT,ivec2(id.xy),vec4(jacobian, jacobian, jacobian, 0));
+
+    // NormalRT[id.xy] = vec4(normal, 0);
+    // BubblesRT[id.xy] = vec4(jacobian, jacobian, jacobian, 0);
+}
+
+void main()
+{
+    uvec3 SV_DispatchThreadID=gl_GlobalInvocationID;
+    TextureGenerationNormalBubbles(SV_DispatchThreadID);    
+}

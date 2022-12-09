@@ -3,6 +3,7 @@ asset/
 dll/
 # lib/
 .vs/
+.history/
 .vscode/
 x64/
 .cache/

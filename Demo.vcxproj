@@ -165,6 +165,7 @@
     <ClCompile Include="src\component\GameObject.cpp" />
     <ClCompile Include="src\component\Lights.cpp" />
     <ClCompile Include="src\component\Model.cpp" />
+    <ClCompile Include="src\component\Ocean.cpp" />
     <ClCompile Include="src\component\transform.cpp" />
     <ClCompile Include="src\glad.c" />
     <ClCompile Include="src\main.cpp" />
@@ -215,6 +216,7 @@
     <ClInclude Include="src\component\GameObject.h" />
     <ClInclude Include="src\component\Lights.h" />
     <ClInclude Include="src\component\Model.h" />
+    <ClInclude Include="src\component\Ocean.h" />
     <ClInclude Include="src\component\transform.h" />
     <ClInclude Include="src\GUI.h" />
     <ClInclude Include="src\object\SkyBox.h" />

@@ -203,6 +203,9 @@
     <ClCompile Include="src\system\ModelLoader.cpp">
       <Filter>src\system</Filter>
     </ClCompile>
+    <ClCompile Include="src\component\Ocean.cpp">
+      <Filter>src\component</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\GUI.h">
@@ -360,6 +363,9 @@
     </ClInclude>
     <ClInclude Include="src\system\ModelLoader.h">
       <Filter>src\system</Filter>
+    </ClInclude>
+    <ClInclude Include="src\component\Ocean.h">
+      <Filter>src\component</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

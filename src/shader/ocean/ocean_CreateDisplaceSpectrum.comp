@@ -1,0 +1,44 @@
+#version 430 core
+
+layout(local_size_x=8,local_size_y=8,local_size_z=1) in;//一个线程组的线程信息
+
+layout(rgba32f,binding=2) uniform image2D HeightSpectrumRT;//高度频谱
+layout(rgba32f,binding=3) uniform image2D DisplaceXSpectrumRT;//X偏移频谱
+layout(rgba32f,binding=4) uniform image2D DisplaceZSpectrumRT;//Z偏移频谱
+
+uniform int N;//纹理大小
+
+#define PI 3.14159274f
+
+//复数相乘
+vec2 complexMultiply(vec2 c1, vec2 c2)
+{
+    return vec2(c1.x * c2.x - c1.y * c2.y,c1.x * c2.y + c1.y * c2.x);
+}
+
+//生成偏移频谱
+void CreateDisplaceSpectrum(uvec3 SV_DispatchThreadID)
+{
+    uvec3 id=SV_DispatchThreadID;
+    vec2 k = vec2(2 * PI * id.x / N - PI, 2 * PI * id.y / N - PI);//公式 取的各采样点的波长
+    k /= max(0.001f, length(k));
+
+    vec2 HTilde = imageLoad(HeightSpectrumRT,ivec2(id.xy)).xy;
+    // vec2 HTilde = HeightSpectrumRT[id.xy].xy;
+
+    vec2 KxHTilde = complexMultiply(vec2(0, -k.x), HTilde);//在height的基础上多乘了一个复数
+    vec2 kzHTilde = complexMultiply(vec2(0, -k.y), HTilde);
+
+    imageStore(DisplaceXSpectrumRT,ivec2(id.xy),vec4(KxHTilde,0,0));
+    imageStore(DisplaceZSpectrumRT,ivec2(id.xy),vec4(kzHTilde,0,0));
+
+    // DisplaceXSpectrumRT[id.xy] = vec4(KxHTilde, 0, 0);
+    // DisplaceZSpectrumRT[id.xy] = vec4(kzHTilde, 0, 0);
+}
+
+
+void main()
+{
+    uvec3 SV_DispatchThreadID=gl_GlobalInvocationID;
+    CreateDisplaceSpectrum(SV_DispatchThreadID);
+}
