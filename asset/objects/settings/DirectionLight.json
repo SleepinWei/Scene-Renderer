@@ -1,0 +1,1 @@
+{"name":"DirectionLight","components":{"Transform":{"position":[0,0,0],"rotation":[0,0,0],"scale":[0.01,0.01,0.01]},"MeshFilter":{"shape":"point"},"MeshRenderer":{"material":{"textures":{}},"shader":"light","drawmode":"point"},"DirectionLight":{"color":[1,0.9870283,0.9481132],"direction":[-0.2418446,-0.7071067,-0.6644631]}},"isDeferred":false}
