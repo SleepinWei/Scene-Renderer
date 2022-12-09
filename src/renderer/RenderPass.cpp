@@ -16,6 +16,7 @@
 #include"../buffer/FrameBuffer.h"
 #include"../component/Lights.h"
 #include"../renderer/Texture.h"
+#include"../component/transform.h"
 #include"../buffer/RenderBuffer.h"
 #include<memory>
 
@@ -199,6 +200,8 @@ void ShadowPass::pointLightShadow(const std::shared_ptr<RenderScene>& scene) {
 		/// </summary>
 		/// <param name="scene"></param>
 		glm::vec3 lightPos = glm::vec3(0.0, 0.0, 0.0);
+		auto trans = std::static_pointer_cast<Transform>(light->gameObject->GetComponent("Transform"));
+		lightPos=trans->position;
 		shadowShader_point->setFloat("far_plane", far_plane);
 		shadowShader_point->setVec3("lightPos", lightPos);
 
