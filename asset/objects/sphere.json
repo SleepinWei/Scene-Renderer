@@ -13,11 +13,11 @@
         "MeshRenderer":{
             "material":{
                 "textures":{
-                    "material.albedo":"./asset/pbr/rust/albedo.ktx",
-                    "material.ao":"./asset/pbr/rust/ao.ktx",
-                    "material.metallic":"./asset/pbr/rust/metallic.ktx",
-                    "material.normal": "./asset/pbr/rust/normal.ktx",
-                   "material.roughness":"./asset/pbr/rust/roughness.ktx"
+                    "material.albedo":"./asset/pbr/rust/albedo.dds",
+                    "material.ao":"./asset/pbr/rust/ao.dds",
+                    "material.metallic":"./asset/pbr/rust/metallic.dds",
+                    "material.normal": "./asset/pbr/rust/normal.dds",
+                   "material.roughness":"./asset/pbr/rust/roughness.dds"
                 }
             },
             "shader":"pbr",

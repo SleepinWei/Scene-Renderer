@@ -41,35 +41,10 @@ dds_uint ddsGL_load (const char* filename, shared_ptr<Texture> texture) {
     texture->width = textureInfo.surface.width;
     texture->height = textureInfo.surface.height;
     texture->num_mipmaps = textureInfo.surface.mip_level;
-    switch (textureInfo.surface.format.fourcc) {
-        case DDS_FOURCC_DXT1:
-            texture->internalformat= GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
-            texture->format= GL_RGBA;
-            break;
-        case DDS_FOURCC_DXT3:
-            texture->internalformat= GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
-            texture->format= GL_RGBA;
-            break;
-        case DDS_FOURCC_DXT5:
-            texture->internalformat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-            texture->format= GL_RGBA;
-            break;
-        //case DDS_FOURCC_BC4U:
-            //texture->format = GL_COMPRESSED_RED_RGTC1_EXT; 
-            //texture->internal_format = 1;
-            //break;
-        //case DDS_FOURCC_BC4S:
-            //texture->format = GL_COMPRESSED_SIGNED_RED_RGTC1_EXT;
-            //texture->internal_format = 1;
-            //break;
-        //case DDS_FOURCC_BC5S:
-            //texture->format = GL_COMPRESSED_SIGNED_RED_GREEN_RGTC2_EXT;
-            //texture->internal_format = 2;
-            //break;
-        default:
-            dds_free (&textureInfo);
-            return DDS_BAD_COMPRESSION;
-    }
+
+	texture->internalformat= GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
+	texture->format= GL_RGB;
+    texture->data = textureInfo.texels;
     /* Generate new texture */
     //glGenTextures (1, &texture->id);
     //glEnable (GL_TEXTURE_2D);

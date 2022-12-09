@@ -42,7 +42,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
@@ -148,6 +148,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="include\glad\glad.c" />
     <ClCompile Include="include\imgui\imgui.cpp" />
     <ClCompile Include="include\imgui\imgui_demo.cpp" />
     <ClCompile Include="include\imgui\imgui_draw.cpp" />
@@ -171,7 +172,6 @@
     <ClCompile Include="src\component\Model.cpp" />
     <ClCompile Include="src\component\TerrainComponent.cpp" />
     <ClCompile Include="src\component\transform.cpp" />
-    <ClCompile Include="src\glad.c" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\object\SkyBox.cpp" />
     <ClCompile Include="src\object\Terrain.cpp" />
@@ -265,19 +265,6 @@
     <ClInclude Include="src\utils\header.h" />
     <ClInclude Include="src\utils\Shader.h" />
     <ClInclude Include="src\utils\Utils.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="src\shader\hdr.fs" />
-    <None Include="src\shader\hdr.vs" />
-    <None Include="src\shader\light.fs" />
-    <None Include="src\shader\light.vs" />
-    <None Include="src\shader\simple.fs" />
-    <None Include="src\shader\simple.vs" />
-    <None Include="src\shader\skybox.fs" />
-    <None Include="src\shader\skybox.vs" />
-    <None Include="src\shader\test.fs" />
-    <None Include="src\shader\test.vs" />
-    <None Include="src\shader\water.fs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
