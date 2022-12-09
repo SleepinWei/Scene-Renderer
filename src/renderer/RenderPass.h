@@ -124,3 +124,26 @@ private:
 	void initShader();
 	void initTextures();
 };
+
+
+class RSMPass {
+public:
+	RSMPass();
+	~RSMPass();
+
+	void render(const std::shared_ptr<RenderScene>& scene);
+public:
+	std::shared_ptr<Shader> RSMShader;
+	std::shared_ptr<FrameBuffer> rsmFBO; 
+	std::shared_ptr<Texture> depthMap;
+	std::shared_ptr<Texture> normalMap;
+	std::shared_ptr<Texture> worldPosMap;
+	std::shared_ptr<Texture> fluxMap;
+	//std::shared_ptr<Texture> randomMap;
+	bool dirty;
+private:
+	const GLuint RSM_WIDTH = 1024, RSM_HEIGHT = 1024;
+	void initShader();
+	GLuint createRandomTexture(int size=64);
+	void initTextures();
+};
