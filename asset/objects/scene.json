@@ -1,7 +1,0 @@
-{
-    "objects": {
-        "PointLight (6)": ".\\asset\\objects\\settings\\PointLight (6).json",
-        "sphere":"./asset/objects/sphere.json"
-    },
-    "main_camera": "./asset/objects/main_camera.json"
-}
