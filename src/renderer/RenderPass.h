@@ -85,7 +85,7 @@ private:
 	void init_framebuffers(const std::shared_ptr<RenderScene>& scene);
 	unsigned int cube_map_resolution = 1024;
 	unsigned int cascaded_map_resolution = 2048;
-	unsigned int cascaded_lays = 5;
+	unsigned int cascaded_layers = 5;
 	float shadow_limiter[4] = { 0,0,0,0 };
 	unsigned int  matrixUBO=0;
 	float near_for_pointlight = 0.0;

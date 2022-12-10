@@ -8,6 +8,31 @@ uniform sampler2D gNormal;
 uniform sampler2D gAlbedoSpec;
 uniform sampler2D gPBR;
 
+
+/********variables for shadows*******/
+#define MAX_LIGHT_NUM 10
+#define MAX_CASCADED_LEVEL 5
+
+uniform mat4 model; 
+layout(std140,binding=0) uniform VP{
+    mat4 projection;
+    mat4 view;
+};
+//uniform vec3 viewPos; // position of camera .. world space  
+//VIEW POS is CAMPOS
+uniform float far_plane;
+uniform samplerCube shadow_cubes[MAX_LIGHT_NUM];
+uniform sampler2DArray shadow_maps[MAX_LIGHT_NUM];
+uniform float cascaded_distances[MAX_CASCADED_LEVEL];
+uniform int cascaded_levels;
+
+//PENDING UBO
+layout(std140,binding=5) uniform light_space_matrices
+{
+uniform mat4 light_space_matrices[MAX_CASCADED_LEVEL*MAX_LIGHT_NUM]; //directional light matrices
+}
+/*******/
+
 struct PointLight{
     // vec3 Color;
     vec3 Color;
@@ -55,6 +80,154 @@ float metallic;
 float roughness;
 
 const float PI = 3.1415926;
+
+
+/**** functions for shadows****/
+int get_layer(float depth_view_space)  //for directional light
+{
+    int re=-1;
+    for(int i=0;i<cascaded_levels;i++)
+    {
+        if(depth_view_space<cascaded_distances[i])
+        {
+            re=i;
+            break;
+        }
+    }
+    if(re==-1)
+        re=cascaded_levels;
+    
+    return re;
+}
+
+float get_light_block_distance(vec2 coords_xy,float z,int layer,int order)
+{
+    float object_depth_calculated= z;
+    vec3 texel_size3d=textureSize(shadow_maps[order],0);
+    vec2 texel_size=1.0/texel_size3d.xy;
+
+    int scale=20-layer;  
+    // the more the layer is , the less times we search on the shadow map
+    // for one texel represents more points in world space
+    int cnt=0;
+    float result=0.0;
+    for(int i=-scale;i<=scale;i++)
+    {
+        for(int j=-scale;j<=scale;j++)
+        {
+            if(texture(shadow_maps[order],vec3(coords_xy+vec2(i,j)*texel_size,layer)).r<object_depth_calculated-0.05)
+            {
+                result+=texture(shadow_maps[order],vec3(coords_xy+vec2(i,j)*texel_size,layer)).r;
+                cnt++;
+            }
+        }
+    }
+    
+    if(cnt!=0)
+        return result/cnt;
+    else
+        return object_depth_calculated;
+
+}
+
+float calculate_directional_shadow(vec3 fragPosWorldSpace,vec3 normal,int order)
+{
+    float re=0;
+
+    vec4 fragPosViewSpace =view* vec4(fragPosWorldSpace,1.0);
+    float depth_value_view_space=abs(fragPosViewSpace.z);
+
+    int layer=get_layer(depth_value_view_space);
+
+    vec4 fragPosLightSpace= light_space_matrices[order*cascaded_levels+layer]*vec4(fragPosWorldSpace,1.0);
+
+    //perform perspective divide
+    vec3 proj_coords=fragPosLightSpace.xyz/fragPosLightSpace.w;
+    proj_coords=proj_coords*0.5+0.5;
+
+    // this value is calculated by matrix, here we will compare it with the
+    float depth_value_calculated=proj_coords.z;
+
+    // if the z in the light space is out of the far_plane 
+    if(depth_value_calculated>1.0)
+    {
+        re=0.0;
+        return re;
+    }
+
+    //calculate bias
+    float bias=max(0.05*(1.0-dot(normal,directionLights[order].Direction)),0.05);
+
+    //modify bias according to which frustum
+    float modify_factor;
+    if(layer==cascaded_levels)
+        bias*=1/(far_plane*modify_factor);
+    else
+        bias*=1/(cascaded_distances[layer]*modify_factor);
+
+    //PCSS
+    float light_block_dis=get_light_block_distance(proj_coords.xy,depth_value_calculated,layer,order);
+    float block_object_dis=depth_value_calculated-light_block_dis;
+
+    int filter_kernel_size=int(1.0*block_object_dis/light_block_dis*10);//suppose 10 is the width;
+
+    filter_kernel_size=filter_kernel_size>30?30:filter_kernel_size;
+    filter_kernel_size=filter_kernel_size<10?10:filter_kernel_size;
+
+    vec3 texel_size3d=textureSize(shadow_maps[order],0);
+    vec2 texel_size=1.0/texel_size3d.xy;
+
+    int cnt=0;
+    for(int i=-filter_kernel_size;i<=filter_kernel_size;i++)
+        for(int j=-filter_kernel_size;j<=filter_kernel_size;j++)
+        {
+            float texture_depth=texture(shadow_maps[order],vec3(proj_coords.xy+vec2(i,j)*texel_size,layer)).r;
+            re+=(depth_value_calculated-bias)>texture_depth? 1.0:0.0;
+            cnt++;
+        }
+    
+    if(cnt!=0)
+    {
+        re=re/cnt;
+        return re;
+    }
+    else
+        return depth_value_calculated;
+
+}
+
+float calculate_point_shadow(vec3 fragPosWorldSpace,vec3 normal,int order)
+{
+    float re=0.0;
+    vec3 frag2light=fragPosWorldSpace-pointLights[order].Position;
+    float depth_calculated=length(frag2light);
+    vec3 grid_sample_directions[20] = vec3[]
+    (
+  vec3(1, 1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1, 1,  1), 
+    vec3(1, 1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1, 1, -1),
+  vec3(1, 1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0), vec3(-1, 1,  0),
+  vec3(1, 0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1, 0, -1),
+  vec3(0, 1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0, 1, -1)
+    );
+    int num_samples=20; // 20 representative directions
+
+    float view_object_dis=length(camPos-fragPosWorldSpace);
+    float bias=max(0.05*(1.0-dot(normal,fragPosWorldSpace-pointLights[order].Position)),0.05);
+    float radius;
+    for(int i=0;i<num_samples;i++)
+    {
+        float texture_depth=texture(shadow_cubes[order],frag2light+grid_sample_directions[i]*radius).r;
+        texture_depth*=far_plane; // real distance in world space
+        if(texture_depth+bias<depth_calculated)
+            re+=1.0;
+    }
+    return re/num_samples;
+
+}
+
+
+/************/
+
 
 float calculateAtten(vec3 objectPos,vec3 lightPos){
     float distance = length(lightPos - objectPos);
@@ -164,7 +337,10 @@ vec3 shading(){
         // float attenuation = 1.0f;
         float attenuation = calculateAtten(Position,light.Position);
         vec3 radiance = light.Color * attenuation;
-        finalColor += brdf * radiance * NdotL;
+
+        float shadow_factor=calculate_point_shadow(Position,N,i);
+
+        finalColor +=(1.0-shadow_factor)*brdf * radiance * NdotL;
     }
     //directional lights
     for(int i =0;i<dLightNum;i++){
@@ -180,8 +356,10 @@ vec3 shading(){
         float NdotL = max(dot(N_,L),0.0);
 
         float attenuation = 1.0f;
-        vec3 radiance = light.Color * attenuation;
-        finalColor += brdf * radiance * NdotL;
+        vec3 radiance = light.Color * attenuation; 
+
+        float shadow_factor=calculate_directional_shadow(Position,N,i);
+        finalColor +=(1.0-shadow_factor)* brdf * radiance * NdotL;
         // finalColor += computeDirectionShading(object,directionLights[i],material);
     }
     //spotlight
