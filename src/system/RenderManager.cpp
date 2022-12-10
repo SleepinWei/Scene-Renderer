@@ -294,6 +294,7 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	//  rsmPass->render(scene);
 
 	// deferred pass
+	pass_data();
 	if (setting.useDefer) {
 		//
 		deferredPass->renderGbuffer(scene);
@@ -407,4 +408,10 @@ std::shared_ptr<Shader> RenderManager::generateShader(ShaderType type) {
 			break;
 	}
 	//return std::make_shared<Shader>(nullptr, nullptr, nullptr, nullptr, nullptr);
+}
+
+void RenderManager::pass_data()
+{
+	this->deferredPass->cascaded_matrix_UBO = this->shadowPass->get_UBO();
+	this->deferredPass->shadow_limiter = this->shadowPass->get_shadow_limiter();
 }

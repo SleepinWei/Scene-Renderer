@@ -71,6 +71,9 @@ public:
 	~ShadowPass();
 
 	void render(const std::shared_ptr<RenderScene>& scene);
+	unsigned int get_UBO()const;
+	std::vector<float> get_shadow_limiter() const;  // only 4 elements ,so we pass the value directly
+
 public:
 	std::shared_ptr<Shader> shadowShader_dir; 
 	std::shared_ptr<Shader> shadowShader_point;
@@ -86,11 +89,13 @@ private:
 	unsigned int cube_map_resolution = 1024;
 	unsigned int cascaded_map_resolution = 2048;
 	unsigned int cascaded_layers = 5;
-	float shadow_limiter[4] = { 0,0,0,0 };
-	unsigned int  matrixUBO=0;
+	
 	float near_for_pointlight = 0.0;
 	float far_for_pointlight = 0.0;  // the perspective parameter in generating shadow cube map
 	bool dirty = 0;
+	std::vector<float> shadow_limiter= { 0,0,0,0 };
+	unsigned int  matrixUBO;
+
 
 };
 
@@ -120,6 +125,9 @@ public:
 	shared_ptr<Texture> gPBR;
 	shared_ptr<Texture> postTexture;
 	//shared_ptr<Texture> gPBR;
+
+	unsigned int cascaded_matrix_UBO=0;  // we will pass this 2 values from the shadow pass 
+	std::vector<float> shadow_limiter ={ 0,0,0,0 };
 private:
 	void initShader();
 	void initTextures();

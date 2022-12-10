@@ -27,10 +27,10 @@ uniform float cascaded_distances[MAX_CASCADED_LEVEL];
 uniform int cascaded_levels;
 
 //PENDING UBO
-layout(std140,binding=5) uniform light_space_matrices
+layout(std140,binding=5) uniform light_space_matrices_buffer
 {
 uniform mat4 light_space_matrices[MAX_CASCADED_LEVEL*MAX_LIGHT_NUM]; //directional light matrices
-}
+};
 /*******/
 
 struct PointLight{
