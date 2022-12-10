@@ -24,32 +24,32 @@ AABB AABB::surrounding_box(const AABB& box0, const AABB& box1) {
 
 BoundingSphere::BoundingSphere(const vec3& _center, float _radius) {
     center = _center;
-    this->raidus = _radius;
+    this->radius = _radius;
     initDone = false;
 }
 
 BoundingSphere::BoundingSphere(const BoundingSphere& s) {
     center = s.center;
-    raidus = s.raidus;
+    radius = s.radius;
     initDone = false;
 }
 
 BoundingSphere BoundingSphere::surrounding_sphere(const BoundingSphere& s1, const BoundingSphere& s2) {
     float cc = glm::length(s1.center - s2.center);// center to center
-    if (cc < s1.raidus - s2.raidus) {
+    if (cc < s1.radius - s2.radius) {
         return BoundingSphere(s1);
     }
-    else if (cc < s2.raidus - s1.raidus) {
+    else if (cc < s2.radius - s1.radius) {
         return BoundingSphere(s2);
     }
-    float ratio = (cc - s1.raidus + s2.raidus) / (2 * cc);
+    float ratio = (cc - s1.radius + s2.radius) / (2 * cc);
     vec3 newCenter = s1.center * (1.0f - ratio) + s2.center * ratio;
-    float newRadius = (cc + s1.raidus+ s2.raidus) / 2.0f;
+    float newRadius = (cc + s1.radius+ s2.radius) / 2.0f;
     return BoundingSphere(newCenter, newRadius);
 }
 
 BoundingSphere::BoundingSphere() {
     initDone = false;
     center = vec3(0.0f);
-    raidus = 0.0f;
+    radius = 0.0f;
 }

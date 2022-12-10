@@ -23,7 +23,7 @@ public:
 	static BoundingSphere surrounding_sphere(const BoundingSphere& s1, const BoundingSphere& s2);
 public:
 	vec3 center;
-	float raidus;
+	float radius;
 	bool initDone;
 };
 

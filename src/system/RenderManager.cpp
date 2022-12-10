@@ -299,14 +299,15 @@ void RenderManager::cameraCulling(const std::shared_ptr<RenderScene>& scene) {
 			auto meshFilter = std::static_pointer_cast<MeshFilter>(object->GetComponent("MeshFilter"));
 			if (meshFilter->meshes.size() == 0)
 				continue;
-			auto bs = meshFilter->meshes[0]->bs;
+			auto& bs = meshFilter->meshes[0]->bs;
 			// decide if is on frustum 
 			if (!bs.initDone) {
 				auto trans = std::static_pointer_cast<Transform>(object->GetComponent("Transform"));
 				bs.center = trans->position + bs.center;
-				bs.raidus = std::max(trans->scale.x, std::max(trans->scale.y, trans->scale.z)) * bs.raidus;
+				bs.radius = std::max(fabs(trans->scale.x), std::max(fabs(trans->scale.y), fabs(trans->scale.z))) * bs.radius;
 				bs.initDone = true;
 			}
+
 			bool onFrustum = isOnOrForwardPlane(bs, frustum.bottomFace)
 				&& isOnOrForwardPlane(bs, frustum.topFace)
 				&& isOnOrForwardPlane(bs, frustum.leftFace)
@@ -336,7 +337,7 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	
 	cameraCulling(scene);
 	//TODO:
-	 rsmPass->render(scene);
+	 //rsmPass->render(scene);
 
 	// deferred pass
 	if (setting.useDefer) {
