@@ -56,6 +56,7 @@ private:
 	void prepareDirectionLightData(const std::shared_ptr<RenderScene>& renderScene);
 	void prepareSpotLightData(const std::shared_ptr<RenderScene>& renderScene);
 	void prepareCompData(const std::shared_ptr<RenderScene>& scene);
+	void cameraCulling(const std::shared_ptr<RenderScene>& scene);
 
 	void initRenderPass();
 	void initVPbuffer();

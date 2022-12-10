@@ -6,6 +6,7 @@
 #include<glm/glm.hpp>
 #include<vector>
 #include"../utils/header.h"
+#include"../utils/BoundingBox.h"
 
 class Material;
 class Texture; 
@@ -38,6 +39,8 @@ public:
     std::vector<unsigned int> indices;
 	GLuint VAO, VBO, EBO;
 	std::string name;
+
+	BoundingSphere bs;
 
 public:
 	Mesh();

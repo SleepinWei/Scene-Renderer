@@ -111,12 +111,12 @@ void render() {
 //#endif
 
 //#include"PT/PathTracing.h"
+#undef min
 int main() {
 	// 
 	render();
 	//test();
 	//PT::render();
-	//std::cout <<glGetString(GL_EXTENSIONS)<< '\n';
 	return 0; 
 }
 

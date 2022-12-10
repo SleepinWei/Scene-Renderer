@@ -39,7 +39,23 @@ std::shared_ptr<Mesh> Model::loadModel(const std:: string& path,bool flipUV) {
 	// process ASSIMP's root node recursively
 	processNode(meshes,scene->mRootNode, scene);
 
-	return combineMesh(meshes);
+	//return combineMesh(meshes);
+	//assert(meshes.size() == 1);
+	auto& resultMesh = combineMesh(meshes);
+	// construct bounding volumn
+	auto& vertices = resultMesh->vertices;
+	vec3 minimum = vec3(1e10);
+	vec3 maximum = vec3(-1e10);
+	for (auto& v : vertices) {
+		minimum = glm::min(v.Position, minimum);
+		maximum = glm::max(v.Position, maximum);
+	}
+	vec3 center = (minimum + maximum) / 2.0f;
+	float radius = glm::length(maximum - minimum) / 2.0f;
+	resultMesh->bs.center = center;
+	resultMesh->bs.raidus = radius;
+
+	return resultMesh;
 }
 
 void Model::processNode(std::vector<std::shared_ptr<Mesh>>& meshes,aiNode* node, const aiScene* scene)

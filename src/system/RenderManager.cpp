@@ -10,6 +10,7 @@
 #include"../component/Lights.h"
 #include"../component/transform.h"
 #include"../component/TerrainComponent.h"
+#include"../renderer/Mesh_Filter.h"
 #include"../renderer/RenderPass.h"
 #include"../utils/Utils.h"
 #include"../component/Atmosphere.h"
@@ -173,7 +174,7 @@ void RenderManager::preparePointLightData(const std::shared_ptr<RenderScene>& sc
 	}
 	// add the number of lights to UBO
 	glBufferSubData(GL_UNIFORM_BUFFER,
-		dataSize * 10, sizeof(int), &lightNum);
+		dataSize * 10 , sizeof(int), &lightNum);
 
 	//uniformPointLightBuffer->bindBuffer();
 }
@@ -217,7 +218,7 @@ void RenderManager::prepareDirectionLightData(const std::shared_ptr<RenderScene>
 			light->setDirtyFlag(false);
 		}
 	}
-	glBufferSubData(GL_UNIFORM_BUFFER, 10 * dataSize, 
+	glBufferSubData(GL_UNIFORM_BUFFER, 10 * dataSize , 
 		sizeof(int), &lightNum);
 }
 
@@ -278,6 +279,43 @@ void RenderManager::prepareCompData(const std::shared_ptr<RenderScene>& scene) {
 	}
 }
 
+float getSignedDistanceToPlane(const vec3& p, const CameraPlane& plane) {
+	return glm::dot(p, plane.normal) - plane.distance;
+}
+
+bool isOnOrForwardPlane(const BoundingSphere& sphere,const CameraPlane& plane) {
+	return getSignedDistanceToPlane(sphere.center, plane) > -sphere.raidus;
+}
+
+void RenderManager::cameraCulling(const std::shared_ptr<RenderScene>& scene) {
+	// clean all
+	std::vector<std::shared_ptr<GameObject>>().swap(scene->visibleObjects);
+
+	Frustum&& frustum = scene->main_camera->GetFrustum();
+	for (auto& object : scene->objects) {
+		auto meshFilter = std::static_pointer_cast<MeshFilter>(object->GetComponent("MeshFilter"));
+		if (meshFilter->meshes.size() == 0)
+			continue;
+		auto bs = meshFilter->meshes[0]->bs;
+		// decide if is on frustum 
+		if (!bs.initDone) {
+			auto trans = std::static_pointer_cast<Transform>(object->GetComponent("Transform"));
+			bs.center = trans->position + bs.center;
+			bs.raidus = std::max(trans->scale.x, std::max(trans->scale.y, trans->scale.z))* bs.raidus;
+			bs.initDone = true;
+		}
+		bool onFrustum = isOnOrForwardPlane(bs, frustum.bottomFace)
+			&& isOnOrForwardPlane(bs, frustum.topFace)
+			&& isOnOrForwardPlane(bs, frustum.leftFace)
+			&& isOnOrForwardPlane(bs, frustum.rightFace)
+			&& isOnOrForwardPlane(bs, frustum.farFace)
+			&& isOnOrForwardPlane(bs, frustum.nearFace);
+		if (onFrustum) {
+			scene->visibleObjects.emplace_back(object);
+		}
+	}
+}
+
 void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	prepareVPData(scene);
 	glCheckError();
@@ -287,6 +325,7 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	glCheckError();
 	prepareCompData(scene);
 	
+	cameraCulling(scene);
 	//TODO:
 	// rsmPass->render(scene);
 

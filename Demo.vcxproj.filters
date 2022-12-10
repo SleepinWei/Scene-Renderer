@@ -212,9 +212,6 @@
     <ClCompile Include="include\imgui\imgui_toggle.cpp">
       <Filter>ImGui</Filter>
     </ClCompile>
-    <ClCompile Include="src\glad.c">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="include\libdds\libdds.cpp">
       <Filter>libdds</Filter>
     </ClCompile>
@@ -223,6 +220,10 @@
     </ClCompile>
     <ClCompile Include="src\component\Ocean.cpp">
       <Filter>src\component</Filter>
+    </ClCompile>
+    <ClCompile Include="include\glad\glad.c" />
+    <ClCompile Include="src\utils\BoundingBox.cpp">
+      <Filter>src\utils</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -397,19 +398,14 @@
     <ClInclude Include="include\libdds\libdds_opengl.h">
       <Filter>libdds</Filter>
     </ClInclude>
+    <ClInclude Include="src\component\Cloud.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="src\utils\BoundingBox.h">
+      <Filter>src\utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="src\shader\hdr.fs" />
-    <None Include="src\shader\hdr.vs" />
-    <None Include="src\shader\light.fs" />
-    <None Include="src\shader\light.vs" />
-    <None Include="src\shader\simple.fs" />
-    <None Include="src\shader\simple.vs" />
-    <None Include="src\shader\skybox.fs" />
-    <None Include="src\shader\skybox.vs" />
-    <None Include="src\shader\test.fs" />
-    <None Include="src\shader\test.vs" />
-    <None Include="src\shader\water.fs" />
     <ClInclude Include="src\component\Ocean.h">
       <Filter>src\component</Filter>
     </ClInclude>

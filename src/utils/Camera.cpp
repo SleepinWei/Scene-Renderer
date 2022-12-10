@@ -8,6 +8,7 @@
 #include<memory>
 #include"Camera.h"
 #include"../system/InputManager.h"
+#include"../utils/BoundingBox.h"
 
 extern std::unique_ptr<InputManager> inputManager;
 
@@ -165,4 +166,26 @@ void Camera::updateCameraVectors()
 	// also re-calculate the Right and Up vector
 	Right = glm::normalize(glm::cross(Front, WorldUp));  // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
 	Up = glm::normalize(glm::cross(Right, Front));
+}
+
+Frustum Camera::GetFrustum()const {
+	Frustum frustum;
+	const float halfVSide = zFar * tanf(glm::radians(this->Zoom) * 0.5f);
+	const float halfHSide = halfVSide * aspect_ratio;
+	const glm::vec3 frontMultFar = zFar * Front;
+
+	frustum.nearFace = { Front , Position + zNear*Front};
+	frustum.farFace = { -Front, Position + frontMultFar};
+	frustum.rightFace = { glm::normalize(glm::cross(Up,frontMultFar + Right * halfHSide)),Position }; 
+	frustum.leftFace = {glm::normalize(glm::cross(frontMultFar - Right * halfHSide, Up)),Position };
+	frustum.topFace = {glm::normalize(glm::cross(Right, frontMultFar - Up * halfVSide)),Position };
+	frustum.bottomFace = {glm::normalize(glm::cross(frontMultFar + Up * halfVSide, Right)),Position};
+
+	frustum.nearFace.distance = glm::dot(frustum.nearFace.closestPoint, frustum.nearFace.normal);
+	frustum.farFace.distance = glm::dot(frustum.farFace.closestPoint, frustum.farFace.normal);
+	frustum.rightFace.distance = glm::dot(frustum.rightFace.closestPoint, frustum.rightFace.normal);
+	frustum.leftFace.distance = glm::dot(frustum.leftFace.closestPoint, frustum.leftFace.normal);
+	frustum.topFace.distance = glm::dot(frustum.topFace.closestPoint, frustum.topFace.normal);
+	frustum.bottomFace.distance = glm::dot(frustum.bottomFace.closestPoint, frustum.bottomFace.normal);
+	return frustum;
 }
