@@ -29,7 +29,7 @@ std::shared_ptr<Mesh> Mesh::initSphere(int pointNum) {
 	
 	// bounding volume
 	result->bs.center = vec3(0.0f);
-	result->bs.raidus = R;
+	result->bs.radius = R;
 
 	// generate vertices
 	int overallPointNum = (pointNum/2 + 1) * (pointNum + 1);
@@ -103,7 +103,7 @@ std::shared_ptr<Mesh> Mesh::initPlane() {
 
 	// bounding volume
 	result->bs.center = vec3(0.0f);
-	result->bs.raidus = sqrtf(2);
+	result->bs.radius = sqrtf(2);
 
 	auto& vertices = result->vertices;
 	std::vector<unsigned int>{
@@ -130,7 +130,7 @@ std::shared_ptr<Mesh> Mesh::initPoint() {
 	std::shared_ptr<Mesh> result = std::make_shared<Mesh>();
 	//bounding volumn
 	result->bs.center = vec3(0.0f);
-	result->bs.raidus = 0.1f;
+	result->bs.radius = 0.1f;
 
 	std::vector<Vertex>(1).swap(result->vertices);
 	std::vector<unsigned int>{ 0 }.swap(result->indices);
@@ -146,7 +146,7 @@ std::shared_ptr<Mesh> Mesh::initCube() {
 	std::shared_ptr<Mesh> result = std::make_shared<Mesh>();
 	// bounding volume
 	result->bs.center = vec3(0.0f);
-	result->bs.raidus = sqrtf(3.0f);
+	result->bs.radius = sqrtf(3.0f);
 
 	std::vector<Vertex>(8).swap(result->vertices);
 

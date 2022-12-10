@@ -286,7 +286,7 @@ float getSignedDistanceToPlane(const vec3& p, const CameraPlane& plane) {
 }
 
 bool isOnOrForwardPlane(const BoundingSphere& sphere,const CameraPlane& plane) {
-	return getSignedDistanceToPlane(sphere.center, plane) > -sphere.raidus;
+	return getSignedDistanceToPlane(sphere.center, plane) > -sphere.radius;
 }
 
 void RenderManager::cameraCulling(const std::shared_ptr<RenderScene>& scene) {

@@ -41,11 +41,11 @@ std::shared_ptr<Mesh> Model::loadModel(const std:: string& path,bool flipUV) {
 
 	//return combineMesh(meshes);
 	//assert(meshes.size() == 1);
-	auto& resultMesh = combineMesh(meshes);
+	auto resultMesh = combineMesh(meshes);
 	// construct bounding volumn
 	auto& vertices = resultMesh->vertices;
-	vec3 minimum = vec3(1e10);
-	vec3 maximum = vec3(-1e10);
+	vec3 minimum = vec3(1e10f);
+	vec3 maximum = vec3(-1e10f);
 	for (auto& v : vertices) {
 		minimum = glm::min(v.Position, minimum);
 		maximum = glm::max(v.Position, maximum);
@@ -53,7 +53,7 @@ std::shared_ptr<Mesh> Model::loadModel(const std:: string& path,bool flipUV) {
 	vec3 center = (minimum + maximum) / 2.0f;
 	float radius = glm::length(maximum - minimum) / 2.0f;
 	resultMesh->bs.center = center;
-	resultMesh->bs.raidus = radius;
+	resultMesh->bs.radius= radius;
 
 	return resultMesh;
 }
