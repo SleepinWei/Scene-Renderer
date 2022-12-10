@@ -90,6 +90,25 @@ public:
 				}
 			}
 		}
+		if (ImGui::CollapsingHeader("Spot Light")) {
+			auto& slights = scene->spotLights;
+			for (int i = 0; i < slights.size(); i++) {
+				char title[] = "Spot Lighti Position";
+				title[15] = '0' + 0;
+				ImGui::Text(title);
+				//auto& light = lights[0]; 
+				auto&& lightTrans = std::static_pointer_cast<Transform>(
+					slights[i]->gameObject->GetComponent("Transform"));
+				auto&& lightData = slights[i]->data;
+				bool change1 = ImGui::SliderFloat3("Position", (float*)&lightTrans->position, -10.0f, 1.0f);
+				bool change2 = ImGui::SliderFloat3("Direction", (float*)&lightData.direction, -1.0f, 1.0f);
+				ImGui::Text("CutOff: %f", lightData.cutOff);
+				ImGui::Text("OuterCutOff: %f", lightData.outerCutOff);
+				if (change1 || change2) {
+					slights[i]->setDirtyFlag(true);
+				}
+			}
+		}
 
 		// sky 
 		if (scene->sky) {

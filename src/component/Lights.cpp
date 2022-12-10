@@ -215,8 +215,10 @@ void SpotLight::loadFromJson(json& json_data) {
 	}
 	if (json_data.find("cutOff") != json_data.end()) {
 		data.cutOff = json_data["cutOff"].get<float>();
+		data.cutOff = glm::cos(glm::radians(data.cutOff));
 	}
 	if (json_data.find("outerCutOff") != json_data.end()) {
 		data.outerCutOff = json_data["outerCutOff"].get<float>();
+		data.outerCutOff = glm::cos(glm::radians(data.outerCutOff));
 	}
 }

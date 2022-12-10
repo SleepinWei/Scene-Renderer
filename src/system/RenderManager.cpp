@@ -37,6 +37,7 @@ void RenderManager::init() {
 	initVPbuffer();
 	initPointLightBuffer();
 	initDirectionLightBuffer();
+	initSpotLightBuffer();
 	initRenderPass();
 }
 
@@ -284,6 +285,8 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	preparePointLightData(scene);
 	glCheckError();
 	prepareDirectionLightData(scene);
+	glCheckError();
+	prepareSpotLightData(scene);
 	glCheckError();
 	prepareCompData(scene);
 	

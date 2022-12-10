@@ -734,15 +734,16 @@ void RSMPass::render(const std::shared_ptr<RenderScene>& scene) {
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
 	//TODO:set light uniform
-	glm::vec3 lightPos = glm::vec3(0.0f, 0.0f, 0.0f);
-	glm::vec3 lightColor = glm::vec3(0.6f, 0.6f, 0.6f);
-	glm::mat4 lightProjection = glm::perspective(glm::radians(60.0f), (float)RSM_WIDTH / (float)RSM_HEIGHT, light_near_plane, light_far_plane);
+	PointLight light;
+	auto trans = std::static_pointer_cast<Transform>(light.gameObject->GetComponent("Transform"));
+	glm::vec3 lightPos = trans->position;
+	glm::mat4 lightProjection = glm::perspective(glm::radians(60.0f), (float)RSM_WIDTH / (float)RSM_HEIGHT, light.near, light.far);
 	glm::mat4 lightView = glm::lookAt(lightPos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 	RSMShader->use();
 	RSMShader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
 	RSMShader->setVec3("light.Position", lightPos);
-	RSMShader->setVec3("light.Color", lightColor);
+	RSMShader->setVec3("light.Color", light.data.color);
 
 	for (int i = 0; i < scene->objects.size(); i++) {
 		auto& object = scene->objects[i];
