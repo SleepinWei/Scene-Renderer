@@ -187,7 +187,7 @@ vec3 shading(){
     //spotlight
     for(int i =0;i<sLightNum;i++){
         SpotLight light = SpotLights[i];
-        vec3 L = normalize(light.Direction);
+        vec3 L = normalize(light.Position - Position);
         vec3 N_ = N;
         if(isGrass>0.5f && dot(N,L)<0.0f){
             // if is grass, back is still bright;
@@ -205,7 +205,7 @@ vec3 shading(){
         // attenuation
         // float distance = length(light.position - fragPos);
         // float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
-        float attenuation = 1.0f;
+        float attenuation = calculateAtten(Position,light.Position);
         vec3 radiance = light.Color * attenuation * intensity;
         finalColor += brdf * radiance * NdotL;
     }
