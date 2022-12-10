@@ -28,7 +28,8 @@ RenderManager::RenderManager() {
 	// setting
 	setting = RenderSetting{
 		true, // enableHDR
-		true //useDeferred
+		true, //useDeferred
+		true
 	};
 
 }
@@ -289,32 +290,36 @@ bool isOnOrForwardPlane(const BoundingSphere& sphere,const CameraPlane& plane) {
 
 void RenderManager::cameraCulling(const std::shared_ptr<RenderScene>& scene) {
 	// clean all
-	std::vector<std::shared_ptr<GameObject>>().swap(scene->objects);
+	if (setting.enableCulling) {
+		std::vector<std::shared_ptr<GameObject>>().swap(scene->objects);
 
-	Frustum&& frustum = scene->main_camera->GetFrustum();
-	for (auto& object : scene->totalObjects) {
-		auto meshFilter = std::static_pointer_cast<MeshFilter>(object->GetComponent("MeshFilter"));
-		if (meshFilter->meshes.size() == 0)
-			continue;
-		auto bs = meshFilter->meshes[0]->bs;
-		// decide if is on frustum 
-		if (!bs.initDone) {
-			auto trans = std::static_pointer_cast<Transform>(object->GetComponent("Transform"));
-			bs.center = trans->position + bs.center;
-			bs.raidus = std::max(trans->scale.x, std::max(trans->scale.y, trans->scale.z))* bs.raidus;
-			bs.initDone = true;
-		}
-		bool onFrustum = isOnOrForwardPlane(bs, frustum.bottomFace)
-			&& isOnOrForwardPlane(bs, frustum.topFace)
-			&& isOnOrForwardPlane(bs, frustum.leftFace)
-			&& isOnOrForwardPlane(bs, frustum.rightFace)
-			&& isOnOrForwardPlane(bs, frustum.farFace)
-			&& isOnOrForwardPlane(bs, frustum.nearFace);
-		if (onFrustum) {
-			scene->objects.emplace_back(object);
+		Frustum&& frustum = scene->main_camera->GetFrustum();
+		for (auto& object : scene->totalObjects) {
+			auto meshFilter = std::static_pointer_cast<MeshFilter>(object->GetComponent("MeshFilter"));
+			if (meshFilter->meshes.size() == 0)
+				continue;
+			auto bs = meshFilter->meshes[0]->bs;
+			// decide if is on frustum 
+			if (!bs.initDone) {
+				auto trans = std::static_pointer_cast<Transform>(object->GetComponent("Transform"));
+				bs.center = trans->position + bs.center;
+				bs.raidus = std::max(trans->scale.x, std::max(trans->scale.y, trans->scale.z)) * bs.raidus;
+				bs.initDone = true;
+			}
+			bool onFrustum = isOnOrForwardPlane(bs, frustum.bottomFace)
+				&& isOnOrForwardPlane(bs, frustum.topFace)
+				&& isOnOrForwardPlane(bs, frustum.leftFace)
+				&& isOnOrForwardPlane(bs, frustum.rightFace)
+				&& isOnOrForwardPlane(bs, frustum.farFace)
+				&& isOnOrForwardPlane(bs, frustum.nearFace);
+			if (onFrustum) {
+				scene->objects.emplace_back(object);
+			}
 		}
 	}
-	//scene->objects = scene->totalObjects;
+	else {
+		scene->objects = scene->totalObjects;
+	}
 }
 
 void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {

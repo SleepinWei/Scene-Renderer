@@ -50,6 +50,12 @@ public:
 				fileDialog.Open();
 			}
 		}
+		if (ImGui::CollapsingHeader("Rendering")) {
+			static bool enableCull = true;
+			if (ImGui::Toggle("Enable Culling", &enableCull)) {
+				renderManager->setting.enableCulling = enableCull;
+			}
+		}
 		ImGui::Separator();
 		if (ImGui::CollapsingHeader("Camera")) {
 			if (scene->main_camera) {
@@ -110,12 +116,13 @@ public:
 			if (ImGui::CollapsingHeader("Terrain")) {
 				auto& terrainComp = std::static_pointer_cast<TerrainComponent>(scene->terrain->GetComponent("TerrainComponent"));
 				static bool useWireFrame = false;
-				ImGui::Toggle("Wire Frame mode", &useWireFrame);
-				if (useWireFrame) {
-					terrainComp->setPolyMode(GL_LINE);
-				}
-				else {
-					terrainComp->setPolyMode(GL_FILL);
+				if (ImGui::Toggle("Wire Frame mode", &useWireFrame)) {
+					if (useWireFrame) {
+						terrainComp->setPolyMode(GL_LINE);
+					}
+					else {
+						terrainComp->setPolyMode(GL_FILL);
+					}
 				}
 			}
 		}

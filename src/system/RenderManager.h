@@ -35,6 +35,7 @@ enum class ShaderType {
 struct RenderSetting {
 	bool enableHDR;
 	bool useDefer;
+	bool enableCulling;
 };
 
 class RenderManager {
