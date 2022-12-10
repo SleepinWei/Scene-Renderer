@@ -227,6 +227,7 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	prepareDirectionLightData(scene);
 	prepareCompData(scene);
 	
+
 	// deferred pass
 	if (setting.useDefer) {
 		//

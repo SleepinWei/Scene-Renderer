@@ -1,10 +1,8 @@
 #version 330 core
-layout(triangles,invocation=5) in;
+layout(triangles,invocations=5) in;
 layout(triangle_strip,max_vertices=3)out;
-layout (std140, binding = 0) uniform LightSpaceMatrices
-{
-    mat4 lightSpaceMatrices[16];
-};
+uniform mat4 lightSpaceMatrices[16]; // we cancel the uniform set for we just set this matrix once
+
 
 void main()
 {          
