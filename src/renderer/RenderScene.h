@@ -20,8 +20,8 @@ class RenderScene : public std::enable_shared_from_this<RenderScene> {
 	// scene objects
 public:
 	std::shared_ptr<Terrain> terrain; 
+	std::vector<std::shared_ptr<GameObject>> totalObjects;
 	std::vector<std::shared_ptr<GameObject>> objects;
-	std::vector<std::shared_ptr<GameObject>> visibleObjects;
 
 	std::shared_ptr<Sky> sky;
 	std::vector<std::shared_ptr<DirectionLight>> directionLights;

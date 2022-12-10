@@ -289,10 +289,10 @@ bool isOnOrForwardPlane(const BoundingSphere& sphere,const CameraPlane& plane) {
 
 void RenderManager::cameraCulling(const std::shared_ptr<RenderScene>& scene) {
 	// clean all
-	std::vector<std::shared_ptr<GameObject>>().swap(scene->visibleObjects);
+	std::vector<std::shared_ptr<GameObject>>().swap(scene->objects);
 
 	Frustum&& frustum = scene->main_camera->GetFrustum();
-	for (auto& object : scene->objects) {
+	for (auto& object : scene->totalObjects) {
 		auto meshFilter = std::static_pointer_cast<MeshFilter>(object->GetComponent("MeshFilter"));
 		if (meshFilter->meshes.size() == 0)
 			continue;
@@ -311,9 +311,10 @@ void RenderManager::cameraCulling(const std::shared_ptr<RenderScene>& scene) {
 			&& isOnOrForwardPlane(bs, frustum.farFace)
 			&& isOnOrForwardPlane(bs, frustum.nearFace);
 		if (onFrustum) {
-			scene->visibleObjects.emplace_back(object);
+			scene->objects.emplace_back(object);
 		}
 	}
+	//scene->objects = scene->totalObjects;
 }
 
 void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {

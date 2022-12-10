@@ -15,7 +15,7 @@ RenderScene::RenderScene() {
 std::shared_ptr<RenderScene> RenderScene::addObject(std::shared_ptr<GameObject> object) {
 	//
 	mtx.lock();
-	objects.emplace_back(object);
+	totalObjects.emplace_back(object);
 	mtx.unlock();
 
 	auto& Plight= object->GetComponent("PointLight");
@@ -56,8 +56,8 @@ std::shared_ptr<RenderScene> RenderScene::addSky(std::shared_ptr<Sky>sky) {
 }
 
 void RenderScene::loadFromJson(json& data) {
-	auto& objects = data["objects"];
-	for (auto iter = objects.begin(); iter != objects.end(); ++iter) {
+	auto& JsonObjects = data["objects"];
+	for (auto iter = JsonObjects.begin(); iter != JsonObjects.end(); ++iter) {
 		auto object_path = iter.value().get <std::string>();
 		std::ifstream f(object_path);
 		json data = json::parse(f);
@@ -71,6 +71,7 @@ void RenderScene::loadFromJson(json& data) {
 void RenderScene::destroy() {
 	//
 	terrain = nullptr;
+	std::vector<shared_ptr<GameObject>>().swap(totalObjects);
 	std::vector<shared_ptr<GameObject>>().swap(objects);
 	std::vector<shared_ptr<DirectionLight>>().swap(directionLights);
 	std::vector<shared_ptr<PointLight>>().swap(pointLights);
