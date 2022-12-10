@@ -40,3 +40,5 @@ It is a renderer based on modern opengl, focusing on natural  and in-door scene 
 ## Group Members
 
 * [zyw](https://github.com/SleepinWei)
+* 
+* [lkj](https://github.com/qbdl)
