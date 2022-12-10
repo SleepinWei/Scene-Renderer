@@ -92,7 +92,7 @@ private:
 	
 	float near_for_pointlight = 0.0;
 	float far_for_pointlight = 0.0;  // the perspective parameter in generating shadow cube map
-	bool dirty = 0;
+	bool dirty = true;
 	std::vector<float> shadow_limiter= { 0,0,0,0 };
 	unsigned int  matrixUBO;
 

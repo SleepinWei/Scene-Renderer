@@ -44,6 +44,7 @@ void RenderManager::init() {
 void RenderManager::initRenderPass() {
 	// render Pass initialization 
 	rsmPass = std::make_shared<RSMPass>();
+	shadowPass = std::make_shared<ShadowPass>();
 	if (setting.useDefer) {
 		deferredPass = std::make_shared<DeferredPass>();
 		rsmPass = std::make_shared<RSMPass>();
@@ -293,10 +294,11 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	//TODO:
 	//  rsmPass->render(scene);
 
-	// deferred pass
+	//shadow pass
+	shadowPass->render(scene);
 	pass_data();
 	if (setting.useDefer) {
-		//
+		// deferred pass
 		deferredPass->renderGbuffer(scene);
 		deferredPass->render(scene);
 		deferredPass->postProcess(scene);

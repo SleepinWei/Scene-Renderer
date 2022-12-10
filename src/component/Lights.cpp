@@ -113,7 +113,7 @@ DirectionLight::DirectionLight() {
 	};
 
 	// TODO: add Texture generation
-	//shadowTex = std::make_shared<Texture>();
+	shadowTex = std::make_shared<Texture>();
 	//shadowTex->genTexture(GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT);
 }
 

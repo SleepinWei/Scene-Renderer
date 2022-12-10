@@ -120,8 +120,10 @@ void HDRPass::render() {
 ShadowPass::ShadowPass() {
 	// TODO: init shadowShader: get from renderManager
 	auto shadowShader_dir =std::make_shared<Shader>("./src/shader/shadow/cascaded_shadow_depth.vs","./src/shader/shadow/cascaded_shadow_depth.fs","./src/shader/shadow/cascaded_shadow_depth.gs");
+	shadowShader_dir->requireMat = false;
 	auto shaderShader_point = std::make_shared<Shader>("./src/shader/shadow/point_shadow_depth.vs", "./src/shader/shadow/point_shadow_depth.fs", "./src/shader/shadow/point_shadow_depth.gs");
-	
+	shadowShader_point->requireMat = false;
+
 	// TODO: init framebuffer
 	//for creating multiple depth attachment for a fb is not allowed
 
@@ -163,7 +165,7 @@ void ShadowPass::pointLightShadow(const std::shared_ptr<RenderScene>& scene) {
 		if (!light || !light->castShadow) {
 			continue;
 		}
-		if (!dirty)
+		if (dirty)
 			init_framebuffers(scene);
 
 
@@ -233,7 +235,7 @@ void ShadowPass::directionLightShadow(const std::shared_ptr<RenderScene>& scene)
 		{
 			continue;
 		}
-		if (!dirty)
+		if (dirty)
 			init_framebuffers(scene);
 
 		const auto& current_framebuffer = frameBuffer_dirs.at(i);
@@ -398,7 +400,7 @@ void ShadowPass::init_framebuffers(const std::shared_ptr<RenderScene>& scene)
 		//add to vectors
 		frameBuffer_points.emplace_back(new_framebuffer);
 	}
-	dirty = true;
+	dirty = false;
 	//once we generate these framebuffers, we set dirty as true to avoid repeatedly do these procedures in every pass
 }
 

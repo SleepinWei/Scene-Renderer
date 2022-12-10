@@ -1,4 +1,4 @@
-#version 330 core
+#version 460 core
 layout(triangles,invocations=5) in;
 layout(triangle_strip,max_vertices=3)out;
 uniform mat4 lightSpaceMatrices[16]; // we cancel the uniform set for we just set this matrix once
