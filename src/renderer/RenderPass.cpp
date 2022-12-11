@@ -13,6 +13,7 @@
 #include"../component/Atmosphere.h"
 #include"../component/TerrainComponent.h"
 #include"../component/Grass.h"
+#include"../component/Ocean.h"
 #include"../buffer/FrameBuffer.h"
 #include"../component/Lights.h"
 #include"../renderer/Texture.h"
@@ -25,9 +26,10 @@ extern std::unique_ptr<InputManager> inputManager;
 extern std::unique_ptr<RenderManager> renderManager;
 
 void BasePass::render(const std::shared_ptr<RenderScene>& scene,const std::shared_ptr<Shader>& outShader) {
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glViewport(0, 0, inputManager->width, inputManager->height);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
 	glCheckError();
 	for (auto object : scene->objects) {
@@ -118,17 +120,24 @@ void HDRPass::render() {
 
 ShadowPass::ShadowPass() {
 	// TODO: init shadowShader: get from renderManager
-	auto shadowShader_dir =std::make_shared<Shader>("./src/shader/shadow/cascaded_shadow_depth.vs","./src/shader/shadow/cascaded_shadow_depth.fs","./src/shader/shadow/cascaded_shadow_depth.gs");
-	auto shaderShader_point = std::make_shared<Shader>("./src/shader/shadow/point_shadow_depth.vs", "./src/shader/shadow/point_shadow_depth.fs", "./src/shader/shadow/point_shadow_depth.gs");
-	
+	shadowShader_dir =std::make_shared<Shader>("./src/shader/shadow/cascaded_shadow_depth.vs","./src/shader/shadow/cascaded_shadow_depth.fs","./src/shader/shadow/cascaded_shadow_depth.gs");
+	shadowShader_dir->requireMat = false;
+	shadowShader_point = std::make_shared<Shader>("./src/shader/shadow/point_shadow_depth.vs", "./src/shader/shadow/point_shadow_depth.fs", "./src/shader/shadow/point_shadow_depth.gs");
+	shadowShader_point->requireMat = false;
+
 	// TODO: init framebuffer
 	//for creating multiple depth attachment for a fb is not allowed
 
 	//set UBO
 	glGenBuffers(1, &matrixUBO);
 	glBindBuffer(GL_UNIFORM_BUFFER, matrixUBO);
-	glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 16, nullptr, GL_STATIC_DRAW);
-	glBindBufferBase(GL_UNIFORM_BUFFER, 0, matrixUBO);  //0 is the binding point
+
+	glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4)*10*cascaded_layers, nullptr, GL_STATIC_DRAW);  
+	//suppose 5 is the cascaded levels, 10 is the max num of directional lights
+	// this way is kinda undecent ,but convenient.
+
+
+	//glBindBufferBase(GL_UNIFORM_BUFFER, 5, matrixUBO);  //5 is the binding point
 	glBindBuffer(GL_UNIFORM_BUFFER,0);
 }
 
@@ -140,12 +149,10 @@ ShadowPass::~ShadowPass()
 
 void ShadowPass::render(const std::shared_ptr<RenderScene>& scene) {
 	// TODO: 
-	glViewport(0, 0, Light::SHADOW_WIDTH, Light::SHADOW_HEIGHT);
 	
 	// rendering shadow map
 	pointLightShadow(scene);
 	directionLightShadow(scene); //after evoke these 2 functions, the depth maps are restored in the lights' texes.
-	
 }
 
 void ShadowPass::pointLightShadow(const std::shared_ptr<RenderScene>& scene) {
@@ -158,28 +165,22 @@ void ShadowPass::pointLightShadow(const std::shared_ptr<RenderScene>& scene) {
 		if (!light || !light->castShadow) {
 			continue;
 		}
-		if (!dirty)
+		if (dirty)
 			init_framebuffers(scene);
-
 
 		shadowShader_point->use();
 		const auto& current_framebuffer = frameBuffer_points.at(i);
 
-		current_framebuffer->bindBuffer();
-
-		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-		{
-			std::cerr << "ERROR::FRAMEBUFFER::FRAMEBUFFER IS NOT COMPLETE  OCCURS IN DIRECTIONAL LIGHTS!";
-			return;
-		}
 		glCheckError();
-		glEnable(GL_DEPTH_TEST);
-		glEnable(GL_CULL_FACE);
+		current_framebuffer->bindBuffer();
+		//glEnable(GL_DEPTH_TEST);
+		//glEnable(GL_CULL_FACE);
+		// glDisable(GL_CULL_FACE);
 
-		current_framebuffer->bindShadowTexture(light->shadowTex, GL_DEPTH_ATTACHMENT);
-		glDrawBuffer(GL_NONE);
-		glReadBuffer(GL_NONE);
-		
+		//current_framebuffer->bindShadowTexture(light->shadowTex, GL_DEPTH_ATTACHMENT);
+		//glDrawBuffer(GL_NONE);
+		//glReadBuffer(GL_NONE);
+		//
 		// start to render
 		float near_plane = scene->main_camera->zNear;
 		float far_plane = scene->main_camera->zFar;
@@ -187,8 +188,10 @@ void ShadowPass::pointLightShadow(const std::shared_ptr<RenderScene>& scene) {
 		glm::mat4 proj = glm::perspective(glm::radians(90.0f), (float)cube_map_resolution / cube_map_resolution, near_plane, far_plane);
 
 		std::vector<glm::mat4> omnishadow_matrices;
-		for (unsigned i = 0; i < 6; i++)
-			omnishadow_matrices.emplace_back(std::get<1>(light->getLightTransform(i)));
+		for (unsigned i = 0; i < 6; i++) {
+			auto&& transforms = light->getLightTransform(i);
+			omnishadow_matrices.emplace_back(std::get<0>(transforms) * std::get<1>(transforms));
+		}
 
 		glViewport(0, 0, cube_map_resolution, cube_map_resolution);
 		glClear(GL_DEPTH_BUFFER_BIT);
@@ -205,14 +208,15 @@ void ShadowPass::pointLightShadow(const std::shared_ptr<RenderScene>& scene) {
 		lightPos=trans->position;
 		shadowShader_point->setFloat("far_plane", far_plane);
 		shadowShader_point->setVec3("lightPos", lightPos);
-
+		glCheckError();
 		for (auto& object : scene->objects)
 		{
 			std::shared_ptr<MeshRenderer>&& renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
-			if (renderer) {
-				renderer->render(shadowShader_dir);
+			if (renderer && renderer->drawMode == GL_TRIANGLES) { // due to geometry shader, drawing points is not allowed;
+				renderer->render(shadowShader_point);
 			}
 		}
+		glCheckError();
 
 	}
 }
@@ -224,53 +228,57 @@ void ShadowPass::directionLightShadow(const std::shared_ptr<RenderScene>& scene)
 	for (unsigned int i = 0; i < num_direction_lights;i++) 
 	{
 		const auto& light = dLights.at(i);
-		if (light || !light->castShadow) 
+		if (!light || !light->castShadow) 
 		{
 			continue;
 		}
-		if (!dirty)
+		if (dirty)
 			init_framebuffers(scene);
 
 		const auto& current_framebuffer = frameBuffer_dirs.at(i);
 		current_framebuffer->bindBuffer();
-		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-		{
-			std::cerr << "ERROR::FRAMEBUFFER::FRAMEBUFFER IS NOT COMPLETE  OCCURS IN DIRECTIONAL LIGHTS!";
-			return;
-		}
-		glCheckError();
-		glEnable(GL_DEPTH_TEST);
+		//glEnable(GL_DEPTH_TEST);
 		
 		shadowShader_dir->use();
-		current_framebuffer->bindShadowTexture(light->shadowTex, GL_DEPTH_ATTACHMENT);
-		glDrawBuffer(GL_NONE);
-		glReadBuffer(GL_NONE);
+		//current_framebuffer->bindShadowTexture(light->shadowTex, GL_DEPTH_ATTACHMENT);
+		//glDrawBuffer(GL_NONE);
+		//glReadBuffer(GL_NONE);
 
 
 		//send the matrices into the uniform variable in shaders
 		std::vector<glm::mat4> light_matrices = get_stratified_matrices(scene, light);
-		for (unsigned i = 0; i < light_matrices.size(); i++)
+
+
+		//binding an UBO
+		glBindBuffer(GL_UNIFORM_BUFFER, matrixUBO);
+		for (unsigned j = 0; j < light_matrices.size(); j++)
 		{
-			glBufferSubData(GL_UNIFORM_BUFFER, i * sizeof(glm::mat4), sizeof(glm::mat4), &light_matrices[i]);
+			// i-th light j-th level
+			glBufferSubData(GL_UNIFORM_BUFFER, (i*cascaded_layers+j)* sizeof(glm::mat4), sizeof(glm::mat4), &light_matrices[i]);
 		}
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+		//glBindBuffer(GL_UNIFORM_BUFFER, 5);  // here we bind the matrices of all dir lights ,of all levels in the 5 binding points of uniform buffers
+		/*******/
+		
+		// for (unsigned i = 0; i < light_matrices.size(); i++)
+		// {
+		// 	shadowShader_dir->setMat4("lightSpaceMatrices[" + std::to_string(i) + "]", light_matrices.at(i));
+		// }
 
 		glViewport(0, 0, this->cascaded_map_resolution, this->cascaded_map_resolution);
 		glClear(GL_DEPTH_BUFFER_BIT);
 		glCullFace(GL_FRONT);
 
 		//rendering
+		glCheckError();
 		for (auto object : scene->objects) {
 			std::shared_ptr<MeshRenderer>&& renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
-			if (renderer) {
+			if (renderer && renderer->drawMode == GL_TRIANGLES) { // due to implemetation of geometry shader, drawing points is not allowed
 				renderer->render(shadowShader_dir);
 			}
 		}
 
 		glCullFace(GL_BACK);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-
 	}
 }
 
@@ -286,8 +294,8 @@ std::vector<glm::vec4> ShadowPass::get_frustum_points(const float nearplane, con
 		for (unsigned y = 0; y < 2; y++)
 			for (unsigned x = 0; x < 2; x++)
 			{
-				glm::vec4 tmp = glm::vec4(2.0 * x - 1.0, 2.0 * y - 1.0, 2.0 * z - 1.0, 1.0);
-				re.emplace_back(inv * tmp);
+				glm::vec4 tmp = inv*glm::vec4(2.0 * x - 1.0, 2.0 * y - 1.0, 2.0 * z - 1.0, 1.0);
+				re.emplace_back(tmp/tmp.w);
 			}
 	return re;
 }
@@ -302,7 +310,7 @@ glm::mat4 ShadowPass::get_stratified_matrix(const std::vector<glm::vec4>& points
 	}
 
 	center /= points.size();  // the center of the frustum in world space
-	glm::mat4 light_view = glm::lookAt(center + light->data.direction, center, glm::vec3(0.0, 1.0, 0.0));
+	auto light_view = glm::lookAt(center + light->data.direction, center, glm::vec3(0.0, 1.0, 0.0));
 
 	float minX = std::numeric_limits<float>::max();
 	float maxX = std::numeric_limits<float>::min();
@@ -310,15 +318,16 @@ glm::mat4 ShadowPass::get_stratified_matrix(const std::vector<glm::vec4>& points
 	float maxY = std::numeric_limits<float>::min();
 	float minZ = std::numeric_limits<float>::max();
 	float maxZ = std::numeric_limits<float>::min();
-
+	
 	for (const auto& i : points)
 	{
-		minX = i.x < minX ? i.x : minX;
-		maxX = i.x > maxX ? i.x : maxX;
-		minY = i.y < minY?  i.y : minY;
-		maxY = i.y > minY ? i.y : maxY;
-		minZ = i.z < minZ ? i.z : minZ;
-		maxZ = i.z > maxZ ? i.z : maxZ;
+		auto frustm_point_light_space = light_view * i;
+		minX = frustm_point_light_space.x < minX ? frustm_point_light_space.x : minX;
+		maxX = frustm_point_light_space.x > maxX ? frustm_point_light_space.x : maxX;
+		minY = frustm_point_light_space.y < minY ? frustm_point_light_space.y : minY;
+		maxY = frustm_point_light_space.y > maxY ? frustm_point_light_space.y : maxY;
+		minZ = frustm_point_light_space.z < minZ ? frustm_point_light_space.z : minZ;
+		maxZ = frustm_point_light_space.z > maxZ ? frustm_point_light_space.z : maxZ;
 	}
 
 	//EXPAND z
@@ -337,16 +346,16 @@ std::vector<glm::mat4>ShadowPass:: get_stratified_matrices(const std::shared_ptr
 {
 	std::vector<glm::mat4> re;
 	float camera_near=scene->main_camera->zNear, camera_far=scene->main_camera->zFar;
-	shadow_limiter[0] = camera_far / 50.0;
-	shadow_limiter[1] = camera_far / 25.0;
-	shadow_limiter[2] = camera_far / 10.0;
-	shadow_limiter[3] = camera_far / 2.0;
+	shadow_limiter.at(0) = camera_far / 50.0;
+	shadow_limiter.at(1) = camera_far / 25.0;
+	shadow_limiter.at(2) = camera_far / 10.0;
+	shadow_limiter.at(3) = camera_far / 2.0;
 	
 	float near, far;
 	for (unsigned i = 0; i < 5; i++)
 	{
-		near = i == 0 ? camera_near : shadow_limiter[i];
-		far = i == 4 ? camera_far : shadow_limiter[i];
+		near = i == 0 ? camera_near : shadow_limiter.at(i-1);
+		far = i == 4 ? camera_far : shadow_limiter.at(i);
 		std::vector<glm::vec4> frustum_points = get_frustum_points(near, far, scene);
 		glm::mat4 light_matrix = get_stratified_matrix(frustum_points, light);
 		re.emplace_back(light_matrix);
@@ -359,15 +368,19 @@ void ShadowPass::init_framebuffers(const std::shared_ptr<RenderScene>& scene)
 	unsigned int num_direction_lights = scene->directionLights.size();
 	unsigned int num_point_lights = scene->pointLights.size();
 
+	glCheckError();
 	for (const auto& light : scene->directionLights)
 	{
 		light->shadowTex->genTextureArray(
-			GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT, cascaded_map_resolution, cascaded_map_resolution, 0, cascaded_lays
+			GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT, cascaded_map_resolution, cascaded_map_resolution, 0, cascaded_layers
 		);
 
 		auto new_framebuffer = std::make_shared<FrameBuffer>();
 		new_framebuffer->bindBuffer();
 		new_framebuffer->bindShadowTexture(light->shadowTex, GL_DEPTH_ATTACHMENT);
+		glDrawBuffer(GL_NONE);
+		glReadBuffer(GL_NONE);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		//add to vectors
 		frameBuffer_dirs.emplace_back(new_framebuffer);
 	}
@@ -377,12 +390,25 @@ void ShadowPass::init_framebuffers(const std::shared_ptr<RenderScene>& scene)
 		auto new_framebuffer = std::make_shared<FrameBuffer>();
 		new_framebuffer->bindBuffer();
 		new_framebuffer->bindShadowTexture(light->shadowTex, GL_DEPTH_ATTACHMENT);
+		glDrawBuffer(GL_NONE);
+		glReadBuffer(GL_NONE);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		//add to vectors
 		frameBuffer_points.emplace_back(new_framebuffer);
 	}
-	dirty = true;
+	glCheckError();
+	dirty = false;
 	//once we generate these framebuffers, we set dirty as true to avoid repeatedly do these procedures in every pass
+}
 
+unsigned int ShadowPass::get_UBO()const
+{
+	return this->matrixUBO;
+}
+
+std::vector<float> ShadowPass::get_shadow_limiter() const
+{
+	return this->shadow_limiter;
 }
 
 DepthPass::DepthPass() {
@@ -580,35 +606,75 @@ void DeferredPass::renderGbuffer(const std::shared_ptr<RenderScene>& scene) {
 
 void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 	// renderScene
-	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	//bindings
+	if (cascaded_matrix_UBO) {
+		//assert(cascaded_matrix_UBO != 0);
+		glBindBufferBase(GL_UNIFORM_BUFFER, 5, cascaded_matrix_UBO);
+	}
+
 	postBuffer->bindBuffer();
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
 	lightingShader->use();
 	// bind textures
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, gPosition->id);
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, gNormal->id);
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, gAlbedoSpec->id);
 	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_2D, gPBR->id);
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_2D, gPosition->id);
+	glCheckError();
+	
 
-	lightingShader->setInt("gPosition", 0);
+	//int i = 0;
+	int base = 5;// already 4 texture units occupied
+	for (int i = 0; i < scene->directionLights.size();++i)
+	{
+		int texture_unit_index = i + base;
+		glActiveTexture(GL_TEXTURE0 + texture_unit_index);
+		glBindTexture(GL_TEXTURE_2D_ARRAY, scene->directionLights.at(i)->shadowTex->id);
+		lightingShader->setInt("shadow_maps[" + std::to_string(i) + "]", texture_unit_index);
+	}
+	glCheckError();
+
+	base += scene->directionLights.size();
+	for (int i = 0; i < scene->pointLights.size(); ++i)
+	{
+		int texture_unit_index = i + base;
+		glActiveTexture(GL_TEXTURE0 + texture_unit_index);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, scene->pointLights.at(i)->shadowTex->id);
+		lightingShader->setInt("shadow_cubes[" + std::to_string(i) + "]", texture_unit_index);
+	}
+	glCheckError();
+
+	lightingShader->setInt("gPosition", 4);
 	lightingShader->setInt("gNormal", 1);
 	lightingShader->setInt("gAlbedoSpec", 2);
 	lightingShader->setInt("gPBR", 3);
 
+	lightingShader->setFloat("far_plane", scene->main_camera->zFar);
+	lightingShader->setInt("cascaded_levels", 4);
+	
+	for (unsigned int i = 0; i < 4; i++)
+		lightingShader->setFloat("cascaded_distances[" + std::to_string(i) + "]", shadow_limiter[i]);
+	glCheckError();
+	
 	// set uniforms
 	if (scene->main_camera) {
-		lightingShader->setVec3("camPos", scene->main_camera->Position);
+		//lightingShader->setVec3("camPos", scene->main_camera->Position);	
+
+		lightingShader->setFloat("far_plane", scene->main_camera->zFar);
+		lightingShader->setInt("cascaded_levels", 5);
 	}
+	glCheckError();
 
 	// render quad
 	renderQuad();
 
+	glCheckError();
 	// copy renderbuffer
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer->FBO);
 	//glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
@@ -617,8 +683,9 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 	int height = inputManager->height;
 	glBlitFramebuffer(0, 0, width, height,
 		0, 0, width, height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+	glCheckError();
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	postBuffer->bindBuffer();
 
 	// forward rendering 
@@ -635,6 +702,12 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 	if (scene->sky) {
 		scene->sky->render(nullptr);
 	}
+}
+
+void DeferredPass::renderAlphaObjects(const std::shared_ptr<RenderScene>& scene)
+{
+	if (scene->terrain->GetComponent("Ocean") != nullptr)
+		std::static_pointer_cast<Ocean>((scene->terrain->GetComponent("Ocean")))->render();
 }
 
 void DeferredPass::postProcess(const std::shared_ptr<RenderScene>& scene) {
@@ -733,15 +806,17 @@ void RSMPass::render(const std::shared_ptr<RenderScene>& scene) {
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
 	//TODO:set light uniform
-	glm::vec3 lightPos = glm::vec3(0.0f, 0.0f, 0.0f);
-	glm::vec3 lightColor = glm::vec3(0.6f, 0.6f, 0.6f);
-	glm::mat4 lightProjection = glm::perspective(glm::radians(60.0f), (float)RSM_WIDTH / (float)RSM_HEIGHT, light_near_plane, light_far_plane);
-	glm::mat4 lightView = glm::lookAt(lightPos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	auto light = scene->spotLights[0];
+	auto trans = std::static_pointer_cast<Transform>(light->gameObject->GetComponent("Transform"));
+	glm::vec3 lightPos = trans->position;
+	glm::mat4 lightProjection = glm::perspective(glm::radians(60.0f), (float)RSM_WIDTH / (float)RSM_HEIGHT, light->near, light->far);
+	glm::mat4 lightView = glm::lookAt(lightPos, lightPos + light->data.direction, glm::vec3(0.0f, 1.0f, 0.0f));
 	glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 	RSMShader->use();
 	RSMShader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
 	RSMShader->setVec3("light.Position", lightPos);
-	RSMShader->setVec3("light.Color", lightColor);
+	RSMShader->setVec3("light.Color", light->data.color);
+	RSMShader->setVec3("light.Direction", light->data.direction);
 
 	for (int i = 0; i < scene->objects.size(); i++) {
 		auto& object = scene->objects[i];

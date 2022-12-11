@@ -11,6 +11,7 @@
 #include"./component/Transform.h"
 #include"./component/Atmosphere.h"
 #include"./component/TerrainComponent.h"
+#include"./component/Ocean.h"
 #include<imgui/imgui_toggle.h>
 #include<filesystem>
 using namespace std::filesystem;
@@ -58,6 +59,13 @@ public:
 			}
 		}
 
+		if (ImGui::CollapsingHeader("Rendering")) {
+			static bool enableShadow = renderManager->setting.enableShadow;
+			if (ImGui::Toggle("Enable Shadow", &enableShadow)) {
+				renderManager->setting.enableShadow = enableShadow;
+			}
+		}
+
 		ImGui::Separator();
 		if (ImGui::CollapsingHeader("Point Light")) {
 			auto& lights = scene->pointLights;
@@ -68,9 +76,9 @@ public:
 				//auto& light = lights[0]; 
 				auto&& lightTrans = std::static_pointer_cast<Transform>(
 					lights[i]->gameObject->GetComponent("Transform"));
-				std::cout << "Light Transform :" << &lightTrans->position << '\n';
 				if (ImGui::SliderFloat3("Position", (float*)&lightTrans->position, -10.0f, 10.0f))
 					lights[i]->setDirtyFlag(true);
+				//ImGui::Text("Light Position: (%f,%f,%f)", lightTrans->position.x, lightTrans->position.y, lightTrans->position.z);
 			}
 		}
 		if(ImGui::CollapsingHeader("Direction Light")){
@@ -83,11 +91,36 @@ public:
 				auto&& lightTrans = std::static_pointer_cast<Transform>(
 					dlights[i]->gameObject->GetComponent("Transform"));
 				auto&& lightData = dlights[i]->data;
-				bool change1 = ImGui::SliderFloat3("Position", (float*)&lightTrans->position, -10.0f, 1.0f);
-				bool change2 = ImGui::SliderFloat3("Direction", (float*)&lightData.direction, -1.0f, 1.0f);
-				if (change1 || change2) {
-					dlights[i]->setDirtyFlag(true);
-				}
+				//bool change1 = ImGui::SliderFloat3("Position", (float*)&lightTrans->position, -10.0f, 1.0f);
+				//bool change2 = ImGui::SliderFloat3("Direction", (float*)&lightData.direction, -1.0f, 1.0f);
+				ImGui::Text("Light Position: (%f,%f,%f)", lightTrans->position.x, lightTrans->position.y, lightTrans->position.z);
+				ImGui::Text("Light Direction: (%f,%f,%f)", lightData.direction.x, lightData.direction.y, lightData.direction.z);
+			
+				//if (change1 || change2) {
+					//dlights[i]->setDirtyFlag(true);
+				//}
+			}
+		}
+		if (ImGui::CollapsingHeader("Spot Light")) {
+			auto& slights = scene->spotLights;
+			for (int i = 0; i < slights.size(); i++) {
+				char title[] = "Spot Lighti Position";
+				title[15] = '0' + 0;
+				ImGui::Text(title);
+				//auto& light = lights[0]; 
+				auto&& lightTrans = std::static_pointer_cast<Transform>(
+					slights[i]->gameObject->GetComponent("Transform"));
+				auto&& lightData = slights[i]->data;
+				//bool change1 = ImGui::SliderFloat3("Position", (float*)&lightTrans->position, -10.0f, 1.0f);
+				//bool change2 = ImGui::SliderFloat3("Direction", (float*)&lightData.direction, -1.0f, 1.0f);
+				ImGui::Text("Light Position: (%f,%f,%f)", lightTrans->position.x, lightTrans->position.y, lightTrans->position.z);
+				ImGui::Text("Light Direction: (%f,%f,%f)", lightData.direction.x, lightData.direction.y, lightData.direction.z);
+			
+				ImGui::Text("CutOff: %f", lightData.cutOff);
+				ImGui::Text("OuterCutOff: %f", lightData.outerCutOff);
+				//if (change1 || change2) {
+					//slights[i]->setDirtyFlag(true);
+				//}
 			}
 		}
 
@@ -117,6 +150,25 @@ public:
 				else {
 					terrainComp->setPolyMode(GL_FILL);
 				}
+			}
+		}
+		// ocean
+		if (scene->terrain->GetComponent("Ocean") != nullptr) {
+			ImGui::Separator();
+			if (ImGui::CollapsingHeader("Ocean")) {
+				auto& oceanComp = std::static_pointer_cast<Ocean>(scene->terrain->GetComponent("Ocean"));
+
+				ImGui::InputFloat("BubblesScale", &oceanComp->BubblesScale);
+				ImGui::InputFloat("BubblesThreshold", &oceanComp->BubblesThreshold);
+				ImGui::InputFloat("TimeScale", &oceanComp->TimeScale);
+
+				ImGui::SliderFloat("FresnelScale", &oceanComp->outer_FresnelScale, 0.0f, 1.0f);
+				ImGui::SliderFloat3("OceanColorShallow", (float*)&oceanComp->outer_OceanColorShallow, 0.0f, 1.0f);
+				ImGui::SliderFloat3("OceanColorDeep", (float*)&oceanComp->outer_OceanColorDeep, 0.0f, 1.0f);
+				ImGui::SliderFloat3("BubblesColor", (float*)&oceanComp->outer_BubblesColor, 0.0f, 1.0f);
+				ImGui::SliderFloat3("Specular", (float*)&oceanComp->outer_Specular, 0.0f, 1.0f);
+				ImGui::SliderInt("Gloss", &oceanComp->outer_Gloss, 0, 512);
+				ImGui::SliderFloat3("ambient", (float*)&oceanComp->outer_ambient, 0.0f, 1.0f);
 			}
 		}
 

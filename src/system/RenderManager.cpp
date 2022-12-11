@@ -27,7 +27,8 @@ RenderManager::RenderManager() {
 	// setting
 	setting = RenderSetting{
 		true, // enableHDR
-		true //useDeferred
+		true, //useDeferred
+		true// enable shadow
 	};
 
 }
@@ -37,12 +38,14 @@ void RenderManager::init() {
 	initVPbuffer();
 	initPointLightBuffer();
 	initDirectionLightBuffer();
+	initSpotLightBuffer();
 	initRenderPass();
 }
 
 void RenderManager::initRenderPass() {
 	// render Pass initialization 
 	rsmPass = std::make_shared<RSMPass>();
+	shadowPass = std::make_shared<ShadowPass>();
 	if (setting.useDefer) {
 		deferredPass = std::make_shared<DeferredPass>();
 		rsmPass = std::make_shared<RSMPass>();
@@ -57,7 +60,7 @@ void RenderManager::initRenderPass() {
 void RenderManager::initVPbuffer() {
 	// initialize a UBO for VP matrices
 	uniformVPBuffer = std::make_shared<UniformBuffer>(
-			2 * sizeof(glm::mat4)
+			2 * sizeof(glm::mat4) + 2* sizeof(glm::vec3)
 		); 
 	// set binding point
 	uniformVPBuffer->setBinding(0);
@@ -99,6 +102,7 @@ void RenderManager::prepareVPData(const std::shared_ptr<RenderScene>& renderScen
 
 	const glm::mat4& projection = camera->GetPerspective();
 	const glm::mat4& view = camera->GetViewMatrix();
+	const glm::vec3& pos = camera->Position;
 	//glm::mat4 skyboxView = glm::mat4(glm::mat3(view));
 	
 	// update every frame
@@ -107,6 +111,7 @@ void RenderManager::prepareVPData(const std::shared_ptr<RenderScene>& renderScen
 		GLuint UBO = uniformVPBuffer->UBO;
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(projection));
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4),sizeof(glm::mat4), glm::value_ptr(view));
+		glBufferSubData(GL_UNIFORM_BUFFER, 128, sizeof(glm::vec3), glm::value_ptr(pos));
 	}
 
 	// update every frame: skybox view
@@ -283,16 +288,23 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	glCheckError();
 	prepareDirectionLightData(scene);
 	glCheckError();
+	prepareSpotLightData(scene);
+	glCheckError();
 	prepareCompData(scene);
 	
 	//TODO:
-	//rsmPass->render(scene);
+	//  rsmPass->render(scene);
 
-	// deferred pass
+	//shadow pass
+	if (setting.enableShadow) {
+		shadowPass->render(scene);
+		pass_data();
+	}
 	if (setting.useDefer) {
-		//
+		// deferred pass
 		deferredPass->renderGbuffer(scene);
 		deferredPass->render(scene);
+		deferredPass->renderAlphaObjects(scene);
 		deferredPass->postProcess(scene);
 	}
 	else 
@@ -395,11 +407,17 @@ std::shared_ptr<Shader> RenderManager::generateShader(ShaderType type) {
 			break;
 		case ShaderType::DEPTH:
 			return std::make_shared<Shader>(
-				"./src/shader/shadow/depth.vs","./src/shader/shadow/shadow.fs"
+				"./src/shader/shadow/depth.vs","./src/shader/shadow/depth.fs"
 				);
 		default:
 			std::cerr << "No such shader type" << '\n';
 			break;
 	}
 	//return std::make_shared<Shader>(nullptr, nullptr, nullptr, nullptr, nullptr);
+}
+
+void RenderManager::pass_data()
+{
+	this->deferredPass->cascaded_matrix_UBO = this->shadowPass->get_UBO();
+	this->deferredPass->shadow_limiter = this->shadowPass->get_shadow_limiter();
 }

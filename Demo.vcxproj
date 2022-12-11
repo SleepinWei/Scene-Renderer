@@ -170,6 +170,7 @@
     <ClCompile Include="src\component\Grass.cpp" />
     <ClCompile Include="src\component\Lights.cpp" />
     <ClCompile Include="src\component\Model.cpp" />
+    <ClCompile Include="src\component\Ocean.cpp" />
     <ClCompile Include="src\component\TerrainComponent.cpp" />
     <ClCompile Include="src\component\transform.cpp" />
     <ClCompile Include="src\main.cpp" />
@@ -225,6 +226,7 @@
     <ClInclude Include="src\component\Grass.h" />
     <ClInclude Include="src\component\Lights.h" />
     <ClInclude Include="src\component\Model.h" />
+    <ClInclude Include="src\component\Ocean.h" />
     <ClInclude Include="src\component\TerrainComponent.h" />
     <ClInclude Include="src\component\transform.h" />
     <ClInclude Include="src\GUI.h" />

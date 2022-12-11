@@ -13,6 +13,7 @@ class BasePass;
 class DepthPass;
 class DeferredPass;
 class RSMPass;
+class ShadowPass;
 
 enum class ShaderType {
 	SIMPLE = 0,
@@ -35,6 +36,7 @@ enum class ShaderType {
 struct RenderSetting {
 	bool enableHDR;
 	bool useDefer;
+	bool enableShadow;
 };
 
 class RenderManager {
@@ -44,6 +46,9 @@ public:
 
 	void init();
 	void render(const std::shared_ptr<RenderScene>& scene);
+
+	//add a tool function to pass the UBO and a cascaded levels from shadow pass to deferred pass.
+	void pass_data();
 
 	std::shared_ptr<Shader> getShader(ShaderType type);
 
@@ -56,7 +61,6 @@ private:
 	void prepareDirectionLightData(const std::shared_ptr<RenderScene>& renderScene);
 	void prepareSpotLightData(const std::shared_ptr<RenderScene>& renderScene);
 	void prepareCompData(const std::shared_ptr<RenderScene>& scene);
-
 	void initRenderPass();
 	void initVPbuffer();
 	void initPointLightBuffer();
@@ -75,6 +79,8 @@ public:
 	std::shared_ptr<DepthPass> depthPass;
 	//std::shared_ptr<ShadowPass> shadowPass;
 	std::shared_ptr<RSMPass> rsmPass;
+
+	std::shared_ptr<ShadowPass> shadowPass;
 	std::shared_ptr<DeferredPass> deferredPass;
 
 	// uniform buffer

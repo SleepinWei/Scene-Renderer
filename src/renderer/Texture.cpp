@@ -1,6 +1,7 @@
 #include<glad/glad.h>
 #include"Texture.h"
 #include<libdds/libdds_opengl.h>
+#include<assert.h>
 #define STB_IMAGE_IMPLEMENTATION
 
 Texture::Texture() {
@@ -199,6 +200,9 @@ std::shared_ptr<Texture> Texture::genTextureAsync(unsigned int DataType, unsigne
 }
 
 std::shared_ptr<Texture> Texture::genCubeMap(GLenum format, int width,int height) {
+	//if (id)
+		//return shared_from_this();
+	assert(id == 0);
 	glGenTextures(1, &id);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, id);
 	for (int i = 0; i < 6; i++) {
@@ -215,8 +219,9 @@ std::shared_ptr<Texture> Texture::genCubeMap(GLenum format, int width,int height
 
 std::shared_ptr<Texture> Texture::genTextureArray(GLenum internalformat, GLenum format, GLenum type, int width, int height, int mipmap_level,int layers)
 {
-	if (this->id)
-		return shared_from_this();
+	//if (this->id)
+		//return shared_from_this();
+	assert(id == 0);
 	glGenTextures(1, &this->id);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, this->id);
 	glTexImage3D(

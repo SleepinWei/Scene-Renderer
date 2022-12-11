@@ -2,6 +2,7 @@ build/
 dll/
 # lib/
 .vs/
+.history/
 .vscode/
 x64/
 .cache/
@@ -29,3 +30,4 @@ package.json
 node_modules/
 *.js
 *.json
+*.rar

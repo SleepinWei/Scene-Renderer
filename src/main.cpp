@@ -50,7 +50,6 @@ extern std::shared_ptr<ModelLoader> modelLoader;
 
 //#define TEST
 //#ifndef TEST
-void loadModel(std::shared_ptr<RenderScene> scene);
 void render() {
 	glfwInit();
 	GLFWwindow* window; 
@@ -98,6 +97,7 @@ void render() {
 		}
 
 		renderManager->render(scene);
+		glCheckError();
 
 		gui.render();
 		inputManager->reset();

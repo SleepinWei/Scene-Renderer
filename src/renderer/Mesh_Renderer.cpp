@@ -114,8 +114,10 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 	if (!mesh_filter) {
 		return;
 	}
+	if (glCheckError() == GL_INVALID_OPERATION) {
+		int  i = 1;;
+	}
 
-	material->genTexture();
 	
 	//std::shared_ptr<Shader> shader = material->shader; 
 	
@@ -135,6 +137,7 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 		actualShader->setMat4("model", model);
 		if (actualShader->requireMat==true)
 		{
+			material->genTexture();
 			//glEnable(GL_DEPTH_TEST);
 			//glEnable(GL_CULL_FACE);
 
@@ -157,13 +160,15 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 			}
 		}
 
+		glCheckError();
 		glBindVertexArray(VAO);
 		assert(VAO > 0);
 		{
 			if (polyMode == GL_LINE) {
-				glPolygonMode(GL_FRONT_AND_BACK, polyMode);
+				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			}
-			glPatchParameteri(GL_PATCH_VERTICES, 3);
+			if(drawMode == GL_PATCHES)
+				glPatchParameteri(GL_PATCH_VERTICES, 3);
 			// --- end debug
 			glDrawElements(drawMode, indices.size(), GL_UNSIGNED_INT, 0);
 			if (polyMode == GL_LINE) {
@@ -171,6 +176,7 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 			}
 		}
 	}
+	glCheckError();
 	glBindVertexArray(0);
 }
 
@@ -194,6 +200,9 @@ void MeshRenderer::loadFromJson(json& data) {
 			}
 			else if (s_drawmode == "patches") {
 				drawMode_ = GL_PATCHES;
+			}
+			else if (s_drawmode == "point") {
+				drawMode_ = GL_POINTS;
 			}
 			this->setDrawMode(drawMode_);
 		}

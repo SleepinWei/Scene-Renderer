@@ -71,6 +71,9 @@ public:
 	~ShadowPass();
 
 	void render(const std::shared_ptr<RenderScene>& scene);
+	unsigned int get_UBO()const;
+	std::vector<float> get_shadow_limiter() const;  // only 4 elements ,so we pass the value directly
+
 public:
 	std::shared_ptr<Shader> shadowShader_dir; 
 	std::shared_ptr<Shader> shadowShader_point;
@@ -85,12 +88,14 @@ private:
 	void init_framebuffers(const std::shared_ptr<RenderScene>& scene);
 	unsigned int cube_map_resolution = 1024;
 	unsigned int cascaded_map_resolution = 2048;
-	unsigned int cascaded_lays = 5;
-	float shadow_limiter[4] = { 0,0,0,0 };
-	unsigned int  matrixUBO=0;
-	float near_for_pointlight = 0.0;
-	float far_for_pointlight = 0.0;  // the perspective parameter in generating shadow cube map
-	bool dirty = 0;
+	unsigned int cascaded_layers = 5;
+	
+	// float near_for_pointlight = 0.0;
+	// float far_for_pointlight = 0.0;  // the perspective parameter in generating shadow cube map
+	bool dirty = true;
+	std::vector<float> shadow_limiter= { 0,0,0,0 };
+	unsigned int  matrixUBO;
+
 
 };
 
@@ -102,6 +107,7 @@ public:
 
 	void renderGbuffer(const std::shared_ptr<RenderScene>& scene);
 	void render(const std::shared_ptr<RenderScene>& scene);
+	void renderAlphaObjects(const std::shared_ptr<RenderScene>& scene);
 	void postProcess(const std::shared_ptr<RenderScene>& scene);
 
 public:
@@ -120,6 +126,9 @@ public:
 	shared_ptr<Texture> gPBR;
 	shared_ptr<Texture> postTexture;
 	//shared_ptr<Texture> gPBR;
+
+	unsigned int cascaded_matrix_UBO=0;  // we will pass this 2 values from the shadow pass 
+	std::vector<float> shadow_limiter ={ 0,0,0,0 };
 private:
 	void initShader();
 	void initTextures();
@@ -143,7 +152,7 @@ public:
 	bool dirty;
 private:
 	const GLuint RSM_WIDTH = 1024, RSM_HEIGHT = 1024;
-	const float light_near_plane = 0.5f, light_far_plane = 20.0f;
+	// const float light_near_plane = 0.5f, light_far_plane = 20.0f;
 	void initShader();
 	GLuint createRandomTexture(int size=64);
 	void initTextures();
