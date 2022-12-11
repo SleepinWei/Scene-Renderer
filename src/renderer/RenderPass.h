@@ -145,7 +145,7 @@ public:
 	std::shared_ptr<Shader> RSMShader;
 	std::shared_ptr<Shader> indirectShader;
 	std::shared_ptr<FrameBuffer> rsmFBO; 
-	std::shared_ptr<FrameBuffer> postBuffer;
+	std::shared_ptr<FrameBuffer> rsmBuffer;
 	//std::shared_ptr<Texture> inTexture;
 	std::shared_ptr<Texture> outTexture;
 	std::shared_ptr<Texture> depthMap;
@@ -153,6 +153,8 @@ public:
 	std::shared_ptr<Texture> worldPosMap;
 	std::shared_ptr<Texture> fluxMap;
 	//std::shared_ptr<Texture> randomMap;
+	std::shared_ptr<RenderBuffer> rbo;
+
 	GLuint randomMap;
 	bool dirty;
 private:

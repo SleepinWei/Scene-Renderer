@@ -28,7 +28,8 @@ RenderManager::RenderManager() {
 	setting = RenderSetting{
 		true, // enableHDR
 		true, //useDeferred
-		false// enable shadow
+		false,// enable shadow
+		false
 	};
 
 }
@@ -293,7 +294,7 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	prepareCompData(scene);
 
 	//TODO:
-	 rsmPass->renderGbuffer(scene);
+	 //rsmPass->renderGbuffer(scene);
 
 	//shadow pass
 	if (setting.enableShadow) {
@@ -304,7 +305,10 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 		// deferred pass
 		deferredPass->renderGbuffer(scene);
 		deferredPass->render(scene);
-		rsmPass->render(scene);
+		if (setting.enableRSM) {
+			rsmPass->renderGbuffer(scene);
+			rsmPass->render(scene);
+		}
 		deferredPass->postProcess(scene);
 	}
 	else

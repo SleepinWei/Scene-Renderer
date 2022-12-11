@@ -147,7 +147,7 @@ std::shared_ptr<Texture> Texture::genTexture(unsigned int internalformat,unsigne
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	unsigned int dType; 
+	unsigned int dType = GL_UNSIGNED_BYTE;
 	switch (internalformat)
 	{
 	case GL_RGBA32F:
@@ -160,7 +160,7 @@ std::shared_ptr<Texture> Texture::genTexture(unsigned int internalformat,unsigne
 		dType = GL_UNSIGNED_BYTE;
 		break;
 	case GL_RGB:
-		dType = GL_UNSIGNED_BYTE;
+		dType = GL_FLOAT;
 		break;
 	case GL_RED:
 		dType = GL_UNSIGNED_BYTE;
@@ -240,5 +240,6 @@ std::shared_ptr<Texture> Texture::genTextureArray(GLenum internalformat, GLenum 
 
 void Texture::bind(unsigned int target, int binding) {
 	glActiveTexture(GL_TEXTURE0 + binding);
+	assert(id != 0);
 	glBindTexture(target, this->id);
 }

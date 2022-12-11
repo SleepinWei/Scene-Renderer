@@ -706,7 +706,10 @@ void DeferredPass::postProcess(const std::shared_ptr<RenderScene>& scene) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, postTexture->id);
+	if(renderManager->setting.enableRSM)
+		glBindTexture(GL_TEXTURE_2D, renderManager->rsmPass->outTexture->id);
+	else 
+		glBindTexture(GL_TEXTURE_2D, postTexture->id);
 
 	postProcessShader->use();
 	postProcessShader->setFloat("exposure", scene->main_camera->exposure);
@@ -757,18 +760,19 @@ GLuint RSMPass::createRandomTexture(int size) {
 }
 void RSMPass::initTextures() {
 	rsmFBO = std::make_shared<FrameBuffer>();
-	postBuffer = std::make_shared<FrameBuffer>();
+	rsmBuffer = std::make_shared<FrameBuffer>();
 
 	depthMap = std::make_shared<Texture>();
 	normalMap = std::make_shared<Texture>();
 	worldPosMap = std::make_shared<Texture>();
 	fluxMap = std::make_shared<Texture>();
 	outTexture = std::make_shared<Texture>();
+	rbo = std::make_shared<RenderBuffer>();
 	randomMap = createRandomTexture();
 	depthMap->genTexture(GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, RSM_WIDTH, RSM_HEIGHT);
-	normalMap->genTexture(GL_RGBA16F, GL_RGBA, RSM_WIDTH, RSM_HEIGHT);
-	worldPosMap->genTexture(GL_RGBA16F, GL_RGBA, RSM_WIDTH, RSM_HEIGHT);
-	fluxMap->genTexture(GL_RGBA16F, GL_RGBA, RSM_WIDTH, RSM_HEIGHT);
+	normalMap->genTexture(GL_RGB32F, GL_RGB, RSM_WIDTH, RSM_HEIGHT);
+	worldPosMap->genTexture(GL_RGB32F, GL_RGB, RSM_WIDTH, RSM_HEIGHT);
+	fluxMap->genTexture(GL_RGB32F, GL_RGB, RSM_WIDTH, RSM_HEIGHT);
 }
 
 void RSMPass::renderGbuffer(const std::shared_ptr<RenderScene>& scene) {
@@ -802,7 +806,7 @@ void RSMPass::renderGbuffer(const std::shared_ptr<RenderScene>& scene) {
 	auto& light = scene->spotLights[0];
 	auto trans = std::static_pointer_cast<Transform>(light->gameObject->GetComponent("Transform"));
 	glm::vec3 lightPos = trans->position;
-	glm::mat4 lightProjection = glm::perspective(glm::radians(60.0f), (float)RSM_WIDTH / (float)RSM_HEIGHT, light->near, light->far);
+	glm::mat4 lightProjection = glm::perspective(glm::radians(100.0f), (float)RSM_WIDTH / (float)RSM_HEIGHT, light->near, light->far);
 	glm::mat4 lightView = glm::lookAt(lightPos, lightPos + light->data.direction, glm::vec3(0.0f, 1.0f, 0.0f));
 	glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 	RSMShader->use();
@@ -838,24 +842,29 @@ void RSMPass::renderGbuffer(const std::shared_ptr<RenderScene>& scene) {
 
 void RSMPass::render(const std::shared_ptr<RenderScene>& scene) {
 	// post buffer
-	if (postBuffer->dirty) {
+	if (rsmBuffer->dirty) {
 		// set attachments
-		postBuffer->dirty = false;
+		rsmBuffer->dirty = false;
 		outTexture->genTexture(GL_RGBA16F, GL_RGBA, inputManager->width, inputManager->height);
-		postBuffer->bindTexture(outTexture, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
+		rsmBuffer->bindTexture(outTexture, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
 
-		postBuffer->bindBuffer();
+		rbo->genBuffer(inputManager->width, inputManager->height);
+		rsmBuffer->bindBuffer();
+		// - Attach buffers
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo->rbo);
 		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 			std::cout << "Framebuffer not complete!" << std::endl;
 	}
 
-	postBuffer->bindBuffer();
+	rsmBuffer->bindBuffer();
 
 	//°ó¶¨ÎÆÀí
-	depthMap->bind(GL_TEXTURE_2D, 0);
-	normalMap->bind(GL_TEXTURE_2D, 1);
-	worldPosMap->bind(GL_TEXTURE_2D, 2);
-	fluxMap->bind(GL_TEXTURE_2D, 3);
+	depthMap->bind(GL_TEXTURE_2D, 20);
+	normalMap->bind(GL_TEXTURE_2D, 21);
+	worldPosMap->bind(GL_TEXTURE_2D, 22);
+	fluxMap->bind(GL_TEXTURE_2D, 23);
+	renderManager->deferredPass->postTexture->bind(GL_TEXTURE_2D, 24);
+
 	glActiveTexture(GL_TEXTURE4);
 	glBindTexture(GL_TEXTURE_2D, randomMap);
 	//TODO: bind deffer postTexture -> 5
@@ -873,12 +882,14 @@ void RSMPass::render(const std::shared_ptr<RenderScene>& scene) {
 	glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 	indirectShader->use();
 	indirectShader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
-	indirectShader->setInt("depthMap", 0);
-	indirectShader->setInt("normalMap", 1);
-	indirectShader->setInt("worldPosMap", 2);
-	indirectShader->setInt("fluxMap", 3);
+	indirectShader->setInt("depthMap", 20);
+	indirectShader->setInt("normalMap", 21);
+	indirectShader->setInt("worldPosMap", 22);
+	indirectShader->setInt("fluxMap", 23);
+	indirectShader->setInt("inTexture", 24);
 	indirectShader->setInt("randomMap", 4);
-	indirectShader->setInt("inTexture", 5);
+	indirectShader->setInt("sample_num", 64);
+	indirectShader->setFloat("sample_radius", 0.3);
 
 	for (int i = 0; i < scene->objects.size(); i++) {
 		auto& object = scene->objects[i];

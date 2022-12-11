@@ -37,6 +37,7 @@ struct RenderSetting {
 	bool enableHDR;
 	bool useDefer;
 	bool enableShadow;
+	bool enableRSM;
 };
 
 class RenderManager {
