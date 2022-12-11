@@ -1,7 +1,7 @@
 #version 430 core
-layout (location=0) out vec4 normal;
-layout (location=1) out vec4 worldPos;
-layout (location=2) out vec4 flux;
+layout (location=0) out vec3 normal;
+layout (location=1) out vec3 worldPos;
+layout (location=2) out vec3 flux;
 
 in struct Object{
     vec3 Position;
@@ -52,11 +52,11 @@ vec3 getNormalFromMap()
 
 void main()
 {
-    worldPos.rgb = object.Position;
+    worldPos = object.Position;
     vec3 N = getNormalFromMap();
-    normal.rgb = normalize(N);
+    normal = normalize(N);
 
-    vec3 lightDir = normalize(light.Position - worldPos.rgb);
-	float diff = max(0.0, dot(normal.rgb, lightDir));
-	flux.rgb = diff*texture(material.albedo, object.TexCoords).xyz*light.Color;
+    vec3 lightDir = normalize(light.Position - worldPos);
+	float diff = max(0.0, dot(normal, lightDir));
+	flux = diff*texture(material.albedo, object.TexCoords).xyz*light.Color;
 }
