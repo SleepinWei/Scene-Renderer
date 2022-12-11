@@ -76,7 +76,7 @@ public:
     glm::vec3 outer_BubblesColor = pow(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(2.2f, 2.2f, 2.2f));
     glm::vec3 outer_Specular = pow(glm::vec3(0.3962264f, 0.3943574f, 0.3943574f), glm::vec3(2.2f, 2.2f, 2.2f));
     int outer_Gloss = 256;//256
-    glm::vec3 outer_ambient = pow(glm::vec3(54, 58, 66) / 256.0f, glm::vec3(2.2f, 2.2f, 2.2f));//material.ka
+    glm::vec3 outer_ambient = pow(glm::vec3(0, 0, 0) / 256.0f, glm::vec3(2.2f, 2.2f, 2.2f));//material.ka
 
 private:
     //Mesh data

@@ -570,7 +570,6 @@ void DeferredPass::renderGbuffer(const std::shared_ptr<RenderScene>& scene) {
 		glDrawBuffers(4, attachments);
 
 		// post buffer
-		postBuffer->bindTexture(postTexture, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
 		postBuffer->bindBuffer();
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, postRbo->rbo);
 		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
@@ -618,8 +617,8 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 	}
 
 	postBuffer->bindBuffer();
-	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	lightingShader->use();
 	// bind textures
@@ -690,6 +689,7 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 	glCheckError();
 
 	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	postBuffer->bindTexture(postTexture, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
 	postBuffer->bindBuffer();
 
 	// forward rendering
@@ -710,8 +710,18 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 
 void DeferredPass::renderAlphaObjects(const std::shared_ptr<RenderScene>& scene)
 {
+	// 绑定FrameBuffer
+	if (renderManager->setting.enableRSM)
+		postBuffer->bindTexture(renderManager->rsmPass->outTexture, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
+	postBuffer->bindBuffer();
+
+	//postTexture = alphaTexture;
 	if (scene->terrain->GetComponent("Ocean") != nullptr)
+	{
+		shared_ptr<Ocean> ocean = std::static_pointer_cast<Ocean>((scene->terrain->GetComponent("Ocean")));
+		shared_ptr<Shader> oceanShader = ocean->draw_shader;
 		std::static_pointer_cast<Ocean>((scene->terrain->GetComponent("Ocean")))->render();
+	}
 }
 
 void DeferredPass::postProcess(const std::shared_ptr<RenderScene>& scene) {
@@ -719,9 +729,9 @@ void DeferredPass::postProcess(const std::shared_ptr<RenderScene>& scene) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glActiveTexture(GL_TEXTURE0);
-	if(renderManager->setting.enableRSM)
+	if (renderManager->setting.enableRSM)
 		glBindTexture(GL_TEXTURE_2D, renderManager->rsmPass->outTexture->id);
-	else 
+	else
 		glBindTexture(GL_TEXTURE_2D, postTexture->id);
 
 	postProcessShader->use();
@@ -851,7 +861,6 @@ void RSMPass::renderGbuffer(const std::shared_ptr<RenderScene>& scene) {
 	//}
 	// no sky
 }
-
 
 void RSMPass::render(const std::shared_ptr<RenderScene>& scene) {
 	// post buffer

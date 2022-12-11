@@ -6,12 +6,16 @@
 #include"Ocean.h"
 #include"../buffer/ImageTexture.h"
 #include"../renderer/Texture.h"
+#include"../system/RenderManager.h"
+#include"../renderer/Renderpass.h"
 //#include"../buffer/UniformBuffer.h"
 #include"../utils/Shader.h"
 #include"../utils/Utils.h"
 #include<utility>
 #include<random>
 #include<time.h>
+
+extern std::unique_ptr<RenderManager> renderManager;
 
 Ocean::Ocean()
 {
@@ -420,13 +424,21 @@ void Ocean::Draw()
     glBindTexture(GL_TEXTURE_2D, BubblesRT_Texture->tex->id);
     draw_shader->setInt("BubblesRT", 2);//此时通过名字查找，而非binding号
 
+    // 绑定之前的图像和深度
+    glActiveTexture(GL_TEXTURE3);
+    if (renderManager->setting.enableRSM)
+        glBindTexture(GL_TEXTURE_2D, renderManager->rsmPass->outTexture->id);
+    else
+        glBindTexture(GL_TEXTURE_2D, renderManager->deferredPass->postTexture->id);
+    draw_shader->setInt("PrevTexture", 3);
+
     //glActiveTexture(GL_TEXTURE3);
     //glBindTexture(GL_TEXTURE_2D, SkyView->tex->id);
     //draw_shader->setInt("SkyView", 3);
 
     //MVP
     glm::mat4 model = glm::mat4(1.0f);
-
+    
     draw_shader->setMat4("model", model);
     //draw_shader->setMat4("view", view);
     //draw_shader->setMat4("projection", projection);
@@ -441,5 +453,10 @@ void Ocean::Draw()
 
     glBindVertexArray(VAO);
     //glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+
+    // 此处需要开启混合功能
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDrawElements(GL_TRIANGLES, (MeshSize - 1) * (MeshSize - 1) * 6, GL_UNSIGNED_INT, 0);
+    glDisable(GL_BLEND);
 }
