@@ -763,6 +763,7 @@ void RSMPass::initTextures() {
 	normalMap = std::make_shared<Texture>();
 	worldPosMap = std::make_shared<Texture>();
 	fluxMap = std::make_shared<Texture>();
+	outTexture = std::make_shared<Texture>();
 	randomMap = createRandomTexture();
 	depthMap->genTexture(GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, RSM_WIDTH, RSM_HEIGHT);
 	normalMap->genTexture(GL_RGBA16F, GL_RGBA, RSM_WIDTH, RSM_HEIGHT);
@@ -840,6 +841,7 @@ void RSMPass::render(const std::shared_ptr<RenderScene>& scene) {
 	if (postBuffer->dirty) {
 		// set attachments
 		postBuffer->dirty = false;
+		outTexture->genTexture(GL_RGBA16F, GL_RGBA, inputManager->width, inputManager->height);
 		postBuffer->bindTexture(outTexture, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
 
 		postBuffer->bindBuffer();

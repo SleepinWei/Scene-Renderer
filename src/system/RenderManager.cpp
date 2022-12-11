@@ -28,7 +28,7 @@ RenderManager::RenderManager() {
 	setting = RenderSetting{
 		true, // enableHDR
 		true, //useDeferred
-		true// enable shadow
+		false// enable shadow
 	};
 
 }
