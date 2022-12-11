@@ -120,6 +120,7 @@ void HDRPass::render() {
 ShadowPass::ShadowPass() {
 	// TODO: init shadowShader: get from renderManager
 	shadowShader_dir =std::make_shared<Shader>("./src/shader/shadow/cascaded_shadow_depth.vs","./src/shader/shadow/cascaded_shadow_depth.fs","./src/shader/shadow/cascaded_shadow_depth.gs");
+	//shadowShader_dir = std::make_shared<Shader>("./src/shader/shadow/direction.vs", "./src/shader/shadow/direction.fs");
 	shadowShader_dir->requireMat = false;
 	shadowShader_point = std::make_shared<Shader>("./src/shader/shadow/point_shadow_depth.vs", "./src/shader/shadow/point_shadow_depth.fs", "./src/shader/shadow/point_shadow_depth.gs");
 	shadowShader_point->requireMat = false;
@@ -220,6 +221,10 @@ void ShadowPass::pointLightShadow(const std::shared_ptr<RenderScene>& scene) {
 	}
 }
 
+void ShadowPass::simpleDirectionShadow(const std::shared_ptr<RenderScene>& scene) {
+	// pass
+}
+
 void ShadowPass::directionLightShadow(const std::shared_ptr<RenderScene>& scene) {
 	//TODO:
 	auto& dLights = scene->directionLights;
@@ -247,25 +252,24 @@ void ShadowPass::directionLightShadow(const std::shared_ptr<RenderScene>& scene)
 		//send the matrices into the uniform variable in shaders
 		std::vector<glm::mat4> light_matrices = get_stratified_matrices(scene, light);
 
-
 		//binding an UBO
 		glBindBuffer(GL_UNIFORM_BUFFER, matrixUBO);
 		for (unsigned j = 0; j < light_matrices.size(); j++)
 		{
 			// i-th light j-th level
-			glBufferSubData(GL_UNIFORM_BUFFER, (i*cascaded_layers+j)* sizeof(glm::mat4), sizeof(glm::mat4), &light_matrices[i]);
+			glBufferSubData(GL_UNIFORM_BUFFER, (i*cascaded_layers+j)* sizeof(glm::mat4), sizeof(glm::mat4), &light_matrices[j]);
 		}
 		//glBindBuffer(GL_UNIFORM_BUFFER, 5);  // here we bind the matrices of all dir lights ,of all levels in the 5 binding points of uniform buffers
 		/*******/
 		
-		// for (unsigned i = 0; i < light_matrices.size(); i++)
-		// {
-		// 	shadowShader_dir->setMat4("lightSpaceMatrices[" + std::to_string(i) + "]", light_matrices.at(i));
-		// }
+		 for (unsigned i = 0; i < light_matrices.size(); i++)
+		 {
+		 	shadowShader_dir->setMat4("lightSpaceMatrices[" + std::to_string(i) + "]", light_matrices.at(i));
+		 }
 
 		glViewport(0, 0, this->cascaded_map_resolution, this->cascaded_map_resolution);
 		glClear(GL_DEPTH_BUFFER_BIT);
-		glCullFace(GL_FRONT);
+		// glCullFace(GL_FRONT);
 
 		//rendering
 		glCheckError();
@@ -276,7 +280,7 @@ void ShadowPass::directionLightShadow(const std::shared_ptr<RenderScene>& scene)
 			}
 		}
 
-		glCullFace(GL_BACK);
+		// glCullFace(GL_BACK);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 }
@@ -309,7 +313,8 @@ glm::mat4 ShadowPass::get_stratified_matrix(const std::vector<glm::vec4>& points
 	}
 
 	center /= points.size();  // the center of the frustum in world space
-	auto light_view = glm::lookAt(center + light->data.direction, center, glm::vec3(0.0, 1.0, 0.0));
+	// TODO: make the direction light outside of the house.
+	auto light_view = glm::lookAt(center - 1.0f * light->data.direction, center, glm::vec3(0.0, 1.0, 0.0));
 
 	float minX = std::numeric_limits<float>::max();
 	float maxX = std::numeric_limits<float>::min();
@@ -666,7 +671,7 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 		//lightingShader->setVec3("camPos", scene->main_camera->Position);	
 
 		lightingShader->setFloat("far_plane", scene->main_camera->zFar);
-		lightingShader->setInt("cascaded_levels", 5);
+		//lightingShader->setInt("cascaded_levels", 5);
 	}
 	glCheckError();
 

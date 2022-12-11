@@ -304,6 +304,7 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 		// deferred pass
 		deferredPass->renderGbuffer(scene);
 		deferredPass->render(scene);
+		//rsmPass->render(scene);
 		deferredPass->postProcess(scene);
 	}
 	else 

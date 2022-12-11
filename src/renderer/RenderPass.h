@@ -81,6 +81,7 @@ public:
 	std::vector<std::shared_ptr<FrameBuffer>> frameBuffer_points; 
 private:
 	void pointLightShadow(const std::shared_ptr<RenderScene>& scene);
+	void simpleDirectionShadow(const std::shared_ptr<RenderScene>& scene);
 	void directionLightShadow(const std::shared_ptr<RenderScene>& scene);
 	glm::mat4 get_stratified_matrix(const std::vector<glm::vec4>& points, const std::shared_ptr<DirectionLight>& light);
 	std::vector<glm::vec4> get_frustum_points(const float nearplane, const float farplane, const std::shared_ptr<RenderScene>& scene);
