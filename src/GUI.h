@@ -59,7 +59,7 @@ public:
 		}
 
 		if (ImGui::CollapsingHeader("Rendering")) {
-			static bool enableShadow = true;
+			static bool enableShadow = renderManager->setting.enableShadow;
 			if (ImGui::Toggle("Enable Shadow", &enableShadow)) {
 				renderManager->setting.enableShadow = enableShadow;
 			}

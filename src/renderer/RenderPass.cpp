@@ -136,7 +136,7 @@ ShadowPass::ShadowPass() {
 	// this way is kinda undecent ,but convenient.
 
 
-	glBindBufferBase(GL_UNIFORM_BUFFER, 5, matrixUBO);  //5 is the binding point
+	//glBindBufferBase(GL_UNIFORM_BUFFER, 5, matrixUBO);  //5 is the binding point
 	glBindBuffer(GL_UNIFORM_BUFFER,0);
 }
 
@@ -174,6 +174,7 @@ void ShadowPass::pointLightShadow(const std::shared_ptr<RenderScene>& scene) {
 		current_framebuffer->bindBuffer();
 		//glEnable(GL_DEPTH_TEST);
 		//glEnable(GL_CULL_FACE);
+		// glDisable(GL_CULL_FACE);
 
 		//current_framebuffer->bindShadowTexture(light->shadowTex, GL_DEPTH_ATTACHMENT);
 		//glDrawBuffer(GL_NONE);
@@ -211,7 +212,7 @@ void ShadowPass::pointLightShadow(const std::shared_ptr<RenderScene>& scene) {
 		{
 			std::shared_ptr<MeshRenderer>&& renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
 			if (renderer && renderer->drawMode == GL_TRIANGLES) { // due to geometry shader, drawing points is not allowed;
-				renderer->render(shadowShader_dir);
+				renderer->render(shadowShader_point);
 			}
 		}
 		glCheckError();
@@ -310,14 +311,12 @@ glm::mat4 ShadowPass::get_stratified_matrix(const std::vector<glm::vec4>& points
 	center /= points.size();  // the center of the frustum in world space
 	auto light_view = glm::lookAt(center + light->data.direction, center, glm::vec3(0.0, 1.0, 0.0));
 
-	float minX = std::numeric_limits<float>::min();
-	float maxX = std::numeric_limits<float>::max();
-	float minY = std::numeric_limits<float>::min();
-	float maxY = std::numeric_limits<float>::max();
-	float minZ = std::numeric_limits<float>::min();
-	float maxZ = std::numeric_limits<float>::max();
-
-
+	float minX = std::numeric_limits<float>::max();
+	float maxX = std::numeric_limits<float>::min();
+	float minY = std::numeric_limits<float>::max();
+	float maxY = std::numeric_limits<float>::min();
+	float minZ = std::numeric_limits<float>::max();
+	float maxZ = std::numeric_limits<float>::min();
 	
 	for (const auto& i : points)
 	{
@@ -607,7 +606,10 @@ void DeferredPass::renderGbuffer(const std::shared_ptr<RenderScene>& scene) {
 void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 	// renderScene
 	//bindings
-	glBindBufferBase(GL_UNIFORM_BUFFER, 5, cascaded_matrix_UBO);
+	if (cascaded_matrix_UBO) {
+		//assert(cascaded_matrix_UBO != 0);
+		glBindBufferBase(GL_UNIFORM_BUFFER, 5, cascaded_matrix_UBO);
+	}
 
 	postBuffer->bindBuffer();
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
@@ -615,19 +617,19 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 
 	lightingShader->use();
 	// bind textures
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, gPosition->id);
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, gNormal->id);
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, gAlbedoSpec->id);
 	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_2D, gPBR->id);
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_2D, gPosition->id);
 	glCheckError();
 	
-	unsigned base = 4;// already 4 texture units occupied
 
 	//int i = 0;
+	int base = 5;// already 4 texture units occupied
 	for (int i = 0; i < scene->directionLights.size();++i)
 	{
 		int texture_unit_index = i + base;
@@ -647,7 +649,7 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 	}
 	glCheckError();
 
-	lightingShader->setInt("gPosition", 0);
+	lightingShader->setInt("gPosition", 4);
 	lightingShader->setInt("gNormal", 1);
 	lightingShader->setInt("gAlbedoSpec", 2);
 	lightingShader->setInt("gPBR", 3);
