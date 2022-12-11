@@ -140,14 +140,20 @@ public:
 	~RSMPass();
 
 	void render(const std::shared_ptr<RenderScene>& scene);
+	void renderGbuffer(const std::shared_ptr<RenderScene>& scene);
 public:
 	std::shared_ptr<Shader> RSMShader;
+	std::shared_ptr<Shader> indirectShader;
 	std::shared_ptr<FrameBuffer> rsmFBO; 
+	std::shared_ptr<FrameBuffer> postBuffer;
+	//std::shared_ptr<Texture> inTexture;
+	std::shared_ptr<Texture> outTexture;
 	std::shared_ptr<Texture> depthMap;
 	std::shared_ptr<Texture> normalMap;
 	std::shared_ptr<Texture> worldPosMap;
 	std::shared_ptr<Texture> fluxMap;
 	//std::shared_ptr<Texture> randomMap;
+	GLuint randomMap;
 	bool dirty;
 private:
 	const GLuint RSM_WIDTH = 1024, RSM_HEIGHT = 1024;

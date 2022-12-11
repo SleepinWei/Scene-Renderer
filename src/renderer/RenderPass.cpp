@@ -31,7 +31,7 @@ void BasePass::render(const std::shared_ptr<RenderScene>& scene,const std::share
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
 	glCheckError();
-	for (auto object : scene->objects) {
+	for (auto& object : scene->objects) {
 		std::shared_ptr<MeshRenderer>&& renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
 		if (renderer && renderer->shader) {
 			renderer->render(outShader);
@@ -277,7 +277,7 @@ void ShadowPass::directionLightShadow(const std::shared_ptr<RenderScene>& scene)
 		glCullFace(GL_FRONT);
 
 		//rendering
-		for (auto object : scene->objects) {
+		for (auto& object : scene->objects) {
 			std::shared_ptr<MeshRenderer>&& renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
 			if (renderer) {
 				renderer->render(shadowShader_dir);
@@ -466,7 +466,7 @@ void DepthPass::render(const std::shared_ptr<RenderScene>& scene) {
 	glCheckError();
 
 	glCullFace(GL_BACK);
-	for (auto object : scene->objects) {
+	for (auto& object : scene->objects) {
 		std::shared_ptr<MeshRenderer>&& renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
 		if (renderer && renderer->shader) {
 			renderer->render(depthShader);
@@ -477,7 +477,7 @@ void DepthPass::render(const std::shared_ptr<RenderScene>& scene) {
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);//black
 	glCullFace(GL_FRONT);
-	for (auto object : scene->objects) {
+	for (auto& object : scene->objects) {
 		std::shared_ptr<MeshRenderer>&& renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
 		if (renderer && renderer->shader) {
 			renderer->render(depthShader);
@@ -723,7 +723,8 @@ RSMPass::~RSMPass() {
 void RSMPass::initShader() {
 	RSMShader = std::make_shared<Shader>("./src/shader/rsm/lightSpace.vs", "./src/shader/rsm/lightSpace.fs");
 	RSMShader->requireMat = true;
-
+	indirectShader = std::make_shared<Shader>("./src/shader/rsm/rsm.vs", "./src/shader/rsm/rsm.fs");
+	RSMShader->requireMat = true;
 	//RSMShader->use();
 }
 
@@ -753,19 +754,20 @@ GLuint RSMPass::createRandomTexture(int size) {
 }
 void RSMPass::initTextures() {
 	rsmFBO = std::make_shared<FrameBuffer>();
+	postBuffer = std::make_shared<FrameBuffer>();
 
 	depthMap = std::make_shared<Texture>();
 	normalMap = std::make_shared<Texture>();
 	worldPosMap = std::make_shared<Texture>();
 	fluxMap = std::make_shared<Texture>();
-	GLuint randomMap = createRandomTexture();
+	randomMap = createRandomTexture();
 	depthMap->genTexture(GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, RSM_WIDTH, RSM_HEIGHT);
 	normalMap->genTexture(GL_RGBA16F, GL_RGBA, RSM_WIDTH, RSM_HEIGHT);
 	worldPosMap->genTexture(GL_RGBA16F, GL_RGBA, RSM_WIDTH, RSM_HEIGHT);
 	fluxMap->genTexture(GL_RGBA16F, GL_RGBA, RSM_WIDTH, RSM_HEIGHT);
 }
 
-void RSMPass::render(const std::shared_ptr<RenderScene>& scene) {
+void RSMPass::renderGbuffer(const std::shared_ptr<RenderScene>& scene) {
 	if (rsmFBO->dirty) {
 		// set attachments
 		rsmFBO->dirty = false;
@@ -788,13 +790,12 @@ void RSMPass::render(const std::shared_ptr<RenderScene>& scene) {
 	}
 
 	rsmFBO->bindBuffer();
-	glClear(GL_DEPTH_BUFFER_BIT);
 	glViewport(0, 0, RSM_WIDTH, RSM_HEIGHT);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
 	//TODO:set light uniform
-	auto light = scene->spotLights[0];
+	auto& light = scene->spotLights[0];
 	auto trans = std::static_pointer_cast<Transform>(light->gameObject->GetComponent("Transform"));
 	glm::vec3 lightPos = trans->position;
 	glm::mat4 lightProjection = glm::perspective(glm::radians(60.0f), (float)RSM_WIDTH / (float)RSM_HEIGHT, light->near, light->far);
@@ -828,4 +829,57 @@ void RSMPass::render(const std::shared_ptr<RenderScene>& scene) {
 	//	terrain->render(nullptr);
 	//}
 	// no sky
+}
+
+
+void RSMPass::render(const std::shared_ptr<RenderScene>& scene) {
+	// post buffer
+	if (postBuffer->dirty) {
+		// set attachments
+		postBuffer->dirty = false;
+		postBuffer->bindTexture(outTexture, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
+
+		postBuffer->bindBuffer();
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+			std::cout << "Framebuffer not complete!" << std::endl;
+	}
+	
+	postBuffer->bindBuffer();
+
+	//°ó¶¨ÎÆÀí
+	depthMap->bind(GL_TEXTURE_2D, 0);
+	normalMap->bind(GL_TEXTURE_2D, 1);
+	worldPosMap->bind(GL_TEXTURE_2D, 2);
+	fluxMap->bind(GL_TEXTURE_2D, 3);
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_2D, randomMap);
+	//TODO: bind deffer postTexture -> 5
+
+	glViewport(0, 0, inputManager->width, inputManager->height);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+	//TODO:set light uniform
+	auto& light = scene->spotLights[0];
+	auto trans = std::static_pointer_cast<Transform>(light->gameObject->GetComponent("Transform"));
+	glm::vec3 lightPos = trans->position;
+	glm::mat4 lightProjection = glm::perspective(glm::radians(60.0f), (float)RSM_WIDTH / (float)RSM_HEIGHT, light->near, light->far);
+	glm::mat4 lightView = glm::lookAt(lightPos, lightPos + light->data.direction, glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+	indirectShader->use();
+	indirectShader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
+	indirectShader->setInt("depthMap", 0);
+	indirectShader->setInt("normalMap", 1);
+	indirectShader->setInt("worldPosMap", 2);
+	indirectShader->setInt("fluxMap", 3);
+	indirectShader->setInt("randomMap", 4);
+	indirectShader->setInt("inTexture", 5);
+
+	for (int i = 0; i < scene->objects.size(); i++) {
+		auto& object = scene->objects[i];
+		std::shared_ptr<MeshRenderer>&& renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
+		if (renderer && renderer->shader) {
+			renderer->render(indirectShader);
+		}
+	}
 }
