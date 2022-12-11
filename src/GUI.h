@@ -163,8 +163,8 @@ public:
 				ImGui::InputFloat("TimeScale", &oceanComp->TimeScale);
 
 				ImGui::SliderFloat("FresnelScale", &oceanComp->outer_FresnelScale, 0.0f, 1.0f);
-				ImGui::SliderFloat3("OceanColorShallow", (float*)&oceanComp->outer_OceanColorShallow, 0.0f, 1.0f);
-				ImGui::SliderFloat3("OceanColorDeep", (float*)&oceanComp->outer_OceanColorDeep, 0.0f, 1.0f);
+				ImGui::InputFloat3("OceanColorShallow", (float*)&oceanComp->outer_OceanColorShallow);
+				ImGui::InputFloat3("OceanColorDeep", (float*)&oceanComp->outer_OceanColorDeep);
 				ImGui::SliderFloat3("BubblesColor", (float*)&oceanComp->outer_BubblesColor, 0.0f, 1.0f);
 				ImGui::SliderFloat3("Specular", (float*)&oceanComp->outer_Specular, 0.0f, 1.0f);
 				ImGui::SliderInt("Gloss", &oceanComp->outer_Gloss, 0, 512);

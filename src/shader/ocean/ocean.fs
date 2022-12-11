@@ -5,7 +5,7 @@
 uniform sampler2D NormalRT;
 uniform sampler2D BubblesRT;
 // uniform sampler2D SkyView;
-
+uniform sampler2D PrevTexture;
 
 struct DirLight 
 {
@@ -77,17 +77,15 @@ void func()
     //diffuse
     float facing = clamp(dot(viewDir, normal),0.0f,1.0f);//cosθ         
     vec3 oceanColor=lerp(_OceanColorShallow,_OceanColorDeep,facing);//物体颜色，cosθ 线性插值
-    vec3 oceanDiffuse = dirLight.diffuse * oceanColor * clamp(dot(lightDir, normal),0.0f,1.0f);//海洋颜色-光照
+    vec3 oceanDiffuse = dirLight.diffuse * oceanColor * clamp(pow(dot(lightDir, normal), 20.0f),0.0f,1.0f);//海洋颜色-光照
     vec3 bubblesDiffuse = dirLight.diffuse * _BubblesColor *clamp(dot(lightDir, normal),0.0f,1.0f);//泡沫颜色-光照
     vec3 cur_diffuse =lerp(oceanDiffuse,bubblesDiffuse,bubbles);
     // vec3 cur_diffuse =oceanDiffuse;
 
-
-
     // vec3 reflectDir = reflect(-viewDir, normal);
     // vec3 sky = pow(texture(SkyView,reflectDir).xyz,vec3(2.2));
     // vec3 sky = vec3(1.0f,1.0f,1.0f);
-    // float fresnel = clamp(_FresnelScale + (1 - _FresnelScale) * pow(1 - dot(normal, viewDir), 5),0.0f,1.0f); //菲涅尔
+    float fresnel = clamp(_FresnelScale + (1 - _FresnelScale) * pow(1 - dot(normal, viewDir), 5),0.0f,1.0f); //菲涅尔
     // vec3 diffuse =lerp(cur_diffuse, sky, fresnel);
     vec3 diffuse =cur_diffuse;
 
@@ -102,7 +100,7 @@ void func()
     // result_color.y=pow(result_color.y,1/2.2f);
     // result_color.z=pow(result_color.z,1/2.2f);
 
-    FragColor=vec4(result_color, 1.0f);
+    FragColor=vec4(result_color, clamp(fresnel + 0.3f, 0.0f, 1.0f));
     // FragColor = vec4(1.0f);
 }
 
