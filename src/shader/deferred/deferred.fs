@@ -13,10 +13,11 @@ uniform sampler2D gPBR;
 #define MAX_LIGHT_NUM 10
 #define MAX_CASCADED_LEVEL 5
 
-uniform mat4 model; 
+// uniform mat4 model; 
 layout(std140,binding=0) uniform VP{
     mat4 projection;
     mat4 view;
+    vec3 camPos;
 };
 //uniform vec3 viewPos; // position of camera .. world space  
 //VIEW POS is CAMPOS
@@ -29,7 +30,7 @@ uniform int cascaded_levels;
 //PENDING UBO
 layout(std140,binding=5) uniform light_space_matrices_buffer
 {
-uniform mat4 light_space_matrices[MAX_CASCADED_LEVEL*MAX_LIGHT_NUM]; //directional light matrices
+    mat4 light_space_matrices[MAX_CASCADED_LEVEL*MAX_LIGHT_NUM]; //directional light matrices
 };
 /*******/
 
@@ -69,11 +70,7 @@ layout(std140,binding=3) uniform SpotLightBuffer{
     int sLightNum;
 };
 
-
-
-uniform vec3 camPos;
-
-
+// uniform vec3 camPos;
 // global variable
 vec3 albedo;
 float metallic;
@@ -132,7 +129,7 @@ float get_light_block_distance(vec2 coords_xy,float z,int layer,int order)
 
 float calculate_directional_shadow(vec3 fragPosWorldSpace,vec3 normal,int order)
 {
-    float re=0;
+    float re=0.0f;
 
     vec4 fragPosViewSpace =view* vec4(fragPosWorldSpace,1.0);
     float depth_value_view_space=abs(fragPosViewSpace.z);
@@ -149,7 +146,7 @@ float calculate_directional_shadow(vec3 fragPosWorldSpace,vec3 normal,int order)
     float depth_value_calculated=proj_coords.z;
 
     // if the z in the light space is out of the far_plane 
-    if(depth_value_calculated>1.0)
+    if(depth_value_calculated>1.0f)
     {
         re=0.0;
         return re;
@@ -198,7 +195,7 @@ float calculate_directional_shadow(vec3 fragPosWorldSpace,vec3 normal,int order)
 
 float calculate_point_shadow(vec3 fragPosWorldSpace,vec3 normal,int order)
 {
-    float re=0.0;
+    float re=0.0f;
     vec3 frag2light=fragPosWorldSpace-pointLights[order].Position;
     float depth_calculated=length(frag2light);
     vec3 grid_sample_directions[20] = vec3[]
@@ -209,17 +206,17 @@ float calculate_point_shadow(vec3 fragPosWorldSpace,vec3 normal,int order)
   vec3(1, 0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1, 0, -1),
   vec3(0, 1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0, 1, -1)
     );
-    int num_samples=20; // 20 representative directions
+    float num_samples=20.0f; // 20 representative directions
 
     float view_object_dis=length(camPos-fragPosWorldSpace);
     float bias=max(0.05*(1.0-dot(normal,fragPosWorldSpace-pointLights[order].Position)),0.05);
-    float radius;
+    float radius = 1.0f;
     for(int i=0;i<num_samples;i++)
     {
         float texture_depth=texture(shadow_cubes[order],frag2light+grid_sample_directions[i]*radius).r;
         texture_depth*=far_plane; // real distance in world space
         if(texture_depth+bias<depth_calculated)
-            re+=1.0;
+            re+=1.0f;
     }
     return re/num_samples;
 
@@ -335,17 +332,18 @@ vec3 shading(){
         float NdotL = max(dot(N_,L),0.0);
 
         // float attenuation = 1.0f;
-        float attenuation = calculateAtten(Position,light.Position);
+        float attenuation =min(1.0f,calculateAtten(Position,light.Position));
         vec3 radiance = light.Color * attenuation;
 
-        float shadow_factor=calculate_point_shadow(Position,N,i);
+        // float shadow_factor=calculate_point_shadow(Position,N,i);
+        float shadow_factor = 0.0f;
 
         finalColor +=(1.0-shadow_factor)*brdf * radiance * NdotL;
     }
     //directional lights
     for(int i =0;i<dLightNum;i++){
         DirectionLight light = directionLights[i];
-        vec3 L = normalize(light.Direction);
+        vec3 L = normalize(-light.Direction);
         vec3 N_ = N;
         if(isGrass>0.5f && dot(N,L)<0.0f){
             // if is grass, back is still bright;
@@ -358,7 +356,8 @@ vec3 shading(){
         float attenuation = 1.0f;
         vec3 radiance = light.Color * attenuation; 
 
-        float shadow_factor=calculate_directional_shadow(Position,N,i);
+        // float shadow_factor=calculate_directional_shadow(Position,N,i);
+        float shadow_factor = 0.0f;
         finalColor +=(1.0-shadow_factor)* brdf * radiance * NdotL;
         // finalColor += computeDirectionShading(object,directionLights[i],material);
     }

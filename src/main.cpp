@@ -97,6 +97,7 @@ void render() {
 		}
 
 		renderManager->render(scene);
+		glCheckError();
 
 		gui.render();
 		inputManager->reset();

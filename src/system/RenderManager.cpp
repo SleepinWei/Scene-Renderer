@@ -27,13 +27,14 @@ RenderManager::RenderManager() {
 	// setting
 	setting = RenderSetting{
 		true, // enableHDR
-		true //useDeferred
+		true, //useDeferred
+		true// enable shadow
 	};
 
 }
 
 void RenderManager::init() {
-	// UBOs 
+	// UBOs
 	initVPbuffer();
 	initPointLightBuffer();
 	initDirectionLightBuffer();
@@ -42,7 +43,7 @@ void RenderManager::init() {
 }
 
 void RenderManager::initRenderPass() {
-	// render Pass initialization 
+	// render Pass initialization
 	rsmPass = std::make_shared<RSMPass>();
 	// shadowPass = std::make_shared<ShadowPass>();
 	if (setting.useDefer) {
@@ -60,13 +61,13 @@ void RenderManager::initVPbuffer() {
 	// initialize a UBO for VP matrices
 	uniformVPBuffer = std::make_shared<UniformBuffer>(
 			2 * sizeof(glm::mat4) + 2* sizeof(glm::vec3)
-		); 
+		);
 	// set binding point
 	uniformVPBuffer->setBinding(0);
 }
 
 void RenderManager::initPointLightBuffer() {
-	const int maxLight = 10; 
+	const int maxLight = 10;
 	int lightBufferSize = maxLight * (32) + 16; // maximum 10 point lights, std140 layout
 	uniformPointLightBuffer = std::make_shared<UniformBuffer>(lightBufferSize);
 	// set binding point
@@ -74,8 +75,8 @@ void RenderManager::initPointLightBuffer() {
 }
 
 void RenderManager::initDirectionLightBuffer() {
-	const int maxLight = 10; 
-	int lightBufferSize = maxLight * (48) + 16; 
+	const int maxLight = 10;
+	int lightBufferSize = maxLight * (48) + 16;
 	uniformDirectionLightBuffer = std::make_shared<UniformBuffer>(lightBufferSize);
 	// set binding point
 	uniformDirectionLightBuffer->setBinding(2);
@@ -103,7 +104,7 @@ void RenderManager::prepareVPData(const std::shared_ptr<RenderScene>& renderScen
 	const glm::mat4& view = camera->GetViewMatrix();
 	const glm::vec3& pos = camera->Position;
 	//glm::mat4 skyboxView = glm::mat4(glm::mat3(view));
-	
+
 	// update every frame
 	if (uniformVPBuffer) {
 		uniformVPBuffer->bindBuffer();
@@ -129,9 +130,9 @@ void RenderManager::prepareVPData(const std::shared_ptr<RenderScene>& renderScen
 
 	// campos
 	for (auto& shader : m_shader) {
-		if (shader) { 
+		if (shader) {
 			shader->use();
-			shader->setVec3("camPos", renderScene->main_camera->Position); 
+			shader->setVec3("camPos", renderScene->main_camera->Position);
 		}
 	}
 }
@@ -153,7 +154,7 @@ void RenderManager::preparePointLightData(const std::shared_ptr<RenderScene>& sc
 	int lightNum = scene->pointLights.size();
 	int dataSize = 32; // data size for a single light (under std140 layout)
 	for (int i = 0; i < lightNum; i++) {
-		auto& light = scene->pointLights[i]; 
+		auto& light = scene->pointLights[i];
 		if (light) {
 			if (!light->dirty) {
 				// if not dirty, then pass
@@ -165,7 +166,7 @@ void RenderManager::preparePointLightData(const std::shared_ptr<RenderScene>& sc
 			if (transform) {
 				glBufferSubData(GL_UNIFORM_BUFFER,
 					0 + i * dataSize,
-					sizeof(glm::vec3), glm::value_ptr(data.color)); //color 
+					sizeof(glm::vec3), glm::value_ptr(data.color)); //color
 				glBufferSubData(GL_UNIFORM_BUFFER,
 					16 + i * dataSize,
 					sizeof(glm::vec3), glm::value_ptr(transform->position)); //position
@@ -181,7 +182,7 @@ void RenderManager::preparePointLightData(const std::shared_ptr<RenderScene>& sc
 }
 
 void RenderManager::prepareDirectionLightData(const std::shared_ptr<RenderScene>& scene) {
-	// update light data only when dirty 
+	// update light data only when dirty
 	//if (uniformDirectionLightBuffer->dirty) {
 	//	uniformDirectionLightBuffer->dirty = false;
 	//	for (std::shared_ptr<Shader>& shader : m_shader) {
@@ -213,18 +214,18 @@ void RenderManager::prepareDirectionLightData(const std::shared_ptr<RenderScene>
 			glBufferSubData(GL_UNIFORM_BUFFER,
 				32 + i * dataSize,
 				sizeof(glm::vec3), glm::value_ptr(data.direction));
-			//glBufferSubData(GL_UNIFORM_BUFFER, 
-				//48 + i * dataSize, 
+			//glBufferSubData(GL_UNIFORM_BUFFER,
+				//48 + i * dataSize,
 				//sizeof(glm::vec3), glm::value_ptr(data.direction));
 			light->setDirtyFlag(false);
 		}
 	}
-	glBufferSubData(GL_UNIFORM_BUFFER, 10 * dataSize, 
+	glBufferSubData(GL_UNIFORM_BUFFER, 10 * dataSize,
 		sizeof(int), &lightNum);
 }
 
 void RenderManager::prepareSpotLightData(const std::shared_ptr<RenderScene>& scene) {
-	// update light data only when dirty 
+	// update light data only when dirty
 	//if (uniformSpotLightBuffer->dirty) {
 	//	uniformSpotLightBuffer->dirty = false;
 	//	for (std::shared_ptr<Shader>& shader : m_shader) {
@@ -290,13 +291,15 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	prepareSpotLightData(scene);
 	glCheckError();
 	prepareCompData(scene);
-	
+
 	//TODO:
 	 rsmPass->renderGbuffer(scene);
 
 	//shadow pass
-	// shadowPass->render(scene);
-	// pass_data();
+	if (setting.enableShadow) {
+		shadowPass->render(scene);
+		pass_data();
+	}
 	if (setting.useDefer) {
 		// deferred pass
 		deferredPass->renderGbuffer(scene);
@@ -304,18 +307,18 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 		rsmPass->render(scene);
 		deferredPass->postProcess(scene);
 	}
-	else 
+	else
 	{
 		// depth pass (camera space)
 		depthPass->render(scene);
 
-		// base pass 
+		// base pass
 		if (setting.enableHDR) {
 			hdrPass->bindBuffer();
 		}
 		basePass->render(scene, nullptr);
 
-		// hdr pass 
+		// hdr pass
 		if (setting.enableHDR) {
 			hdrPass->render();
 		}
@@ -325,7 +328,7 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 std::shared_ptr<Shader> RenderManager::getShader(ShaderType type) {
 	int index = static_cast<int>(type);
 	//if(!m_shader[index]){
-	//	//if not initialized 
+	//	//if not initialized
 	//	m_shader[index] = RenderManager::generateShader(type);
 	//}
 	//glCheckError();
@@ -404,7 +407,7 @@ std::shared_ptr<Shader> RenderManager::generateShader(ShaderType type) {
 			break;
 		case ShaderType::DEPTH:
 			return std::make_shared<Shader>(
-				"./src/shader/shadow/depth.vs","./src/shader/shadow/shadow.fs"
+				"./src/shader/shadow/depth.vs","./src/shader/shadow/depth.fs"
 				);
 		default:
 			std::cerr << "No such shader type" << '\n';

@@ -9,6 +9,7 @@ uniform mat4 model;
 layout(std140,binding=0) uniform VP{
     mat4 projection;
     mat4 view;
+    vec3 camPos;
 };
 out struct Object{
     vec3 Position; 
