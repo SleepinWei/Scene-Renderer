@@ -32,14 +32,14 @@ void BasePass::render(const std::shared_ptr<RenderScene>& scene,const std::share
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
 	glCheckError();
-	for (auto object : scene->objects) {
+	for (auto& object : scene->objects) {
 		std::shared_ptr<MeshRenderer>&& renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
 		if (renderer && renderer->shader) {
 			renderer->render(outShader);
 		}
 	}
 	glCheckError();
-	// render Terrain 
+	// render Terrain
 	std::shared_ptr<Terrain>& terrain = scene->terrain;
 	if (terrain) {
 		//terrain->shader->use();
@@ -89,10 +89,10 @@ void HDRPass::initPass(int width, int height) {
 	glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorBuffer, 0);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
-	
+
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	
-	// set hdrShader 
+
+	// set hdrShader
 	hdrShader->setInt("hdrBuffer", 0);
 }
 
@@ -121,6 +121,7 @@ void HDRPass::render() {
 ShadowPass::ShadowPass() {
 	// TODO: init shadowShader: get from renderManager
 	shadowShader_dir =std::make_shared<Shader>("./src/shader/shadow/cascaded_shadow_depth.vs","./src/shader/shadow/cascaded_shadow_depth.fs","./src/shader/shadow/cascaded_shadow_depth.gs");
+	//shadowShader_dir = std::make_shared<Shader>("./src/shader/shadow/direction.vs", "./src/shader/shadow/direction.fs");
 	shadowShader_dir->requireMat = false;
 	shadowShader_point = std::make_shared<Shader>("./src/shader/shadow/point_shadow_depth.vs", "./src/shader/shadow/point_shadow_depth.fs", "./src/shader/shadow/point_shadow_depth.gs");
 	shadowShader_point->requireMat = false;
@@ -132,7 +133,7 @@ ShadowPass::ShadowPass() {
 	glGenBuffers(1, &matrixUBO);
 	glBindBuffer(GL_UNIFORM_BUFFER, matrixUBO);
 
-	glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4)*10*cascaded_layers, nullptr, GL_STATIC_DRAW);  
+	glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4)*10*cascaded_layers, nullptr, GL_STATIC_DRAW);
 	//suppose 5 is the cascaded levels, 10 is the max num of directional lights
 	// this way is kinda undecent ,but convenient.
 
@@ -148,8 +149,8 @@ ShadowPass::~ShadowPass()
 }
 
 void ShadowPass::render(const std::shared_ptr<RenderScene>& scene) {
-	// TODO: 
-	
+	// TODO:
+
 	// rendering shadow map
 	pointLightShadow(scene);
 	directionLightShadow(scene); //after evoke these 2 functions, the depth maps are restored in the lights' texes.
@@ -184,7 +185,7 @@ void ShadowPass::pointLightShadow(const std::shared_ptr<RenderScene>& scene) {
 		// start to render
 		float near_plane = scene->main_camera->zNear;
 		float far_plane = scene->main_camera->zFar;
-		
+
 		glm::mat4 proj = glm::perspective(glm::radians(90.0f), (float)cube_map_resolution / cube_map_resolution, near_plane, far_plane);
 
 		std::vector<glm::mat4> omnishadow_matrices;
@@ -221,14 +222,18 @@ void ShadowPass::pointLightShadow(const std::shared_ptr<RenderScene>& scene) {
 	}
 }
 
+void ShadowPass::simpleDirectionShadow(const std::shared_ptr<RenderScene>& scene) {
+	// pass
+}
+
 void ShadowPass::directionLightShadow(const std::shared_ptr<RenderScene>& scene) {
 	//TODO:
 	auto& dLights = scene->directionLights;
 	unsigned int num_direction_lights = dLights.size();
-	for (unsigned int i = 0; i < num_direction_lights;i++) 
+	for (unsigned int i = 0; i < num_direction_lights;i++)
 	{
 		const auto& light = dLights.at(i);
-		if (!light || !light->castShadow) 
+		if (!light || !light->castShadow)
 		{
 			continue;
 		}
@@ -238,7 +243,7 @@ void ShadowPass::directionLightShadow(const std::shared_ptr<RenderScene>& scene)
 		const auto& current_framebuffer = frameBuffer_dirs.at(i);
 		current_framebuffer->bindBuffer();
 		//glEnable(GL_DEPTH_TEST);
-		
+
 		shadowShader_dir->use();
 		//current_framebuffer->bindShadowTexture(light->shadowTex, GL_DEPTH_ATTACHMENT);
 		//glDrawBuffer(GL_NONE);
@@ -248,25 +253,24 @@ void ShadowPass::directionLightShadow(const std::shared_ptr<RenderScene>& scene)
 		//send the matrices into the uniform variable in shaders
 		std::vector<glm::mat4> light_matrices = get_stratified_matrices(scene, light);
 
-
 		//binding an UBO
 		glBindBuffer(GL_UNIFORM_BUFFER, matrixUBO);
 		for (unsigned j = 0; j < light_matrices.size(); j++)
 		{
 			// i-th light j-th level
-			glBufferSubData(GL_UNIFORM_BUFFER, (i*cascaded_layers+j)* sizeof(glm::mat4), sizeof(glm::mat4), &light_matrices[i]);
+			glBufferSubData(GL_UNIFORM_BUFFER, (i*cascaded_layers+j)* sizeof(glm::mat4), sizeof(glm::mat4), &light_matrices[j]);
 		}
 		//glBindBuffer(GL_UNIFORM_BUFFER, 5);  // here we bind the matrices of all dir lights ,of all levels in the 5 binding points of uniform buffers
 		/*******/
 		
-		// for (unsigned i = 0; i < light_matrices.size(); i++)
-		// {
-		// 	shadowShader_dir->setMat4("lightSpaceMatrices[" + std::to_string(i) + "]", light_matrices.at(i));
-		// }
+		 for (unsigned i = 0; i < light_matrices.size(); i++)
+		 {
+		 	shadowShader_dir->setMat4("lightSpaceMatrices[" + std::to_string(i) + "]", light_matrices.at(i));
+		 }
 
 		glViewport(0, 0, this->cascaded_map_resolution, this->cascaded_map_resolution);
 		glClear(GL_DEPTH_BUFFER_BIT);
-		glCullFace(GL_FRONT);
+		// glCullFace(GL_FRONT);
 
 		//rendering
 		glCheckError();
@@ -277,7 +281,7 @@ void ShadowPass::directionLightShadow(const std::shared_ptr<RenderScene>& scene)
 			}
 		}
 
-		glCullFace(GL_BACK);
+		// glCullFace(GL_BACK);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 }
@@ -310,7 +314,8 @@ glm::mat4 ShadowPass::get_stratified_matrix(const std::vector<glm::vec4>& points
 	}
 
 	center /= points.size();  // the center of the frustum in world space
-	auto light_view = glm::lookAt(center + light->data.direction, center, glm::vec3(0.0, 1.0, 0.0));
+	// TODO: make the direction light outside of the house.
+	auto light_view = glm::lookAt(center - 1.0f * light->data.direction, center, glm::vec3(0.0, 1.0, 0.0));
 
 	float minX = std::numeric_limits<float>::max();
 	float maxX = std::numeric_limits<float>::min();
@@ -318,7 +323,7 @@ glm::mat4 ShadowPass::get_stratified_matrix(const std::vector<glm::vec4>& points
 	float maxY = std::numeric_limits<float>::min();
 	float minZ = std::numeric_limits<float>::max();
 	float maxZ = std::numeric_limits<float>::min();
-	
+
 	for (const auto& i : points)
 	{
 		auto frustm_point_light_space = light_view * i;
@@ -350,7 +355,7 @@ std::vector<glm::mat4>ShadowPass:: get_stratified_matrices(const std::shared_ptr
 	shadow_limiter.at(1) = camera_far / 25.0;
 	shadow_limiter.at(2) = camera_far / 10.0;
 	shadow_limiter.at(3) = camera_far / 2.0;
-	
+
 	float near, far;
 	for (unsigned i = 0; i < 5; i++)
 	{
@@ -432,7 +437,7 @@ DepthPass::DepthPass() {
 }
 
 DepthPass::~DepthPass() {
-	
+
 }
 
 void DepthPass::render(const std::shared_ptr<RenderScene>& scene) {
@@ -463,7 +468,7 @@ void DepthPass::render(const std::shared_ptr<RenderScene>& scene) {
 	glCheckError();
 
 	glCullFace(GL_BACK);
-	for (auto object : scene->objects) {
+	for (auto& object : scene->objects) {
 		std::shared_ptr<MeshRenderer>&& renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
 		if (renderer && renderer->shader) {
 			renderer->render(depthShader);
@@ -474,14 +479,14 @@ void DepthPass::render(const std::shared_ptr<RenderScene>& scene) {
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);//black
 	glCullFace(GL_FRONT);
-	for (auto object : scene->objects) {
+	for (auto& object : scene->objects) {
 		std::shared_ptr<MeshRenderer>&& renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
 		if (renderer && renderer->shader) {
 			renderer->render(depthShader);
 		}
 	}
 
-	// set shaders 
+	// set shaders
 	auto& sssShader = renderManager->getShader(ShaderType::PBR_SSS);
 	glActiveTexture(GL_TEXTURE18);
 	glBindTexture(GL_TEXTURE_2D, frontDepth->id);
@@ -489,7 +494,7 @@ void DepthPass::render(const std::shared_ptr<RenderScene>& scene) {
 	glBindTexture(GL_TEXTURE_2D, backDepth->id);
 
 	glCullFace(GL_BACK);
-	
+
 	sssShader->use();
 	sssShader->setInt("frontDepth", 18);
 	sssShader->setInt("backDepth", 19);
@@ -515,7 +520,7 @@ void DeferredPass::initShader() {
 void DeferredPass::initTextures() {
 	gBuffer = std::make_shared<FrameBuffer>();
 	postBuffer = std::make_shared<FrameBuffer>();
-	
+
 	rbo = std::make_shared<RenderBuffer>();
 	postRbo = std::make_shared<RenderBuffer>();
 
@@ -527,7 +532,7 @@ void DeferredPass::initTextures() {
 }
 
 DeferredPass::~DeferredPass() {
-	
+
 }
 
 void DeferredPass::renderGbuffer(const std::shared_ptr<RenderScene>& scene) {
@@ -537,7 +542,7 @@ void DeferredPass::renderGbuffer(const std::shared_ptr<RenderScene>& scene) {
 		gAlbedoSpec->genTexture(GL_RGBA16F, GL_RGBA, inputManager->width, inputManager->height);
 		gPBR->genTexture(GL_RGBA16F, GL_RGBA, inputManager->width, inputManager->height);
 		postTexture->genTexture(GL_RGBA16F, GL_RGBA, inputManager->width, inputManager->height);
-		
+
 		rbo->genBuffer(inputManager->width, inputManager->height);
 		postRbo->genBuffer(inputManager->width, inputManager->height);
 	}
@@ -556,9 +561,9 @@ void DeferredPass::renderGbuffer(const std::shared_ptr<RenderScene>& scene) {
 		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 			std::cout << "Framebuffer not complete!" << std::endl;
 		// finally check if framebuffer is complete
-		unsigned int attachments[] = { 
-			GL_COLOR_ATTACHMENT0, 
-			GL_COLOR_ATTACHMENT1, 
+		unsigned int attachments[] = {
+			GL_COLOR_ATTACHMENT0,
+			GL_COLOR_ATTACHMENT1,
 			GL_COLOR_ATTACHMENT2,
 			GL_COLOR_ATTACHMENT3
 		};
@@ -627,7 +632,6 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 	glActiveTexture(GL_TEXTURE4);
 	glBindTexture(GL_TEXTURE_2D, gPosition->id);
 	glCheckError();
-	
 
 	//int i = 0;
 	int base = 5;// already 4 texture units occupied
@@ -657,17 +661,17 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 
 	lightingShader->setFloat("far_plane", scene->main_camera->zFar);
 	lightingShader->setInt("cascaded_levels", 4);
-	
+
 	for (unsigned int i = 0; i < 4; i++)
 		lightingShader->setFloat("cascaded_distances[" + std::to_string(i) + "]", shadow_limiter[i]);
 	glCheckError();
-	
+
 	// set uniforms
 	if (scene->main_camera) {
-		//lightingShader->setVec3("camPos", scene->main_camera->Position);	
+		//lightingShader->setVec3("camPos", scene->main_camera->Position);
 
 		lightingShader->setFloat("far_plane", scene->main_camera->zFar);
-		lightingShader->setInt("cascaded_levels", 5);
+		//lightingShader->setInt("cascaded_levels", 5);
 	}
 	glCheckError();
 
@@ -688,7 +692,7 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	postBuffer->bindBuffer();
 
-	// forward rendering 
+	// forward rendering
 	for (auto& object : scene->objects) {
 		if (!object->isDeferred()) {
 			std::shared_ptr<MeshRenderer>&& renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
@@ -715,7 +719,10 @@ void DeferredPass::postProcess(const std::shared_ptr<RenderScene>& scene) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, postTexture->id);
+	if(renderManager->setting.enableRSM)
+		glBindTexture(GL_TEXTURE_2D, renderManager->rsmPass->outTexture->id);
+	else 
+		glBindTexture(GL_TEXTURE_2D, postTexture->id);
 
 	postProcessShader->use();
 	postProcessShader->setFloat("exposure", scene->main_camera->exposure);
@@ -735,7 +742,8 @@ RSMPass::~RSMPass() {
 void RSMPass::initShader() {
 	RSMShader = std::make_shared<Shader>("./src/shader/rsm/lightSpace.vs", "./src/shader/rsm/lightSpace.fs");
 	RSMShader->requireMat = true;
-
+	indirectShader = std::make_shared<Shader>("./src/shader/rsm/rsm.vs", "./src/shader/rsm/rsm.fs");
+	RSMShader->requireMat = true;
 	//RSMShader->use();
 }
 
@@ -765,19 +773,22 @@ GLuint RSMPass::createRandomTexture(int size) {
 }
 void RSMPass::initTextures() {
 	rsmFBO = std::make_shared<FrameBuffer>();
+	rsmBuffer = std::make_shared<FrameBuffer>();
 
 	depthMap = std::make_shared<Texture>();
 	normalMap = std::make_shared<Texture>();
 	worldPosMap = std::make_shared<Texture>();
 	fluxMap = std::make_shared<Texture>();
-	GLuint randomMap = createRandomTexture();
+	outTexture = std::make_shared<Texture>();
+	rbo = std::make_shared<RenderBuffer>();
+	randomMap = createRandomTexture();
 	depthMap->genTexture(GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, RSM_WIDTH, RSM_HEIGHT);
-	normalMap->genTexture(GL_RGBA16F, GL_RGBA, RSM_WIDTH, RSM_HEIGHT);
-	worldPosMap->genTexture(GL_RGBA16F, GL_RGBA, RSM_WIDTH, RSM_HEIGHT);
-	fluxMap->genTexture(GL_RGBA16F, GL_RGBA, RSM_WIDTH, RSM_HEIGHT);
+	normalMap->genTexture(GL_RGB32F, GL_RGB, RSM_WIDTH, RSM_HEIGHT);
+	worldPosMap->genTexture(GL_RGB32F, GL_RGB, RSM_WIDTH, RSM_HEIGHT);
+	fluxMap->genTexture(GL_RGB32F, GL_RGB, RSM_WIDTH, RSM_HEIGHT);
 }
 
-void RSMPass::render(const std::shared_ptr<RenderScene>& scene) {
+void RSMPass::renderGbuffer(const std::shared_ptr<RenderScene>& scene) {
 	if (rsmFBO->dirty) {
 		// set attachments
 		rsmFBO->dirty = false;
@@ -800,16 +811,15 @@ void RSMPass::render(const std::shared_ptr<RenderScene>& scene) {
 	}
 
 	rsmFBO->bindBuffer();
-	glClear(GL_DEPTH_BUFFER_BIT);
 	glViewport(0, 0, RSM_WIDTH, RSM_HEIGHT);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
 	//TODO:set light uniform
-	auto light = scene->spotLights[0];
+	auto& light = scene->spotLights[0];
 	auto trans = std::static_pointer_cast<Transform>(light->gameObject->GetComponent("Transform"));
 	glm::vec3 lightPos = trans->position;
-	glm::mat4 lightProjection = glm::perspective(glm::radians(60.0f), (float)RSM_WIDTH / (float)RSM_HEIGHT, light->near, light->far);
+	glm::mat4 lightProjection = glm::perspective(glm::radians(100.0f), (float)RSM_WIDTH / (float)RSM_HEIGHT, light->near, light->far);
 	glm::mat4 lightView = glm::lookAt(lightPos, lightPos + light->data.direction, glm::vec3(0.0f, 1.0f, 0.0f));
 	glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 	RSMShader->use();
@@ -840,4 +850,65 @@ void RSMPass::render(const std::shared_ptr<RenderScene>& scene) {
 	//	terrain->render(nullptr);
 	//}
 	// no sky
+}
+
+
+void RSMPass::render(const std::shared_ptr<RenderScene>& scene) {
+	// post buffer
+	if (rsmBuffer->dirty) {
+		// set attachments
+		rsmBuffer->dirty = false;
+		outTexture->genTexture(GL_RGBA16F, GL_RGBA, inputManager->width, inputManager->height);
+		rsmBuffer->bindTexture(outTexture, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
+
+		rbo->genBuffer(inputManager->width, inputManager->height);
+		rsmBuffer->bindBuffer();
+		// - Attach buffers
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo->rbo);
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+			std::cout << "Framebuffer not complete!" << std::endl;
+	}
+
+	rsmBuffer->bindBuffer();
+
+	//������
+	depthMap->bind(GL_TEXTURE_2D, 20);
+	normalMap->bind(GL_TEXTURE_2D, 21);
+	worldPosMap->bind(GL_TEXTURE_2D, 22);
+	fluxMap->bind(GL_TEXTURE_2D, 23);
+	renderManager->deferredPass->postTexture->bind(GL_TEXTURE_2D, 24);
+
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_2D, randomMap);
+	//TODO: bind deffer postTexture -> 5
+
+	glViewport(0, 0, inputManager->width, inputManager->height);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+	//TODO:set light uniform
+	auto& light = scene->spotLights[0];
+	auto trans = std::static_pointer_cast<Transform>(light->gameObject->GetComponent("Transform"));
+	glm::vec3 lightPos = trans->position;
+	glm::mat4 lightProjection = glm::perspective(glm::radians(60.0f), (float)RSM_WIDTH / (float)RSM_HEIGHT, light->near, light->far);
+	glm::mat4 lightView = glm::lookAt(lightPos, lightPos + light->data.direction, glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+	indirectShader->use();
+	indirectShader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
+	indirectShader->setInt("depthMap", 20);
+	indirectShader->setInt("normalMap", 21);
+	indirectShader->setInt("worldPosMap", 22);
+	indirectShader->setInt("fluxMap", 23);
+	indirectShader->setInt("inTexture", 24);
+	indirectShader->setInt("randomMap", 4);
+	indirectShader->setInt("sample_num", 64);
+	indirectShader->setFloat("sample_radius", 0.3);
+
+	for (int i = 0; i < scene->objects.size(); i++) {
+		auto& object = scene->objects[i];
+		std::shared_ptr<MeshRenderer>&& renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
+		if (renderer && renderer->shader) {
+			renderer->render(indirectShader);
+		}
+	}
 }

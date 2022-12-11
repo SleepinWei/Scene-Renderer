@@ -81,6 +81,7 @@ public:
 	std::vector<std::shared_ptr<FrameBuffer>> frameBuffer_points; 
 private:
 	void pointLightShadow(const std::shared_ptr<RenderScene>& scene);
+	void simpleDirectionShadow(const std::shared_ptr<RenderScene>& scene);
 	void directionLightShadow(const std::shared_ptr<RenderScene>& scene);
 	glm::mat4 get_stratified_matrix(const std::vector<glm::vec4>& points, const std::shared_ptr<DirectionLight>& light);
 	std::vector<glm::vec4> get_frustum_points(const float nearplane, const float farplane, const std::shared_ptr<RenderScene>& scene);
@@ -141,14 +142,22 @@ public:
 	~RSMPass();
 
 	void render(const std::shared_ptr<RenderScene>& scene);
+	void renderGbuffer(const std::shared_ptr<RenderScene>& scene);
 public:
 	std::shared_ptr<Shader> RSMShader;
+	std::shared_ptr<Shader> indirectShader;
 	std::shared_ptr<FrameBuffer> rsmFBO; 
+	std::shared_ptr<FrameBuffer> rsmBuffer;
+	//std::shared_ptr<Texture> inTexture;
+	std::shared_ptr<Texture> outTexture;
 	std::shared_ptr<Texture> depthMap;
 	std::shared_ptr<Texture> normalMap;
 	std::shared_ptr<Texture> worldPosMap;
 	std::shared_ptr<Texture> fluxMap;
 	//std::shared_ptr<Texture> randomMap;
+	std::shared_ptr<RenderBuffer> rbo;
+
+	GLuint randomMap;
 	bool dirty;
 private:
 	const GLuint RSM_WIDTH = 1024, RSM_HEIGHT = 1024;
