@@ -58,6 +58,13 @@ public:
 			}
 		}
 
+		if (ImGui::CollapsingHeader("Rendering")) {
+			static bool enableShadow = true;
+			if (ImGui::Toggle("Enable Shadow", &enableShadow)) {
+				renderManager->setting.enableShadow = enableShadow;
+			}
+		}
+
 		ImGui::Separator();
 		if (ImGui::CollapsingHeader("Point Light")) {
 			auto& lights = scene->pointLights;
@@ -68,9 +75,9 @@ public:
 				//auto& light = lights[0]; 
 				auto&& lightTrans = std::static_pointer_cast<Transform>(
 					lights[i]->gameObject->GetComponent("Transform"));
-				//std::cout << "Light Transform :" << &lightTrans->position << '\n';
 				if (ImGui::SliderFloat3("Position", (float*)&lightTrans->position, -10.0f, 10.0f))
 					lights[i]->setDirtyFlag(true);
+				//ImGui::Text("Light Position: (%f,%f,%f)", lightTrans->position.x, lightTrans->position.y, lightTrans->position.z);
 			}
 		}
 		if(ImGui::CollapsingHeader("Direction Light")){
@@ -83,11 +90,14 @@ public:
 				auto&& lightTrans = std::static_pointer_cast<Transform>(
 					dlights[i]->gameObject->GetComponent("Transform"));
 				auto&& lightData = dlights[i]->data;
-				bool change1 = ImGui::SliderFloat3("Position", (float*)&lightTrans->position, -10.0f, 1.0f);
-				bool change2 = ImGui::SliderFloat3("Direction", (float*)&lightData.direction, -1.0f, 1.0f);
-				if (change1 || change2) {
-					dlights[i]->setDirtyFlag(true);
-				}
+				//bool change1 = ImGui::SliderFloat3("Position", (float*)&lightTrans->position, -10.0f, 1.0f);
+				//bool change2 = ImGui::SliderFloat3("Direction", (float*)&lightData.direction, -1.0f, 1.0f);
+				ImGui::Text("Light Position: (%f,%f,%f)", lightTrans->position.x, lightTrans->position.y, lightTrans->position.z);
+				ImGui::Text("Light Direction: (%f,%f,%f)", lightData.direction.x, lightData.direction.y, lightData.direction.z);
+			
+				//if (change1 || change2) {
+					//dlights[i]->setDirtyFlag(true);
+				//}
 			}
 		}
 		if (ImGui::CollapsingHeader("Spot Light")) {
@@ -100,13 +110,16 @@ public:
 				auto&& lightTrans = std::static_pointer_cast<Transform>(
 					slights[i]->gameObject->GetComponent("Transform"));
 				auto&& lightData = slights[i]->data;
-				bool change1 = ImGui::SliderFloat3("Position", (float*)&lightTrans->position, -10.0f, 1.0f);
-				bool change2 = ImGui::SliderFloat3("Direction", (float*)&lightData.direction, -1.0f, 1.0f);
+				//bool change1 = ImGui::SliderFloat3("Position", (float*)&lightTrans->position, -10.0f, 1.0f);
+				//bool change2 = ImGui::SliderFloat3("Direction", (float*)&lightData.direction, -1.0f, 1.0f);
+				ImGui::Text("Light Position: (%f,%f,%f)", lightTrans->position.x, lightTrans->position.y, lightTrans->position.z);
+				ImGui::Text("Light Direction: (%f,%f,%f)", lightData.direction.x, lightData.direction.y, lightData.direction.z);
+			
 				ImGui::Text("CutOff: %f", lightData.cutOff);
 				ImGui::Text("OuterCutOff: %f", lightData.outerCutOff);
-				if (change1 || change2) {
-					slights[i]->setDirtyFlag(true);
-				}
+				//if (change1 || change2) {
+					//slights[i]->setDirtyFlag(true);
+				//}
 			}
 		}
 

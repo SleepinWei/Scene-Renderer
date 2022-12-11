@@ -41,7 +41,7 @@ PointLight::PointLight() {
 	far = 100.f;
 
 	// TODO: add texture generation
-	//shadowTex = std::make_shared<Texture>();
+	shadowTex = std::make_shared<Texture>();
 	//shadowTex->genCubeMap(GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT);
 }
 

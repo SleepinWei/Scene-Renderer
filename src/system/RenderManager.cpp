@@ -27,7 +27,8 @@ RenderManager::RenderManager() {
 	// setting
 	setting = RenderSetting{
 		true, // enableHDR
-		true //useDeferred
+		true, //useDeferred
+		true// enable shadow
 	};
 
 }
@@ -295,8 +296,10 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	//  rsmPass->render(scene);
 
 	//shadow pass
-	shadowPass->render(scene);
-	pass_data();
+	if (setting.enableShadow) {
+		shadowPass->render(scene);
+		pass_data();
+	}
 	if (setting.useDefer) {
 		// deferred pass
 		deferredPass->renderGbuffer(scene);
@@ -403,7 +406,7 @@ std::shared_ptr<Shader> RenderManager::generateShader(ShaderType type) {
 			break;
 		case ShaderType::DEPTH:
 			return std::make_shared<Shader>(
-				"./src/shader/shadow/depth.vs","./src/shader/shadow/shadow.fs"
+				"./src/shader/shadow/depth.vs","./src/shader/shadow/depth.fs"
 				);
 		default:
 			std::cerr << "No such shader type" << '\n';
