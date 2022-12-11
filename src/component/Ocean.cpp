@@ -13,6 +13,61 @@
 #include<random>
 #include<time.h>
 
+Ocean::Ocean()
+{
+    Component::name = "Ocean";
+    initDone = false;
+
+    // texture
+    GaussianRandomRT_Texture=nullptr;
+    HeightSpectrumRT_Texture=nullptr;
+    DisplaceXSpectrumRT_Texture=nullptr;
+    DisplaceZSpectrumRT_Texture=nullptr;
+    InputRT_Texture=nullptr;
+    OutputRT_Texture=nullptr;
+    DisplaceRT_Texture=nullptr;
+    NormalRT_Texture=nullptr;
+    BubblesRT_Texture=nullptr;
+
+    //shaders
+    GaussianRandomRT_Shader=nullptr;
+    DisplaceSpectrum_Shader=nullptr;
+    HeightSpectrum_Shader=nullptr;
+    FFTHorizontal_Shader=nullptr;
+    FFTHorizontalEnd_Shader=nullptr;
+    FFTVertical_Shader=nullptr;
+    FFTVerticalEnd_Shader=nullptr;
+    TextureDisplace_Shader=nullptr;
+    TextureNormalBubbles_Shader=nullptr;
+    
+    draw_shader=nullptr;
+}
+Ocean::~Ocean()
+{
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteVertexArrays(1, &texture_VAO);
+    glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &EBO);  
+}
+void Ocean::init()
+{
+    name = "Ocean";
+    //prepare all data
+    this->Start();
+}
+void Ocean::render()
+{
+    if (!initDone)
+    {
+        init();
+        initDone = true;
+    }
+
+    this->Update();
+    this->Draw();
+}
+
+//origin
 void Ocean::initTextures()
 {
     // initTextures
@@ -69,7 +124,7 @@ void Ocean::initGaussianRandom()
 {
     GaussianRandomRT_Shader->use();
     GaussianRandomRT_Shader->setInt("N", fft_size);//fft纹理大小
-    
+
     GaussianRandomRT_Texture->setBinding(1);
     glDispatchCompute(fft_size / 8, fft_size / 8, 1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -316,11 +371,10 @@ void Ocean::Start()
     glCheckError();
 }
 
-//TODO:不知道用哪个time
 void Ocean::Update()
 {
-    inner_time += this->deltaTime * TimeScale;
-    //inner_time=static_cast<float>(glfwGetTime());//??
+    //inner_time += this->deltaTime * TimeScale;
+    inner_time=static_cast<float>(glfwGetTime() * TimeScale);
 
     //计算海洋数据
     ComputeOceanValue();
@@ -330,14 +384,14 @@ void Ocean::Draw()
 {
     draw_shader->use();
 
-    //const glm::vec3 camera_Position = glm::vec3(0.0f, 1.0f, 0.0f);
 
     //lighting
     //draw_shader->setVec3("material.ka", 2.0f, 2.0f, 2.0f);
     //draw_shader->setVec3("material.kd", 0.5f, 0.5f, 0.5f);
     //draw_shader->setVec3("material.ks", 0.5f, 0.5f, 0.5f);
     //draw_shader->setFloat("material.shininess", 32.0f);
-
+    
+    //const glm::vec3 camera_Position = glm::vec3(0.0f, 1.0f, 0.0f);
     //draw_shader->setVec3("viewPos", camera_Position);
 
     draw_shader->setVec3("dirLight.direction", 0.0f, -1.0f, 0.0f);
@@ -345,6 +399,13 @@ void Ocean::Draw()
     draw_shader->setVec3("dirLight.diffuse", 1.0f, 1.0f, 1.0f);
     draw_shader->setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
 
+    draw_shader->setFloat("outer_FresnelScale", outer_FresnelScale);
+    draw_shader->setVec3("outer_OceanColorShallow", outer_OceanColorShallow);
+    draw_shader->setVec3("outer_OceanColorDeep", outer_OceanColorDeep);
+    draw_shader->setVec3("outer_BubblesColor", outer_BubblesColor);
+    draw_shader->setVec3("outer_Specular", outer_Specular);
+    draw_shader->setInt("outer_Gloss", outer_Gloss);
+    draw_shader->setVec3("outer_ambient", outer_ambient);
 
     //texture
     glActiveTexture(GL_TEXTURE0); // 在绑定纹理之前先激活纹理单元0
@@ -359,7 +420,10 @@ void Ocean::Draw()
     glBindTexture(GL_TEXTURE_2D, BubblesRT_Texture->tex->id);
     draw_shader->setInt("BubblesRT", 2);//此时通过名字查找，而非binding号
 
-    
+    //glActiveTexture(GL_TEXTURE3);
+    //glBindTexture(GL_TEXTURE_2D, SkyView->tex->id);
+    //draw_shader->setInt("SkyView", 3);
+
     //MVP
     glm::mat4 model = glm::mat4(1.0f);
 
@@ -374,8 +438,8 @@ void Ocean::Draw()
     // glEnable(GL_CULL_FACE);
     // glCullFace(GL_BACK);
     //glDisable(GL_CULL_FACE);
-    
+
     glBindVertexArray(VAO);
     //glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
-    glDrawElements(GL_TRIANGLES, (MeshSize - 1) * (MeshSize - 1) * 6,GL_UNSIGNED_INT,0);
+    glDrawElements(GL_TRIANGLES, (MeshSize - 1) * (MeshSize - 1) * 6, GL_UNSIGNED_INT, 0);
 }

@@ -13,6 +13,7 @@
 #include"../component/Atmosphere.h"
 #include"../component/TerrainComponent.h"
 #include"../component/Grass.h"
+#include"../component/Ocean.h"
 #include"../buffer/FrameBuffer.h"
 #include"../component/Lights.h"
 #include"../renderer/Texture.h"
@@ -701,6 +702,12 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 	if (scene->sky) {
 		scene->sky->render(nullptr);
 	}
+}
+
+void DeferredPass::renderAlphaObjects(const std::shared_ptr<RenderScene>& scene)
+{
+	if (scene->terrain->GetComponent("Ocean") != nullptr)
+		std::static_pointer_cast<Ocean>((scene->terrain->GetComponent("Ocean")))->render();
 }
 
 void DeferredPass::postProcess(const std::shared_ptr<RenderScene>& scene) {
