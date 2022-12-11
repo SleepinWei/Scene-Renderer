@@ -7,6 +7,7 @@ uniform sampler2D gPosition;
 uniform sampler2D gNormal;
 uniform sampler2D gAlbedoSpec;
 uniform sampler2D gPBR;
+uniform bool enableShadow;
 
 
 /********variables for shadows*******/
@@ -338,9 +339,11 @@ vec3 shading(){
         float attenuation =min(1.0f,calculateAtten(Position,light.Position));
         vec3 radiance = light.Color * attenuation;
 
-        float shadow_factor=calculate_point_shadow(Position,N,i);
-        // float shadow_factor = 0.0f;
-
+        float shadow_factor;
+        if(enableShadow)
+            shadow_factor=calculate_point_shadow(Position,N,i);
+        else
+            shadow_factor = 0.0f;
         finalColor +=(1.0f-shadow_factor)*brdf * radiance * NdotL;
     }
     //directional lights
@@ -359,7 +362,11 @@ vec3 shading(){
         float attenuation = 1.0f;
         vec3 radiance = light.Color * attenuation; 
 
-        float shadow_factor=calculate_directional_shadow(Position,N,i);
+        float shadow_factor;
+        if(enableShadow)
+            shadow_factor = calculate_directional_shadow(Position,N,i);
+        else
+            shadow_factor = 0.0f;
         // float shadow_factor = 0.0f;
         finalColor +=(1.0-shadow_factor)* brdf * radiance * NdotL;
         // finalColor += computeDirectionShading(object,directionLights[i],material);

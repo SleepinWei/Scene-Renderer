@@ -63,6 +63,10 @@ public:
 			if (ImGui::Toggle("Enable Shadow", &enableShadow)) {
 				renderManager->setting.enableShadow = enableShadow;
 			}
+			static bool enableRSM = renderManager->setting.enableRSM;
+			if (ImGui::Toggle("Enable RSM", &enableRSM)) {
+				renderManager->setting.enableRSM= enableRSM;
+			}
 		}
 
 		ImGui::Separator();

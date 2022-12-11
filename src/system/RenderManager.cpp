@@ -28,8 +28,8 @@ RenderManager::RenderManager() {
 	setting = RenderSetting{
 		true, // enableHDR
 		true, //useDeferred
-		false,// enable shadow
-		false
+		true,// enable shadow
+		true
 	};
 
 }
@@ -46,7 +46,7 @@ void RenderManager::init() {
 void RenderManager::initRenderPass() {
 	// render Pass initialization
 	rsmPass = std::make_shared<RSMPass>();
-	// shadowPass = std::make_shared<ShadowPass>();
+	shadowPass = std::make_shared<ShadowPass>();
 	if (setting.useDefer) {
 		deferredPass = std::make_shared<DeferredPass>();
 		rsmPass = std::make_shared<RSMPass>();

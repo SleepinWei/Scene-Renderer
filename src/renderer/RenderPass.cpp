@@ -658,6 +658,8 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 	lightingShader->setInt("gAlbedoSpec", 2);
 	lightingShader->setInt("gPBR", 3);
 
+	lightingShader->setBool("enableShadow", renderManager->setting.enableShadow);
+
 	lightingShader->setFloat("far_plane", scene->main_camera->zFar);
 	lightingShader->setInt("cascaded_levels", 4);
 
