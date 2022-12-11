@@ -58,7 +58,7 @@ std::shared_ptr<MeshRenderer> MeshRenderer::setShader(std::string type) {
 	else if (type == "skybox") {
 		shadertype = ShaderType::SKYBOX;
 	}
-	//glCheckError();
+	//
 
 	shader = renderManager->getShader(shadertype);
 	return shared_from_this();
@@ -160,7 +160,7 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 			}
 		}
 
-		glCheckError();
+		
 		glBindVertexArray(VAO);
 		assert(VAO > 0);
 		{
@@ -176,7 +176,7 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 			}
 		}
 	}
-	glCheckError();
+	
 	glBindVertexArray(0);
 }
 

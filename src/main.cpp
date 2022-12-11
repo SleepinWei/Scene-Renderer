@@ -90,14 +90,14 @@ void render() {
 		//input manager tick
 		inputManager->tick();
 		
-		glCheckError();
+		
 		// camera tick
 		if (scene->main_camera) {
 			scene->main_camera->tick();
 		}
 
 		renderManager->render(scene);
-		glCheckError();
+		
 
 		gui.render();
 		inputManager->reset();

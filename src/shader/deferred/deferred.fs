@@ -8,6 +8,7 @@ uniform sampler2D gNormal;
 uniform sampler2D gAlbedoSpec;
 uniform sampler2D gPBR;
 uniform bool enableShadow;
+// uniform bool enableDirectionShadow;
 
 
 /********variables for shadows*******/

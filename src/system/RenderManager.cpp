@@ -284,13 +284,13 @@ void RenderManager::prepareCompData(const std::shared_ptr<RenderScene>& scene) {
 
 void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	prepareVPData(scene);
-	glCheckError();
+	
 	preparePointLightData(scene);
-	glCheckError();
+	
 	prepareDirectionLightData(scene);
-	glCheckError();
+	
 	prepareSpotLightData(scene);
-	glCheckError();
+	
 	prepareCompData(scene);
 
 	//TODO:
@@ -335,7 +335,7 @@ std::shared_ptr<Shader> RenderManager::getShader(ShaderType type) {
 	//	//if not initialized
 	//	m_shader[index] = RenderManager::generateShader(type);
 	//}
-	//glCheckError();
+	//
 	return m_shader[index];
 }
 

@@ -163,7 +163,7 @@ void TerrainComponent::initVertexObject() {
 	if (!VAO) {
 		glGenVertexArrays(1, &VAO);
 		glBindVertexArray(VAO);
-		glCheckError();
+		
 	}
 }
 
@@ -301,7 +301,7 @@ void TerrainComponent::init(){
 	terrainGBuffer = std::make_shared<Shader>("./src/shader/terrain/terrain.vs", "./src/shader/deferred/gBuffer.fs");
 	terrainGBuffer->requireMat = true;
 
-	glCheckError();
+	
 	//isIn = true;
 }
 
@@ -549,7 +549,7 @@ void TerrainComponent::renderCall(const std::shared_ptr<Shader>& outShader) {
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectDrawSSBO->ssbo);
 	glDrawArraysIndirect(GL_TRIANGLES, 0);
 
-	glCheckError();
+	
 
 	glCullFace(GL_BACK);
 	//glEnable(GL_CULL_FACE);

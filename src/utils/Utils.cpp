@@ -327,10 +327,10 @@ void renderQuad()
         glEnableVertexAttribArray(1);
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     }
-    glCheckError();
+    
     glBindVertexArray(quadVAO);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    glCheckError();
+    
     glBindVertexArray(0);
-    glCheckError();
+    
 }

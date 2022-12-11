@@ -301,19 +301,19 @@ void Ocean::Start()
 {
     //创建mesh
     initMesh();
-    glCheckError();
+    
     //初始化ComputerShader相关数据
     initTextures();
-    glCheckError();
+    
     initShaders();
-    glCheckError();
+    
     //计算GaussianRandom
 
     //初始化随机数
     initClock();
-    glCheckError();
+    
     initGaussianRandom();
-    glCheckError();
+    
 }
 
 //TODO:不知道用哪个time
