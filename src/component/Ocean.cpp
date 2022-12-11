@@ -371,8 +371,8 @@ void Ocean::Draw()
     draw_shader->setFloat("OceanLength", MeshLength);
 
 
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
+    // glEnable(GL_CULL_FACE);
+    // glCullFace(GL_BACK);
     //glDisable(GL_CULL_FACE);
     
     glBindVertexArray(VAO);
