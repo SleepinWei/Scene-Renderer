@@ -277,7 +277,7 @@ void RenderManager::prepareCompData(const std::shared_ptr<RenderScene>& scene) {
 		scene->terrain->constructCall();
 	}
 	if (scene->sky) {
-		auto& atmosphere = std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));
+		auto&& atmosphere = std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));
 		atmosphere->constructCall();
 	}
 }

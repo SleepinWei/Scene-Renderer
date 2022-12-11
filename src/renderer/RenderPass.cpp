@@ -486,7 +486,7 @@ void DepthPass::render(const std::shared_ptr<RenderScene>& scene) {
 	}
 
 	// set shaders
-	auto& sssShader = renderManager->getShader(ShaderType::PBR_SSS);
+	auto&& sssShader = renderManager->getShader(ShaderType::PBR_SSS);
 	glActiveTexture(GL_TEXTURE18);
 	glBindTexture(GL_TEXTURE_2D, frontDepth->id);
 	glActiveTexture(GL_TEXTURE19);

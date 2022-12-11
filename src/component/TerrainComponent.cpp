@@ -472,7 +472,7 @@ void TerrainComponent::compGeneratePatchCall() {
 	lodMapTexture->setBinding(5);
 	indirectDrawSSBO->setBinding(5);
 	// grass patches binding
-	auto& grassComponent = std::static_pointer_cast<Grass>(this->gameObject->GetComponent("Grass"));
+	auto&& grassComponent = std::static_pointer_cast<Grass>(this->gameObject->GetComponent("Grass"));
 	if (grassComponent) {
 		grassComponent->grassPatchesBuffer->setBinding(1);
 	}

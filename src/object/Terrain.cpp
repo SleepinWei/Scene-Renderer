@@ -21,8 +21,8 @@ Terrain::~Terrain() {
 /// <param name="shader"></param>
 void Terrain::render(const std::shared_ptr<Shader>& shader) {
 	assert(shader == nullptr);
-	auto& terrainComponent = std::static_pointer_cast<TerrainComponent>(GetComponent("TerrainComponent"));
-	auto& grassComponent = std::static_pointer_cast<Grass>(GetComponent("Grass"));
+	auto&& terrainComponent = std::static_pointer_cast<TerrainComponent>(GetComponent("TerrainComponent"));
+	auto&& grassComponent = std::static_pointer_cast<Grass>(GetComponent("Grass"));
 	if (terrainComponent && terrainComponent->initDone) {
 		terrainComponent->render(terrainComponent->terrainGBuffer);
 	}
@@ -35,8 +35,8 @@ void Terrain::render(const std::shared_ptr<Shader>& shader) {
 void Terrain::constructCall() {
 	// step1: terrainComponent:get terrain surface
 	// step2: grassComponent: get grass data
-	auto& terrainComponent = std::static_pointer_cast<TerrainComponent>(GetComponent("TerrainComponent"));
-	auto& grassComponent = std::static_pointer_cast<Grass>(GetComponent("Grass"));
+	auto&& terrainComponent = std::static_pointer_cast<TerrainComponent>(GetComponent("TerrainComponent"));
+	auto&& grassComponent = std::static_pointer_cast<Grass>(GetComponent("Grass"));
 	if (terrainComponent) {
 		terrainComponent->prepareData();
 		if (grassComponent) {

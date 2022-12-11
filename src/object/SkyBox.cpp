@@ -130,7 +130,7 @@ void Sky::initSkyBoxTexture() {
 }
 void Sky::render(const std::shared_ptr<Shader>& shader) {
 	initSkyBoxTexture();
-	auto& atmosphere = std::static_pointer_cast<Atmosphere>(GameObject::GetComponent("Atmosphere"));
+	auto&& atmosphere = std::static_pointer_cast<Atmosphere>(GameObject::GetComponent("Atmosphere"));
 	if (atmosphere) {
 		atmosphere->render(shader);
 	}

@@ -131,7 +131,7 @@ public:
 		if (scene->sky) {
 			ImGui::Separator();
 			if (ImGui::CollapsingHeader("Atmosphere")) {
-				auto& atmos = std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));
+				auto&& atmos = std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));
 				auto& atmosParam = atmos->atmosphere;
 				auto& sunAngle = atmos->sunAngle;
 				ImGui::SliderFloat("sunAngle", &sunAngle, -10.0f, 90.0f);
@@ -144,7 +144,7 @@ public:
 		if (scene->terrain) {
 			ImGui::Separator();
 			if (ImGui::CollapsingHeader("Terrain")) {
-				auto& terrainComp = std::static_pointer_cast<TerrainComponent>(scene->terrain->GetComponent("TerrainComponent"));
+				auto&& terrainComp = std::static_pointer_cast<TerrainComponent>(scene->terrain->GetComponent("TerrainComponent"));
 				static bool useWireFrame = false;
 				ImGui::Toggle("Wire Frame mode", &useWireFrame);
 				if (useWireFrame) {
