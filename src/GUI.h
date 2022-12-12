@@ -11,6 +11,7 @@
 #include"./component/Transform.h"
 #include"./component/Atmosphere.h"
 #include"./component/TerrainComponent.h"
+#include"./component/Ocean.h"
 #include<imgui/imgui_toggle.h>
 #include<filesystem>
 using namespace std::filesystem;
@@ -153,6 +154,25 @@ public:
 				else {
 					terrainComp->setPolyMode(GL_FILL);
 				}
+			}
+		}
+		// ocean
+		if (scene->terrain->GetComponent("Ocean") != nullptr) {
+			ImGui::Separator();
+			if (ImGui::CollapsingHeader("Ocean")) {
+				auto& oceanComp = std::static_pointer_cast<Ocean>(scene->terrain->GetComponent("Ocean"));
+
+				ImGui::InputFloat("BubblesScale", &oceanComp->BubblesScale);
+				ImGui::InputFloat("BubblesThreshold", &oceanComp->BubblesThreshold);
+				ImGui::InputFloat("TimeScale", &oceanComp->TimeScale);
+
+				ImGui::SliderFloat("FresnelScale", &oceanComp->outer_FresnelScale, 0.0f, 1.0f);
+				ImGui::InputFloat3("OceanColorShallow", (float*)&oceanComp->outer_OceanColorShallow);
+				ImGui::InputFloat3("OceanColorDeep", (float*)&oceanComp->outer_OceanColorDeep);
+				ImGui::SliderFloat3("BubblesColor", (float*)&oceanComp->outer_BubblesColor, 0.0f, 1.0f);
+				ImGui::SliderFloat3("Specular", (float*)&oceanComp->outer_Specular, 0.0f, 1.0f);
+				ImGui::SliderInt("Gloss", &oceanComp->outer_Gloss, 0, 512);
+				ImGui::SliderFloat3("ambient", (float*)&oceanComp->outer_ambient, 0.0f, 1.0f);
 			}
 		}
 

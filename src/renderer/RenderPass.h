@@ -108,6 +108,7 @@ public:
 
 	void renderGbuffer(const std::shared_ptr<RenderScene>& scene);
 	void render(const std::shared_ptr<RenderScene>& scene);
+	void renderAlphaObjects(const std::shared_ptr<RenderScene>& scene);
 	void postProcess(const std::shared_ptr<RenderScene>& scene);
 
 public:

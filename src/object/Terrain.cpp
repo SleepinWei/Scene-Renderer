@@ -5,6 +5,7 @@
 #include"../buffer/ImageTexture.h"
 #include"../utils/Shader.h"
 #include"../component/Grass.h"
+#include"../component/Ocean.h"
 #include<assert.h>
 
 Terrain::Terrain() {
@@ -55,8 +56,12 @@ void Terrain::loadFromJson(json& data) {
 	auto terrainComponent = std::make_shared<TerrainComponent>();
 	terrainComponent->loadFromJson(data);
 	addComponent(terrainComponent);
-	if (data.find("grass")!=data.end()) {
+	if (data.find("grass")!=data.end() && data["grass"] == "true") {
 		auto grassComponent = std::make_shared<Grass>();
 		addComponent(grassComponent);
+	}
+	if (data.find("ocean") != data.end() && data["ocean"] == "true") {
+		auto oceanComponent = std::make_shared<Ocean>();
+		addComponent(oceanComponent);
 	}
 }

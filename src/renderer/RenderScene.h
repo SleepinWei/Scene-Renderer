@@ -7,7 +7,7 @@
 using json = nlohmann::json;
 
 class GameObject;
-class Terrain; 
+class Terrain;
 class SkyBox;
 class Light;
 class Camera;
@@ -19,7 +19,7 @@ class Sky;
 class RenderScene : public std::enable_shared_from_this<RenderScene> {
 	// scene objects
 public:
-	std::shared_ptr<Terrain> terrain; 
+	std::shared_ptr<Terrain> terrain;
 	std::vector<std::shared_ptr<GameObject>> objects;
 	std::shared_ptr<Sky> sky;
 	std::vector<std::shared_ptr<DirectionLight>> directionLights;

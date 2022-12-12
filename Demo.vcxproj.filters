@@ -218,6 +218,7 @@
     <ClCompile Include="include\libdds\libdds_opengl.cpp">
       <Filter>libdds</Filter>
     </ClCompile>
+    <ClCompile Include="include\glad\glad.c" />
     <ClCompile Include="src\component\Ocean.cpp">
       <Filter>src\component</Filter>
     </ClCompile>
@@ -398,8 +399,6 @@
     <ClInclude Include="src\component\Cloud.h">
       <Filter>头文件</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="src\component\Ocean.h">
       <Filter>src\component</Filter>
     </ClInclude>

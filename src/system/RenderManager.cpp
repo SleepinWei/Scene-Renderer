@@ -309,6 +309,7 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 			rsmPass->renderGbuffer(scene);
 			rsmPass->render(scene);
 		}
+		deferredPass->renderAlphaObjects(scene);
 		deferredPass->postProcess(scene);
 	}
 	else
