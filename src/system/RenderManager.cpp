@@ -29,7 +29,7 @@ RenderManager::RenderManager() {
 		true, // enableHDR
 		true, //useDeferred
 		true,// enable shadow
-		true
+		false // enable rsm
 	};
 
 }

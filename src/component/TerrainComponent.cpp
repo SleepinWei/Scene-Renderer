@@ -134,9 +134,9 @@ std::shared_ptr<TerrainComponent> TerrainComponent::loadHeightmap(const std::str
 	//terrainMaterial->addTexture(Texture::loadFromFile(path+"normalMap.png"),"normalMap");
 	//resourceManager.getResource();
 	// indices
-	yScale = 50.0f;
-	yShift = -10.0f; 
-	float xzScale = 100.0f;
+	yScale = 70.0f;
+	yShift = -20.0f; 
+	float xzScale = 200.0f;
 	//float xzScale = 1.0f;
 	model = glm::mat4(1);
 	model = glm::translate(model, glm::vec3(0.0f, yShift,0.0f));

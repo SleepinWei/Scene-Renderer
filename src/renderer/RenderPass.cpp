@@ -718,7 +718,7 @@ void DeferredPass::renderAlphaObjects(const std::shared_ptr<RenderScene>& scene)
 	postBuffer->bindBuffer();
 
 	//postTexture = alphaTexture;
-	if (scene->terrain->GetComponent("Ocean") != nullptr)
+	if (scene->terrain && scene->terrain->GetComponent("Ocean") != nullptr)
 	{
 		shared_ptr<Ocean> ocean = std::static_pointer_cast<Ocean>((scene->terrain->GetComponent("Ocean")));
 		shared_ptr<Shader> oceanShader = ocean->draw_shader;

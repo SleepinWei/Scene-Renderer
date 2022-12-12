@@ -157,7 +157,7 @@ public:
 			}
 		}
 		// ocean
-		if (scene->terrain->GetComponent("Ocean") != nullptr) {
+		if (scene->terrain && scene->terrain->GetComponent("Ocean") != nullptr) {
 			ImGui::Separator();
 			if (ImGui::CollapsingHeader("Ocean")) {
 				auto& oceanComp = std::static_pointer_cast<Ocean>(scene->terrain->GetComponent("Ocean"));
@@ -167,6 +167,7 @@ public:
 				ImGui::InputFloat("TimeScale", &oceanComp->TimeScale);
 
 				ImGui::SliderFloat("FresnelScale", &oceanComp->outer_FresnelScale, 0.0f, 1.0f);
+				ImGui::SliderFloat("HeightScale", &oceanComp->HeightScale, 0.0f, 20.0f);
 				ImGui::InputFloat3("OceanColorShallow", (float*)&oceanComp->outer_OceanColorShallow);
 				ImGui::InputFloat3("OceanColorDeep", (float*)&oceanComp->outer_OceanColorDeep);
 				ImGui::SliderFloat3("BubblesColor", (float*)&oceanComp->outer_BubblesColor, 0.0f, 1.0f);

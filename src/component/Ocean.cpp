@@ -8,6 +8,9 @@
 #include"../renderer/Texture.h"
 #include"../system/RenderManager.h"
 #include"../renderer/Renderpass.h"
+#include"../renderer/RenderScene.h"
+#include"../object/SkyBox.h"
+#include"../component/Atmosphere.h"
 //#include"../buffer/UniformBuffer.h"
 #include"../utils/Shader.h"
 #include"../utils/Utils.h"
@@ -16,6 +19,7 @@
 #include<time.h>
 
 extern std::unique_ptr<RenderManager> renderManager;
+extern std::shared_ptr<RenderScene> scene;
 
 Ocean::Ocean()
 {
@@ -426,11 +430,13 @@ void Ocean::Draw()
 
     // 绑定之前的图像和深度
     glActiveTexture(GL_TEXTURE3);
-    if (renderManager->setting.enableRSM)
-        glBindTexture(GL_TEXTURE_2D, renderManager->rsmPass->outTexture->id);
-    else
-        glBindTexture(GL_TEXTURE_2D, renderManager->deferredPass->postTexture->id);
-    draw_shader->setInt("PrevTexture", 3);
+    if (scene->sky) {
+        auto&& atmos = std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));
+        if (atmos) {
+            glBindTexture(GL_TEXTURE_2D, atmos->skyViewTexture->tex->id);
+        }
+    }
+    draw_shader->setInt("skyview", 3);
 
     //glActiveTexture(GL_TEXTURE3);
     //glBindTexture(GL_TEXTURE_2D, SkyView->tex->id);
@@ -438,6 +444,7 @@ void Ocean::Draw()
 
     //MVP
     glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(0.0f,-5.0f,0.0f));
     
     draw_shader->setMat4("model", model);
     //draw_shader->setMat4("view", view);

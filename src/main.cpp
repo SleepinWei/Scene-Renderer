@@ -47,7 +47,7 @@ extern std::unique_ptr<RenderManager> renderManager;
 extern std::unique_ptr<ResourceManager> resourceManager;
 extern std::unique_ptr<InputManager> inputManager;
 extern std::shared_ptr<ModelLoader> modelLoader;
-
+std::shared_ptr<RenderScene> scene;
 //#define TEST
 //#ifndef TEST
 void render() {
@@ -73,7 +73,7 @@ void render() {
 		modelLoader = std::make_shared<ModelLoader>();
 		//renderScene = std::make_shared<RenderScene>();
 	}
-	std::shared_ptr<RenderScene> scene = std::make_shared<RenderScene>();
+	scene = std::make_shared<RenderScene>();
 	// Camera
 	{
 		std::shared_ptr<Camera> camera = std::make_shared<Camera>();

@@ -51,8 +51,8 @@ public:
     std::shared_ptr<Shader> draw_shader;
 
 public:
-    const int FFTPow = 9;         //生成海洋纹理大小 2的次幂，例 为10时，纹理大小为1024*1024
-    const int fft_size = 512;//fft纹理大小 = pow(2,FFTPow)
+    int FFTPow = 9;         //生成海洋纹理大小 2的次幂，例 为10时，纹理大小为1024*1024
+    int fft_size = 512;//fft纹理大小 = pow(2,FFTPow)
     int MeshSize = 100;		//网格长宽数量
     float MeshLength = 512;	//网格长度
     float TimeScale = 2;     //时间影响
@@ -65,7 +65,7 @@ public:
     //fs parameter-may revised in control panel
     float A = 73;			//phillips谱参数，影响波浪高度
     float Lambda = 8;       //用来控制偏移大小
-    float HeightScale = 28.8;   //高度影响
+    float HeightScale = 30.0f;   //高度影响
     float BubblesScale = 1.0f;  //泡沫强度1.0
     float BubblesThreshold = 0.86f;//泡沫阈值 0.86
     float WindScale = 30;     //风强
