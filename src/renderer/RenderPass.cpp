@@ -230,6 +230,9 @@ void ShadowPass::directionLightShadow(const std::shared_ptr<RenderScene>& scene)
 	//TODO:
 	auto& dLights = scene->directionLights;
 	unsigned int num_direction_lights = dLights.size();
+	if (!renderManager->setting.enableDirectional) {
+		num_direction_lights = 0;
+	}
 	for (unsigned int i = 0; i < num_direction_lights;i++)
 	{
 		const auto& light = dLights.at(i);
@@ -820,6 +823,13 @@ void RSMPass::renderGbuffer(const std::shared_ptr<RenderScene>& scene) {
 			GL_COLOR_ATTACHMENT2
 		};
 		glDrawBuffers(3, attachments);
+
+		for (auto& object : scene->objects) {
+			if (object->name == "S0") {
+				this->light = std::static_pointer_cast<SpotLight>(object->GetComponent("SpotLight"));
+				break;
+			}
+		}
 	}
 
 	rsmFBO->bindBuffer();
@@ -828,7 +838,8 @@ void RSMPass::renderGbuffer(const std::shared_ptr<RenderScene>& scene) {
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
 	//TODO:set light uniform
-	auto& light = scene->spotLights[0];
+
+	//auto& light = scene->spotLights[0];
 	auto trans = std::static_pointer_cast<Transform>(light->gameObject->GetComponent("Transform"));
 	glm::vec3 lightPos = trans->position;
 	glm::mat4 lightProjection = glm::perspective(glm::radians(100.0f), (float)RSM_WIDTH / (float)RSM_HEIGHT, light->near, light->far);

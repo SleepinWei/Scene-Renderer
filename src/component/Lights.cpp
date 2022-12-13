@@ -5,7 +5,7 @@
 #include"../renderer/Texture.h"
 Light::Light()
 {
-
+	enabled = true;
 }
 
 Light::~Light() {

@@ -28,6 +28,7 @@ public:
 public:
 
 	bool castShadow;
+	bool enabled;
 	enum LightType type; 
 	static const int SHADOW_WIDTH = 512;
 	static const int SHADOW_HEIGHT = 512; 

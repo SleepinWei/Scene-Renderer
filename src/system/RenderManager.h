@@ -38,6 +38,7 @@ struct RenderSetting {
 	bool useDefer;
 	bool enableShadow;
 	bool enableRSM;
+	bool enableDirectional;
 };
 
 class RenderManager {

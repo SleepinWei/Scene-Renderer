@@ -68,6 +68,10 @@ public:
 			if (ImGui::Toggle("Enable RSM", &enableRSM)) {
 				renderManager->setting.enableRSM= enableRSM;
 			}
+			static bool enableDirectional= renderManager->setting.enableDirectional;
+			if (ImGui::Toggle("Enable Directional", &enableDirectional)) {
+				renderManager->setting.enableDirectional= enableDirectional;
+			}
 		}
 
 		ImGui::Separator();

@@ -156,6 +156,7 @@ public:
 	std::shared_ptr<Texture> fluxMap;
 	//std::shared_ptr<Texture> randomMap;
 	std::shared_ptr<RenderBuffer> rbo;
+	std::shared_ptr<SpotLight> light;
 
 	GLuint randomMap;
 	bool dirty;

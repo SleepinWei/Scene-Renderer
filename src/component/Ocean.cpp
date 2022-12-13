@@ -438,10 +438,6 @@ void Ocean::Draw()
     }
     draw_shader->setInt("skyview", 3);
 
-    //glActiveTexture(GL_TEXTURE3);
-    //glBindTexture(GL_TEXTURE_2D, SkyView->tex->id);
-    //draw_shader->setInt("SkyView", 3);
-
     //MVP
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3(0.0f,-5.0f,0.0f));

@@ -28,7 +28,7 @@ RenderManager::RenderManager() {
 	setting = RenderSetting{
 		true, // enableHDR
 		true, //useDeferred
-		true,// enable shadow
+		false,// enable shadow
 		false // enable rsm
 	};
 
@@ -154,8 +154,8 @@ void RenderManager::preparePointLightData(const std::shared_ptr<RenderScene>& sc
 	unsigned int UBO = uniformPointLightBuffer->UBO;
 	int lightNum = scene->pointLights.size();
 	int dataSize = 32; // data size for a single light (under std140 layout)
-	for (int i = 0; i < lightNum; i++) {
-		auto& light = scene->pointLights[i];
+	int index = 0;
+	for(auto& light :scene->pointLights){
 		if (light) {
 			if (!light->dirty) {
 				// if not dirty, then pass
@@ -166,12 +166,13 @@ void RenderManager::preparePointLightData(const std::shared_ptr<RenderScene>& sc
 				light->gameObject->GetComponent("Transform"));
 			if (transform) {
 				glBufferSubData(GL_UNIFORM_BUFFER,
-					0 + i * dataSize,
+					0 + index * dataSize,
 					sizeof(glm::vec3), glm::value_ptr(data.color)); //color
 				glBufferSubData(GL_UNIFORM_BUFFER,
-					16 + i * dataSize,
+					16 + index * dataSize,
 					sizeof(glm::vec3), glm::value_ptr(transform->position)); //position
 			}
+			++index;
 			light->setDirtyFlag(false); // ?
 		}
 	}
@@ -192,12 +193,19 @@ void RenderManager::prepareDirectionLightData(const std::shared_ptr<RenderScene>
 	//		}
 	//	}
 	//}
+	int dataSize = 48; // data size for a single light (under std140 layout)
+	if(!setting.enableDirectional){
+		int zero = 0;
+		uniformDirectionLightBuffer->bindBuffer();
+		glBufferSubData(GL_UNIFORM_BUFFER, 10 * dataSize,
+			sizeof(int), &zero);
+		return;
+	}
 	uniformDirectionLightBuffer->bindBuffer();
 	unsigned int UBO = uniformDirectionLightBuffer->UBO;
 	int lightNum = scene->directionLights.size();
-	int dataSize = 48; // data size for a single light (under std140 layout)
-	for (int i = 0; i < lightNum; i++) {
-		auto& light = scene->directionLights[i];
+	int index = 0;
+	for(auto& light : scene->directionLights){
 		if (light) {
 			std::shared_ptr<Transform>&& transform = std::static_pointer_cast<Transform>(
 				light->gameObject->GetComponent("Transform"));
@@ -207,17 +215,18 @@ void RenderManager::prepareDirectionLightData(const std::shared_ptr<RenderScene>
 			}
 			DirectionLightData& data = light->data;
 			glBufferSubData(GL_UNIFORM_BUFFER,
-				0 + i * dataSize,
+				0 + index * dataSize,
 				sizeof(glm::vec3), glm::value_ptr(data.color)); // ambient
 			glBufferSubData(GL_UNIFORM_BUFFER,
-				16 + i * dataSize,
+				16 + index * dataSize,
 				sizeof(glm::vec3), glm::value_ptr(transform->position)); //
 			glBufferSubData(GL_UNIFORM_BUFFER,
-				32 + i * dataSize,
+				32 + index * dataSize,
 				sizeof(glm::vec3), glm::value_ptr(data.direction));
 			//glBufferSubData(GL_UNIFORM_BUFFER,
 				//48 + i * dataSize,
 				//sizeof(glm::vec3), glm::value_ptr(data.direction));
+			++index;
 			light->setDirtyFlag(false);
 		}
 	}

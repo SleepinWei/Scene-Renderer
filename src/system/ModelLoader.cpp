@@ -46,9 +46,10 @@ void ModelLoader::loadObject(std::shared_ptr<RenderScene>& scene, const std::str
 void ModelLoader::loadSceneAsync(std::shared_ptr<RenderScene>& scene, const std::string& filename) {
 	//clear scene 
 	// wait for all threads to end
-	for (auto& t : threadpool) {
-		t.join();
-	}
+	//for (auto& t : threadpool) {
+	//	if(t.joinable())
+	//		t.join();
+	//}
 	scene->destroy(); // destroy scene
 
 	std::ifstream f(filename);
