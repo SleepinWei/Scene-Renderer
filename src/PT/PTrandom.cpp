@@ -1,5 +1,5 @@
 #include<random>
-#include"PTrandom.h"
+#include"PT/PTrandom.h"
 double random_double() {
 	return rand() / (RAND_MAX * 1.0);
 }

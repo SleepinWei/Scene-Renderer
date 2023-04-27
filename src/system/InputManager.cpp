@@ -1,4 +1,4 @@
-#include"InputManager.h"
+#include"system/InputManager.h"
 #include<glfw/glfw3.h>
 
 void InputManager::reset() {

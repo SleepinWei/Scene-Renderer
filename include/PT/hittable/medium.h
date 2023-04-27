@@ -1,7 +1,7 @@
 #pragma once
 
 #include<memory>
-#include"PT/hittable.h"
+#include"../hittable.h"
 using std::shared_ptr;
 
 namespace PT {

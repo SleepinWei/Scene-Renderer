@@ -1,7 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
-#include"PathTracing.h"
+#include"PT/PathTracing.h"
 //#include"PTVec.h"
-#include"PTHeader.h"
+#include"PT/PTHeader.h"
 
 using namespace PT;
 class PT::Material;

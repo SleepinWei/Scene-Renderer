@@ -6,8 +6,8 @@
 
 #include <vector>
 #include<memory>
-#include"Camera.h"
-#include"../system/InputManager.h"
+#include"utils/Camera.h"
+#include"system/InputManager.h"
 
 extern std::unique_ptr<InputManager> inputManager;
 

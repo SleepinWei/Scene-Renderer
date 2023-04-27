@@ -1,11 +1,11 @@
-#include"Terrain.h"
-#include"../renderer/Material.h"
-#include"../component/TerrainComponent.h"
-#include"../buffer/SSBO.h"
-#include"../buffer/ImageTexture.h"
-#include"../utils/Shader.h"
-#include"../component/Grass.h"
-#include"../component/Ocean.h"
+#include"object/Terrain.h"
+#include"renderer/Material.h"
+#include"component/TerrainComponent.h"
+#include"buffer/SSBO.h"
+#include"buffer/ImageTexture.h"
+#include"utils/Shader.h"
+#include"component/Grass.h"
+#include"component/Ocean.h"
 #include<assert.h>
 
 Terrain::Terrain() {

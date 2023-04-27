@@ -1,7 +1,7 @@
-#include"hittable.h"
-#include"PTAABB.h"
-#include"PTRay.h"
-#include"PTMaterial.h"
+#include"PT/hittable.h"
+#include"PT/PTAABB.h"
+#include"PT/PTRay.h"
+#include"PT/PTMaterial.h"
 using namespace PT;
 
 void hittable::addTexture(std::shared_ptr<Material>& mat) {

@@ -1,6 +1,6 @@
 #include<glad/glad.h>
 #include<glfw/glfw3.h>
-#include"RenderBuffer.h"
+#include"buffer/RenderBuffer.h"
 
 RenderBuffer::RenderBuffer() {
 	glGenRenderbuffers(1, &rbo);

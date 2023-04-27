@@ -4,18 +4,18 @@
 #include<glm/gtx/transform2.hpp>
 #include<glm/gtx/euler_angles.hpp>
 
-#include"Mesh_Renderer.h"
-#include"Material.h"
-#include"Mesh_Filter.h"
-#include"Texture.h"
-#include"../utils/Shader.h"
-#include"../utils/Utils.h"
+#include"renderer/Mesh_Renderer.h"
+#include"renderer/Material.h"
+#include"renderer/Mesh_Filter.h"
+#include"renderer/Texture.h"
+#include"utils/Shader.h"
+#include"utils/Utils.h"
 #include <memory>
 // #include<shader/Shader.h>
-#include"../utils/Shader.h"
-#include"../component/GameObject.h"
-#include"../component/transform.h"
-#include"../component/Lights.h"
+#include"utils/Shader.h"
+#include"component/GameObject.h"
+#include"component/transform.h"
+#include"component/Lights.h"
 
 MeshRenderer::~MeshRenderer() {
 

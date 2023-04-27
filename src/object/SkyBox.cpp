@@ -1,10 +1,10 @@
 #include<glad/glad.h>
 #include<stb/stb_image.h>
-#include"SkyBox.h"
-#include"../renderer/Texture.h"
-#include"../system/RenderManager.h"
-#include"../renderer/Material.h"
-#include"../component/Atmosphere.h"
+#include"object/SkyBox.h"
+#include"renderer/Texture.h"
+#include"system/RenderManager.h"
+#include"renderer/Material.h"
+#include"component/Atmosphere.h"
 
 extern std::unique_ptr<RenderManager> renderManager;
 std::shared_ptr<SkyBox> SkyBox::addShader(ShaderType st) {

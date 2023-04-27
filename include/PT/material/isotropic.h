@@ -1,5 +1,5 @@
 #pragma once
-#include"PT/PTMaterial.h"
+#include"../PTMaterial.h"
 using std::shared_ptr;
 
 namespace PT {

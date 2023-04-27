@@ -3,17 +3,17 @@
 #include <GLFW/glfw3.h>
 #include <vector>
 
-#include"Ocean.h"
-#include"../buffer/ImageTexture.h"
-#include"../renderer/Texture.h"
-#include"../system/RenderManager.h"
-#include"../renderer/Renderpass.h"
-#include"../renderer/RenderScene.h"
-#include"../object/SkyBox.h"
-#include"../component/Atmosphere.h"
-//#include"../buffer/UniformBuffer.h"
-#include"../utils/Shader.h"
-#include"../utils/Utils.h"
+#include"component/Ocean.h"
+#include"buffer/ImageTexture.h"
+#include"renderer/Texture.h"
+#include"system/RenderManager.h"
+#include"renderer/Renderpass.h"
+#include"renderer/RenderScene.h"
+#include"object/SkyBox.h"
+#include"component/Atmosphere.h"
+//#include"buffer/UniformBuffer.h"
+#include"utils/Shader.h"
+#include"utils/Utils.h"
 #include<utility>
 #include<random>
 #include<time.h>

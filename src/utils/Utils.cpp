@@ -1,7 +1,7 @@
 #include<glad/glad.h>
 #include<glfw/glfw3.h>
-#include"Utils.h"
-#include"../system/InputManager.h"
+#include"utils/Utils.h"
+#include"system/InputManager.h"
 #include<memory>
 
 extern std::unique_ptr<InputManager> inputManager;

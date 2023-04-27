@@ -1,6 +1,6 @@
 #include"Rect.h"
-#include"../PTRay.h"
-#include"../PTAABB.h"
+#include"PT/PTRay.h"
+#include"PT/PTAABB.h"
 
 using namespace PT;
 

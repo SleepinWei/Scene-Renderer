@@ -1,13 +1,13 @@
 #include<glad/glad.h>
-#include"GameObject.h"
-#include"../component/Component.h"
+#include"component/GameObject.h"
+#include"component/Component.h"
 const float PI = 3.1415926f;
 #include<glm/gtc/matrix_transform.hpp>
 #include<iostream>
-#include"../renderer/Mesh_Filter.h"
-#include"../renderer/Mesh_Renderer.h"
-#include"../component/transform.h"
-#include"../system/meta_register.h"
+#include"renderer/Mesh_Filter.h"
+#include"renderer/Mesh_Renderer.h"
+#include"component/transform.h"
+#include"system/meta_register.h"
 //#include<rttr/registration.h>
 
 GameObject::GameObject() {

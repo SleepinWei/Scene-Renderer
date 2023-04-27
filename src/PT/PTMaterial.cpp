@@ -1,9 +1,9 @@
-#include"PTRay.h"
-#include"hittable.h"
-#include"PTMaterial.h"
-#include"PTTexture.h"
-#include"glm_vec3.h"
-#include"PTrandom.h"
+#include"PT/PTRay.h"
+#include"PT/hittable.h"
+#include"PT/PTMaterial.h"
+#include"PT/PTTexture.h"
+#include"PT/glm_vec3.h"
+#include"PT/PTrandom.h"
 
 using namespace PT;
 using glm::normalize;

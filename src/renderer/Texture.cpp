@@ -1,5 +1,5 @@
 #include<glad/glad.h>
-#include"Texture.h"
+#include"renderer/Texture.h"
 #include<libdds/libdds_opengl.h>
 #include<assert.h>
 #define STB_IMAGE_IMPLEMENTATION

@@ -1,4 +1,4 @@
-#include"PTRay.h"
+#include"PT/PTRay.h"
 PT::Ray::Ray(vec3 origin, vec3 dir) :
 	orig(origin), dir(dir) {
 }

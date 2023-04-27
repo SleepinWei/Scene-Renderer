@@ -1,5 +1,5 @@
-#include"glm_vec3.h"
-#include"PTrandom.h"
+#include"PT/glm_vec3.h"
+#include"PT/PTrandom.h"
 
 bool nearZero(const vec3& v) {
 	return (fabs(v.x) < 1e-6) && (fabs(v.y) < 1e-6) && (fabs(v.z) < 1e-6);

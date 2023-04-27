@@ -1,5 +1,5 @@
 #include<glad/glad.h>
-#include"PBO.h"
+#include"buffer/PBO.h"
 
 PixelBuffer::PixelBuffer() {
 	id = 0;

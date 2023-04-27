@@ -1,10 +1,10 @@
 #include<glad/glad.h>
-#include"Grass.h"
-#include"../utils/Shader.h"
-#include"../component/GameObject.h"
-#include"../component/TerrainComponent.h"
-#include"../buffer/SSBO.h"
-#include"../buffer/ImageTexture.h"
+#include"component/Grass.h"
+#include"utils/Shader.h"
+#include"component/GameObject.h"
+#include"component/TerrainComponent.h"
+#include"buffer/SSBO.h"
+#include"buffer/ImageTexture.h"
 
 Grass::Grass() {
 	Component::name = "Grass";

@@ -26,7 +26,7 @@
 #include<glad/glad.h>
 #include <libdds/libdds_opengl.h>
 #include <libdds/libdds.h>
-#include"../../src/renderer/Texture.h"
+#include"renderer/Texture.h"
 
 #include <stdlib.h>
 

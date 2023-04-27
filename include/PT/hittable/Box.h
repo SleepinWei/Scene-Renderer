@@ -2,7 +2,7 @@
 #include<glm/glm.hpp>
 #include<memory>
 
-#include"PT/hittable.h"
+#include"../hittable.h"
 
 using glm::vec3;
 using point3 = glm::vec3;

@@ -1,9 +1,9 @@
-#include"../renderer/Mesh_Filter.h"
-#include"../renderer/Mesh_Renderer.h"
-#include"../component/transform.h"
-#include"../component/Component.h"
-#include"../component/Lights.h"
-#include"meta_register.h"
+#include"renderer/Mesh_Filter.h"
+#include"renderer/Mesh_Renderer.h"
+#include"component/transform.h"
+#include"component/Component.h"
+#include"component/Lights.h"
+#include"system/meta_register.h"
 #include<glm/glm.hpp>
 
 Meta::Meta() {

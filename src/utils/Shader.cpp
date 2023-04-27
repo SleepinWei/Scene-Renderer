@@ -1,5 +1,5 @@
 #include<glad/glad.h>
-#include"../utils/Shader.h"
+#include"utils/Shader.h"
 #include<glfw/glfw3.h>
 
 Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath,const char* tessControlPath,const char* tessEvalPath)
