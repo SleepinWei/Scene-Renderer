@@ -82,7 +82,7 @@ void render() {
 	//gui
 	Gui gui(window);
 
-	modelLoader->loadSceneAsync(scene, "./asset/objects/scene.json");
+	modelLoader->loadSceneAsync(scene, "./asset/objects/scene2.json");
 			
 	while (!glfwWindowShouldClose(window)) {
 		gui.window(scene);

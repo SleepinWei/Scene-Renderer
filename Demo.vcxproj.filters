@@ -47,27 +47,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="include\imgui\imgui.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="include\imgui\imgui_demo.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="include\imgui\imgui_draw.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="include\imgui\imgui_impl_glfw.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="include\imgui\imgui_impl_opengl3.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="include\imgui\imgui_tables.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="include\imgui\imgui_widgets.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
     <ClCompile Include="src\main.cpp">
       <Filter>src</Filter>
     </ClCompile>
@@ -209,20 +188,40 @@
     <ClCompile Include="src\component\Grass.cpp">
       <Filter>src\component</Filter>
     </ClCompile>
-    <ClCompile Include="include\imgui\imgui_toggle.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="include\libdds\libdds.cpp">
-      <Filter>libdds</Filter>
-    </ClCompile>
-    <ClCompile Include="include\libdds\libdds_opengl.cpp">
-      <Filter>libdds</Filter>
-    </ClCompile>
-    <ClCompile Include="include\glad\glad.c" />
     <ClCompile Include="src\component\Ocean.cpp">
       <Filter>src\component</Filter>
     </ClCompile>
     <ClCompile Include="include\glad\glad.c" />
+    <ClCompile Include="external\glad\glad.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="external\imgui\imgui.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="external\imgui\imgui_draw.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="external\imgui\imgui_impl_glfw.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="external\imgui\imgui_impl_opengl3.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="external\imgui\imgui_tables.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="external\imgui\imgui_toggle.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="external\imgui\imgui_widgets.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="external\libdds\libdds.cpp">
+      <Filter>libdds</Filter>
+    </ClCompile>
+    <ClCompile Include="external\libdds\libdds_opengl.cpp">
+      <Filter>libdds</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\GUI.h">
@@ -387,20 +386,20 @@
     <ClInclude Include="src\component\TerrainComponent.h">
       <Filter>src\component</Filter>
     </ClInclude>
-    <ClInclude Include="include\libdds\dds_types.h">
-      <Filter>libdds</Filter>
-    </ClInclude>
-    <ClInclude Include="include\libdds\libdds.h">
-      <Filter>libdds</Filter>
-    </ClInclude>
-    <ClInclude Include="include\libdds\libdds_opengl.h">
-      <Filter>libdds</Filter>
-    </ClInclude>
     <ClInclude Include="src\component\Cloud.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="src\component\Ocean.h">
       <Filter>src\component</Filter>
+    </ClInclude>
+    <ClInclude Include="external\libdds\dds_types.h">
+      <Filter>libdds</Filter>
+    </ClInclude>
+    <ClInclude Include="external\libdds\libdds.h">
+      <Filter>libdds</Filter>
+    </ClInclude>
+    <ClInclude Include="external\libdds\libdds_opengl.h">
+      <Filter>libdds</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
