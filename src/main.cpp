@@ -12,24 +12,24 @@
 #include"component/GameObject.h"
 #include"component/transform.h"
 #include"component/Lights.h"
-#include"./component/Model.h"
+#include"component/Model.h"
 //object
 #include"object/SkyBox.h"
 #include"object/Terrain.h"
 //renderer
 #include"renderer/Material.h"
 #include"renderer/ResourceManager.h"
-#include"./renderer/Mesh_Filter.h"
+#include"renderer/Mesh_Filter.h"
 #include"renderer/Mesh_Renderer.h"
-#include"./renderer/RenderScene.h"
+#include"renderer/RenderScene.h"
 //system
 #include"system/InputManager.h"
-#include"./system/meta_register.h"
-#include"./system/RenderManager.h"
+#include"system/meta_register.h"
+#include"system/RenderManager.h"
 #include"GUI.h"
-#include"./system/global_context.h"
-#include"./component/Atmosphere.h"
-#include"./system/ModelLoader.h"
+#include"system/global_context.h"
+#include"component/Atmosphere.h"
+#include"system/ModelLoader.h"
 //json
 #include<json/json.hpp>
 using json = nlohmann::json;
@@ -97,7 +97,6 @@ void render() {
 		}
 
 		renderManager->render(scene);
-		
 
 		gui.render();
 		inputManager->reset();

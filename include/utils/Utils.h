@@ -11,7 +11,7 @@
 #include<iostream>
 #include<cmath>
 #include"Camera.h"
-#include"../utils/Shader.h"
+#include"utils/Shader.h"
 
 /*******************************
 * extern variables 

@@ -24,6 +24,7 @@
     <ProjectGuid>{3a6811ea-7d71-4cd0-8944-36d1f034c3bb}</ProjectGuid>
     <RootNamespace>Demo</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>Scene-Renderer</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -212,6 +213,7 @@
     <ClCompile Include="src\system\ModelLoader.cpp" />
     <ClCompile Include="src\system\RenderManager.cpp" />
     <ClCompile Include="src\utils\Camera.cpp" />
+    <ClCompile Include="src\utils\Reflection.cpp" />
     <ClCompile Include="src\utils\Shader.cpp" />
     <ClCompile Include="src\utils\Utils.cpp" />
   </ItemGroup>
@@ -273,6 +275,7 @@
     <ClInclude Include="include\utils\Camera.h" />
     <ClInclude Include="include\utils\global.h" />
     <ClInclude Include="include\utils\header.h" />
+    <ClInclude Include="include\utils\Reflection.h" />
     <ClInclude Include="include\utils\Shader.h" />
     <ClInclude Include="include\utils\Utils.h" />
     <ClInclude Include="src\PT\hittable.h" />

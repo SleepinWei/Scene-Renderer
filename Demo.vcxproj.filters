@@ -218,7 +218,6 @@
     <ClCompile Include="src\component\Ocean.cpp">
       <Filter>src\component</Filter>
     </ClCompile>
-    <ClCompile Include="include\glad\glad.c" />
     <ClCompile Include="external\glad\glad.c">
       <Filter>src</Filter>
     </ClCompile>
@@ -248,6 +247,9 @@
     </ClCompile>
     <ClCompile Include="external\libdds\libdds_opengl.cpp">
       <Filter>libdds</Filter>
+    </ClCompile>
+    <ClCompile Include="src\utils\Reflection.cpp">
+      <Filter>src\utils</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -448,6 +450,9 @@
     </ClInclude>
     <ClInclude Include="include\object\Terrain.h">
       <Filter>头文件\object</Filter>
+    </ClInclude>
+    <ClInclude Include="include\utils\Reflection.h">
+      <Filter>头文件\utils</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
