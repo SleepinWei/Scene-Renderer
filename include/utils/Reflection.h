@@ -24,6 +24,7 @@ public:
 	void addMeta(string className, ClassMeta* meta);
 };
 
+
 class ClassMeta{
 public:
 	ClassMeta() = default;
@@ -38,9 +39,36 @@ public:
 		return *((varType*)((char*)instance + vars[varName]));
 	}
 
+	void* createInstance() {
+		return createFunc();
+	}
+
+	void setConstructor(void* (*p)(void)) {
+		this->createFunc = p; 
+	}
+
 //private:
 public:
 	string name; // class name 
 	std::map<string, int> vars;  // variable offset
-	std::map<string, void*> funcs;
+	std::function<void* (void)> createFunc;
+
 };
+
+#define REFLECTION() static ClassMeta* Register();\
+	static void* createInstance();
+
+#define REFLECTION_BEGIN(className) void* className::createInstance(){\
+	return new className();\
+	}\
+	ClassMeta* className::Register(){\
+	ClassMeta* newMeta = new ClassMeta();\
+	auto& vars = newMeta->vars;\
+	newMeta->setConstructor(className::createInstance);
+
+#define REGISTER(classname,var) vars.insert({#var,offsetof(##classname,##var)})
+
+#define REFLECTION_END() \
+	return newMeta;\
+	}
+

@@ -5,10 +5,7 @@ VisualStudioVersion = 17.1.32210.238
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Scene-Renderer", "Demo.vcxproj", "{3A6811EA-7D71-4CD0-8944-36D1F034C3BB}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test", "..\test\test.vcxproj", "{CB8E47FC-FD5D-43FA-AD82-F0D9E4641CC2}"
-	ProjectSection(ProjectDependencies) = postProject
-		{3A6811EA-7D71-4CD0-8944-36D1F034C3BB} = {3A6811EA-7D71-4CD0-8944-36D1F034C3BB}
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test", "test\test.vcxproj", "{CB8E47FC-FD5D-43FA-AD82-F0D9E4641CC2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
