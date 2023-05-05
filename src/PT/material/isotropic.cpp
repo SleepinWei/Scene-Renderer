@@ -1,8 +1,8 @@
 #include"isotropic.h"
-#include"../PTRay.h"
-#include"../hittable.h"
-#include"../PTTexture.h"
-#include"../glm_vec3.h"
+#include"PT/PTRay.h"
+#include"PT/hittable.h"
+#include"PT/PTTexture.h"
+#include"PT/glm_vec3.h"
 
 using namespace PT;
 using std::make_shared;

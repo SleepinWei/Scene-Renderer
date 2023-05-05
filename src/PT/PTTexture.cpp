@@ -1,6 +1,6 @@
-#include"PTTexture.h"
+#include"PT/PTTexture.h"
 #include<stb/stb_image.h>
-#include"PTrandom.h"
+#include"PT/PTrandom.h"
 using namespace PT;
 
 ImageTexture::ImageTexture() {

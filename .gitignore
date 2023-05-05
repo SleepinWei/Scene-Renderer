@@ -31,3 +31,5 @@ node_modules/
 *.js
 *.json
 *.rar
+
+packages/

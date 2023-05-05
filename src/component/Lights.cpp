@@ -1,8 +1,8 @@
-#include"Lights.h"
+#include"component/Lights.h"
 #include<glm/gtc/matrix_transform.hpp>
-#include"../component/GameObject.h"
-#include"../component/transform.h"
-#include"../renderer/Texture.h"
+#include"component/GameObject.h"
+#include"component/transform.h"
+#include"renderer/Texture.h"
 Light::Light()
 {
 	enabled = true;

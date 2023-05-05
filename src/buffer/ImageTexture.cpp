@@ -1,6 +1,6 @@
 #include<glad/glad.h>
-#include"ImageTexture.h"
-#include"../renderer/Texture.h"
+#include"buffer/ImageTexture.h"
+#include"renderer/Texture.h"
 
 ImageTexture::ImageTexture() {
 	tex = nullptr;

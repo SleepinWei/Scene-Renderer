@@ -1,7 +1,7 @@
 #pragma once
 #include<memory>
 #include<glm/glm.hpp>
-#include"../hittable.h"
+#include"PT/hittable.h"
 namespace PT {
 	class hittable;
 	class Ray;

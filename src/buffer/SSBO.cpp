@@ -1,7 +1,7 @@
 #include<glad/glad.h>
 #include<glfw/glfw3.h>
 
-#include"SSBO.h"
+#include"buffer/SSBO.h"
 
 SSBO::SSBO() {
 	ssbo = 0; 

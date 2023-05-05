@@ -1,8 +1,8 @@
-#include"ModelLoader.h"
-#include"../renderer/RenderScene.h"
-#include"../component/GameObject.h"
-#include"../object/Terrain.h"
-#include"../object/SkyBox.h"
+#include"system/ModelLoader.h"
+#include"renderer/RenderScene.h"
+#include"component/GameObject.h"
+#include"object/Terrain.h"
+#include"object/SkyBox.h"
 #include<utility>
 
 ModelLoader::ModelLoader() {

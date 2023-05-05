@@ -24,6 +24,7 @@
     <ProjectGuid>{3a6811ea-7d71-4cd0-8944-36d1f034c3bb}</ProjectGuid>
     <RootNamespace>Demo</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>Scene-Renderer</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -78,8 +79,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);./include</IncludePath>
-    <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);./lib</LibraryPath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -92,10 +93,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(ProjectDir)include; $(ProjectDir)external</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>assimp-vc143-mtd.lib;glfw3.lib;yaml-cppd.lib;opengl32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)lib;</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -121,12 +125,17 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)include; $(ProjectDir)external</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>assimp-vc143-mtd.lib;glfw3.lib;opengl32.lib;yaml-cppd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>assimp-vc143-mtd.lib;glfw3.lib;yaml-cppd.lib;opengl32.lib;User32.lib;Gdi32.lib;shell32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)lib;</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /y /d "$(ProjectDir)dll\Debug\*" "$(OutDir)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -148,17 +157,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="include\glad\glad.c" />
-    <ClCompile Include="include\imgui\imgui.cpp" />
-    <ClCompile Include="include\imgui\imgui_demo.cpp" />
-    <ClCompile Include="include\imgui\imgui_draw.cpp" />
-    <ClCompile Include="include\imgui\imgui_impl_glfw.cpp" />
-    <ClCompile Include="include\imgui\imgui_impl_opengl3.cpp" />
-    <ClCompile Include="include\imgui\imgui_tables.cpp" />
-    <ClCompile Include="include\imgui\imgui_toggle.cpp" />
-    <ClCompile Include="include\imgui\imgui_widgets.cpp" />
-    <ClCompile Include="include\libdds\libdds.cpp" />
-    <ClCompile Include="include\libdds\libdds_opengl.cpp" />
+    <ClCompile Include="external\glad\glad.c" />
+    <ClCompile Include="external\imgui\imgui.cpp" />
+    <ClCompile Include="external\imgui\imgui_draw.cpp" />
+    <ClCompile Include="external\imgui\imgui_impl_glfw.cpp" />
+    <ClCompile Include="external\imgui\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="external\imgui\imgui_tables.cpp" />
+    <ClCompile Include="external\imgui\imgui_toggle.cpp" />
+    <ClCompile Include="external\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="external\libdds\libdds.cpp" />
+    <ClCompile Include="external\libdds\libdds_opengl.cpp" />
     <ClCompile Include="src\buffer\FrameBuffer.cpp" />
     <ClCompile Include="src\buffer\ImageTexture.cpp" />
     <ClCompile Include="src\buffer\PBO.cpp" />
@@ -205,69 +213,78 @@
     <ClCompile Include="src\system\ModelLoader.cpp" />
     <ClCompile Include="src\system\RenderManager.cpp" />
     <ClCompile Include="src\utils\Camera.cpp" />
+    <ClCompile Include="src\utils\Reflection.cpp" />
     <ClCompile Include="src\utils\Shader.cpp" />
     <ClCompile Include="src\utils\Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\libdds\dds_types.h" />
-    <ClInclude Include="include\libdds\libdds.h" />
-    <ClInclude Include="include\libdds\libdds_opengl.h" />
-    <ClInclude Include="src\buffer\buffer.h" />
-    <ClInclude Include="src\buffer\FrameBuffer.h" />
-    <ClInclude Include="src\buffer\ImageTexture.h" />
-    <ClInclude Include="src\buffer\PBO.h" />
-    <ClInclude Include="src\buffer\RenderBuffer.h" />
-    <ClInclude Include="src\buffer\SSBO.h" />
-    <ClInclude Include="src\buffer\UniformBuffer.h" />
-    <ClInclude Include="src\component\Atmosphere.h" />
-    <ClInclude Include="src\component\Cloud.h" />
-    <ClInclude Include="src\component\Component.h" />
-    <ClInclude Include="src\component\GameObject.h" />
-    <ClInclude Include="src\component\Grass.h" />
-    <ClInclude Include="src\component\Lights.h" />
-    <ClInclude Include="src\component\Model.h" />
-    <ClInclude Include="src\component\Ocean.h" />
-    <ClInclude Include="src\component\TerrainComponent.h" />
-    <ClInclude Include="src\component\transform.h" />
-    <ClInclude Include="src\GUI.h" />
-    <ClInclude Include="src\object\SkyBox.h" />
-    <ClInclude Include="src\object\Terrain.h" />
-    <ClInclude Include="src\PT\BVH.h" />
-    <ClInclude Include="src\PT\glm_vec3.h" />
+    <ClInclude Include="external\libdds\dds_types.h" />
+    <ClInclude Include="external\libdds\libdds.h" />
+    <ClInclude Include="external\libdds\libdds_opengl.h" />
+    <ClInclude Include="include\buffer\buffer.h" />
+    <ClInclude Include="include\buffer\FrameBuffer.h" />
+    <ClInclude Include="include\buffer\ImageTexture.h" />
+    <ClInclude Include="include\buffer\PBO.h" />
+    <ClInclude Include="include\buffer\RenderBuffer.h" />
+    <ClInclude Include="include\buffer\SSBO.h" />
+    <ClInclude Include="include\buffer\UniformBuffer.h" />
+    <ClInclude Include="include\component\Atmosphere.h" />
+    <ClInclude Include="include\component\Cloud.h" />
+    <ClInclude Include="include\component\Component.h" />
+    <ClInclude Include="include\component\GameObject.h" />
+    <ClInclude Include="include\component\Grass.h" />
+    <ClInclude Include="include\component\Lights.h" />
+    <ClInclude Include="include\component\Model.h" />
+    <ClInclude Include="include\component\Ocean.h" />
+    <ClInclude Include="include\component\TerrainComponent.h" />
+    <ClInclude Include="include\component\transform.h" />
+    <ClInclude Include="include\GUI.h" />
+    <ClInclude Include="include\object\SkyBox.h" />
+    <ClInclude Include="include\object\Terrain.h" />
+    <ClInclude Include="include\PT\BVH.h" />
+    <ClInclude Include="include\PT\glm_vec3.h" />
+    <ClInclude Include="include\PT\hittable.h" />
+    <ClInclude Include="include\PT\hittable\Box.h" />
+    <ClInclude Include="include\PT\hittable\medium.h" />
+    <ClInclude Include="include\PT\hittable\Rect.h" />
+    <ClInclude Include="include\PT\hittable\TransHittable.h" />
+    <ClInclude Include="include\PT\material\isotropic.h" />
+    <ClInclude Include="include\PT\PathTracing.h" />
+    <ClInclude Include="include\PT\PTAABB.h" />
+    <ClInclude Include="include\PT\PTCamera.h" />
+    <ClInclude Include="include\PT\PTHeader.h" />
+    <ClInclude Include="include\PT\PTMaterial.h" />
+    <ClInclude Include="include\PT\PTrandom.h" />
+    <ClInclude Include="include\PT\PTRay.h" />
+    <ClInclude Include="include\PT\PTTexture.h" />
+    <ClInclude Include="include\PT\PTVec.h" />
+    <ClInclude Include="include\PT\Renderer.h" />
+    <ClInclude Include="include\renderer\Material.h" />
+    <ClInclude Include="include\renderer\Mesh_Filter.h" />
+    <ClInclude Include="include\renderer\Mesh_Renderer.h" />
+    <ClInclude Include="include\renderer\RenderPass.h" />
+    <ClInclude Include="include\renderer\RenderScene.h" />
+    <ClInclude Include="include\renderer\ResourceManager.h" />
+    <ClInclude Include="include\renderer\Texture.h" />
+    <ClInclude Include="include\system\global_context.h" />
+    <ClInclude Include="include\system\InputManager.h" />
+    <ClInclude Include="include\system\Key.h" />
+    <ClInclude Include="include\system\meta_register.h" />
+    <ClInclude Include="include\system\ModelLoader.h" />
+    <ClInclude Include="include\system\RenderManager.h" />
+    <ClInclude Include="include\utils\Camera.h" />
+    <ClInclude Include="include\utils\global.h" />
+    <ClInclude Include="include\utils\header.h" />
+    <ClInclude Include="include\utils\Reflection.h" />
+    <ClInclude Include="include\utils\Shader.h" />
+    <ClInclude Include="include\utils\Utils.h" />
     <ClInclude Include="src\PT\hittable.h" />
     <ClInclude Include="src\PT\hittable\Box.h" />
     <ClInclude Include="src\PT\hittable\medium.h" />
     <ClInclude Include="src\PT\hittable\Rect.h" />
     <ClInclude Include="src\PT\hittable\TransHittable.h" />
     <ClInclude Include="src\PT\material\isotropic.h" />
-    <ClInclude Include="src\PT\PathTracing.h" />
-    <ClInclude Include="src\PT\PTAABB.h" />
-    <ClInclude Include="src\PT\PTCamera.h" />
-    <ClInclude Include="src\PT\PTHeader.h" />
     <ClInclude Include="src\PT\PTMaterial.h" />
-    <ClInclude Include="src\PT\PTrandom.h" />
-    <ClInclude Include="src\PT\PTRay.h" />
-    <ClInclude Include="src\PT\PTTexture.h" />
-    <ClInclude Include="src\PT\PTVec.h" />
-    <ClInclude Include="src\PT\Renderer.h" />
-    <ClInclude Include="src\renderer\Material.h" />
-    <ClInclude Include="src\renderer\Mesh_Filter.h" />
-    <ClInclude Include="src\renderer\Mesh_Renderer.h" />
-    <ClInclude Include="src\renderer\RenderPass.h" />
-    <ClInclude Include="src\renderer\RenderScene.h" />
-    <ClInclude Include="src\renderer\ResourceManager.h" />
-    <ClInclude Include="src\renderer\Texture.h" />
-    <ClInclude Include="src\system\global_context.h" />
-    <ClInclude Include="src\system\InputManager.h" />
-    <ClInclude Include="src\system\Key.h" />
-    <ClInclude Include="src\system\meta_register.h" />
-    <ClInclude Include="src\system\ModelLoader.h" />
-    <ClInclude Include="src\system\RenderManager.h" />
-    <ClInclude Include="src\utils\Camera.h" />
-    <ClInclude Include="src\utils\global.h" />
-    <ClInclude Include="src\utils\header.h" />
-    <ClInclude Include="src\utils\Shader.h" />
-    <ClInclude Include="src\utils\Utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -45,29 +45,35 @@
     <Filter Include="libdds">
       <UniqueIdentifier>{6053c5ab-ccd1-409b-a627-8229e5a47052}</UniqueIdentifier>
     </Filter>
+    <Filter Include="头文件\buffer">
+      <UniqueIdentifier>{034d17ad-1265-4fc7-8886-1dade00c461e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\component">
+      <UniqueIdentifier>{bfaaf404-2578-4d39-84f5-6fa9d984104f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\object">
+      <UniqueIdentifier>{e139eae8-e76f-47af-8613-a50fa9e219ad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\PT">
+      <UniqueIdentifier>{a13046eb-9e53-4ce2-9961-583062d736d9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\renderer">
+      <UniqueIdentifier>{1a2f0c33-c15b-4a25-9e90-382a5d438567}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\system">
+      <UniqueIdentifier>{c133a5e9-fa38-401b-88f0-aab43d26e0b4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\utils">
+      <UniqueIdentifier>{fda8a5f9-8277-4b43-b7ec-dad5cf66b554}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\PT\material">
+      <UniqueIdentifier>{402cb6fd-f684-4da1-88cb-787c5e399a90}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\PT\hittable">
+      <UniqueIdentifier>{5d560f59-2da9-46e2-8a1c-b8f685c3a270}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="include\imgui\imgui.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="include\imgui\imgui_demo.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="include\imgui\imgui_draw.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="include\imgui\imgui_impl_glfw.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="include\imgui\imgui_impl_opengl3.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="include\imgui\imgui_tables.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="include\imgui\imgui_widgets.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
     <ClCompile Include="src\main.cpp">
       <Filter>src</Filter>
     </ClCompile>
@@ -209,159 +215,52 @@
     <ClCompile Include="src\component\Grass.cpp">
       <Filter>src\component</Filter>
     </ClCompile>
-    <ClCompile Include="include\imgui\imgui_toggle.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="include\libdds\libdds.cpp">
-      <Filter>libdds</Filter>
-    </ClCompile>
-    <ClCompile Include="include\libdds\libdds_opengl.cpp">
-      <Filter>libdds</Filter>
-    </ClCompile>
-    <ClCompile Include="include\glad\glad.c" />
     <ClCompile Include="src\component\Ocean.cpp">
       <Filter>src\component</Filter>
     </ClCompile>
-    <ClCompile Include="include\glad\glad.c" />
+    <ClCompile Include="external\glad\glad.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="external\imgui\imgui.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="external\imgui\imgui_draw.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="external\imgui\imgui_impl_glfw.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="external\imgui\imgui_impl_opengl3.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="external\imgui\imgui_tables.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="external\imgui\imgui_toggle.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="external\imgui\imgui_widgets.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="external\libdds\libdds.cpp">
+      <Filter>libdds</Filter>
+    </ClCompile>
+    <ClCompile Include="external\libdds\libdds_opengl.cpp">
+      <Filter>libdds</Filter>
+    </ClCompile>
+    <ClCompile Include="src\utils\Reflection.cpp">
+      <Filter>src\utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\GUI.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="src\component\Component.h">
-      <Filter>src\component</Filter>
-    </ClInclude>
-    <ClInclude Include="src\component\Lights.h">
-      <Filter>src\component</Filter>
-    </ClInclude>
-    <ClInclude Include="src\component\Model.h">
-      <Filter>src\component</Filter>
-    </ClInclude>
-    <ClInclude Include="src\object\SkyBox.h">
-      <Filter>src\object</Filter>
-    </ClInclude>
-    <ClInclude Include="src\object\Terrain.h">
-      <Filter>src\object</Filter>
-    </ClInclude>
-    <ClInclude Include="src\PT\BVH.h">
-      <Filter>src\PT</Filter>
-    </ClInclude>
-    <ClInclude Include="src\PT\PathTracing.h">
-      <Filter>src\PT</Filter>
-    </ClInclude>
-    <ClInclude Include="src\PT\PTAABB.h">
-      <Filter>src\PT</Filter>
-    </ClInclude>
-    <ClInclude Include="src\PT\PTCamera.h">
-      <Filter>src\PT</Filter>
-    </ClInclude>
-    <ClInclude Include="src\PT\PTrandom.h">
-      <Filter>src\PT</Filter>
-    </ClInclude>
-    <ClInclude Include="src\PT\PTRay.h">
-      <Filter>src\PT</Filter>
-    </ClInclude>
-    <ClInclude Include="src\PT\PTVec.h">
-      <Filter>src\PT</Filter>
-    </ClInclude>
-    <ClInclude Include="src\system\RenderManager.h">
-      <Filter>src\system</Filter>
-    </ClInclude>
-    <ClInclude Include="src\utils\Camera.h">
-      <Filter>src\utils</Filter>
-    </ClInclude>
-    <ClInclude Include="src\utils\global.h">
-      <Filter>src\utils</Filter>
-    </ClInclude>
-    <ClInclude Include="src\utils\Utils.h">
-      <Filter>src\utils</Filter>
-    </ClInclude>
-    <ClInclude Include="src\component\transform.h">
-      <Filter>src\component</Filter>
-    </ClInclude>
-    <ClInclude Include="src\renderer\Mesh_Filter.h">
-      <Filter>src\renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="src\renderer\Mesh_Renderer.h">
-      <Filter>src\renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="src\renderer\Texture.h">
-      <Filter>src\renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="src\renderer\Material.h">
-      <Filter>src\renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="src\component\GameObject.h">
-      <Filter>src\component</Filter>
-    </ClInclude>
-    <ClInclude Include="src\renderer\ResourceManager.h">
-      <Filter>src\renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="src\system\global_context.h">
-      <Filter>src\system</Filter>
-    </ClInclude>
-    <ClInclude Include="src\system\meta_register.h">
-      <Filter>src\system</Filter>
-    </ClInclude>
-    <ClInclude Include="src\renderer\RenderScene.h">
-      <Filter>src\renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="src\buffer\UniformBuffer.h">
-      <Filter>src\buffer</Filter>
-    </ClInclude>
-    <ClInclude Include="src\buffer\buffer.h">
-      <Filter>src\buffer</Filter>
-    </ClInclude>
-    <ClInclude Include="src\utils\Shader.h">
-      <Filter>src\utils</Filter>
-    </ClInclude>
-    <ClInclude Include="src\buffer\SSBO.h">
-      <Filter>src\buffer</Filter>
-    </ClInclude>
-    <ClInclude Include="src\system\InputManager.h">
-      <Filter>src\system</Filter>
-    </ClInclude>
-    <ClInclude Include="src\system\Key.h">
-      <Filter>src\system</Filter>
-    </ClInclude>
-    <ClInclude Include="src\buffer\FrameBuffer.h">
-      <Filter>src\buffer</Filter>
-    </ClInclude>
-    <ClInclude Include="src\renderer\RenderPass.h">
-      <Filter>src\renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="src\component\Atmosphere.h">
-      <Filter>src\component</Filter>
-    </ClInclude>
-    <ClInclude Include="src\buffer\ImageTexture.h">
-      <Filter>src\buffer</Filter>
-    </ClInclude>
-    <ClInclude Include="src\utils\header.h">
-      <Filter>src\utils</Filter>
-    </ClInclude>
-    <ClInclude Include="src\PT\glm_vec3.h">
-      <Filter>src\PT</Filter>
-    </ClInclude>
-    <ClInclude Include="src\PT\PTTexture.h">
-      <Filter>src\PT</Filter>
-    </ClInclude>
-    <ClInclude Include="src\buffer\RenderBuffer.h">
-      <Filter>src\buffer</Filter>
-    </ClInclude>
     <ClInclude Include="src\PT\hittable.h">
       <Filter>src\PT\hittable</Filter>
     </ClInclude>
     <ClInclude Include="src\PT\hittable\Rect.h">
       <Filter>src\PT\hittable</Filter>
     </ClInclude>
-    <ClInclude Include="src\PT\Renderer.h">
-      <Filter>src\PT</Filter>
-    </ClInclude>
     <ClInclude Include="src\PT\hittable\Box.h">
       <Filter>src\PT\hittable</Filter>
-    </ClInclude>
-    <ClInclude Include="src\buffer\PBO.h">
-      <Filter>src\buffer</Filter>
     </ClInclude>
     <ClInclude Include="src\PT\hittable\TransHittable.h">
       <Filter>src\PT\hittable</Filter>
@@ -375,32 +274,185 @@
     <ClInclude Include="src\PT\material\isotropic.h">
       <Filter>src\PT\material</Filter>
     </ClInclude>
-    <ClInclude Include="src\PT\PTHeader.h">
-      <Filter>src\PT</Filter>
-    </ClInclude>
-    <ClInclude Include="src\system\ModelLoader.h">
-      <Filter>src\system</Filter>
-    </ClInclude>
-    <ClInclude Include="src\component\Grass.h">
-      <Filter>src\component</Filter>
-    </ClInclude>
-    <ClInclude Include="src\component\TerrainComponent.h">
-      <Filter>src\component</Filter>
-    </ClInclude>
-    <ClInclude Include="include\libdds\dds_types.h">
+    <ClInclude Include="external\libdds\dds_types.h">
       <Filter>libdds</Filter>
     </ClInclude>
-    <ClInclude Include="include\libdds\libdds.h">
+    <ClInclude Include="external\libdds\libdds.h">
       <Filter>libdds</Filter>
     </ClInclude>
-    <ClInclude Include="include\libdds\libdds_opengl.h">
+    <ClInclude Include="external\libdds\libdds_opengl.h">
       <Filter>libdds</Filter>
     </ClInclude>
-    <ClInclude Include="src\component\Cloud.h">
+    <ClInclude Include="include\GUI.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="src\component\Ocean.h">
-      <Filter>src\component</Filter>
+    <ClInclude Include="include\buffer\buffer.h">
+      <Filter>头文件\buffer</Filter>
+    </ClInclude>
+    <ClInclude Include="include\buffer\FrameBuffer.h">
+      <Filter>头文件\buffer</Filter>
+    </ClInclude>
+    <ClInclude Include="include\buffer\ImageTexture.h">
+      <Filter>头文件\buffer</Filter>
+    </ClInclude>
+    <ClInclude Include="include\buffer\PBO.h">
+      <Filter>头文件\buffer</Filter>
+    </ClInclude>
+    <ClInclude Include="include\buffer\RenderBuffer.h">
+      <Filter>头文件\buffer</Filter>
+    </ClInclude>
+    <ClInclude Include="include\buffer\SSBO.h">
+      <Filter>头文件\buffer</Filter>
+    </ClInclude>
+    <ClInclude Include="include\buffer\UniformBuffer.h">
+      <Filter>头文件\buffer</Filter>
+    </ClInclude>
+    <ClInclude Include="include\component\Atmosphere.h">
+      <Filter>头文件\component</Filter>
+    </ClInclude>
+    <ClInclude Include="include\component\Cloud.h">
+      <Filter>头文件\component</Filter>
+    </ClInclude>
+    <ClInclude Include="include\component\Component.h">
+      <Filter>头文件\component</Filter>
+    </ClInclude>
+    <ClInclude Include="include\component\GameObject.h">
+      <Filter>头文件\component</Filter>
+    </ClInclude>
+    <ClInclude Include="include\component\Grass.h">
+      <Filter>头文件\component</Filter>
+    </ClInclude>
+    <ClInclude Include="include\component\Lights.h">
+      <Filter>头文件\component</Filter>
+    </ClInclude>
+    <ClInclude Include="include\component\Model.h">
+      <Filter>头文件\component</Filter>
+    </ClInclude>
+    <ClInclude Include="include\component\Ocean.h">
+      <Filter>头文件\component</Filter>
+    </ClInclude>
+    <ClInclude Include="include\component\TerrainComponent.h">
+      <Filter>头文件\component</Filter>
+    </ClInclude>
+    <ClInclude Include="include\component\transform.h">
+      <Filter>头文件\component</Filter>
+    </ClInclude>
+    <ClInclude Include="include\utils\Camera.h">
+      <Filter>头文件\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="include\utils\global.h">
+      <Filter>头文件\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="include\utils\header.h">
+      <Filter>头文件\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="include\utils\Shader.h">
+      <Filter>头文件\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="include\utils\Utils.h">
+      <Filter>头文件\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="include\system\global_context.h">
+      <Filter>头文件\system</Filter>
+    </ClInclude>
+    <ClInclude Include="include\system\InputManager.h">
+      <Filter>头文件\system</Filter>
+    </ClInclude>
+    <ClInclude Include="include\system\Key.h">
+      <Filter>头文件\system</Filter>
+    </ClInclude>
+    <ClInclude Include="include\system\meta_register.h">
+      <Filter>头文件\system</Filter>
+    </ClInclude>
+    <ClInclude Include="include\system\ModelLoader.h">
+      <Filter>头文件\system</Filter>
+    </ClInclude>
+    <ClInclude Include="include\system\RenderManager.h">
+      <Filter>头文件\system</Filter>
+    </ClInclude>
+    <ClInclude Include="include\renderer\Material.h">
+      <Filter>头文件\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="include\renderer\Mesh_Filter.h">
+      <Filter>头文件\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="include\renderer\Mesh_Renderer.h">
+      <Filter>头文件\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="include\renderer\RenderPass.h">
+      <Filter>头文件\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="include\renderer\RenderScene.h">
+      <Filter>头文件\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="include\renderer\ResourceManager.h">
+      <Filter>头文件\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="include\renderer\Texture.h">
+      <Filter>头文件\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="include\PT\BVH.h">
+      <Filter>头文件\PT</Filter>
+    </ClInclude>
+    <ClInclude Include="include\PT\glm_vec3.h">
+      <Filter>头文件\PT</Filter>
+    </ClInclude>
+    <ClInclude Include="include\PT\hittable.h">
+      <Filter>头文件\PT</Filter>
+    </ClInclude>
+    <ClInclude Include="include\PT\PathTracing.h">
+      <Filter>头文件\PT</Filter>
+    </ClInclude>
+    <ClInclude Include="include\PT\PTAABB.h">
+      <Filter>头文件\PT</Filter>
+    </ClInclude>
+    <ClInclude Include="include\PT\PTCamera.h">
+      <Filter>头文件\PT</Filter>
+    </ClInclude>
+    <ClInclude Include="include\PT\PTHeader.h">
+      <Filter>头文件\PT</Filter>
+    </ClInclude>
+    <ClInclude Include="include\PT\PTMaterial.h">
+      <Filter>头文件\PT</Filter>
+    </ClInclude>
+    <ClInclude Include="include\PT\PTrandom.h">
+      <Filter>头文件\PT</Filter>
+    </ClInclude>
+    <ClInclude Include="include\PT\PTRay.h">
+      <Filter>头文件\PT</Filter>
+    </ClInclude>
+    <ClInclude Include="include\PT\PTTexture.h">
+      <Filter>头文件\PT</Filter>
+    </ClInclude>
+    <ClInclude Include="include\PT\PTVec.h">
+      <Filter>头文件\PT</Filter>
+    </ClInclude>
+    <ClInclude Include="include\PT\Renderer.h">
+      <Filter>头文件\PT</Filter>
+    </ClInclude>
+    <ClInclude Include="include\PT\material\isotropic.h">
+      <Filter>头文件\PT\material</Filter>
+    </ClInclude>
+    <ClInclude Include="include\PT\hittable\Box.h">
+      <Filter>头文件\PT\hittable</Filter>
+    </ClInclude>
+    <ClInclude Include="include\PT\hittable\medium.h">
+      <Filter>头文件\PT\hittable</Filter>
+    </ClInclude>
+    <ClInclude Include="include\PT\hittable\Rect.h">
+      <Filter>头文件\PT\hittable</Filter>
+    </ClInclude>
+    <ClInclude Include="include\PT\hittable\TransHittable.h">
+      <Filter>头文件\PT\hittable</Filter>
+    </ClInclude>
+    <ClInclude Include="include\object\SkyBox.h">
+      <Filter>头文件\object</Filter>
+    </ClInclude>
+    <ClInclude Include="include\object\Terrain.h">
+      <Filter>头文件\object</Filter>
+    </ClInclude>
+    <ClInclude Include="include\utils\Reflection.h">
+      <Filter>头文件\utils</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

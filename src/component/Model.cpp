@@ -1,8 +1,8 @@
 #include<iostream>
-#include"Model.h"
-#include"../renderer/ResourceManager.h"
-#include"../renderer/Material.h"
-#include"../renderer/Mesh_Filter.h"
+#include"component/Model.h"
+#include"renderer/ResourceManager.h"
+#include"renderer/Material.h"
+#include"renderer/Mesh_Filter.h"
 
 std::shared_ptr<Mesh> Model::combineMesh(const std::vector<std::shared_ptr<Mesh>>& meshes) {
 	// TODO:

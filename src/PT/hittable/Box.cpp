@@ -1,7 +1,7 @@
 #include"Box.h"
-#include"../PTRay.h"
-#include"../PTAABB.h"
-#include"../PTRay.h"
+#include"PT/PTRay.h"
+#include"PT/PTAABB.h"
+#include"PT/PTRay.h"
 #include"Rect.h"
 
 using namespace PT;

@@ -1,9 +1,9 @@
 #include<glad/glad.h>
 #include<glfw/glfw3.h>
-#include"Mesh_Filter.h"
-#include"Material.h"
-#include"Texture.h"
-#include"../component/Model.h"
+#include"renderer/Mesh_Filter.h"
+#include"renderer/Material.h"
+#include"renderer/Texture.h"
+#include"component/Model.h"
 #include<glfw/glfw3.h>
 
 #define PI 3.1415926

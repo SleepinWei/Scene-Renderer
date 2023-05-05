@@ -2,12 +2,12 @@
 #include<memory>
 #include<assert.h>
 //#include<utility>
-#include"Material.h"
-#include"../utils/Shader.h"
-#include"Texture.h"
-#include"../renderer/ResourceManager.h"
-#include"../utils/Shader.h"
-#include"../include/yaml-cpp/yaml.h"
+#include"renderer/Material.h"
+#include"utils/Shader.h"
+#include"renderer/Texture.h"
+#include"renderer/ResourceManager.h"
+#include"utils/Shader.h"
+#include"yaml-cpp/yaml.h"
 
 extern std::unique_ptr<ResourceManager> resourceManager;
 

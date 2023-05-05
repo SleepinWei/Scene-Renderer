@@ -3,17 +3,17 @@
 #include<glm/gtc/matrix_transform.hpp>
 #include<glm/gtc/type_ptr.hpp>
 #include<fstream>
-#include"TerrainComponent.h"
-#include"../utils/Utils.h"
-#include"../renderer/Texture.h"
-#include"../system/RenderManager.h"
-#include"../renderer/ResourceManager.h"
-#include"../renderer/Material.h"
-#include"../utils/Shader.h"
-#include"../buffer/SSBO.h"
-#include"../buffer/ImageTexture.h"
-#include"Grass.h"
-#include"GameObject.h"
+#include"component/TerrainComponent.h"
+#include"utils/Utils.h"
+#include"renderer/Texture.h"
+#include"system/RenderManager.h"
+#include"renderer/ResourceManager.h"
+#include"renderer/Material.h"
+#include"utils/Shader.h"
+#include"buffer/SSBO.h"
+#include"buffer/ImageTexture.h"
+#include"component/Grass.h"
+#include"component/GameObject.h"
 
 extern std::unique_ptr<ResourceManager> resourceManager;
 extern std::unique_ptr<RenderManager> renderManager;

@@ -1,6 +1,6 @@
-#include"PTRay.h"
-#include"PTAABB.h"
-#include"BVH.h"
+#include"PT/PTRay.h"
+#include"PT/PTAABB.h"
+#include"PT/BVH.h"
 #include<algorithm>
 
 using namespace PT;

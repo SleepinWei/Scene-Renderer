@@ -1,15 +1,15 @@
 #include<glad/glad.h>
 #include<glfw/glfw3.h>
 #include<glm/gtc/type_ptr.hpp>
-#include"Atmosphere.h"
-#include"../buffer/ImageTexture.h"
-#include"../renderer/Texture.h"
-#include"../buffer/UniformBuffer.h"
-#include"../utils/Shader.h"
-#include"../system/RenderManager.h"
-#include"../utils/Utils.h"
-#include"../object/SkyBox.h"
-#include"../renderer/Material.h"
+#include"component/Atmosphere.h"
+#include"buffer/ImageTexture.h"
+#include"renderer/Texture.h"
+#include"buffer/UniformBuffer.h"
+#include"utils/Shader.h"
+#include"system/RenderManager.h"
+#include"utils/Utils.h"
+#include"object/SkyBox.h"
+#include"renderer/Material.h"
 
 extern std::unique_ptr<RenderManager> renderManager;
 

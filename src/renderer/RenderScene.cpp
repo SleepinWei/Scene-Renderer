@@ -1,8 +1,8 @@
-#include"RenderScene.h"
-#include"../object/Terrain.h"
-#include"../component/GameObject.h"
-#include"../object/SkyBox.h"
-#include"../component/Lights.h"
+#include"renderer/RenderScene.h"
+#include"object/Terrain.h"
+#include"component/GameObject.h"
+#include"object/SkyBox.h"
+#include"component/Lights.h"
 
 using std::shared_ptr;
 

@@ -1,5 +1,5 @@
 #pragma once
-#include"../hittable.h"
+#include"PT/hittable.h"
 #include<memory>
 
 using std::shared_ptr;

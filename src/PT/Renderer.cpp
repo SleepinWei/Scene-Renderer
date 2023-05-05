@@ -1,12 +1,12 @@
 #include<glm/glm.hpp>
-#include"Renderer.h"
+#include"PT\Renderer.h"
 #include<utility>
 #include<iostream>
-#include"hittable.h"
-#include"PTCamera.h"
-#include"PTRay.h"
-#include"PTrandom.h"
-#include"PTMaterial.h"
+#include"PT\hittable.h"
+#include"PT\PTCamera.h"
+#include"PT\PTRay.h"
+#include"PT\PTrandom.h"
+#include"PT\PTMaterial.h"
 
 using namespace PT;
 

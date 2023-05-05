@@ -1,9 +1,9 @@
 #include"medium.h"
 #include<limits>
-#include"../PTAABB.h"
-#include"../PTRay.h"
-#include"../PTTexture.h"
-#include"../material/isotropic.h"
+#include"PT/PTAABB.h"
+#include"PT/PTRay.h"
+#include"PT/PTTexture.h"
+#include"PT/material/isotropic.h"
 #include<iostream>
 using namespace PT;
 
