@@ -6,7 +6,9 @@ Reflection::Reflection()
 
 Reflection::~Reflection()
 {
-	
+	for (auto iter : meta) {
+		delete iter.second;
+	}
 }
 
 Reflection::Reflection(const Reflection& _ref)
@@ -38,3 +40,5 @@ void Reflection::addMeta(string className, ClassMeta* classMeta)
 {
 	meta.insert({ className,classMeta });
 }
+
+
