@@ -11,7 +11,7 @@ ModelLoader::ModelLoader() {
 
 ModelLoader::~ModelLoader() {
 }
-void ModelLoader::loadObjectAsync(std::shared_ptr<RenderScene>& scene, json& data, std::vector<std::string>& objectname, int threadid) {
+void ModelLoader::loadObjectAsync(std::shared_ptr<RenderScene> scene, json data, std::vector<std::string> objectname, int threadid) {
 	//std::thread loadThread = std::thread(&ModelLoader::loadObject, this, scene, filename);
 	//threadpool.push_back(std::move(loadThread));
 	//threadQueue.push(std::move(loadThread));
@@ -101,7 +101,7 @@ void ModelLoader::loadSkyAsync(std::shared_ptr<RenderScene>& scene, const std::s
 	//threadQueue.push(std::move(loadThread));
 }
 
-void ModelLoader::loadSky(std::shared_ptr<RenderScene>& scene, const std::string& filename) {
+void ModelLoader::loadSky(std::shared_ptr<RenderScene> scene, const std::string filename) {
 	std::ifstream f(filename);
 	if (!f) {
 		std::cout << "In ModelLoader::loadSky : Failed to open file: " << filename << '\n';
@@ -121,7 +121,7 @@ void ModelLoader::loadTerrainAsync(std::shared_ptr<RenderScene>& scene, const st
 	//threadQueue.push(std::move(loadThread));
 }
 
-void ModelLoader::loadTerrain(std::shared_ptr<RenderScene>& scene, const std::string& filename) {
+void ModelLoader::loadTerrain(std::shared_ptr<RenderScene> scene, const std::string filename) {
 	std::ifstream f(filename);
 	if (!f) {
 		std::cout << "In ModelLoader::loadTerrain : Failed to open file: " << filename << '\n';

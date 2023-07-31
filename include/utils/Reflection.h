@@ -33,7 +33,9 @@ public:
 	varType getVarByName(void* instance, string varName) {
 		if (vars.find(varName) == vars.end()) {
 			// not found
+			#ifdef _MSC_VER
 			throw std::runtime_error("member variable is not found");
+			#endif // 0
 		}
 
 		return *((varType*)((char*)instance + vars[varName]));

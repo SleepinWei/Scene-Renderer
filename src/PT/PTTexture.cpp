@@ -1,3 +1,4 @@
+// #define STB_IMAGE_IMPLEMENTATION
 #include"PT/PTTexture.h"
 #include<stb/stb_image.h>
 #include"PT/PTrandom.h"

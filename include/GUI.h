@@ -164,7 +164,7 @@ public:
 		if (scene->terrain && scene->terrain->GetComponent("Ocean") != nullptr) {
 			ImGui::Separator();
 			if (ImGui::CollapsingHeader("Ocean")) {
-				auto& oceanComp = std::static_pointer_cast<Ocean>(scene->terrain->GetComponent("Ocean"));
+				auto&& oceanComp = std::static_pointer_cast<Ocean>(scene->terrain->GetComponent("Ocean"));
 
 				ImGui::InputFloat("BubblesScale", &oceanComp->BubblesScale);
 				ImGui::InputFloat("BubblesThreshold", &oceanComp->BubblesThreshold);

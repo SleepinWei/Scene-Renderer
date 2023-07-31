@@ -140,7 +140,7 @@ void Ocean::initGaussianRandom()
 
 void Ocean::initClock()
 {
-    srand(unsigned int(time(NULL)));
+    srand((unsigned int)time(NULL));
 }
 
 void Ocean::initMesh()//VAO,VBO,EBO

@@ -2,7 +2,7 @@
 #include"renderer/Texture.h"
 #include<libdds/libdds_opengl.h>
 #include<assert.h>
-#define STB_IMAGE_IMPLEMENTATION
+// #define STB_IMAGE_IMPLEMENTATION
 
 Texture::Texture() {
 	width = height = channels = 0;

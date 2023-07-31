@@ -490,9 +490,9 @@ namespace
         // if the user did provide a candidate, populate all non-zero colors
 #define GET_PALETTE_POPULATE_NONZERO(member) \
     do { \
-        if (IsNonZero(candidate-> ## member)) \
+        if (IsNonZero(candidate->member)) \
         { \
-            internal_palette. ## member = candidate-> ## member; \
+            internal_palette.member = candidate->member; \
         } \
     } while (0)
 

@@ -2,6 +2,7 @@
 #include"PT/PathTracing.h"
 //#include"PTVec.h"
 #include"PT/PTHeader.h"
+#include<PT/hittable/Rect.h>
 
 using namespace PT;
 class PT::Material;
