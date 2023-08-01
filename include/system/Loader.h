@@ -12,11 +12,18 @@ using json = nlohmann::json;
 class RenderScene;
 class GameObject;
 
-class ModelLoader {
+// singleton
+class Loader{  
+private: 
+	Loader();
+	~Loader();
 public:
-	ModelLoader();
-	~ModelLoader();
 	void loadSceneAsync(std::shared_ptr<RenderScene>& scene,const std::string& filename);
+
+	static Loader* GetInstance(){
+		static Loader loader;
+		return &loader;
+	}
 
 public:
 	//std::mutex istream_lock;

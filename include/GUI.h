@@ -5,18 +5,18 @@
 #include<imgui/imfilebrowser.h>
 // #include<glfw/glfw3.h>
 #include<glm/glm.hpp>
-#include"system/ModelLoader.h"
+#include"system/Loader.h"
 #include"renderer/RenderScene.h"
 #include"./component/Lights.h"
 #include"./component/Transform.h"
 #include"./component/Atmosphere.h"
 #include"./component/TerrainComponent.h"
 #include"./component/Ocean.h"
+#include "utils/Camera.h"
+#include "system/global_context.h"
 #include<imgui/imgui_toggle.h>
 #include<filesystem>
 using namespace std::filesystem;
-
-extern std::shared_ptr<ModelLoader> modelLoader;
 
 class Gui {
 public:
@@ -207,7 +207,7 @@ public:
 				std::string selected = fileDialog.GetSelected().string();
 				// 
 				//std::cout << selected << '\n';
-				modelLoader->loadSceneAsync(scene, selected);
+				Loader::GetInstance()->loadSceneAsync(scene, selected);
 				fileDialog.ClearSelected();
 				//fileDialog.Close();
 			}
