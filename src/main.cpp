@@ -18,9 +18,9 @@
 #include"object/Terrain.h"
 //renderer
 #include"renderer/Material.h"
-#include"renderer/ResourceManager.h"
-#include"renderer/Mesh_Filter.h"
-#include"renderer/Mesh_Renderer.h"
+#include"system/ResourceManager.h"
+#include"component/Mesh_Filter.h"
+#include"component/Mesh_Renderer.h"
 #include"renderer/RenderScene.h"
 //system
 #include"system/InputManager.h"

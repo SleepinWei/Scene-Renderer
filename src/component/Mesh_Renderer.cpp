@@ -4,9 +4,9 @@
 #include<glm/gtx/transform2.hpp>
 #include<glm/gtx/euler_angles.hpp>
 
-#include"renderer/Mesh_Renderer.h"
+#include"component/Mesh_Renderer.h"
 #include"renderer/Material.h"
-#include"renderer/Mesh_Filter.h"
+#include"component/Mesh_Filter.h"
 #include"renderer/Texture.h"
 #include"utils/Shader.h"
 #include"utils/Utils.h"
