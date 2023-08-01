@@ -42,4 +42,5 @@ class GLTFLoader: public ModelLoaderBase{
 public:
     vector<shared_ptr<Mesh>> loadModel(const std::string& path,bool flipUV = true);
 private: 
+    
 };
