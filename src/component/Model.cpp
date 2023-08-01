@@ -1,10 +1,11 @@
 #include<iostream>
+#include"utils/log.h"
 #include"component/Model.h"
 #include"system/ResourceManager.h"
 #include"renderer/Material.h"
 #include"component/Mesh_Filter.h"
 
-std::shared_ptr<Mesh> Model::combineMesh(const std::vector<std::shared_ptr<Mesh>>& meshes) {
+std::shared_ptr<Mesh> AssimpLoader::combineMesh(const std::vector<std::shared_ptr<Mesh>>& meshes) {
 	// TODO:
 	std::shared_ptr<Mesh> resultMesh = std::make_shared<Mesh>();
 	int beginIndex = 0;
@@ -23,7 +24,7 @@ std::shared_ptr<Mesh> Model::combineMesh(const std::vector<std::shared_ptr<Mesh>
 	return resultMesh;
 }
 
-std::shared_ptr<Mesh> Model::loadModel(const std:: string& path,bool flipUV) {
+vector<shared_ptr<Mesh>> AssimpLoader::loadModel(const std:: string& path,bool flipUV) {
 	std::vector<std::shared_ptr<Mesh>> meshes; 
 	Assimp::Importer importer; 
 	unsigned int pFlags = aiProcess_JoinIdenticalVertices|aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace;
@@ -32,8 +33,8 @@ std::shared_ptr<Mesh> Model::loadModel(const std:: string& path,bool flipUV) {
 	const aiScene* scene = importer.ReadFile(path,pFlags);
 	if (!scene)//|| scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
 	{
-		std::cout << "ERROR::ASSIMP:: Failed to load file: " << path << std::endl;
-		return nullptr;
+		ERROR("ERROR::ASSIMP:: Failed to load file: " << path);
+		return {};
 	}
 
 	// process ASSIMP's root node recursively
@@ -42,7 +43,7 @@ std::shared_ptr<Mesh> Model::loadModel(const std:: string& path,bool flipUV) {
 	return combineMesh(meshes);
 }
 
-void Model::processNode(std::vector<std::shared_ptr<Mesh>>& meshes,aiNode* node, const aiScene* scene)
+void AssimpLoader::processNode(std::vector<std::shared_ptr<Mesh>>& meshes,aiNode* node, const aiScene* scene)
 {
 	// process each mesh located at the current node
 	for (unsigned int i = 0; i < node->mNumMeshes; i++)
@@ -59,7 +60,7 @@ void Model::processNode(std::vector<std::shared_ptr<Mesh>>& meshes,aiNode* node,
 	}
 }
 
-std::shared_ptr<Mesh> Model::processMesh(aiMesh* mesh, const aiScene* scene)
+std::shared_ptr<Mesh> AssimpLoader::processMesh(aiMesh* mesh, const aiScene* scene)
 {
 	// data to fill
 	std::vector <Vertex> vertices;
@@ -146,7 +147,7 @@ std::shared_ptr<Mesh> Model::processMesh(aiMesh* mesh, const aiScene* scene)
 
 // checks all material textures of a given type and loads the textures if they're not loaded yet.
 // the required info is returned as a Texture struct.
-void Model::loadMaterialTextures(aiMaterial* mat, aiTextureType type,std::string texType, std::shared_ptr<Material>& material)
+void AssimpLoader::loadMaterialTextures(aiMaterial* mat, aiTextureType type,std::string texType, std::shared_ptr<Material>& material)
 {
 	for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
 	{
