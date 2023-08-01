@@ -1,5 +1,5 @@
 #include"system/RenderManager.h"
-#include"renderer/Mesh_Renderer.h"
+#include"component/Mesh_Renderer.h"
 #include"object/Terrain.h"
 #include"object/SkyBox.h"
 #include"renderer/RenderScene.h"

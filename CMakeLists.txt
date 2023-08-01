@@ -8,6 +8,7 @@ file(GLOB_RECURSE IMGUI_LIST ${PROJECT_SOURCE_DIR}/external/imgui/*.cpp ${PROJEC
 file(GLOB_RECURSE DDS_LIST ${PROJECT_SOURCE_DIR}/external/libdds/*.cpp)
 file(GLOB JSON_LIST ${PROJECT_SOURCE_DIR}/external/json/json.hpp)
 set(GLAD_DIR ${PROJECT_SOURCE_DIR}/external/glad/glad.c)
+
 file(GLOB_RECURSE HEADER_LIST ${PROJECT_SOURCE_DIR}/include/*.h)
 
 add_executable(${PROJECT_NAME} ${SRC_LIST} ${HEADER_LIST} ${GLAD_DIR} ${IMGUI_LIST}
@@ -25,7 +26,8 @@ set(LIBRARAY ${PROJECT_SOURCE_DIR}/lib)
 target_link_libraries(${PROJECT_NAME} 
     PUBLIC ${LIBRARAY}/libglfw3.lib 
     PUBLIC ${LIBRARAY}/libassimpd.lib
-    PUBLIC ${LIBRARAY}/libyaml-cppd.lib) 
+    PUBLIC ${LIBRARAY}/libyaml-cppd.lib
+    PUBLIC ${LIBRARAY}/libtinygltf.a) 
 
 target_link_libraries(${PROJECT_NAME} PUBLIC "-lopengl32") 
 

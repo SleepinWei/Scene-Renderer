@@ -6,7 +6,7 @@
 #include"utils/Shader.h"
 #include"system/RenderManager.h"
 #include"utils/Utils.h"
-#include"renderer/Mesh_Renderer.h"
+#include"component/Mesh_Renderer.h"
 #include"component/GameObject.h"
 #include"object/Terrain.h"
 #include"object/SkyBox.h"
@@ -715,7 +715,7 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 
 void DeferredPass::renderAlphaObjects(const std::shared_ptr<RenderScene>& scene)
 {
-	// 绑定FrameBuffer
+	// 缁戝畾FrameBuffer
 	if (renderManager->setting.enableRSM)
 		postBuffer->bindTexture(renderManager->rsmPass->outTexture, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
 	postBuffer->bindBuffer();
@@ -893,7 +893,7 @@ void RSMPass::render(const std::shared_ptr<RenderScene>& scene) {
 
 	rsmBuffer->bindBuffer();
 
-	//������
+	//锟斤拷锟斤拷锟斤拷
 	depthMap->bind(GL_TEXTURE_2D, 20);
 	normalMap->bind(GL_TEXTURE_2D, 21);
 	worldPosMap->bind(GL_TEXTURE_2D, 22);

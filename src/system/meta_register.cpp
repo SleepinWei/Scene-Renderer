@@ -1,5 +1,5 @@
-#include"renderer/Mesh_Filter.h"
-#include"renderer/Mesh_Renderer.h"
+#include"component/Mesh_Filter.h"
+#include"component/Mesh_Renderer.h"
 #include"component/transform.h"
 #include"component/Component.h"
 #include"component/Lights.h"

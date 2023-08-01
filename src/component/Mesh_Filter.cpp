@@ -1,6 +1,6 @@
 #include<glad/glad.h>
 #include<glfw/glfw3.h>
-#include"renderer/Mesh_Filter.h"
+#include"component/Mesh_Filter.h"
 #include"renderer/Material.h"
 #include"renderer/Texture.h"
 #include"component/Model.h"
@@ -229,9 +229,19 @@ void MeshFilter::loadFromJson(json& data) {
 		}
 		else {
 			auto filename = iter.value().get<std::string>();
-			std::shared_ptr<Mesh> mesh = Model::loadModel(filename, true);
-			mesh->name = iter.key();
-			this->addMesh(mesh);
+
+			std::shared_ptr<ModelLoaderBase> loader;
+			if(filename.substr(filename.length()-4,4) == "gltf")
+				loader = std::make_shared<GLTFLoader>();
+			else
+				loader = std::make_shared<AssimpLoader>();
+
+			vector<shared_ptr<Mesh>> meshes = loader->loadModel(filename, true);
+			for(auto mesh : meshes){
+				mesh->name = iter.key();
+			}
+			// TODO: switch to add meshes, not mesh 
+			this->addMesh(meshes[0]);
 		}
 	}
 }

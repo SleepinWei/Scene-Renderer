@@ -1,21 +1,28 @@
-#include<iostream>
-#include"component/Model.h"
-#include"renderer/ResourceManager.h"
-#include"renderer/Material.h"
-#include"renderer/Mesh_Filter.h"
+#include "component/Model.h"
+#include "component/Mesh_Filter.h"
+#include "component/Model.h"
+#include "renderer/Material.h"
+#include "system/ResourceManager.h"
+#include "utils/log.h"
+#include <glad/glad.h>
+#include <iostream>
+#include <tinygltf/tiny_gltf.h>
 
-std::shared_ptr<Mesh> Model::combineMesh(const std::vector<std::shared_ptr<Mesh>>& meshes) {
+std::shared_ptr<Mesh> AssimpLoader::combineMesh(const std::vector<std::shared_ptr<Mesh>> &meshes)
+{
 	// TODO:
 	std::shared_ptr<Mesh> resultMesh = std::make_shared<Mesh>();
 	int beginIndex = 0;
-	for (auto& submesh : meshes) {
-		auto& resultVertices = resultMesh->vertices;
-		auto& resultIndices = resultMesh->indices;
-		auto& subVertices = submesh->vertices;
-		auto& subIndices = submesh->indices;
+	for (auto &submesh : meshes)
+	{
+		auto &resultVertices = resultMesh->vertices;
+		auto &resultIndices = resultMesh->indices;
+		auto &subVertices = submesh->vertices;
+		auto &subIndices = submesh->indices;
 		resultVertices.insert(resultVertices.end(), subVertices.begin(), subVertices.end());
 		// indices append
-		for (auto& index: subIndices) {
+		for (auto &index : subIndices)
+		{
 			resultIndices.emplace_back(index + beginIndex);
 		}
 		beginIndex = resultVertices.size();
@@ -23,49 +30,51 @@ std::shared_ptr<Mesh> Model::combineMesh(const std::vector<std::shared_ptr<Mesh>
 	return resultMesh;
 }
 
-std::shared_ptr<Mesh> Model::loadModel(const std:: string& path,bool flipUV) {
-	std::vector<std::shared_ptr<Mesh>> meshes; 
-	Assimp::Importer importer; 
-	unsigned int pFlags = aiProcess_JoinIdenticalVertices|aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace;
+vector<shared_ptr<Mesh>> AssimpLoader::loadModel(const std::string &path, bool flipUV)
+{
+	std::vector<std::shared_ptr<Mesh>> meshes;
+	Assimp::Importer importer;
+	unsigned int pFlags = aiProcess_JoinIdenticalVertices | aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace;
 	if (flipUV)
 		pFlags |= aiProcess_FlipUVs;
-	const aiScene* scene = importer.ReadFile(path,pFlags);
-	if (!scene)//|| scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
+	const aiScene *scene = importer.ReadFile(path, pFlags);
+	if (!scene) //|| scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
 	{
-		std::cout << "ERROR::ASSIMP:: Failed to load file: " << path << std::endl;
-		return nullptr;
+		LOG_ERROR("ERROR::ASSIMP:: Failed to load file: " << path);
+		return {};
 	}
 
 	// process ASSIMP's root node recursively
-	processNode(meshes,scene->mRootNode, scene);
+	processNode(meshes, scene->mRootNode, scene);
 
-	return combineMesh(meshes);
+	// return combineMesh(meshes);
+	return meshes;
 }
 
-void Model::processNode(std::vector<std::shared_ptr<Mesh>>& meshes,aiNode* node, const aiScene* scene)
+void AssimpLoader::processNode(std::vector<std::shared_ptr<Mesh>> &meshes, aiNode *node, const aiScene *scene)
 {
 	// process each mesh located at the current node
 	for (unsigned int i = 0; i < node->mNumMeshes; i++)
 	{
-		// the node object only contains indices to index the actual objects in the scene. 
+		// the node object only contains indices to index the actual objects in the scene.
 		// the scene contains all the data, node is just to keep stuff organized (like relations between nodes).
-		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+		aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
 		meshes.push_back(processMesh(mesh, scene));
 	}
 	// after we've processed all of the meshes (if any) we then recursively process each of the children nodes
 	for (unsigned int i = 0; i < node->mNumChildren; i++)
 	{
-		processNode(meshes,node->mChildren[i], scene);
+		processNode(meshes, node->mChildren[i], scene);
 	}
 }
 
-std::shared_ptr<Mesh> Model::processMesh(aiMesh* mesh, const aiScene* scene)
+std::shared_ptr<Mesh> AssimpLoader::processMesh(aiMesh *mesh, const aiScene *scene)
 {
 	// data to fill
-	std::vector <Vertex> vertices;
+	std::vector<Vertex> vertices;
 	std::vector<unsigned int> indices;
-	//std::vector<Texture> textures;
-	//std::shared_ptr<Material> material; 
+	// std::vector<Texture> textures;
+	// std::shared_ptr<Material> material;
 
 	// walk through each of the mesh's vertices
 	for (unsigned int i = 0; i < mesh->mNumVertices; i++)
@@ -89,7 +98,7 @@ std::shared_ptr<Mesh> Model::processMesh(aiMesh* mesh, const aiScene* scene)
 		if (mesh->mTextureCoords[0]) // does the mesh contain texture coordinates?
 		{
 			glm::vec2 vec;
-			// a vertex can contain up to 8 different texture coordinates. We thus make the assumption that we won't 
+			// a vertex can contain up to 8 different texture coordinates. We thus make the assumption that we won't
 			// use models where a vertex can have multiple texture coordinates so we always take the first set (0).
 			vec.x = mesh->mTextureCoords[0][i].x;
 			vec.y = mesh->mTextureCoords[0][i].y;
@@ -119,44 +128,73 @@ std::shared_ptr<Mesh> Model::processMesh(aiMesh* mesh, const aiScene* scene)
 			indices.push_back(face.mIndices[j]);
 	}
 	// process materials
-	//aiMaterial* aimaterial = scene->mMaterials[mesh->mMaterialIndex];
+	aiMaterial *aimaterial = scene->mMaterials[mesh->mMaterialIndex];
 	// we assume a convention for sampler names in the shaders. Each diffuse texture should be named
-	// as 'texture_diffuseN' where N is a sequential number ranging from 1 to MAX_SAMPLER_NUMBER. 
+	// as 'texture_diffuseN' where N is a sequential number ranging from 1 to MAX_SAMPLER_NUMBER.
 	// Same applies to other texture as the following list summarizes:
 	// diffuse: texture_diffuseN
 	// specular: texture_specularN
 	// normal: texture_normalN
 
-	//material = std::make_shared<Material>();
-	//// 1. diffuse maps
-	//loadMaterialTextures(aimaterial, aiTextureType_DIFFUSE, "material.albedo",material);
-	//// 2. specular maps
-	//loadMaterialTextures(aimaterial, aiTextureType_SPECULAR, "material.metallic",material);
-	//// 3. normal maps
-	//loadMaterialTextures(aimaterial, aiTextureType_HEIGHT, "material.height",material);
-	//// 4. height maps
-	//loadMaterialTextures(aimaterial, aiTextureType_AMBIENT, "",material); //TODO:
+	// auto material = std::make_shared<Material>();
+	// //// 1. diffuse maps
+	// loadMaterialTextures(aimaterial, aiTextureType_DIFFUSE, "material.albedo",material);
+	// //// 2. specular maps
+	// loadMaterialTextures(aimaterial, aiTextureType_SPECULAR, "material.metallic",material);
+	// //// 3. normal maps
+	// loadMaterialTextures(aimaterial, aiTextureType_HEIGHT, "material.height",material);
+	// //// 4. height maps
+	// loadMaterialTextures(aimaterial, aiTextureType_AMBIENT, "",material); //TODO:
 
-	//loadMaterialTextures(aimaterial, aiTextureType_AMBIENT_OCCLUSION, "material.ao", material);
+	// loadMaterialTextures(aimaterial, aiTextureType_AMBIENT_OCCLUSION, "material.ao", material);
 
-	//loadMaterialTextures(aimaterial, aiTextureType_AMBIENT, "", material);
-	// return a mesh object created from the extracted mesh data
+	// loadMaterialTextures(aimaterial, aiTextureType_AMBIENT, "", material);
+	//  return a mesh object created from the extracted mesh data
 	return std::make_shared<Mesh>(vertices, indices);
 }
 
 // checks all material textures of a given type and loads the textures if they're not loaded yet.
 // the required info is returned as a Texture struct.
-//void Model::loadMaterialTextures(aiMaterial* mat, aiTextureType type,std::string texType, std::shared_ptr<Material>& material)
-//{
-//	for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
-//	{
-//		aiString str;
-//		mat->GetTexture(type, i, &str);
-//		std::string mat_path(str.C_Str());
-//		const std::shared_ptr<Texture>& tex = resourceManager->getResource(mat_path);
-//
-//		material->textures.insert({ texType,tex });
-//	}
-//}
+void AssimpLoader::loadMaterialTextures(aiMaterial *mat, aiTextureType type, std::string texType, std::shared_ptr<Material> &material)
+{
+	for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
+	{
+		aiString str;
+		mat->GetTexture(type, i, &str);
+		std::string mat_path(str.C_Str());
+		const std::shared_ptr<Texture> &tex = resourceManager->getResource(mat_path);
 
+		material->textures.insert({texType, tex});
+	}
+}
 
+std::shared_ptr<Mesh> buildMesh(const tinygltf::Model &model, unsigned int meshIndex,
+								const std::shared_ptr<std::vector<GLuint>> &buffers,
+								const std::shared_ptr<std::vector<GLuint>> &textures)
+{
+	//   auto meshPrimitives =
+	//   std::make_shared<std::vector<std::shared_ptr<Primitive>>>();
+	const auto &primitives = model.meshes[meshIndex].primitives;
+	vector<Vertex> vertices(primitives.size());
+	vector<unsigned int> indices; 
+
+	for (auto i = 0; i < primitives.size(); ++i)
+	{
+		// build primitives 
+
+	}
+
+	auto mesh = std::make_shared<Mesh>(vertices,indices);
+	return mesh; 
+}
+
+vector<shared_ptr<Mesh>> GLTFLoader::loadModel(const std::string &path, bool flipUV)
+{
+	tinygltf::TinyGLTF loader;
+	string err;
+	string warn;
+	tinygltf::Model gltfModel;
+	loader.LoadASCIIFromFile(&gltfModel, &err, &warn, path);
+
+	return vector<shared_ptr<Mesh>>();
+}

@@ -18,9 +18,9 @@
 #include"object/Terrain.h"
 //renderer
 #include"renderer/Material.h"
-#include"renderer/ResourceManager.h"
-#include"renderer/Mesh_Filter.h"
-#include"renderer/Mesh_Renderer.h"
+#include"system/ResourceManager.h"
+#include"component/Mesh_Filter.h"
+#include"component/Mesh_Renderer.h"
 #include"renderer/RenderScene.h"
 //system
 #include"system/InputManager.h"
@@ -29,7 +29,7 @@
 #include"GUI.h"
 #include"system/global_context.h"
 #include"component/Atmosphere.h"
-#include"system/ModelLoader.h"
+#include"system/Loader.h"
 //json
 #include<json/json.hpp>
 using json = nlohmann::json;
@@ -46,7 +46,7 @@ const unsigned int SCR_HEIGHT = 900;
 extern std::unique_ptr<RenderManager> renderManager;
 extern std::unique_ptr<ResourceManager> resourceManager;
 extern std::unique_ptr<InputManager> inputManager;
-extern std::shared_ptr<ModelLoader> modelLoader;
+extern std::shared_ptr<ModelLoader> Loader;
 std::shared_ptr<RenderScene> scene;
 //#define TEST
 //#ifndef TEST
@@ -70,7 +70,6 @@ void render() {
 		renderManager = std::make_unique<RenderManager>();
 		renderManager->init();
 		resourceManager = std::make_unique<ResourceManager>();
-		modelLoader = std::make_shared<ModelLoader>();
 		//renderScene = std::make_shared<RenderScene>();
 	}
 	scene = std::make_shared<RenderScene>();
@@ -82,7 +81,7 @@ void render() {
 	//gui
 	Gui gui(window);
 
-	modelLoader->loadSceneAsync(scene, "./asset/objects/scene2.json");
+	Loader::GetInstance()->loadSceneAsync(scene, "./asset/objects/scene2.json");
 			
 	while (!glfwWindowShouldClose(window)) {
 		gui.window(scene);
@@ -115,7 +114,6 @@ int main() {
 	render();
 	//test();
 	//PT::render();
-	//std::cout <<glGetString(GL_EXTENSIONS)<< '\n';
 	return 0; 
 }
 
