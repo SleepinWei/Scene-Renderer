@@ -1,5 +1,3 @@
-#pragma once
-
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -101,7 +99,8 @@ glm::mat4 Camera::GetViewMatrix ()const
 }
 
 glm::mat4 Camera:: GetPerspective()const {
-	return glm::perspective(glm::radians(Zoom), aspect_ratio, 0.1f, 1000.0f);
+	float aspect = std::max(aspect_ratio, 0.1f);
+	return glm::perspective(glm::radians(Zoom), aspect, 0.1f, 1000.0f);
 }
 
 // processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)

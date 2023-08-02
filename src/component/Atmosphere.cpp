@@ -156,6 +156,7 @@ void Atmosphere::renderDrawCall(const std::shared_ptr<Shader>& outShader) {
 
 	glActiveTexture(GL_TEXTURE8);
 	skyViewTexture->bindBuffer();
+	glCheckError();
 
 	if (!outShader) {
 		shader->use();
@@ -178,6 +179,7 @@ void Atmosphere::renderDrawCall(const std::shared_ptr<Shader>& outShader) {
 		outShader->use();
 	}
 	renderCube();
+	glCheckError();
 	// only for debug
 	//renderQuad();
 	glCullFace(GL_BACK);

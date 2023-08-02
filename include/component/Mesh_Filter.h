@@ -5,7 +5,11 @@
 #include<memory>
 #include<glm/glm.hpp>
 #include<vector>
-#include"../utils/header.h"
+#include"utils/header.h"
+
+using std::shared_ptr;
+using std::vector;
+
 
 class Material;
 class Texture; 
@@ -38,6 +42,9 @@ public:
     std::vector<unsigned int> indices;
 	GLuint VAO, VBO, EBO;
 	std::string name;
+
+	//TODO: parse Material with assimp 时添加这一条
+	shared_ptr<Material> material; 
 
 public:
 	Mesh();

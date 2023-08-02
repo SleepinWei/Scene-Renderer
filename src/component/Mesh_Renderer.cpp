@@ -65,10 +65,10 @@ std::shared_ptr<MeshRenderer> MeshRenderer::setShader(std::string type) {
 }
 
 
-std::shared_ptr<MeshRenderer> MeshRenderer::setMaterial(std::shared_ptr<Material> material) { 
-	this->material = material; 
-	return shared_from_this();
-};
+// std::shared_ptr<MeshRenderer> MeshRenderer::setMaterial(std::shared_ptr<Material> material) { 
+// 	this->material = material; 
+// 	return shared_from_this();
+// };
 
 std::shared_ptr<MeshRenderer> MeshRenderer::setDrawMode(GLenum drawMode_) {
 	drawMode = drawMode_;
@@ -82,7 +82,7 @@ std::shared_ptr<MeshRenderer> MeshRenderer::setPolyMode(GLenum ployMode_) {
 
 MeshRenderer::MeshRenderer():drawMode(GL_TRIANGLES),polyMode(GL_FILL) {
 	name = "MeshRenderer";
-	material = std::make_shared<Material>();
+	// material = std::make_shared<Material>();
 	//VAO = 0;
 	//VBO = 0;
 	//EBO = 0;
@@ -96,6 +96,7 @@ MeshRenderer::MeshRenderer():drawMode(GL_TRIANGLES),polyMode(GL_FILL) {
 /// </summary>
 /// <param name="useShader"></param>
 void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
+	glCheckError();
 	const std::shared_ptr<Transform>& transform = std::static_pointer_cast<Transform>(gameObject->GetComponent("Transform"));
 
 	if (!transform) {
@@ -114,14 +115,8 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 	if (!mesh_filter) {
 		return;
 	}
-	if (glCheckError() == GL_INVALID_OPERATION) {
-		int  i = 1;;
-	}
 
-	
-	//std::shared_ptr<Shader> shader = material->shader; 
-	
-	auto actualShader= (outShader == nullptr) ? shader : outShader;
+	auto actualShader = (outShader == nullptr) ? shader : outShader;
 
 	for (auto& mesh : mesh_filter->meshes) {
 		unsigned int& VAO = mesh->VAO;
@@ -129,15 +124,21 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 		unsigned int& EBO = mesh->EBO;
 		auto& vertices = mesh->vertices;
 		auto& indices = mesh->indices;
+		auto &material = mesh->material; 
+
 		if (VAO == 0) {
 			mesh->genVAO();
+			glCheckError();
 		}
 
 		actualShader->use();
+		glCheckError();
+
 		actualShader->setMat4("model", model);
-		if (actualShader->requireMat==true)
+		if (actualShader->requireMat==true && material)
 		{
 			material->genTexture();
+			glCheckError();
 			//glEnable(GL_DEPTH_TEST);
 			//glEnable(GL_CULL_FACE);
 
@@ -154,6 +155,8 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 					actualShader->setInt((iterator->first).c_str(), texture_index);
 					++texture_index;
 				}
+				glCheckError();
+
 				if (material->hasSubSurface) {
 					// 
 				}
@@ -171,9 +174,12 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 				glPatchParameteri(GL_PATCH_VERTICES, 3);
 			// --- end debug
 			glDrawElements(drawMode, indices.size(), GL_UNSIGNED_INT, 0);
+			glCheckError();
+
 			if (polyMode == GL_LINE) {
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			}
+			glCheckError();
 		}
 	}
 	
@@ -182,9 +188,9 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 
 void MeshRenderer::loadFromJson(json& data) {
 	{
-		if (data.find("material") != data.end()) {
-			this->material->loadFromJson(data["material"]);
-		}
+		// if (data.find("material") != data.end()) {
+			// this->material->loadFromJson(data["material"]);
+		// }
 	}
 	{
 		auto& shader = data["shader"];

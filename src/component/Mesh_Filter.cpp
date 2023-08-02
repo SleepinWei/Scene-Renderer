@@ -16,6 +16,7 @@ Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>&
 	this->vertices = vertices;
 	this->indices = indices;
 	VAO = 0, VBO = 0, EBO = 0;
+	this->material = nullptr;  // 需要为 0，用于在导入时判断是否需要 candidate_mat 
 }
 
 //void MeshFilter::loadMesh(std::string path) {
@@ -220,14 +221,17 @@ void MeshFilter::addMesh(std::shared_ptr<Mesh> mesh_) {
 	meshes.push_back(mesh_);
 }
 
+// AssimpLoader 导入时，必须手动规定 material 值，而 gltf 导入则不用
+// 因此引入一个 candidate，如果有 mesh 没有 material 值，则放入.
 void MeshFilter::loadFromJson(json& data) {
+	std::shared_ptr<Material> candidate_mat = std::make_shared<Material>();
 	for (auto iter = data.begin(); iter != data.end(); ++iter) {
 		// mesh name : mesh path
 		if (iter.key() == "shape") {
 			std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
 			this->addShape(iter.value().get<std::string>());
 		}
-		else {
+		else if(iter.key()=="mesh"){
 			auto filename = iter.value().get<std::string>();
 
 			std::shared_ptr<ModelLoaderBase> loader;
@@ -239,10 +243,17 @@ void MeshFilter::loadFromJson(json& data) {
 			vector<shared_ptr<Mesh>> meshes = loader->loadModel(filename, true);
 			for(auto mesh : meshes){
 				mesh->name = iter.key();
+				if(mesh->material == nullptr){
+					mesh->material = candidate_mat;
+				}
 			}
 			// TODO: switch to add meshes, not mesh 
 			this->addMesh(meshes[0]);
 		}
+		else if (iter.key() == "material"){
+			candidate_mat->loadFromJson(data["material"]);
+		}
+
 	}
 }
 

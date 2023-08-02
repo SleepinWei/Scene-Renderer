@@ -60,8 +60,8 @@ void main()
     gAlbedoSpec.a = 0.0f; // 是否透光，对草渲染有用
     // store specular intensity in gAlbedoSpec's alpha component
 
-    gPBR.r = texture(material.roughness,uv).r;
-    gPBR.g = texture(material.metallic,uv).r;
+    gPBR.r = texture(material.roughness,uv).g;
+    gPBR.g = texture(material.metallic,uv).b;
     gPBR.b = texture(material.ao, uv).r;
     gPBR.a = texture(material.height,uv).r; //a: height
 }  

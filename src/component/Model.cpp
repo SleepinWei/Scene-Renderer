@@ -8,6 +8,9 @@
 #include <iostream>
 #include <tinygltf/tiny_gltf.h>
 
+using std::make_shared;
+using std::shared_ptr;
+
 std::shared_ptr<Mesh> AssimpLoader::combineMesh(const std::vector<std::shared_ptr<Mesh>> &meshes)
 {
 	// TODO:
@@ -180,7 +183,7 @@ const uint8_t *getAccessorDataAddress(const tinygltf::Model &model, const tinygl
 	return start_addr;
 }
 
-std::shared_ptr<Mesh> buildMesh(const tinygltf::Model &model, unsigned int meshIndex)
+std::shared_ptr<Mesh> buildMesh(const tinygltf::Model &model, unsigned int meshIndex,const string& path,bool flipUV)
 {
 	//   auto meshPrimitives =
 	//   std::make_shared<std::vector<std::shared_ptr<Primitive>>>();
@@ -231,11 +234,13 @@ std::shared_ptr<Mesh> buildMesh(const tinygltf::Model &model, unsigned int meshI
 		}
 		else if (name.substr(0, 8) == "TEXCOORD")
 		{
-
 			// texcoord
 			for (int i = 0; i < cnt; i++)
 			{
-				vertices[i].TexCoords = {address[2 * i], address[2 * i + 1]};
+				if(flipUV)
+					vertices[i].TexCoords = {address[2 * i], 1.0f - address[2 * i + 1]};
+				else 
+					vertices[i].TexCoords = {address[2 * i], address[2 * i + 1]};
 			}
 		}
 	}
@@ -243,11 +248,29 @@ std::shared_ptr<Mesh> buildMesh(const tinygltf::Model &model, unsigned int meshI
 	// indices
 	auto indiceAccessor = model.accessors[prim.indices];
 	int cnt = indiceAccessor.count; // number of elements
-	auto index_start = getAccessorDataAddress(model, indiceAccessor);
-	indices = vector<unsigned int>(index_start, index_start + cnt * sizeof(unsigned int)); // 初始化
+	auto index_start = (unsigned int *)getAccessorDataAddress(model, indiceAccessor);
+	indices = vector<unsigned int>(index_start, index_start + cnt); // 初始化
 	// }
 
+	// materials
+	shared_ptr<Material> mesh_mat = make_shared<Material>(); 
+
+	int material_index = prim.material;
+	const string directory = path.substr(0,path.find_last_of("/")+1);
+	auto mat = model.materials[material_index];
+	{
+		auto normal = model.images[model.textures[mat.normalTexture.index].source];
+		auto baseColor = model.images[model.textures[mat.pbrMetallicRoughness.baseColorTexture.index].source];
+		auto metallicRoughness =model.images[model.textures[mat.pbrMetallicRoughness.metallicRoughnessTexture.index].source];
+
+		mesh_mat->addTextureAsync(directory + normal.uri, "material.normal");
+		mesh_mat->addTextureAsync(directory + baseColor.uri, "material.albedo");
+		mesh_mat->addTextureAsync(directory + metallicRoughness.uri, "material.roughness");
+		mesh_mat->addTextureAsync(directory + metallicRoughness.uri, "material.metallic");
+	}
+
 	auto mesh = std::make_shared<Mesh>(vertices, indices);
+	mesh->material = mesh_mat; 
 	return mesh;
 }
 
@@ -260,8 +283,11 @@ vector<shared_ptr<Mesh>> GLTFLoader::loadModel(const std::string &path, bool fli
 	string warn;
 	tinygltf::Model gltfModel;
 	loader.LoadASCIIFromFile(&gltfModel, &err, &warn, path);
+	vector<shared_ptr<Mesh>> result; 
 	// 暂定只 build mesh 0
-	buildMesh(gltfModel, 0);
+	for (int i = 0; i < gltfModel.meshes.size();i++){
+		result.push_back(buildMesh(gltfModel, i,path,flipUV));
+	}
 
-	return vector<shared_ptr<Mesh>>();
+	return result; 
 }

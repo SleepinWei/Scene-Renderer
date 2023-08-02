@@ -145,8 +145,8 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 vec3 BRDF(vec3 N, vec3 V,vec3 L,vec3 T,vec3 B){
     vec3 albedo = pow(texture(material.albedo,object.TexCoords).rgb,vec3(2.2));
     // vec3 albedo = vec3(object.TexCoords,1.0);
-    float metallic = texture(material.metallic,object.TexCoords).r;
-    float roughness = texture(material.roughness,object.TexCoords).r;
+    float metallic = texture(material.metallic,object.TexCoords).b;
+    float roughness = texture(material.roughness,object.TexCoords).g;
     float anisotropy = texture(material.anisotropy,object.TexCoords).r;
     float at = max(roughness * (1.0 + anisotropy),0.001);
     float ab = max(roughness * (1.0 - anisotropy),0.001);

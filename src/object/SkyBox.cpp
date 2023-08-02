@@ -5,6 +5,7 @@
 #include"system/RenderManager.h"
 #include"renderer/Material.h"
 #include"component/Atmosphere.h"
+#include"utils/Utils.h"
 
 extern std::unique_ptr<RenderManager> renderManager;
 std::shared_ptr<SkyBox> SkyBox::addShader(ShaderType st) {
@@ -129,10 +130,13 @@ void Sky::initSkyBoxTexture() {
 	}
 }
 void Sky::render(const std::shared_ptr<Shader>& shader) {
+	glCheckError();
 	initSkyBoxTexture();
+
 	auto&& atmosphere = std::static_pointer_cast<Atmosphere>(GameObject::GetComponent("Atmosphere"));
 	if (atmosphere) {
 		atmosphere->render(shader);
+		glCheckError();
 	}
 }
 

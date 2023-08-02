@@ -31,25 +31,28 @@ void BasePass::render(const std::shared_ptr<RenderScene>& scene,const std::share
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-	
+	glCheckError();
 	for (auto& object : scene->objects) {
 		std::shared_ptr<MeshRenderer>&& renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
 		if (renderer && renderer->shader) {
 			renderer->render(outShader);
 		}
 	}
-	
+	glCheckError();
+
 	// render Terrain
 	std::shared_ptr<Terrain>& terrain = scene->terrain;
 	if (terrain) {
 		//terrain->shader->use();
 		
 		terrain->render(outShader);
+		glCheckError();
 	}
 
 	std::shared_ptr<Sky>& sky = scene->sky;
 	if (sky) {
 		sky->render(outShader);
+		glCheckError();
 	}
 }
 

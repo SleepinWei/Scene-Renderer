@@ -26,7 +26,7 @@ public:
 	std::shared_ptr<MeshRenderer> setShader(ShaderType type);
 	std::shared_ptr<MeshRenderer> setShader(std::string type);
 
-	std::shared_ptr<MeshRenderer> setMaterial(std::shared_ptr<Material> material);
+	// std::shared_ptr<MeshRenderer> setMaterial(std::shared_ptr<Material> material);
 	//void setView(glm::mat4 view) { view = view; };
 	//void setProjection(glm::mat4 projection) { projection = projection; };
 	std::shared_ptr<MeshRenderer> setDrawMode(GLenum drawMode_);
@@ -41,6 +41,6 @@ public:
 
 	//glm::mat4 view; 
 	//glm::mat4 projection; 
-	std::shared_ptr<Material> material;
+	// std::shared_ptr<Material> material;
 	std::shared_ptr<Shader> shader; 
 };
