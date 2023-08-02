@@ -2,6 +2,7 @@
 #include"renderer/Texture.h"
 #include<libdds/libdds_opengl.h>
 #include<assert.h>
+#include<stb/stb_image.h>
 // #define STB_IMAGE_IMPLEMENTATION
 
 Texture::Texture() {

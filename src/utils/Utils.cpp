@@ -3,7 +3,7 @@
 #include"utils/Utils.h"
 #include"system/InputManager.h"
 #include<memory>
-
+#include "stb/stb_image.h"
 extern std::unique_ptr<InputManager> inputManager;
 GLenum glCheckError_(const char* file, int line)
 {

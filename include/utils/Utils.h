@@ -7,7 +7,6 @@
 * e.g. renderCube 
 ********************************/
 
-#include "stb/stb_image.h"
 #include<iostream>
 #include<cmath>
 #include"Camera.h"

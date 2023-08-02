@@ -168,26 +168,91 @@ void AssimpLoader::loadMaterialTextures(aiMaterial *mat, aiTextureType type, std
 	}
 }
 
-std::shared_ptr<Mesh> buildMesh(const tinygltf::Model &model, unsigned int meshIndex,
-								const std::shared_ptr<std::vector<GLuint>> &buffers,
-								const std::shared_ptr<std::vector<GLuint>> &textures)
+const uint8_t *getAccessorDataAddress(const tinygltf::Model &model, const tinygltf::Accessor &accessor)
+{
+	auto &bufferView = model.bufferViews[accessor.bufferView];
+	auto &buffer = model.buffers[bufferView.buffer];
+
+	int accessor_offset = accessor.byteOffset;
+	int bufferview_offset = bufferView.byteOffset;
+
+	const uint8_t *start_addr = buffer.data.data() + bufferview_offset + accessor_offset;
+	return start_addr;
+}
+
+std::shared_ptr<Mesh> buildMesh(const tinygltf::Model &model, unsigned int meshIndex)
 {
 	//   auto meshPrimitives =
 	//   std::make_shared<std::vector<std::shared_ptr<Primitive>>>();
 	const auto &primitives = model.meshes[meshIndex].primitives;
-	vector<Vertex> vertices(primitives.size());
-	vector<unsigned int> indices; 
 
-	for (auto i = 0; i < primitives.size(); ++i)
+	// for (auto i = 0; i < primitives.size(); ++i)
+	// {
+	// build primitives
+	// TODO: onlyh primitives 0 is parsed
+	auto prim = primitives[0];
+
+	vector<unsigned int> indices;
+	// vertex
+	// calculate vertex size;
+	int size = model.accessors[prim.attributes.begin()->second].count;
+	vector<Vertex> vertices(size);
+
+	for (auto a : prim.attributes)
 	{
-		// build primitives 
+		string name = a.first;
+		int accessor_index = a.second;
+		auto &accessor = model.accessors[accessor_index];
+		float *address = (float *)getAccessorDataAddress(model, accessor);
+		int cnt = accessor.count;
 
+		if (name == "NORMAL")
+		{
+
+			for (int i = 0; i < cnt; i++)
+			{
+				vertices[i].Normal = {address[3 * i], address[3 * i + 1], address[3 * i + 2]};
+			}
+		}
+		else if (name == "POSITION")
+		{
+			for (int i = 0; i < cnt; i++)
+			{
+				vertices[i].Position = {address[3 * i], address[3 * i + 1], address[3 * i + 2]};
+			}
+		}
+		else if (name == "TANGENT")
+		{
+
+			for (int i = 0; i < cnt; i++)
+			{
+				vertices[i].Tangent = {address[3 * i], address[3 * i + 1], address[3 * i + 2]};
+			}
+		}
+		else if (name.substr(0, 8) == "TEXCOORD")
+		{
+
+			// texcoord
+			for (int i = 0; i < cnt; i++)
+			{
+				vertices[i].TexCoords = {address[2 * i], address[2 * i + 1]};
+			}
+		}
 	}
 
-	auto mesh = std::make_shared<Mesh>(vertices,indices);
-	return mesh; 
+	// indices
+	auto indiceAccessor = model.accessors[prim.indices];
+	int cnt = indiceAccessor.count; // number of elements
+	auto index_start = getAccessorDataAddress(model, indiceAccessor);
+	indices = vector<unsigned int>(index_start, index_start + cnt * sizeof(unsigned int)); // 初始化
+	// }
+
+	auto mesh = std::make_shared<Mesh>(vertices, indices);
+	return mesh;
 }
 
+// gltf::mesh 对应 GameObject
+// gltf::Primitvies 对应 Mesh
 vector<shared_ptr<Mesh>> GLTFLoader::loadModel(const std::string &path, bool flipUV)
 {
 	tinygltf::TinyGLTF loader;
@@ -195,6 +260,8 @@ vector<shared_ptr<Mesh>> GLTFLoader::loadModel(const std::string &path, bool fli
 	string warn;
 	tinygltf::Model gltfModel;
 	loader.LoadASCIIFromFile(&gltfModel, &err, &warn, path);
+	// 暂定只 build mesh 0
+	buildMesh(gltfModel, 0);
 
 	return vector<shared_ptr<Mesh>>();
 }

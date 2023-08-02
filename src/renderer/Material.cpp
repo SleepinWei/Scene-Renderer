@@ -8,6 +8,7 @@
 #include"system/ResourceManager.h"
 #include"utils/Shader.h"
 #include"yaml-cpp/yaml.h"
+#include<stb/stb_image.h>
 
 extern std::unique_ptr<ResourceManager> resourceManager;
 

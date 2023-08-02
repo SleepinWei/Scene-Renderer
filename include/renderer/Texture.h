@@ -1,7 +1,6 @@
 #pragma once
 #include<memory>
 #include<iostream>
-#include<stb/stb_image.h>
 
 //std::string pathToTexName(std::string file_path);
 typedef unsigned int GLenum;
