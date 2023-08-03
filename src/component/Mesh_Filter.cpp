@@ -5,6 +5,7 @@
 #include"renderer/Texture.h"
 #include"component/Model.h"
 #include<glfw/glfw3.h>
+#include "component/Mesh_Filter.h"
 
 #define PI 3.1415926
 
@@ -221,6 +222,10 @@ void MeshFilter::addMesh(std::shared_ptr<Mesh> mesh_) {
 	meshes.push_back(mesh_);
 }
 
+void MeshFilter::setMesh(const vector<shared_ptr<Mesh>> &meshes)
+{
+	this->meshes = meshes;
+}
 // AssimpLoader 导入时，必须手动规定 material 值，而 gltf 导入则不用
 // 因此引入一个 candidate，如果有 mesh 没有 material 值，则放入.
 void MeshFilter::loadFromJson(json& data) {
@@ -248,7 +253,8 @@ void MeshFilter::loadFromJson(json& data) {
 				}
 			}
 			// TODO: switch to add meshes, not mesh 
-			this->addMesh(meshes[0]);
+			// this->addMesh(meshes[0]);
+			setMesh(meshes);
 		}
 		else if (iter.key() == "material"){
 			candidate_mat->loadFromJson(data["material"]);

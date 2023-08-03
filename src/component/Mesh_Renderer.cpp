@@ -91,8 +91,8 @@ MeshRenderer::MeshRenderer():drawMode(GL_TRIANGLES),polyMode(GL_FILL) {
 
 /// <summary>
 /// @param: useShader: determines whether the renderer
-/// should use its shader. In Shadow Pass or G buffer pass
-/// a global shader is used. 
+/// should use its own shader. In Shadow Pass or G buffer pass
+/// a global shader is given. 
 /// </summary>
 /// <param name="useShader"></param>
 void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){

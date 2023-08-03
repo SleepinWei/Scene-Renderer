@@ -66,6 +66,8 @@ public:
 	//void loadMesh(std::string path);
 	void addMesh(std::shared_ptr<Mesh> mesh_);
 
+	void setMesh(const vector<shared_ptr<Mesh>> &meshes);
+
 	virtual void loadFromJson(json& data);
 
 public:

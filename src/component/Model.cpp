@@ -5,6 +5,9 @@
 #include "system/ResourceManager.h"
 #include "utils/log.h"
 #include <glad/glad.h>
+#include <glm/gtc/matrix_inverse.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <iostream>
 #include <tinygltf/tiny_gltf.h>
 
@@ -171,7 +174,7 @@ void AssimpLoader::loadMaterialTextures(aiMaterial *mat, aiTextureType type, std
 	}
 }
 
-const uint8_t *getAccessorDataAddress(const tinygltf::Model &model, const tinygltf::Accessor &accessor)
+const uint8_t *GLTFLoader::getAccessorDataAddress(const tinygltf::Model &model, const tinygltf::Accessor &accessor)
 {
 	auto &bufferView = model.bufferViews[accessor.bufferView];
 	auto &buffer = model.buffers[bufferView.buffer];
@@ -183,7 +186,7 @@ const uint8_t *getAccessorDataAddress(const tinygltf::Model &model, const tinygl
 	return start_addr;
 }
 
-std::shared_ptr<Mesh> buildMesh(const tinygltf::Model &model, unsigned int meshIndex,const string& path,bool flipUV)
+std::shared_ptr<Mesh> GLTFLoader::buildMesh(const tinygltf::Model &model, unsigned int meshIndex, glm::mat4 matrix, bool flipUV)
 {
 	//   auto meshPrimitives =
 	//   std::make_shared<std::vector<std::shared_ptr<Primitive>>>();
@@ -201,6 +204,8 @@ std::shared_ptr<Mesh> buildMesh(const tinygltf::Model &model, unsigned int meshI
 	int size = model.accessors[prim.attributes.begin()->second].count;
 	vector<Vertex> vertices(size);
 
+	glm::mat3 normal_mat(glm::inverseTranspose(matrix));
+
 	for (auto a : prim.attributes)
 	{
 		string name = a.first;
@@ -214,14 +219,18 @@ std::shared_ptr<Mesh> buildMesh(const tinygltf::Model &model, unsigned int meshI
 
 			for (int i = 0; i < cnt; i++)
 			{
-				vertices[i].Normal = {address[3 * i], address[3 * i + 1], address[3 * i + 2]};
+				glm::vec3 normal = {address[3 * i], address[3 * i + 1], address[3 * i + 2]};
+				glm::vec3 transformed_normal = normal_mat * normal;
+				vertices[i].Normal = glm::normalize(transformed_normal);
 			}
 		}
 		else if (name == "POSITION")
 		{
 			for (int i = 0; i < cnt; i++)
 			{
-				vertices[i].Position = {address[3 * i], address[3 * i + 1], address[3 * i + 2]};
+				glm::vec4 pos = {address[3 * i], address[3 * i + 1], address[3 * i + 2], 1.0f};
+				glm::vec4 result = matrix * pos;
+				vertices[i].Position = {result.x / result.w, result.y / result.w, result.z / result.w};
 			}
 		}
 		else if (name == "TANGENT")
@@ -229,7 +238,9 @@ std::shared_ptr<Mesh> buildMesh(const tinygltf::Model &model, unsigned int meshI
 
 			for (int i = 0; i < cnt; i++)
 			{
-				vertices[i].Tangent = {address[3 * i], address[3 * i + 1], address[3 * i + 2]};
+				glm::vec3 tangent = {address[3 * i], address[3 * i + 1], address[3 * i + 2]};
+				glm::vec3 transformed_tangent = normal_mat * tangent;
+				vertices[i].Tangent = glm::normalize(transformed_tangent);
 			}
 		}
 		else if (name.substr(0, 8) == "TEXCOORD")
@@ -237,9 +248,9 @@ std::shared_ptr<Mesh> buildMesh(const tinygltf::Model &model, unsigned int meshI
 			// texcoord
 			for (int i = 0; i < cnt; i++)
 			{
-				if(flipUV)
+				if (flipUV)
 					vertices[i].TexCoords = {address[2 * i], 1.0f - address[2 * i + 1]};
-				else 
+				else
 					vertices[i].TexCoords = {address[2 * i], address[2 * i + 1]};
 			}
 		}
@@ -253,15 +264,15 @@ std::shared_ptr<Mesh> buildMesh(const tinygltf::Model &model, unsigned int meshI
 	// }
 
 	// materials
-	shared_ptr<Material> mesh_mat = make_shared<Material>(); 
+	shared_ptr<Material> mesh_mat = make_shared<Material>();
 
 	int material_index = prim.material;
-	const string directory = path.substr(0,path.find_last_of("/")+1);
+	const string directory = path.substr(0, path.find_last_of("/") + 1);
 	auto mat = model.materials[material_index];
 	{
 		auto normal = model.images[model.textures[mat.normalTexture.index].source];
 		auto baseColor = model.images[model.textures[mat.pbrMetallicRoughness.baseColorTexture.index].source];
-		auto metallicRoughness =model.images[model.textures[mat.pbrMetallicRoughness.metallicRoughnessTexture.index].source];
+		auto metallicRoughness = model.images[model.textures[mat.pbrMetallicRoughness.metallicRoughnessTexture.index].source];
 
 		mesh_mat->addTextureAsync(directory + normal.uri, "material.normal");
 		mesh_mat->addTextureAsync(directory + baseColor.uri, "material.albedo");
@@ -270,8 +281,62 @@ std::shared_ptr<Mesh> buildMesh(const tinygltf::Model &model, unsigned int meshI
 	}
 
 	auto mesh = std::make_shared<Mesh>(vertices, indices);
-	mesh->material = mesh_mat; 
+	mesh->material = mesh_mat;
 	return mesh;
+}
+
+void GLTFLoader::buildNode(const tinygltf::Model &model, vector<shared_ptr<Mesh>> &meshes, unsigned int node_index, glm::mat4 parent_matrix, bool flipUV)
+{
+	const std::vector<double> &nodeMatrix = model.nodes[node_index].matrix;
+	glm::mat4 matrix(1.0f);
+	if (nodeMatrix.size() == 16)
+	{
+		matrix[0].x = nodeMatrix[0], matrix[0].y = nodeMatrix[1],
+		matrix[0].z = nodeMatrix[2], matrix[0].w = nodeMatrix[3];
+		matrix[1].x = nodeMatrix[4], matrix[1].y = nodeMatrix[5],
+		matrix[1].z = nodeMatrix[6], matrix[1].w = nodeMatrix[7];
+		matrix[2].x = nodeMatrix[8], matrix[2].y = nodeMatrix[9],
+		matrix[2].z = nodeMatrix[10], matrix[2].w = nodeMatrix[11];
+		matrix[3].x = nodeMatrix[12], matrix[3].y = nodeMatrix[13],
+		matrix[3].z = nodeMatrix[14], matrix[3].w = nodeMatrix[15];
+	}
+	else
+	{
+		if (model.nodes[node_index].translation.size() == 3)
+		{
+			glm::translate(matrix, glm::vec3(model.nodes[node_index].translation[0],
+											 model.nodes[node_index].translation[1],
+											 model.nodes[node_index].translation[2]));
+		}
+		if (model.nodes[node_index].rotation.size() == 4)
+		{
+			matrix *= glm::mat4_cast(glm::quat(model.nodes[node_index].rotation[3],
+											   model.nodes[node_index].rotation[0],
+											   model.nodes[node_index].rotation[1],
+											   model.nodes[node_index].rotation[2]));
+		}
+		if (model.nodes[node_index].scale.size() == 3)
+		{
+			glm::scale(matrix, glm::vec3(model.nodes[node_index].scale[0],
+										 model.nodes[node_index].scale[1],
+										 model.nodes[node_index].scale[2]));
+		}
+	}
+
+	glm::mat4 worldCoordMat = parent_matrix * matrix;
+	if (model.nodes[node_index].mesh >= 0)
+	{
+		auto mesh = buildMesh(model, model.nodes[node_index].mesh, worldCoordMat, flipUV);
+
+		meshes.push_back(mesh);
+	}
+	else
+	{
+		for (auto &childNodeIndex : model.nodes[node_index].children)
+		{
+			buildNode(model, meshes, childNodeIndex, worldCoordMat, flipUV);
+		}
+	}
 }
 
 // gltf::mesh 对应 GameObject
@@ -283,11 +348,10 @@ vector<shared_ptr<Mesh>> GLTFLoader::loadModel(const std::string &path, bool fli
 	string warn;
 	tinygltf::Model gltfModel;
 	loader.LoadASCIIFromFile(&gltfModel, &err, &warn, path);
-	vector<shared_ptr<Mesh>> result; 
-	// 暂定只 build mesh 0
-	for (int i = 0; i < gltfModel.meshes.size();i++){
-		result.push_back(buildMesh(gltfModel, i,path,flipUV));
-	}
 
-	return result; 
+	this->path = path;
+
+	vector<shared_ptr<Mesh>> meshes;
+	buildNode(gltfModel, meshes, 0, glm::mat4(), flipUV);
+	return meshes;
 }

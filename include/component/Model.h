@@ -5,7 +5,9 @@
 #include<assimp/Importer.hpp>
 #include<assimp/scene.h>
 #include<assimp/postprocess.h>
+#include<tinygltf/tiny_gltf.h>
 #include<map>
+#include<string>
 
 class ResourceManager;
 class MeshFilter;
@@ -41,6 +43,11 @@ private:
 class GLTFLoader: public ModelLoaderBase{
 public:
     vector<shared_ptr<Mesh>> loadModel(const std::string& path,bool flipUV = true);
-private: 
-    
+
+private:
+    string path;
+
+    const uint8_t *getAccessorDataAddress(const tinygltf::Model &model, const tinygltf::Accessor &accessor);
+    shared_ptr<Mesh> buildMesh(const tinygltf::Model &model, unsigned int meshIndex, glm::mat4 matrix, bool flipUV);
+    void buildNode(const tinygltf::Model &model,vector<shared_ptr<Mesh>>& meshes, unsigned int node_index, glm::mat4 parent_matrix, bool flipUV);
 };
