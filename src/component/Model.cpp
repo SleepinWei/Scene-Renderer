@@ -174,15 +174,15 @@ void AssimpLoader::loadMaterialTextures(aiMaterial *mat, aiTextureType type, std
 	}
 }
 
-const uint8_t *GLTFLoader::getAccessorDataAddress(const tinygltf::Model &model, const tinygltf::Accessor &accessor)
+const unsigned char *GLTFLoader::getAccessorDataAddress(const tinygltf::Model &model, const tinygltf::Accessor &accessor)
 {
-	auto &bufferView = model.bufferViews[accessor.bufferView];
-	auto &buffer = model.buffers[bufferView.buffer];
+	const tinygltf::BufferView &bufferView = model.bufferViews[accessor.bufferView];
+	const tinygltf::Buffer &buffer = model.buffers[bufferView.buffer];
 
 	int accessor_offset = accessor.byteOffset;
 	int bufferview_offset = bufferView.byteOffset;
 
-	const uint8_t *start_addr = buffer.data.data() + bufferview_offset + accessor_offset;
+	const unsigned char *start_addr = (unsigned char *)buffer.data.data() + bufferview_offset + accessor_offset;
 	return start_addr;
 }
 
@@ -216,7 +216,6 @@ std::shared_ptr<Mesh> GLTFLoader::buildMesh(const tinygltf::Model &model, unsign
 
 		if (name == "NORMAL")
 		{
-
 			for (int i = 0; i < cnt; i++)
 			{
 				glm::vec3 normal = {address[3 * i], address[3 * i + 1], address[3 * i + 2]};
@@ -257,10 +256,14 @@ std::shared_ptr<Mesh> GLTFLoader::buildMesh(const tinygltf::Model &model, unsign
 	}
 
 	// indices
-	auto indiceAccessor = model.accessors[prim.indices];
-	int cnt = indiceAccessor.count; // number of elements
+	auto &indiceAccessor = model.accessors[prim.indices];
+	int indice_count = indiceAccessor.count; // number of elements
 	auto index_start = (unsigned int *)getAccessorDataAddress(model, indiceAccessor);
-	indices = vector<unsigned int>(index_start, index_start + cnt); // 初始化
+	indices = vector<unsigned int>(indice_count);
+	for (int i = 0; i < indice_count; i++)
+	{
+		indices[i] = index_start[i];
+	}
 	// }
 
 	// materials
@@ -270,14 +273,22 @@ std::shared_ptr<Mesh> GLTFLoader::buildMesh(const tinygltf::Model &model, unsign
 	const string directory = path.substr(0, path.find_last_of("/") + 1);
 	auto mat = model.materials[material_index];
 	{
-		auto normal = model.images[model.textures[mat.normalTexture.index].source];
-		auto baseColor = model.images[model.textures[mat.pbrMetallicRoughness.baseColorTexture.index].source];
-		auto metallicRoughness = model.images[model.textures[mat.pbrMetallicRoughness.metallicRoughnessTexture.index].source];
-
-		mesh_mat->addTextureAsync(directory + normal.uri, "material.normal");
-		mesh_mat->addTextureAsync(directory + baseColor.uri, "material.albedo");
-		mesh_mat->addTextureAsync(directory + metallicRoughness.uri, "material.roughness");
-		mesh_mat->addTextureAsync(directory + metallicRoughness.uri, "material.metallic");
+		if (mat.normalTexture.index >= 0)
+		{
+			auto normal = model.images[model.textures[mat.normalTexture.index].source];
+			mesh_mat->addTextureAsync(directory + normal.uri, "material.normal");
+		}
+		if (mat.pbrMetallicRoughness.baseColorTexture.index >= 0)
+		{
+			auto baseColor = model.images[model.textures[mat.pbrMetallicRoughness.baseColorTexture.index].source];
+			mesh_mat->addTextureAsync(directory + baseColor.uri, "material.albedo");
+		}
+		if (mat.pbrMetallicRoughness.metallicRoughnessTexture.index >= 0)
+		{
+			auto metallicRoughness = model.images[model.textures[mat.pbrMetallicRoughness.metallicRoughnessTexture.index].source];
+			mesh_mat->addTextureAsync(directory + metallicRoughness.uri, "material.roughness");
+			mesh_mat->addTextureAsync(directory + metallicRoughness.uri, "material.metallic");
+		}
 	}
 
 	auto mesh = std::make_shared<Mesh>(vertices, indices);
@@ -323,7 +334,8 @@ void GLTFLoader::buildNode(const tinygltf::Model &model, vector<shared_ptr<Mesh>
 		}
 	}
 
-	glm::mat4 worldCoordMat = parent_matrix * matrix;
+	// glm::mat4 worldCoordMat = parent_matrix * matrix;
+	glm::mat4 worldCoordMat = matrix;
 	if (model.nodes[node_index].mesh >= 0)
 	{
 		auto mesh = buildMesh(model, model.nodes[node_index].mesh, worldCoordMat, flipUV);

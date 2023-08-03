@@ -47,7 +47,7 @@ public:
 private:
     string path;
 
-    const uint8_t *getAccessorDataAddress(const tinygltf::Model &model, const tinygltf::Accessor &accessor);
+    const unsigned char*getAccessorDataAddress(const tinygltf::Model &model, const tinygltf::Accessor &accessor);
     shared_ptr<Mesh> buildMesh(const tinygltf::Model &model, unsigned int meshIndex, glm::mat4 matrix, bool flipUV);
     void buildNode(const tinygltf::Model &model,vector<shared_ptr<Mesh>>& meshes, unsigned int node_index, glm::mat4 parent_matrix, bool flipUV);
 };
