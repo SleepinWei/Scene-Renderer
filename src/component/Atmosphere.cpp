@@ -35,6 +35,10 @@ void Atmosphere::initTextures() {
 	multiTexture = std::make_shared<ImageTexture>();
 	multiTexture->genImageTexture(GL_RGBA32F, GL_RGBA, multiWidth, multiHeight);
 
+	convolutionTexture = std::make_shared<ImageTexture>();
+	convolutionTexture->genImageTexture(GL_RGBA32F, GL_RGBA, skyViewWidth, skyViewHeight);
+	convolutionTexture->setBinding(2);
+
 	const int ParameterSize = 100;
 	atmBuffer = std::make_shared<UniformBuffer>(ParameterSize);
 	atmBuffer->setBinding(7);
@@ -42,7 +46,7 @@ void Atmosphere::initTextures() {
 
 void Atmosphere::initAtmosphereParameters(){
 	// initialize AtmosphereParameters
-	atmosphere.solar_irradiance = 10.0f; // solar irradiance
+	atmosphere.solar_irradiance = 20.0f; // solar irradiance
 	atmosphere.sun_angular_radius = 0.005f;//sun angular radius
 	atmosphere.top_radius = 6460.0f;// top_radius
 	atmosphere.bottom_radius = 6360.0f;// bottom_radius
@@ -66,6 +70,7 @@ void Atmosphere::initShaders() {
 	compskyViewShader = std::make_shared<Shader>("./src/shader/sky/skyview.comp");
 	compMultiShader = std::make_shared<Shader>("./src/shader/sky/multi.comp");
 	shader = RenderManager::GetInstance()->getShader(ShaderType::SKY);
+	compConvolutionShader = std::make_shared<Shader>("./src/shader/sky/convolution.comp");
 	// only for debug
 	//shader = renderManager->getShader(ShaderType::TEST);
 }
@@ -139,6 +144,19 @@ void Atmosphere::computeSkyViewTexutre() {
 	glActiveTexture(GL_TEXTURE0);
 	transmittanceTexture->bindBuffer();
 	// debug end
+	glDispatchCompute(skyViewWidth, skyViewHeight, 1);
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+	//compute Convolution
+	convolutionTexture->setBinding(2);
+	compConvolutionShader->use();
+	compConvolutionShader->setInt("skyViewLut", 8); // 后文中 skyview lut 用的也是 8
+	compConvolutionShader->setInt("TexWidth", skyViewWidth);
+	compConvolutionShader->setInt("TexHeight", skyViewHeight);
+
+	glActiveTexture(GL_TEXTURE8);
+	skyViewTexture->bindBuffer();
+
 	glDispatchCompute(skyViewWidth, skyViewHeight, 1);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }

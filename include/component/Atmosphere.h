@@ -56,6 +56,7 @@ public:
 	std::shared_ptr<ImageTexture> transmittanceTexture;
 	std::shared_ptr<ImageTexture> skyViewTexture;
 	std::shared_ptr<ImageTexture> multiTexture;
+	std::shared_ptr<ImageTexture> convolutionTexture;
 	std::shared_ptr<UniformBuffer> atmBuffer;
 
 	//shader 
@@ -63,6 +64,7 @@ public:
 	std::shared_ptr<Shader> compskyViewShader;
 	std::shared_ptr<Shader>compMultiShader;
 	std::shared_ptr<Shader> shader;
+	std::shared_ptr<Shader> compConvolutionShader;
 
 	// const members
 	const unsigned int skyViewWidth = 200;

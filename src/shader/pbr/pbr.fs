@@ -41,6 +41,9 @@ struct Material{
     sampler2D ao; 
     sampler2D height;
 };
+
+uniform sampler2D environment; // sky or skybox perhaps
+
 uniform Material material; 
 // in mat3 TBN;
 
@@ -122,7 +125,6 @@ vec3 BRDF(vec3 N, vec3 V,vec3 L){
     float metallic = texture(material.metallic,object.TexCoords).b;
     float roughness = texture(material.roughness,object.TexCoords).g;
 
-
     // vec3 objectPosition = object.Position;
 
     // F0 : plastic, albedo : metallic 
@@ -190,6 +192,8 @@ void main(){
     vec3 albedo = pow(texture(material.albedo,object.TexCoords).rgb,vec3(2.2));
     float ao = texture(material.ao,object.TexCoords).r; 
     vec3 ambient = vec3(0.03) * albedo * ao; 
+
+    //environment map 
 
     finalColor += ambient; 
 
