@@ -633,10 +633,13 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 	glBindTexture(GL_TEXTURE_2D, gPBR->id);
 	glActiveTexture(GL_TEXTURE4);
 	glBindTexture(GL_TEXTURE_2D, gPosition->id);
-	
+	glActiveTexture(GL_TEXTURE5);
+	auto atmosphere = std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));
+	atmosphere->convolutionTexture->bindBuffer(); // bind environment map
+	glCheckError();
 
 	//int i = 0;
-	int base = 5;// already 4 texture units occupied
+	int base = 6;// already 5 texture units occupied
 	for (int i = 0; i < scene->directionLights.size();++i)
 	{
 		int texture_unit_index = i + base;
@@ -666,6 +669,8 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 	lightingShader->setFloat("far_plane", scene->main_camera->zFar);
 	lightingShader->setInt("cascaded_levels", 4);
 
+	lightingShader->setInt("environment", 5);
+
 	for (unsigned int i = 0; i < 4; i++)
 		lightingShader->setFloat("cascaded_distances[" + std::to_string(i) + "]", shadow_limiter[i]);
 	
@@ -681,9 +686,9 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 
 	// render quad
 	renderQuad();
+	glCheckError();
 
-	
-	// copy renderbuffer
+		// copy renderbuffer
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer->FBO);
 	//glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, postBuffer->FBO);
@@ -707,10 +712,14 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 		}
 	}
 
+	glCheckError();
+
 	// forward rendering : sky
 	if (scene->sky) {
 		scene->sky->render(nullptr);
 	}
+
+	glCheckError();
 }
 
 void DeferredPass::renderAlphaObjects(const std::shared_ptr<RenderScene>& scene)

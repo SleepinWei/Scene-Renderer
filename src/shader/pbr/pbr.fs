@@ -161,6 +161,7 @@ vec3 BRDF(vec3 N, vec3 V,vec3 L){
     return brdf;
 }
 
+
 void main(){
     // radiance; 
     vec3 finalColor = vec3(0.0f);
@@ -193,7 +194,8 @@ void main(){
     float ao = texture(material.ao,object.TexCoords).r; 
     vec3 ambient = vec3(0.03) * albedo * ao; 
 
-    //environment map 
+    //environment map, diffuse color
+
 
     finalColor += ambient; 
 

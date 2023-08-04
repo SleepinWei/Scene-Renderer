@@ -1,7 +1,7 @@
 #version 450 core
-layout(local_size_x=1,local_size_y=1,local_size_z=1)in;
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
-layout(rgba32f,binding=2) uniform image2D irradiance;
+layout(rgba32f, binding = 2) uniform image2D irradiance;
 
 uniform sampler2D skyViewLut;
 uniform int TexWidth; //longtitude
@@ -9,63 +9,76 @@ uniform int TexHeight; //latitude
 
 #define PI 3.1415
 #define epsilon 1e-4
-float MapUnitToLatitude(float unit){
-    float s = sign(unit - 0.5f);
-    return ((2 * unit-1.0f) * (2*unit-1.0f)) * s * (PI / 2+epsilon);
+float MapUnitToLatitude(float unit) {
+    float s = sign(unit - 0.5);
+    return ((2 * unit - 1.0) * (2 * unit - 1.0)) * s * (PI / 2 + epsilon);
 }
 
-float MapLatitudeToUnit(float latitude){
-    return 0.5f + 0.5f * sign(latitude) * sqrt(abs(latitude)/(PI/2+epsilon));
+float MapLatitudeToUnit(float latitude) {
+    return 0.5 + 0.5 * sign(latitude) * sqrt(abs(latitude) / (PI / 2 + epsilon));
 }
 
-void main(){
+vec3 sampleSphericalMap(sampler2D tex, vec3 dir) {
+    float sinLat = dir.y;
+    float tanLon = -abs(dir.x) / dir.z;
+    float Lat = asin(sinLat);
+    float Lon = atan(tanLon);
+    if(Lon < 0.0)
+        Lon = PI + Lon;
+    if(dir.x < 0.0)
+        Lon = 2 * PI - Lon;
+    float LatUnit = MapLatitudeToUnit(Lat);
+    float LonUnit = Lon / (2 * PI);
+
+    vec2 sample_uv = vec2(LonUnit, LatUnit);
+    vec3 color = vec3(texture(tex, sample_uv));
+    return color;
+}
+
+void main() {
     // 像素位置
-    vec2 uv = vec2(gl_WorkGroupID.x * 1.0f / TexWidth,gl_WorkGroupID.y * 1.0f / TexHeight);
-    ivec2 texelCoord = ivec2(gl_WorkGroupID.x,gl_WorkGroupID.y);
+    vec2 uv = vec2(gl_WorkGroupID.x * 1.0 / TexWidth, gl_WorkGroupID.y * 1.0 / TexHeight);
+    ivec2 texelCoord = ivec2(gl_WorkGroupID.x, gl_WorkGroupID.y);
     float latAngle = MapUnitToLatitude(uv.y);
     float lonAngle = uv.x * 2 * PI; 
 
     // sample the hemisphere
-    vec3 normal = vec3(
-        cos(latAngle) * sin(lonAngle),
-        sin(latAngle),
-        -cos(latAngle) * cos(lonAngle)
-        );
+    vec3 normal = vec3(cos(latAngle) * sin(lonAngle), sin(latAngle), -cos(latAngle) * cos(lonAngle));
 
-    vec3 up = vec3(0.0f,1.0f,0.0f);
-    vec3 right=  normalize(cross(normal,up));
-    up = normalize(cross(right,normal));
+    vec3 up = vec3(0.0, 1.0, 0.0);
+    vec3 right = normalize(cross(normal, up));
+    up = normalize(cross(right, normal));
 
     const int sample_num = 10;
 
-    vec3 irrad = vec3(0,0,0);
-    for(int i =0;i< sample_num;i++){
-        for(int j =0;j<sample_num;j++){
-            float theta = i* PI * 0.5 / sample_num;
+    vec3 irrad = vec3(0, 0, 0);
+    for(int i = 0; i < sample_num; i++) {
+        for(int j = 0; j < sample_num; j++) {
+            float theta = i * PI * 0.5 / sample_num;
             float phi = j * 2 * PI / sample_num;
 
-            vec3 dir = vec3(sin(theta) * cos(phi), cos(theta),sin(theta) * sin(phi));
+            vec3 dir = vec3(sin(theta) * cos(phi), cos(theta), sin(theta) * sin(phi));
             vec3 actual_dir = normalize(normal * dir.y + up * dir.z + right * dir.x); 
 
             // sample the original sky view lut 
-            float sinLat = actual_dir.y;
-            float tanLon = -abs(actual_dir.x) / actual_dir.z; 
-            float Lat = asin(sinLat);
-            float Lon = atan(tanLon);
-            if(Lon < 0.0f)
-                Lon = PI + Lon;
-            if(actual_dir.x < 0.0f)
-                Lon = 2 * PI - Lon;
-            float LatUnit = MapLatitudeToUnit(Lat);
-            float LonUnit = Lon / (2 * PI);
+            // float sinLat = actual_dir.y;
+            // float tanLon = -abs(actual_dir.x) / actual_dir.z;
+            // float Lat = asin(sinLat);
+            // float Lon = atan(tanLon);
+            // if(Lon < 0.0)
+            //     Lon = PI + Lon;
+            // if(actual_dir.x < 0.0)
+            //     Lon = 2 * PI - Lon;
+            // float LatUnit = MapLatitudeToUnit(Lat);
+            // float LonUnit = Lon / (2 * PI);
+            // vec2 sample_uv = vec2(LonUnit, LatUnit);
+            // vec3 sky_color = vec3(texture(skyViewLut, sample_uv));
+            vec3 sky_color = sampleSphericalMap(skyViewLut,actual_dir);
 
-            vec2 sample_uv = vec2(LonUnit,LatUnit);
-            vec3 sky_color = vec3(texture(skyViewLut,sample_uv));
-
-            irrad += sky_color * cos(theta) * sin(theta); 
+            irrad += sky_color * cos(theta) * sin(theta);
         }
     }
     irrad = PI * irrad / (sample_num * sample_num);
-    irrad = pow(irrad,vec3(1.0f/2.2f));
-    imageStore(irradiance,texelCoord,vec4(irrad,1.0f));
+    // irrad = pow(irrad, vec3(1.0 / 2.2));
+    imageStore(irradiance, texelCoord, vec4(irrad, 1.0));
 }

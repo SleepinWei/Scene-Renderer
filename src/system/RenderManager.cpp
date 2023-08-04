@@ -294,14 +294,19 @@ void RenderManager::prepareCompData(const std::shared_ptr<RenderScene>& scene) {
 
 void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	prepareVPData(scene);
-	
+	glCheckError();
+
 	preparePointLightData(scene);
-	
+	glCheckError();
+
 	prepareDirectionLightData(scene);
-	
+	glCheckError();
+
 	prepareSpotLightData(scene);
-	
+	glCheckError();
+
 	prepareCompData(scene);
+	glCheckError();
 
 	//TODO:
 	 //rsmPass->renderGbuffer(scene);
@@ -314,13 +319,19 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	if (setting.useDefer) {
 		// deferred pass
 		deferredPass->renderGbuffer(scene);
+		glCheckError();
+
 		deferredPass->render(scene);
+		glCheckError();
+
 		if (setting.enableRSM) {
 			rsmPass->renderGbuffer(scene);
 			rsmPass->render(scene);
 		}
 		deferredPass->renderAlphaObjects(scene);
+		glCheckError();
 		deferredPass->postProcess(scene);
+		glCheckError();
 	}
 	else
 	{

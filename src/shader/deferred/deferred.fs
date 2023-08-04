@@ -8,6 +8,7 @@ uniform sampler2D gNormal;
 uniform sampler2D gAlbedoSpec;
 uniform sampler2D gPBR;
 uniform bool enableShadow;
+uniform sampler2D environment;
 // uniform bool enableDirectionShadow;
 
 
@@ -77,6 +78,8 @@ layout(std140,binding=3) uniform SpotLightBuffer{
 vec3 albedo;
 float metallic;
 float roughness;
+vec3 F0;
+float isGrass;
 
 const float PI = 3.1415926;
 
@@ -205,6 +208,7 @@ vec3 grid_sample_directions[20] = vec3[](
     vec3(1, 0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1, 0, -1),
     vec3(0, 1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0, 1, -1)
 );
+
 float calculate_point_shadow(vec3 fragPosWorldSpace,vec3 normal,int order)
 {
     float re=0.0f;
@@ -277,9 +281,7 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 }
 
 vec3 BRDF(vec3 N, vec3 V,vec3 L){
-    // F0 : plastic, albedo : metallic
-    vec3 F0 = vec3(0.04);
-    F0 = mix(F0,albedo,metallic);
+
 
     // vec3 Lo = vec3(0.0);
     // vec3 L = normalize(light.Position - objectPosition);
@@ -310,6 +312,39 @@ vec3 BRDF(vec3 N, vec3 V,vec3 L){
 
     return brdf;
 }
+#define PI 3.1415
+#define EPSILON 1e-4
+
+float MapLatitudeToUnit(float latitude) {
+    return 0.5 + 0.5 * sign(latitude) * sqrt(abs(latitude) / (PI / 2 + EPSILON));
+}
+
+vec3 sampleSphericalMap(sampler2D tex, vec3 dir) {
+    float sinLat = dir.y;
+    float tanLon = -abs(dir.x) / dir.z;
+    float Lat = asin(sinLat);
+    float Lon = atan(tanLon);
+    if(Lon < 0.0)
+        Lon = PI + Lon;
+    if(dir.x < 0.0)
+        Lon = 2 * PI - Lon;
+    float LatUnit = MapLatitudeToUnit(Lat);
+    float LonUnit = Lon / (2 * PI);
+
+    vec2 sample_uv = vec2(LonUnit, LatUnit);
+    vec3 color = vec3(texture(tex, sample_uv));
+    return color;
+}
+vec3 calculateIBL(vec3 N,vec3 V){
+    // normal 
+    vec3 kS = fresnelSchlick(max(dot(N, V), 0.0), F0);
+    vec3 kD = 1.0 - kS;
+    vec3 irradiance = sampleSphericalMap(environment, N);
+    vec3 diffuse    = irradiance * albedo;
+    float ao = texture(gPBR,TexCoords).a;
+    vec3 ambient    = (kD * diffuse) * ao; 
+    return ambient;
+}
 
 vec3 shading(){
     // radiance;
@@ -323,8 +358,10 @@ vec3 shading(){
     albedo = texture(gAlbedoSpec,TexCoords).rgb;
     metallic = texture(gPBR,TexCoords).g;
     roughness = texture(gPBR,TexCoords).r;
-
-    float isGrass = texture(gAlbedoSpec,TexCoords).a;
+    // F0 : plastic, albedo : metallic
+    F0 = vec3(0.04);
+    F0 = mix(F0,albedo,metallic);
+    isGrass = texture(gAlbedoSpec,TexCoords).a;
 
     for(int i=0;i<pLightNum;i++){
         PointLight light = pointLights[i];
@@ -388,6 +425,7 @@ vec3 shading(){
         // spotlight intensity
         float theta = dot(L, normalize(-light.Direction));
         float epsilon = light.cutOff - light.outerCutOff;
+        
         float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
         // float intensity = 1.0;
         // attenuation
@@ -398,11 +436,13 @@ vec3 shading(){
         finalColor += brdf * radiance * NdotL;
     }
 
-    vec3 albedo = texture(gAlbedoSpec,TexCoords).rgb;
-    float ao = texture(gPBR,TexCoords).a;
-    vec3 ambient = vec3(0.03) * albedo * ao;
+    // ambient? 
+    // vec3 albedo = texture(gAlbedoSpec,TexCoords).rgb;
+    // float ao = texture(gPBR,TexCoords).a;
+    // vec3 ambient = vec3(0.03) * albedo * ao;
+    // finalColor += ambient;
 
-    finalColor += ambient;
+    finalColor += calculateIBL(N,V);
 
     return finalColor;
 }
