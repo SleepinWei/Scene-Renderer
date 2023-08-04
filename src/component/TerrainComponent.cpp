@@ -15,9 +15,6 @@
 #include"component/Grass.h"
 #include"component/GameObject.h"
 
-extern std::unique_ptr<ResourceManager> resourceManager;
-extern std::unique_ptr<RenderManager> renderManager;
-
 /// <summary>
 /// this is a deprecated function for loading heightmaps
 /// this implementation is designed for tessellation shaders
@@ -43,7 +40,7 @@ std::shared_ptr<TerrainComponent> TerrainComponent::loadHeightmap_(const std::st
 	height = heightTex->height;
 	terrainMaterial->addTexture(heightTex,"heightMap");
 	terrainMaterial->addTexture(Texture::loadFromFile(path+"normalMap.png"),"normalMap");
-	//resourceManager.getResource();
+	//ResourceManager::GetInstance().getResource();
 	// indices
 	float xzScale = 20.0f/std::max(width,height);
 	//float xzScale = 1.0f;
@@ -132,7 +129,7 @@ std::shared_ptr<TerrainComponent> TerrainComponent::loadHeightmap(const std::str
 	nrChannels = 1;
 	//terrainMaterial->addTexture(heightTex,"heightMap");
 	//terrainMaterial->addTexture(Texture::loadFromFile(path+"normalMap.png"),"normalMap");
-	//resourceManager.getResource();
+	//ResourceManager::GetInstance().getResource();
 	// indices
 	yScale = 70.0f;
 	yShift = -20.0f; 
@@ -296,7 +293,7 @@ void TerrainComponent::init(){
 	indirectDrawSSBO->setBinding(5);
 
 	// shaders
-	shader = renderManager->getShader(ShaderType::TERRAIN);
+	shader = RenderManager::GetInstance()->getShader(ShaderType::TERRAIN);
 	shader->requireMat = true;
 	terrainGBuffer = std::make_shared<Shader>("./src/shader/terrain/terrain.vs", "./src/shader/deferred/gBuffer.fs");
 	terrainGBuffer->requireMat = true;

@@ -7,9 +7,8 @@
 #include"component/Atmosphere.h"
 #include"utils/Utils.h"
 
-extern std::unique_ptr<RenderManager> renderManager;
 std::shared_ptr<SkyBox> SkyBox::addShader(ShaderType st) {
-	shader = renderManager->getShader(st);
+	shader = RenderManager::GetInstance()->getShader(st);
 	return std::dynamic_pointer_cast<SkyBox> (shared_from_this());
 }
 

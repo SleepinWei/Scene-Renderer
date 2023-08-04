@@ -13,9 +13,13 @@
 #include"./component/TerrainComponent.h"
 #include"./component/Ocean.h"
 #include "utils/Camera.h"
-#include "system/global_context.h"
 #include<imgui/imgui_toggle.h>
 #include<filesystem>
+#include<system/RenderManager.h>
+#include<object/SkyBox.h>
+#include<object/Terrain.h>
+#include<component/GameObject.h>
+
 using namespace std::filesystem;
 
 class Gui {
@@ -60,17 +64,18 @@ public:
 		}
 
 		if (ImGui::CollapsingHeader("Rendering")) {
-			static bool enableShadow = renderManager->setting.enableShadow;
+			auto &setting = RenderManager::GetInstance()->setting;
+			static bool enableShadow = setting.enableShadow;
 			if (ImGui::Toggle("Enable Shadow", &enableShadow)) {
-				renderManager->setting.enableShadow = enableShadow;
+				setting.enableShadow = enableShadow;
 			}
-			static bool enableRSM = renderManager->setting.enableRSM;
+			static bool enableRSM = setting.enableRSM;
 			if (ImGui::Toggle("Enable RSM", &enableRSM)) {
-				renderManager->setting.enableRSM= enableRSM;
+				setting.enableRSM= enableRSM;
 			}
-			static bool enableDirectional= renderManager->setting.enableDirectional;
+			static bool enableDirectional= setting.enableDirectional;
 			if (ImGui::Toggle("Enable Directional", &enableDirectional)) {
-				renderManager->setting.enableDirectional= enableDirectional;
+				setting.enableDirectional= enableDirectional;
 			}
 		}
 

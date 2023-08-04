@@ -13,7 +13,6 @@ class ResourceManager;
 class MeshFilter;
 class Material;
 class Mesh;
-extern std::unique_ptr<ResourceManager> resourceManager; 
 
 using std::shared_ptr; 
 using std::string; 

@@ -10,10 +10,13 @@
 class Texture; 
 
 class ResourceManager {
-public:
-
 	ResourceManager();
 	~ResourceManager();
+public:
+	static ResourceManager *GetInstance() { 
+		static ResourceManager resourceManager;
+		return &resourceManager;
+	}
 	std::shared_ptr<Texture> find(std::string tex_name);
 	std::shared_ptr<Texture> getResource(const std::string& file_path);
 	std::shared_ptr<Texture> getResourceAsync(const std::string& filename);

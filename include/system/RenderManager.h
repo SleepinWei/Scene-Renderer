@@ -1,7 +1,7 @@
 #pragma once
-#include<memory>
-#include<vector>
-#include<mutex>
+#include <memory>
+#include <mutex>
+#include <vector>
 
 class Camera;
 class UniformBuffer;
@@ -15,7 +15,8 @@ class DeferredPass;
 class RSMPass;
 class ShadowPass;
 
-enum class ShaderType {
+enum class ShaderType
+{
 	SIMPLE = 0,
 	LIGHT,
 	PBR,
@@ -29,11 +30,12 @@ enum class ShaderType {
 	SKY,
 	TEST,
 	DEPTH,
-	
+
 	KIND_COUNT
 };
 
-struct RenderSetting {
+struct RenderSetting
+{
 	bool enableHDR;
 	bool useDefer;
 	bool enableShadow;
@@ -41,33 +43,42 @@ struct RenderSetting {
 	bool enableDirectional;
 };
 
-class RenderManager {
-public:
+class RenderManager
+{
+private:
 	RenderManager();
 	~RenderManager();
 
-	void init();
-	void render(const std::shared_ptr<RenderScene>& scene);
+public:
+	static RenderManager *GetInstance()
+	{
+		static RenderManager renderManager;
+		return &renderManager;
+	}
 
-	//add a tool function to pass the UBO and a cascaded levels from shadow pass to deferred pass.
+	void init();
+	void render(const std::shared_ptr<RenderScene> &scene);
+
+	// add a tool function to pass the UBO and a cascaded levels from shadow pass to deferred pass.
 	void pass_data();
 
 	std::shared_ptr<Shader> getShader(ShaderType type);
 
 private:
-	// shader 
+	// shader
 	static std::shared_ptr<Shader> generateShader(ShaderType type);
 	// buffer
-	void prepareVPData(const std::shared_ptr<RenderScene>& renderScene);
-	void preparePointLightData(const std::shared_ptr<RenderScene>& renderScene);
-	void prepareDirectionLightData(const std::shared_ptr<RenderScene>& renderScene);
-	void prepareSpotLightData(const std::shared_ptr<RenderScene>& renderScene);
-	void prepareCompData(const std::shared_ptr<RenderScene>& scene);
+	void prepareVPData(const std::shared_ptr<RenderScene> &renderScene);
+	void preparePointLightData(const std::shared_ptr<RenderScene> &renderScene);
+	void prepareDirectionLightData(const std::shared_ptr<RenderScene> &renderScene);
+	void prepareSpotLightData(const std::shared_ptr<RenderScene> &renderScene);
+	void prepareCompData(const std::shared_ptr<RenderScene> &scene);
 	void initRenderPass();
 	void initVPbuffer();
 	void initPointLightBuffer();
 	void initDirectionLightBuffer();
 	void initSpotLightBuffer();
+
 public:
 	// shaders
 	std::vector<std::shared_ptr<Shader>> m_shader;
@@ -79,7 +90,7 @@ public:
 	std::shared_ptr<HDRPass> hdrPass;
 	std::shared_ptr<BasePass> basePass;
 	std::shared_ptr<DepthPass> depthPass;
-	//std::shared_ptr<ShadowPass> shadowPass;
+	// std::shared_ptr<ShadowPass> shadowPass;
 	std::shared_ptr<RSMPass> rsmPass;
 
 	std::shared_ptr<ShadowPass> shadowPass;
@@ -91,4 +102,3 @@ public:
 	std::shared_ptr<UniformBuffer> uniformDirectionLightBuffer;
 	std::shared_ptr<UniformBuffer> uniformSpotLightBuffer;
 };
-

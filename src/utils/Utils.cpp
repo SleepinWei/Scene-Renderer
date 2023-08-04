@@ -4,7 +4,6 @@
 #include"system/InputManager.h"
 #include<memory>
 #include "stb/stb_image.h"
-extern std::unique_ptr<InputManager> inputManager;
 GLenum glCheckError_(const char* file, int line)
 {
     GLenum errorCode;
@@ -65,73 +64,73 @@ int createWindow(GLFWwindow*& window,
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-        inputManager->keyStatus[ESC_PRESSED] = PRESSED;
+        InputManager::GetInstance()->keyStatus[ESC_PRESSED] = PRESSED;
         glfwSetWindowShouldClose(window, GL_TRUE);
     }
 	if (action == GLFW_PRESS) {
 		if (key == GLFW_KEY_W) {
-			inputManager->keyStatus[KEY_W] = PRESSED;
+			InputManager::GetInstance()->keyStatus[KEY_W] = PRESSED;
 		}
 
 		if (key == GLFW_KEY_A) {
-			inputManager->keyStatus[KEY_A] = PRESSED;
+			InputManager::GetInstance()->keyStatus[KEY_A] = PRESSED;
 		}
 
 		if (key == GLFW_KEY_S) {
-			inputManager->keyStatus[KEY_S] = PRESSED;
+			InputManager::GetInstance()->keyStatus[KEY_S] = PRESSED;
 		}
         
 		if (key == GLFW_KEY_D) {
-			inputManager->keyStatus[KEY_D] = PRESSED;
+			InputManager::GetInstance()->keyStatus[KEY_D] = PRESSED;
 		}
 
         if (key == GLFW_KEY_Q) {
-            inputManager->keyStatus[KEY_Q] = PRESSED;
+            InputManager::GetInstance()->keyStatus[KEY_Q] = PRESSED;
         }
 
         if (key == GLFW_KEY_E) {
-            inputManager->keyStatus[KEY_E] = PRESSED;
+            InputManager::GetInstance()->keyStatus[KEY_E] = PRESSED;
         }
 
         if (key == GLFW_KEY_LEFT_ALT || key == GLFW_KEY_RIGHT_ALT) {
-            inputManager->keyStatus[KEY_ALT] = PRESSED;
+            InputManager::GetInstance()->keyStatus[KEY_ALT] = PRESSED;
         }
 
         if (key == GLFW_KEY_LEFT_SHIFT || key == GLFW_KEY_RIGHT_SHIFT) {
-            inputManager->keyStatus[KEY_SHIFT] = PRESSED;
+            InputManager::GetInstance()->keyStatus[KEY_SHIFT] = PRESSED;
         }
 	}
     else if (action == GLFW_RELEASE) {
         if (key == GLFW_KEY_W) {
-			inputManager->keyStatus[KEY_W] = RELEASED;
+			InputManager::GetInstance()->keyStatus[KEY_W] = RELEASED;
 		}
 
 		if (key == GLFW_KEY_A) {
-			inputManager->keyStatus[KEY_A] = RELEASED;
+			InputManager::GetInstance()->keyStatus[KEY_A] = RELEASED;
 		}
 
 		if (key == GLFW_KEY_S) {
-			inputManager->keyStatus[KEY_S] = RELEASED;
+			InputManager::GetInstance()->keyStatus[KEY_S] = RELEASED;
 		}
 
 		if (key == GLFW_KEY_D) {
-			inputManager->keyStatus[KEY_D] = RELEASED;
+			InputManager::GetInstance()->keyStatus[KEY_D] = RELEASED;
 		}
 
         if (key == GLFW_KEY_Q) {
-            inputManager->keyStatus[KEY_Q] = RELEASED;
+            InputManager::GetInstance()->keyStatus[KEY_Q] = RELEASED;
         }
 
         if (key == GLFW_KEY_E) {
-            inputManager->keyStatus[KEY_E] = RELEASED;
+            InputManager::GetInstance()->keyStatus[KEY_E] = RELEASED;
         }
 
         if (key == GLFW_KEY_LEFT_ALT || key == GLFW_KEY_RIGHT_ALT) {
-            inputManager->keyStatus[KEY_ALT] = RELEASED;
+            InputManager::GetInstance()->keyStatus[KEY_ALT] = RELEASED;
         }
 
         if (key == GLFW_KEY_LEFT_SHIFT || key == GLFW_KEY_RIGHT_SHIFT) {
-            inputManager->keyStatus[KEY_SHIFT] = RELEASED;
+            InputManager::GetInstance()->keyStatus[KEY_SHIFT] = RELEASED;
         }
     }
 }
@@ -142,9 +141,9 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     // make sure the viewport matches the new window dimensions; note that width and 
     // height will be significantly larger than specified on retina displays.
-    inputManager->width = width;
-    inputManager->height = height;
-    inputManager->viewPortChange = true;
+    InputManager::GetInstance()->width = width;
+    InputManager::GetInstance()->height = height;
+    InputManager::GetInstance()->viewPortChange = true;
     //glViewport(0, 0, width, height);
 }
 
@@ -153,12 +152,12 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 bool clicked = false;
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
-    inputManager->mouseMove = true;
+    InputManager::GetInstance()->mouseMove = true;
     //if (clicked) {
-	inputManager->deltaX = xpos - inputManager->lastX;
-	inputManager->deltaY = inputManager->lastY - ypos; // reversed since y-coordinates go from bottom to top
-	inputManager->lastX = xpos;
-	inputManager->lastY = ypos;
+	InputManager::GetInstance()->deltaX = xpos - InputManager::GetInstance()->lastX;
+	InputManager::GetInstance()->deltaY = InputManager::GetInstance()->lastY - ypos; // reversed since y-coordinates go from bottom to top
+	InputManager::GetInstance()->lastX = xpos;
+	InputManager::GetInstance()->lastY = ypos;
 
         //camera.ProcessMouseMovement(xoffset, yoffset);
     //}
@@ -168,14 +167,14 @@ void mouse_button_callback(GLFWwindow* window, int key, int action,int mods){
         double xpos, ypos; 
         //glfwGetCursorPos(window, &xpos, &ypos);
         clicked = true;
-        //inputManager->lastX = xpos;
-        //inputManager->lastY = ypos;
-        inputManager->cursorEnbaled = false;
+        //InputManager::GetInstance()->lastX = xpos;
+        //InputManager::GetInstance()->lastY = ypos;
+        InputManager::GetInstance()->cursorEnbaled = false;
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     }
     else if (key == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE){
         clicked = false;
-        inputManager->cursorEnbaled = true;
+        InputManager::GetInstance()->cursorEnbaled = true;
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
 }
@@ -184,10 +183,10 @@ void mouse_button_callback(GLFWwindow* window, int key, int action,int mods){
 // ----------------------------------------------------------------------
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    inputManager->scrollMove = true;
-    inputManager->keyStatus[MOUSE_SCROLL] = PRESSED;
-    inputManager->mouseScrollX = xoffset;
-    inputManager->mouseScrollY = yoffset;
+    InputManager::GetInstance()->scrollMove = true;
+    InputManager::GetInstance()->keyStatus[MOUSE_SCROLL] = PRESSED;
+    InputManager::GetInstance()->mouseScrollX = xoffset;
+    InputManager::GetInstance()->mouseScrollY = yoffset;
     //camera.ProcessMouseScroll(yoffset);
 }
 

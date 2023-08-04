@@ -22,7 +22,7 @@ MeshRenderer::~MeshRenderer() {
 }
 
 std::shared_ptr<MeshRenderer> MeshRenderer::setShader(ShaderType type) {
-	shader = renderManager->getShader(type);
+	shader = RenderManager::GetInstance()->getShader(type);
 	return shared_from_this();
 }
 
@@ -60,7 +60,7 @@ std::shared_ptr<MeshRenderer> MeshRenderer::setShader(std::string type) {
 	}
 	//
 
-	shader = renderManager->getShader(shadertype);
+	shader = RenderManager::GetInstance()->getShader(shadertype);
 	return shared_from_this();
 }
 

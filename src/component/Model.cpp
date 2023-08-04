@@ -168,7 +168,7 @@ void AssimpLoader::loadMaterialTextures(aiMaterial *mat, aiTextureType type, std
 		aiString str;
 		mat->GetTexture(type, i, &str);
 		std::string mat_path(str.C_Str());
-		const std::shared_ptr<Texture> &tex = resourceManager->getResource(mat_path);
+		const std::shared_ptr<Texture> &tex = ResourceManager::GetInstance()->getResource(mat_path);
 
 		material->textures.insert({texType, tex});
 	}

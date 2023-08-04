@@ -18,7 +18,6 @@
 #include<random>
 #include<time.h>
 
-extern std::unique_ptr<RenderManager> renderManager;
 extern std::shared_ptr<RenderScene> scene;
 
 Ocean::Ocean()

@@ -22,12 +22,9 @@
 #include<memory>
 #include<random>
 
-extern std::unique_ptr<InputManager> inputManager;
-extern std::unique_ptr<RenderManager> renderManager;
-
 void BasePass::render(const std::shared_ptr<RenderScene>& scene,const std::shared_ptr<Shader>& outShader) {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glViewport(0, 0, inputManager->width, inputManager->height);
+	glViewport(0, 0, InputManager::GetInstance()->width, InputManager::GetInstance()->height);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
@@ -62,7 +59,7 @@ HDRPass::HDRPass() {
 	rboDepth = 0;
 	dirty = true;
 
-	hdrShader = renderManager->getShader(ShaderType::HDR);
+	hdrShader = RenderManager::GetInstance()->getShader(ShaderType::HDR);
 }
 
 HDRPass::~HDRPass() {
@@ -109,8 +106,8 @@ void HDRPass::unbindBuffer() {
 
 void HDRPass::render() {
 	// check whether Pass textures/buffers should be regenerated
-	if (dirty || inputManager->viewPortChange) {
-		initPass(inputManager->width, inputManager->height);
+	if (dirty || InputManager::GetInstance()->viewPortChange) {
+		initPass(InputManager::GetInstance()->width, InputManager::GetInstance()->height);
 		dirty = false;
 	}
 	unbindBuffer();
@@ -233,7 +230,7 @@ void ShadowPass::directionLightShadow(const std::shared_ptr<RenderScene>& scene)
 	//TODO:
 	auto& dLights = scene->directionLights;
 	unsigned int num_direction_lights = dLights.size();
-	if (!renderManager->setting.enableDirectional) {
+	if (!RenderManager::GetInstance()->setting.enableDirectional) {
 		num_direction_lights = 0;
 	}
 	for (unsigned int i = 0; i < num_direction_lights;i++)
@@ -425,7 +422,7 @@ std::vector<float> ShadowPass::get_shadow_limiter() const
 DepthPass::DepthPass() {
 	// TODO :
 	// shader
-	depthShader = renderManager->getShader(ShaderType::DEPTH);
+	depthShader = RenderManager::GetInstance()->getShader(ShaderType::DEPTH);
 	depthShader->requireMat = false;
 
 	//frame buffer
@@ -448,10 +445,10 @@ DepthPass::~DepthPass() {
 
 void DepthPass::render(const std::shared_ptr<RenderScene>& scene) {
 	frameBuffer->bindBuffer();
-	if (dirty || inputManager->viewPortChange) {
-		frontDepth->genTexture(GL_RGBA32F, GL_RGBA, inputManager->width, inputManager->height);
-		backDepth->genTexture(GL_RGBA32F, GL_RGBA, inputManager->width, inputManager->height);
-		renderBuffer->genBuffer(inputManager->width, inputManager->height);
+	if (dirty || InputManager::GetInstance()->viewPortChange) {
+		frontDepth->genTexture(GL_RGBA32F, GL_RGBA, InputManager::GetInstance()->width, InputManager::GetInstance()->height);
+		backDepth->genTexture(GL_RGBA32F, GL_RGBA, InputManager::GetInstance()->width, InputManager::GetInstance()->height);
+		renderBuffer->genBuffer(InputManager::GetInstance()->width, InputManager::GetInstance()->height);
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, renderBuffer->rbo);
 		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 			std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
@@ -460,7 +457,7 @@ void DepthPass::render(const std::shared_ptr<RenderScene>& scene) {
 	
 
 	//glm::mat4 projection_ = glm::perspective(glm::radians(scene->main_camera->Zoom),
-		//inputManager->width * 1.0f / inputManager->height,
+		//InputManager::GetInstance()->width * 1.0f / InputManager::GetInstance()->height,
 		//0.5f, 5.0f);
 
 	depthShader->use();
@@ -468,7 +465,7 @@ void DepthPass::render(const std::shared_ptr<RenderScene>& scene) {
 
 	frameBuffer->bindTexture(frontDepth,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D);
 
-	glViewport(0, 0, inputManager->width, inputManager->height);
+	glViewport(0, 0, InputManager::GetInstance()->width, InputManager::GetInstance()->height);
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);//black
 	
@@ -493,7 +490,7 @@ void DepthPass::render(const std::shared_ptr<RenderScene>& scene) {
 	}
 
 	// set shaders
-	auto&& sssShader = renderManager->getShader(ShaderType::PBR_SSS);
+	auto&& sssShader = RenderManager::GetInstance()->getShader(ShaderType::PBR_SSS);
 	glActiveTexture(GL_TEXTURE18);
 	glBindTexture(GL_TEXTURE_2D, frontDepth->id);
 	glActiveTexture(GL_TEXTURE19);
@@ -504,8 +501,8 @@ void DepthPass::render(const std::shared_ptr<RenderScene>& scene) {
 	sssShader->use();
 	sssShader->setInt("frontDepth", 18);
 	sssShader->setInt("backDepth", 19);
-	sssShader->setInt("screen_width", inputManager->width);
-	sssShader->setInt("screen_height", inputManager->height);
+	sssShader->setInt("screen_width", InputManager::GetInstance()->width);
+	sssShader->setInt("screen_height", InputManager::GetInstance()->height);
 }
 
 
@@ -542,15 +539,15 @@ DeferredPass::~DeferredPass() {
 }
 
 void DeferredPass::renderGbuffer(const std::shared_ptr<RenderScene>& scene) {
-	if (gBuffer->dirty || inputManager->viewPortChange) {
-		gPosition->genTexture(GL_RGBA16F, GL_RGBA,inputManager->width,inputManager->height);
-		gNormal->genTexture(GL_RGBA16F, GL_RGBA, inputManager->width, inputManager->height);
-		gAlbedoSpec->genTexture(GL_RGBA16F, GL_RGBA, inputManager->width, inputManager->height);
-		gPBR->genTexture(GL_RGBA16F, GL_RGBA, inputManager->width, inputManager->height);
-		postTexture->genTexture(GL_RGBA16F, GL_RGBA, inputManager->width, inputManager->height);
+	if (gBuffer->dirty || InputManager::GetInstance()->viewPortChange) {
+		gPosition->genTexture(GL_RGBA16F, GL_RGBA,InputManager::GetInstance()->width,InputManager::GetInstance()->height);
+		gNormal->genTexture(GL_RGBA16F, GL_RGBA, InputManager::GetInstance()->width, InputManager::GetInstance()->height);
+		gAlbedoSpec->genTexture(GL_RGBA16F, GL_RGBA, InputManager::GetInstance()->width, InputManager::GetInstance()->height);
+		gPBR->genTexture(GL_RGBA16F, GL_RGBA, InputManager::GetInstance()->width, InputManager::GetInstance()->height);
+		postTexture->genTexture(GL_RGBA16F, GL_RGBA, InputManager::GetInstance()->width, InputManager::GetInstance()->height);
 
-		rbo->genBuffer(inputManager->width, inputManager->height);
-		postRbo->genBuffer(inputManager->width, inputManager->height);
+		rbo->genBuffer(InputManager::GetInstance()->width, InputManager::GetInstance()->height);
+		postRbo->genBuffer(InputManager::GetInstance()->width, InputManager::GetInstance()->height);
 	}
 
 	if (gBuffer->dirty) {
@@ -584,7 +581,7 @@ void DeferredPass::renderGbuffer(const std::shared_ptr<RenderScene>& scene) {
 	}
 
 	gBuffer->bindBuffer();
-	glViewport(0, 0, inputManager->width, inputManager->height);
+	glViewport(0, 0, InputManager::GetInstance()->width, InputManager::GetInstance()->height);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
@@ -664,7 +661,7 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 	lightingShader->setInt("gAlbedoSpec", 2);
 	lightingShader->setInt("gPBR", 3);
 
-	lightingShader->setBool("enableShadow", renderManager->setting.enableShadow);
+	lightingShader->setBool("enableShadow", RenderManager::GetInstance()->setting.enableShadow);
 
 	lightingShader->setFloat("far_plane", scene->main_camera->zFar);
 	lightingShader->setInt("cascaded_levels", 4);
@@ -690,8 +687,8 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer->FBO);
 	//glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, postBuffer->FBO);
-	int width = inputManager->width;
-	int height = inputManager->height;
+	int width = InputManager::GetInstance()->width;
+	int height = InputManager::GetInstance()->height;
 	glBlitFramebuffer(0, 0, width, height,
 		0, 0, width, height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 	
@@ -719,8 +716,8 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 void DeferredPass::renderAlphaObjects(const std::shared_ptr<RenderScene>& scene)
 {
 	// 缁戝畾FrameBuffer
-	if (renderManager->setting.enableRSM)
-		postBuffer->bindTexture(renderManager->rsmPass->outTexture, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
+	if (RenderManager::GetInstance()->setting.enableRSM)
+		postBuffer->bindTexture(RenderManager::GetInstance()->rsmPass->outTexture, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
 	postBuffer->bindBuffer();
 
 	//postTexture = alphaTexture;
@@ -737,8 +734,8 @@ void DeferredPass::postProcess(const std::shared_ptr<RenderScene>& scene) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glActiveTexture(GL_TEXTURE0);
-	if (renderManager->setting.enableRSM)
-		glBindTexture(GL_TEXTURE_2D, renderManager->rsmPass->outTexture->id);
+	if (RenderManager::GetInstance()->setting.enableRSM)
+		glBindTexture(GL_TEXTURE_2D, RenderManager::GetInstance()->rsmPass->outTexture->id);
 	else
 		glBindTexture(GL_TEXTURE_2D, postTexture->id);
 
@@ -883,10 +880,10 @@ void RSMPass::render(const std::shared_ptr<RenderScene>& scene) {
 	if (rsmBuffer->dirty) {
 		// set attachments
 		rsmBuffer->dirty = false;
-		outTexture->genTexture(GL_RGBA16F, GL_RGBA, inputManager->width, inputManager->height);
+		outTexture->genTexture(GL_RGBA16F, GL_RGBA, InputManager::GetInstance()->width, InputManager::GetInstance()->height);
 		rsmBuffer->bindTexture(outTexture, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
 
-		rbo->genBuffer(inputManager->width, inputManager->height);
+		rbo->genBuffer(InputManager::GetInstance()->width, InputManager::GetInstance()->height);
 		rsmBuffer->bindBuffer();
 		// - Attach buffers
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo->rbo);
@@ -901,13 +898,13 @@ void RSMPass::render(const std::shared_ptr<RenderScene>& scene) {
 	normalMap->bind(GL_TEXTURE_2D, 21);
 	worldPosMap->bind(GL_TEXTURE_2D, 22);
 	fluxMap->bind(GL_TEXTURE_2D, 23);
-	renderManager->deferredPass->postTexture->bind(GL_TEXTURE_2D, 24);
+	RenderManager::GetInstance()->deferredPass->postTexture->bind(GL_TEXTURE_2D, 24);
 
 	glActiveTexture(GL_TEXTURE4);
 	glBindTexture(GL_TEXTURE_2D, randomMap);
 	//TODO: bind deffer postTexture -> 5
 
-	glViewport(0, 0, inputManager->width, inputManager->height);
+	glViewport(0, 0, InputManager::GetInstance()->width, InputManager::GetInstance()->height);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 

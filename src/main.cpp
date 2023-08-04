@@ -27,7 +27,6 @@
 #include"system/meta_register.h"
 #include"system/RenderManager.h"
 #include"GUI.h"
-#include"system/global_context.h"
 #include"component/Atmosphere.h"
 #include"system/Loader.h"
 //json
@@ -43,10 +42,6 @@ const unsigned int  SCR_WIDTH = 1600;
 const unsigned int SCR_HEIGHT = 900;
 
 // manager
-extern std::unique_ptr<RenderManager> renderManager;
-extern std::unique_ptr<ResourceManager> resourceManager;
-extern std::unique_ptr<InputManager> inputManager;
-extern std::shared_ptr<ModelLoader> Loader;
 std::shared_ptr<RenderScene> scene;
 //#define TEST
 //#ifndef TEST
@@ -66,10 +61,7 @@ void render() {
 	glEnable(GL_PROGRAM_POINT_SIZE);
 	// init Managers 
 	{
-		inputManager = std::make_unique<InputManager>();
-		renderManager = std::make_unique<RenderManager>();
-		renderManager->init();
-		resourceManager = std::make_unique<ResourceManager>();
+		RenderManager::GetInstance()->init();
 		//renderScene = std::make_shared<RenderScene>();
 	}
 	scene = std::make_shared<RenderScene>();
@@ -87,7 +79,7 @@ void render() {
 		gui.window(scene);
 		glfwPollEvents();
 		//input manager tick
-		inputManager->tick();
+		InputManager::GetInstance()->tick();
 		
 		
 		// camera tick
@@ -95,10 +87,10 @@ void render() {
 			scene->main_camera->tick();
 		}
 
-		renderManager->render(scene);
+		RenderManager::GetInstance()->render(scene);
 
 		gui.render();
-		inputManager->reset();
+		InputManager::GetInstance()->reset();
 		glfwSwapBuffers(window);
 	}
 	//glDeleteBuffers()

@@ -3,10 +3,14 @@
 #include"Key.h"
 
 class InputManager {
-
-public:
+private:
 	InputManager();
 	~InputManager();
+public:
+	static InputManager *GetInstance() { 
+		static InputManager inputManager;
+		return &inputManager;
+	}
 	void reset(); 
 	void setMousePos(float x, float y);
 	void setMouseScroll(float x, float y);

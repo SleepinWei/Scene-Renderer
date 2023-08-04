@@ -11,8 +11,6 @@
 #include"object/SkyBox.h"
 #include"renderer/Material.h"
 
-extern std::unique_ptr<RenderManager> renderManager;
-
 Atmosphere::Atmosphere() {
 	Component::name = "Atmosphere";
 	
@@ -67,7 +65,7 @@ void Atmosphere::initShaders() {
 	compTransShader = std::make_shared<Shader>("./src/shader/sky/transmittance.comp");
 	compskyViewShader = std::make_shared<Shader>("./src/shader/sky/skyview.comp");
 	compMultiShader = std::make_shared<Shader>("./src/shader/sky/multi.comp");
-	shader = renderManager->getShader(ShaderType::SKY);
+	shader = RenderManager::GetInstance()->getShader(ShaderType::SKY);
 	// only for debug
 	//shader = renderManager->getShader(ShaderType::TEST);
 }

@@ -10,8 +10,6 @@
 #include"yaml-cpp/yaml.h"
 #include<stb/stb_image.h>
 
-extern std::unique_ptr<ResourceManager> resourceManager;
-
 Material::Material() {
 	hasSubSurface = false;
 	initDone= false;
@@ -21,20 +19,20 @@ Material::~Material() {
 
 std::shared_ptr<Material> Material::loadPBR(const std::string& folder) {
 	auto material = std::make_shared<Material>();
-	material->addTexture(resourceManager->getResource(folder + "albedo.png"),"material.albedo")
-		->addTexture(resourceManager->getResource(folder + "metallic.png"),"material.metallic")
-		->addTexture(resourceManager->getResource(folder + "roughness.png"),"material.roughness")
-		->addTexture(resourceManager->getResource(folder + "normal.png"),"material.normal")
-		->addTexture(resourceManager->getResource(folder + "ao.png"),"material.ao")
-		->addTexture(resourceManager->getResource(folder + "height.png"),"material.height");
+	material->addTexture(ResourceManager::GetInstance()->getResource(folder + "albedo.png"),"material.albedo")
+		->addTexture(ResourceManager::GetInstance()->getResource(folder + "metallic.png"),"material.metallic")
+		->addTexture(ResourceManager::GetInstance()->getResource(folder + "roughness.png"),"material.roughness")
+		->addTexture(ResourceManager::GetInstance()->getResource(folder + "normal.png"),"material.normal")
+		->addTexture(ResourceManager::GetInstance()->getResource(folder + "ao.png"),"material.ao")
+		->addTexture(ResourceManager::GetInstance()->getResource(folder + "height.png"),"material.height");
 	material->initDone= true;
 	return material;
 }
 
 std::shared_ptr<Material> Material::loadTerrain(const std::string& folder){
 	auto material = std::make_shared<Material>(); 
-	material->addTexture(resourceManager->getResource(folder + "heightMap.png"),"heightMap")
-		->addTexture(resourceManager->getResource(folder + "normalMap.png"),"heightMap");
+	material->addTexture(ResourceManager::GetInstance()->getResource(folder + "heightMap.png"),"heightMap")
+		->addTexture(ResourceManager::GetInstance()->getResource(folder + "normalMap.png"),"heightMap");
 	material->initDone= true;
 	return material;
 }
@@ -47,14 +45,14 @@ std::shared_ptr<Material> Material::addTexture(std::shared_ptr<Texture> tex,std:
 }
 
 std::shared_ptr<Material> Material::addTextureAsync(std::string tex_path, std::string type) {
-	auto&& tex = resourceManager->getResourceAsync(tex_path);
+	auto&& tex = ResourceManager::GetInstance()->getResourceAsync(tex_path);
 	this->textures.insert({ type,tex });
 	//this->initDone= true;
 	return shared_from_this();
 }
 
 std::shared_ptr<Material> Material::addTexture(std::string tex_path, std::string type) {
-	auto&& tex = resourceManager->getResource(tex_path);
+	auto&& tex = ResourceManager::GetInstance()->getResource(tex_path);
 	this->textures.insert({ type,tex });
 	//this->initDone= true;
 	return shared_from_this();
@@ -116,22 +114,22 @@ std::shared_ptr<Material> Material::loadModel(const std::string& file)
 	//if (mat[5]["_MainTex"]["m_Texture"].size() == 3)
 	//{
 	//	guid = mat[5]["_MainTex"]["m_Texture"]["guid"].as<std::string>();
-	//	material->addTexture(resourceManager->guidMap[guid], "material.albedo");
+	//	material->addTexture(ResourceManager::GetInstance()->guidMap[guid], "material.albedo");
 	//}
 	//if (mat[7]["_OcclusionMap"]["m_Texture"].size() == 3)
 	//{
 	//	guid = mat[7]["_OcclusionMap"]["m_Texture"]["guid"].as<std::string>();
-	//	material->addTexture(resourceManager->guidMap[guid], "material.ao");
+	//	material->addTexture(ResourceManager::GetInstance()->guidMap[guid], "material.ao");
 	//}
 	//if (mat[6]["_MetallicGlossMap"]["m_Texture"].size() == 3)
 	//{
 	//	guid = mat[6]["_MetallicGlossMap"]["m_Texture"]["guid"].as<std::string>();
-	//	material->addTexture(resourceManager->guidMap[guid], "material.metallic");
+	//	material->addTexture(ResourceManager::GetInstance()->guidMap[guid], "material.metallic");
 	//}
 	//if (mat[0]["_BumpMap"]["m_Texture"].size() == 3)
 	//{
 	//	guid = mat[0]["_BumpMap"]["m_Texture"]["guid"].as<std::string>();
-	//	material->addTexture(resourceManager->guidMap[guid], "material.normal");
+	//	material->addTexture(ResourceManager::GetInstance()->guidMap[guid], "material.normal");
 	//}
 	return material;
 }

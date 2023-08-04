@@ -3,16 +3,14 @@
 #include<glfw/glfw3.h>
 #include<memory>
 #include<glm/glm.hpp>
-#include"../component/Component.h"
-#include"../system/RenderManager.h"
-#include"../utils/header.h"
+#include"component/Component.h"
+#include"system/RenderManager.h"
+#include"utils/header.h"
 
 class Material; 
 class MeshFilter; 
 class Texture; 
 class Shader;
-
-extern std::unique_ptr<RenderManager> renderManager;
 
 class MeshRenderer :public Component, public std::enable_shared_from_this<MeshRenderer>{
 public:

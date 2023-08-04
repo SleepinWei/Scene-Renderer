@@ -7,49 +7,47 @@
 #include"utils/Camera.h"
 #include"system/InputManager.h"
 
-extern std::unique_ptr<InputManager> inputManager;
-
 void Camera::tick() {
-	float deltaTime = inputManager->deltaFrame;
+	float deltaTime = InputManager::GetInstance()->deltaFrame;
 	float speedScale = 1;
-	if (inputManager->getKeyStatus(ALT_PRESSED) == PRESSED)
+	if (InputManager::GetInstance()->getKeyStatus(ALT_PRESSED) == PRESSED)
 		speedScale = 0.3;
-	if (inputManager->getKeyStatus(SHIFT_PRESSED) == PRESSED)
+	if (InputManager::GetInstance()->getKeyStatus(SHIFT_PRESSED) == PRESSED)
 		speedScale = 5;
 	// wasd
-	if (inputManager->getKeyStatus(W_PRESSED) == PRESSED) {
+	if (InputManager::GetInstance()->getKeyStatus(W_PRESSED) == PRESSED) {
 		ProcessKeyboard(Camera_Movement::FORWARD, speedScale * deltaTime);
 	}
-	if (inputManager->getKeyStatus(S_PRESSED) == PRESSED) {
+	if (InputManager::GetInstance()->getKeyStatus(S_PRESSED) == PRESSED) {
 		ProcessKeyboard(Camera_Movement::BACKWARD, speedScale * deltaTime);
 	}
-	if (inputManager->getKeyStatus(A_PRESSED) == PRESSED)
+	if (InputManager::GetInstance()->getKeyStatus(A_PRESSED) == PRESSED)
 		ProcessKeyboard(Camera_Movement::LEFT, speedScale * deltaTime);
-    if (inputManager->getKeyStatus(D_PRESSED) == PRESSED) {
+    if (InputManager::GetInstance()->getKeyStatus(D_PRESSED) == PRESSED) {
         ProcessKeyboard(Camera_Movement::RIGHT, speedScale * deltaTime);
     }
-	if (inputManager->getKeyStatus(E_PRESSED) == PRESSED)
+	if (InputManager::GetInstance()->getKeyStatus(E_PRESSED) == PRESSED)
 		ProcessKeyboard(Camera_Movement::UP, speedScale * deltaTime);
-	if (inputManager->getKeyStatus(Q_PRESSED) == PRESSED) {
+	if (InputManager::GetInstance()->getKeyStatus(Q_PRESSED) == PRESSED) {
 		ProcessKeyboard(Camera_Movement::DOWN, speedScale * deltaTime);
 	}
 
 	// scroll
-	if (inputManager->scrollMove) {
-		if (inputManager->getKeyStatus(MOUSE_SCROLL) == PRESSED) {
-			ProcessMouseScroll(inputManager->mouseScrollY);
+	if (InputManager::GetInstance()->scrollMove) {
+		if (InputManager::GetInstance()->getKeyStatus(MOUSE_SCROLL) == PRESSED) {
+			ProcessMouseScroll(InputManager::GetInstance()->mouseScrollY);
 		}
 	}
 
 	// Rotation
-	if (!inputManager->cursorEnbaled && inputManager->mouseMove) {
+	if (!InputManager::GetInstance()->cursorEnbaled && InputManager::GetInstance()->mouseMove) {
 		// if the cursor is not enabled
-		ProcessMouseMovement(inputManager->deltaX, inputManager->deltaY);
+		ProcessMouseMovement(InputManager::GetInstance()->deltaX, InputManager::GetInstance()->deltaY);
 	}
 	
 	// view port change 
-	if (inputManager->viewPortChange) {
-		aspect_ratio = inputManager->width * 1.0 / inputManager->height;
+	if (InputManager::GetInstance()->viewPortChange) {
+		aspect_ratio = InputManager::GetInstance()->width * 1.0 / InputManager::GetInstance()->height;
 		//aspect_ratio = std::max(aspect_ratio, 0.1f);
 	}
 }
