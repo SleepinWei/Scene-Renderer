@@ -20,10 +20,14 @@
 
 ## issues
 
-1. improve mesh loading. currently only mesh0 is loaded, not the whole scene and a Gameobject can only have 1 mesh part.
+1. [x] improve mesh loading. currently only mesh0 is loaded, not the whole scene and a Gameobject can only have 1 mesh part.
 
 2. 重构 async load 系统，用一个 bool 量控制是否多线程加载。现在 texture 在多线程中加载到内存，在第一帧运行时生成 OpenGL objects 并完成绑定。
 
-3. 现在希望将 Mesh Filter 的绘制逻辑修改为使用自带的 material 指针绘制，不用从 Mesh Renderer 中再拿取。同时希望shader 绑定到 material 上，而不是 mesh renderer.
+3. [x] 希望将 Mesh Filter 的绘制逻辑修改为使用自带的 material 指针绘制，不用从 Mesh Renderer 中再拿取。
 
-4. 使用 addShape 函数初始化 MeshFilter 时，没有 material，导致无法绘制。对 灯光 等物体有用。
+4. 希望shader 绑定到 material 上，而不是 mesh renderer.
+
+5. 使用 addShape 函数初始化 MeshFilter 时，没有 material，导致无法绘制。对 灯光 等物体有用。
+
+6. [x] light 信息每帧都重新载入 uniform buffer，考虑只在数值改变时重新载入。（添加 dirty 标志位解决）

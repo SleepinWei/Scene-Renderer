@@ -7,11 +7,11 @@
 #include<glm/glm.hpp>
 #include"system/Loader.h"
 #include"renderer/RenderScene.h"
-#include"./component/Lights.h"
-#include"./component/Transform.h"
-#include"./component/Atmosphere.h"
-#include"./component/TerrainComponent.h"
-#include"./component/Ocean.h"
+#include"component/Lights.h"
+#include"component/Transform.h"
+#include"component/Atmosphere.h"
+#include"component/TerrainComponent.h"
+#include"component/Ocean.h"
 #include "utils/Camera.h"
 #include<imgui/imgui_toggle.h>
 #include<filesystem>
@@ -97,21 +97,22 @@ public:
 		if(ImGui::CollapsingHeader("Direction Light")){
 			auto& dlights = scene->directionLights;
 			for (int i = 0; i < dlights.size(); i++) {
-				char title[] = "Direction Lighti Position";
+				char title[] = "Direction Lighti";
 				title[15] = '0' + 0;
 				ImGui::Text(title);
 				//auto& light = lights[0]; 
 				auto&& lightTrans = std::static_pointer_cast<Transform>(
 					dlights[i]->gameObject->GetComponent("Transform"));
-				auto&& lightData = dlights[i]->data;
+				auto& lightData = dlights[i]->data;
 				//bool change1 = ImGui::SliderFloat3("Position", (float*)&lightTrans->position, -10.0f, 1.0f);
-				//bool change2 = ImGui::SliderFloat3("Direction", (float*)&lightData.direction, -1.0f, 1.0f);
-				ImGui::Text("Light Position: (%f,%f,%f)", lightTrans->position.x, lightTrans->position.y, lightTrans->position.z);
-				ImGui::Text("Light Direction: (%f,%f,%f)", lightData.direction.x, lightData.direction.y, lightData.direction.z);
+				bool change1 = false; 
+				bool change2 = ImGui::SliderFloat3("Direction", (float*)&lightData.direction, -1.0f, 1.0f);
+				// ImGui::Text("Light Position: (%f,%f,%f)", lightTrans->position.x, lightTrans->position.y, lightTrans->position.z);
+				// ImGui::Text("Light Direction: (%f,%f,%f)", lightData.direction.x, lightData.direction.y, lightData.direction.z);
 			
-				//if (change1 || change2) {
-					//dlights[i]->setDirtyFlag(true);
-				//}
+				if (change1 || change2) {
+					dlights[i]->setDirtyFlag(true);
+				}
 			}
 		}
 		if (ImGui::CollapsingHeader("Spot Light")) {

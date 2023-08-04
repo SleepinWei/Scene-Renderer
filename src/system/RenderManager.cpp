@@ -29,7 +29,8 @@ RenderManager::RenderManager() {
 		true, // enableHDR
 		true, //useDeferred
 		false,// enable shadow
-		false // enable rsm
+		false, // enable rsm
+		true, // enable directional
 	};
 
 }

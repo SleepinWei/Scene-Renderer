@@ -81,7 +81,6 @@ void render() {
 		//input manager tick
 		InputManager::GetInstance()->tick();
 		
-		
 		// camera tick
 		if (scene->main_camera) {
 			scene->main_camera->tick();
