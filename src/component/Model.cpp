@@ -188,8 +188,6 @@ const unsigned char *GLTFLoader::getAccessorDataAddress(const tinygltf::Model &m
 
 std::shared_ptr<Mesh> GLTFLoader::buildMesh(const tinygltf::Model &model, unsigned int meshIndex, glm::mat4 matrix, bool flipUV)
 {
-	//   auto meshPrimitives =
-	//   std::make_shared<std::vector<std::shared_ptr<Primitive>>>();
 	const auto &primitives = model.meshes[meshIndex].primitives;
 
 	// for (auto i = 0; i < primitives.size(); ++i)
@@ -198,7 +196,6 @@ std::shared_ptr<Mesh> GLTFLoader::buildMesh(const tinygltf::Model &model, unsign
 	// TODO: onlyh primitives 0 is parsed
 	auto prim = primitives[0];
 
-	vector<unsigned int> indices;
 	// vertex
 	// calculate vertex size;
 	int size = model.accessors[prim.attributes.begin()->second].count;
@@ -259,7 +256,8 @@ std::shared_ptr<Mesh> GLTFLoader::buildMesh(const tinygltf::Model &model, unsign
 	auto &indiceAccessor = model.accessors[prim.indices];
 	int indice_count = indiceAccessor.count; // number of elements
 	auto index_start = (unsigned int *)getAccessorDataAddress(model, indiceAccessor);
-	indices = vector<unsigned int>(indice_count);
+
+	vector<unsigned int> indices(indice_count);
 	for (int i = 0; i < indice_count; i++)
 	{
 		indices[i] = index_start[i];
@@ -334,8 +332,8 @@ void GLTFLoader::buildNode(const tinygltf::Model &model, vector<shared_ptr<Mesh>
 		}
 	}
 
-	// glm::mat4 worldCoordMat = parent_matrix * matrix;
-	glm::mat4 worldCoordMat = matrix;
+	glm::mat4 worldCoordMat = parent_matrix * matrix;
+	// glm::mat4 worldCoordMat = matrix;
 	if (model.nodes[node_index].mesh >= 0)
 	{
 		auto mesh = buildMesh(model, model.nodes[node_index].mesh, worldCoordMat, flipUV);

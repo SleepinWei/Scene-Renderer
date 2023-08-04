@@ -165,6 +165,7 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 
 		
 		glBindVertexArray(VAO);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 		assert(VAO > 0);
 		{
 			if (polyMode == GL_LINE) {
