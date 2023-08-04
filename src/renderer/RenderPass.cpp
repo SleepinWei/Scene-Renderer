@@ -636,10 +636,12 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 	glActiveTexture(GL_TEXTURE5);
 	auto atmosphere = std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));
 	atmosphere->convolutionTexture->bindBuffer(); // bind environment map
+	glActiveTexture(GL_TEXTURE6);
+	atmosphere->skyViewTexture->bindBuffer();
 	glCheckError();
 
 	//int i = 0;
-	int base = 6;// already 5 texture units occupied
+	int base = 7;// already 5 texture units occupied
 	for (int i = 0; i < scene->directionLights.size();++i)
 	{
 		int texture_unit_index = i + base;
@@ -670,6 +672,7 @@ void DeferredPass::render(const std::shared_ptr<RenderScene>& scene) {
 	lightingShader->setInt("cascaded_levels", 4);
 
 	lightingShader->setInt("environment", 5);
+	lightingShader->setInt("specular_map", 6);
 
 	for (unsigned int i = 0; i < 4; i++)
 		lightingShader->setFloat("cascaded_distances[" + std::to_string(i) + "]", shadow_limiter[i]);

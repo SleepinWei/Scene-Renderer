@@ -31,3 +31,5 @@
 5. 使用 addShape 函数初始化 MeshFilter 时，没有 material，导致无法绘制。对 灯光 等物体有用。
 
 6. [x] light 信息每帧都重新载入 uniform buffer，考虑只在数值改变时重新载入。（添加 dirty 标志位解决）
+
+7. IBL 仅支持预渲染的天空，且 specular 分量直接暴力采样。

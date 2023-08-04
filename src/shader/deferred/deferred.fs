@@ -9,6 +9,7 @@ uniform sampler2D gAlbedoSpec;
 uniform sampler2D gPBR;
 uniform bool enableShadow;
 uniform sampler2D environment;
+uniform sampler2D specular_map;
 // uniform bool enableDirectionShadow;
 
 
@@ -342,7 +343,9 @@ vec3 calculateIBL(vec3 N,vec3 V){
     vec3 irradiance = sampleSphericalMap(environment, N);
     vec3 diffuse    = irradiance * albedo;
     float ao = texture(gPBR,TexCoords).a;
-    vec3 ambient    = (kD * diffuse) * ao; 
+    vec3 R = reflect(-V, N);
+    vec3 specular = sampleSphericalMap(specular_map,R); 
+    vec3 ambient    = (kD * diffuse + kS * specular) * ao; 
     return ambient;
 }
 
