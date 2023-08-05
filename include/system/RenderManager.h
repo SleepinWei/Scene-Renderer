@@ -8,12 +8,13 @@ class UniformBuffer;
 class GameObject;
 class RenderScene;
 class Shader;
-class HDRPass;
+class PostPass;
 class BasePass;
 class DepthPass;
 class DeferredPass;
 class RSMPass;
 class ShadowPass;
+class SSAOPass;
 
 enum class ShaderType
 {
@@ -41,6 +42,7 @@ struct RenderSetting
 	bool enableShadow;
 	bool enableRSM;
 	bool enableDirectional;
+	bool enableSSAO;
 };
 
 class RenderManager
@@ -87,7 +89,7 @@ public:
 	RenderSetting setting;
 
 	// RenderPass
-	std::shared_ptr<HDRPass> hdrPass;
+	std::shared_ptr<PostPass> postPass;
 	std::shared_ptr<BasePass> basePass;
 	std::shared_ptr<DepthPass> depthPass;
 	// std::shared_ptr<ShadowPass> shadowPass;
@@ -95,6 +97,7 @@ public:
 
 	std::shared_ptr<ShadowPass> shadowPass;
 	std::shared_ptr<DeferredPass> deferredPass;
+	std::shared_ptr<SSAOPass> ssaoPass;
 
 	// uniform buffer
 	std::shared_ptr<UniformBuffer> uniformVPBuffer;

@@ -1,10 +1,10 @@
 #pragma once
 #include<glm/glm.hpp>
-#include"../utils/Shader.h"
+#include"utils/Shader.h"
 #include<glfw/glfw3.h>
 #include<vector>
 #include<memory>
-#include"../component/Component.h"
+#include"component/Component.h"
 #include<tuple>
 #include<json/json.hpp>
 using json = nlohmann::json;

@@ -2,19 +2,23 @@
 #include<memory>
 #include <vector>
 #include <glm\glm.hpp>
-#include "../component/Lights.h"
+#include<random>
 class RenderScene; 
 class Shader;
 class FrameBuffer;
 class Texture;
 class RenderBuffer;
+class DirectionLight;
+class SpotLight;
+class PointLight;
+typedef unsigned int GLuint; 
 
 using std::shared_ptr;
 
-class HDRPass {
+class PostPass {
 public:
-	HDRPass();
-	~HDRPass();
+	PostPass();
+	~PostPass();
 
 	void bindBuffer(); 
 	void unbindBuffer();
@@ -26,7 +30,7 @@ private:
 	void initPass(int SCR_WITH,int SCR_HEIGHT);
 
 public:
-	std::shared_ptr<Shader> hdrShader;
+	std::shared_ptr<Shader> postShader;
 	bool dirty; 
 	unsigned int hdrFBO; // framebuffer object
 	unsigned int colorBuffer; // texture
@@ -103,8 +107,8 @@ private:
 //TODO:
 class DeferredPass {
 public:
-	DeferredPass();
-	~DeferredPass();
+    DeferredPass();
+    ~DeferredPass();
 
 	void renderGbuffer(const std::shared_ptr<RenderScene>& scene);
 	void render(const std::shared_ptr<RenderScene>& scene);
@@ -115,6 +119,7 @@ public:
 	shared_ptr<Shader> gBufferShader;
 	shared_ptr<Shader> lightingShader;
 	shared_ptr<Shader> postProcessShader;
+
 	shared_ptr<FrameBuffer> gBuffer;
 	shared_ptr<FrameBuffer> postBuffer;
 
@@ -132,6 +137,33 @@ public:
 	std::vector<float> shadow_limiter ={ 0,0,0,0 };
 private:
 	void initShader();
+	void initTextures();
+
+};
+
+class SSAOPass{
+public:
+	SSAOPass();
+	//ssao 
+	std::vector<glm::vec3> ssaoKernel;
+	std::vector<glm::vec3> ssaoNoise;
+	std::uniform_real_distribution<float> randomFloats;
+	std::default_random_engine generator;
+
+	shared_ptr<Texture> noiseTexture;
+	shared_ptr<Texture> gSSAO; // ssao color buffer
+	shared_ptr<Shader> shaderSSAO;
+
+	shared_ptr<FrameBuffer> ssaoFBO;
+
+	bool isDirty;
+	float radius; // sample radius; 
+
+public:
+	void render();
+
+private:
+    void initSSAONoise();
 	void initTextures();
 };
 

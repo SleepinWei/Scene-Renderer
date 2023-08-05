@@ -31,6 +31,7 @@ RenderManager::RenderManager() {
 		false,// enable shadow
 		false, // enable rsm
 		true, // enable directional
+		true, //enable SSAO
 	};
 
 }
@@ -51,9 +52,10 @@ void RenderManager::initRenderPass() {
 	if (setting.useDefer) {
 		deferredPass = std::make_shared<DeferredPass>();
 		rsmPass = std::make_shared<RSMPass>();
+		ssaoPass = std::make_shared<SSAOPass>();
 	}
 	else {
-		hdrPass = std::make_shared<HDRPass>();
+		postPass = std::make_shared<PostPass>();
 		basePass = std::make_shared<BasePass>();
 		depthPass = std::make_shared<DepthPass>();
 	}
@@ -321,6 +323,10 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 		deferredPass->renderGbuffer(scene);
 		glCheckError();
 
+		if(setting.enableSSAO){
+			ssaoPass->render();
+		}
+
 		deferredPass->render(scene);
 		glCheckError();
 
@@ -340,13 +346,13 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 
 		// base pass
 		if (setting.enableHDR) {
-			hdrPass->bindBuffer();
+			postPass->bindBuffer();
 		}
 		basePass->render(scene, nullptr);
 
 		// hdr pass
 		if (setting.enableHDR) {
-			hdrPass->render();
+			postPass->render();
 		}
 	}
 }

@@ -19,6 +19,7 @@
 #include<object/SkyBox.h>
 #include<object/Terrain.h>
 #include<component/GameObject.h>
+#include<renderer/RenderPass.h>
 
 using namespace std::filesystem;
 
@@ -77,6 +78,9 @@ public:
 			if (ImGui::Toggle("Enable Directional", &enableDirectional)) {
 				setting.enableDirectional= enableDirectional;
 			}
+
+			ImGui::Toggle("Enable SSAO", &setting.enableSSAO);
+			ImGui::SliderFloat("SSAO radius", &(RenderManager::GetInstance()->ssaoPass->radius),0.0f,0.5f);
 		}
 
 		ImGui::Separator();

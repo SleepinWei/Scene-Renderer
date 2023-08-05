@@ -13,7 +13,7 @@
 
 ### 1.2 RenderPass
 
-+ 目前支持的：basePass (常规的渲染), hdrPass
++ 目前支持的：basePass (常规的渲染), postPass
 + why：主要是因为framebuffer的操作和常规的buffer不一样，因此特地区分开，这样能更有条理
 + 计划支持：PostprocessPass
 

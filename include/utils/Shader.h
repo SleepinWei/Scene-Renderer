@@ -10,7 +10,7 @@ class Shader
 {
 public:
     unsigned int ID;
-    bool requireMat;
+    bool requireMat; // 是否需要 mesh 材质
 public:
     Shader(const char *vertexPath, 
         const char *fragmentPath, 
