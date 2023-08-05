@@ -10,6 +10,10 @@ uniform sampler2D gPBR;
 uniform bool enableShadow;
 uniform sampler2D environment;
 uniform sampler2D specular_map;
+uniform sampler2D gSSAO;
+uniform int enbale_ssao;
+uniform float SCR_WIDTH;
+uniform float SCR_HEIGHT;
 // uniform bool enableDirectionShadow;
 
 
@@ -346,6 +350,9 @@ vec3 calculateIBL(vec3 N,vec3 V){
     vec3 R = reflect(-V, N);
     vec3 specular = sampleSphericalMap(specular_map,R); 
     vec3 ambient    = (kD * diffuse + kS * specular) * ao; 
+    if(enbale_ssao == 1){
+        ambient *= texture(gSSAO,gl_FragCoord.xy / vec2(SCR_WIDTH,SCR_HEIGHT)).x;
+    }
     return ambient;
 }
 

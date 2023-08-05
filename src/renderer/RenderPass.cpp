@@ -654,6 +654,7 @@ void DeferredPass::render(const std::shared_ptr<RenderScene> &scene)
 		glBindBufferBase(GL_UNIFORM_BUFFER, 5, cascaded_matrix_UBO);
 	}
 
+	glCheckError();
 	postBuffer->bindBuffer();
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -673,10 +674,13 @@ void DeferredPass::render(const std::shared_ptr<RenderScene> &scene)
 	atmosphere->convolutionTexture->bindBuffer(); // bind environment map
 	glActiveTexture(GL_TEXTURE6);
 	atmosphere->skyViewTexture->bindBuffer();
+	glActiveTexture(GL_TEXTURE7);
+	glBindTexture(GL_TEXTURE_2D,RenderManager::GetInstance()->ssaoPass->gSSAO->id);
+
 	glCheckError();
 
 	// int i = 0;
-	int base = 7; // already 5 texture units occupied
+	int base = 8; // already 8 texture units occupied
 	for (int i = 0; i < scene->directionLights.size(); ++i)
 	{
 		int texture_unit_index = i + base;
@@ -706,6 +710,12 @@ void DeferredPass::render(const std::shared_ptr<RenderScene> &scene)
 
 	lightingShader->setInt("environment", 5);
 	lightingShader->setInt("specular_map", 6);
+	lightingShader->setInt("gSSAO", 7);
+
+	lightingShader->setInt("enbale_ssao", RenderManager::GetInstance()->setting.enableSSAO);
+	lightingShader->setFloat("SCR_WIDTH", InputManager::GetInstance()->width);
+	lightingShader->setFloat("SCR_HEIGHT", InputManager::GetInstance()->height);
+	glCheckError();
 
 	for (unsigned int i = 0; i < 4; i++)
 		lightingShader->setFloat("cascaded_distances[" + std::to_string(i) + "]", shadow_limiter[i]);

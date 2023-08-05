@@ -25,8 +25,11 @@ void main()
     //divide into 16 tiles
     vec2 noiseScale = vec2(SCR_WIDTH/4.0, SCR_HEIGHT/4.0); // screen = 800x600
 
-    vec3 fragPos   = texture(gPosition, TexCoords).xyz;
-    vec3 normal    = texture(gNormal, TexCoords).rgb;
+    // gPosition is defined in world-space and its alpha-channel is used to store material's ao texture. 
+    vec3 fragPos   = vec3(view * vec4(texture(gPosition, TexCoords).xyz,1.0f)); // to view space  
+    vec3 normal    = mat3(transpose(inverse(view)))* texture(gNormal, TexCoords).xyz; // to view space
+    normal = normalize(normal);
+
     vec3 randomVec = texture(texNoise, fract(TexCoords * noiseScale)).xyz;  
 
     vec3 tangent   = normalize(randomVec - normal * dot(randomVec, normal));
@@ -46,10 +49,11 @@ void main()
         offset.xyz /= offset.w;               // perspective divide
         offset.xyz  = offset.xyz * 0.5 + 0.5; // transform to range 0.0 - 1.0  
 
-        float sampleDepth = texture(gPosition, offset.xy).z; 
-        const float bias = 0.025;
+        float sampleDepth = (view * vec4(texture(gPosition, offset.xy).xyz,1.0f)).z; 
+        const float bias = 1e-4;
         // range check
         float rangeCheck = smoothstep(0.0, 1.0, radius / abs(fragPos.z - sampleDepth));
+        // float rangeCheck=1.0f;
         occlusion       += (sampleDepth >= samplePos.z + bias ? 1.0 : 0.0) * rangeCheck;  
     }  
     occlusion = 1.0 - (occlusion / kernelSize);
