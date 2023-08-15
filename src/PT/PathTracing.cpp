@@ -10,7 +10,8 @@ using std::make_shared;
 using std::shared_ptr;
 
 
-void cornell_box(std::shared_ptr<Renderer>& renderer) {
+void cornell_box() {
+	auto renderer = Renderer::GetInstance();
 	std::shared_ptr<Camera> camera = std::make_shared<Camera>
 		(vec3(278.0f,278.0f,-800.0f),vec3(278.0f,278.0f,0.0f),vec3(0,1,0),40.0,
 		600,600);
@@ -51,13 +52,15 @@ void PT::render() {
 	int samples = 100;
 	int max_depth = 10;
 
-	std::shared_ptr<Renderer> renderer = std::make_shared<Renderer>(samples,max_depth);
+	// std::shared_ptr<Renderer> renderer = std::make_shared<Renderer>(samples,max_depth);
+	auto renderer = Renderer::GetInstance();
+	renderer->init(samples, max_depth);
 
 	// world 
-	cornell_box(renderer);
+	cornell_box();
 
 	int threadNum = 9;
-	renderer->render(threadNum);
+	renderer->GetInstance()->render(threadNum);
 	renderer->writeToFile("./out.ppm");
 }
 
