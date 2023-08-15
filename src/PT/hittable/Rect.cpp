@@ -15,7 +15,7 @@ xy_rect::xy_rect(double _x0, double _x1, double _y0, double _y1, double _k,
     //model = glm::mat4(1.0f);
 };
 
-bool xy_rect::hit(const Ray& global_r, double t_min, double t_max, hitRecord& rec) const {
+bool xy_rect::hit(const Ray& global_r, double t_min, double t_max, hit_record& rec) const {
     Ray r = global_r; //local r
     //glm::mat4 inv_model = glm::inverse(this->model);
      //pos: w = 1.0f, vec: w = 0.0f
@@ -67,7 +67,7 @@ xz_rect::xz_rect(double _x0, double _x1, double _z0, double _z1, double _k,
     //model = glm::mat4(model);
 };
 
-bool xz_rect::hit(const Ray& global_r, double t_min, double t_max, hitRecord& rec) const {
+bool xz_rect::hit(const Ray& global_r, double t_min, double t_max, hit_record& rec) const {
     Ray r = global_r; //local r
     //glm::mat4 inv_model = glm::inverse(this->model);
     // pos: w = 1.0f, vec: w = 0.0f
@@ -119,7 +119,7 @@ yz_rect::yz_rect(double _y0, double _y1, double _z0, double _z1, double _k,
     //model = glm::mat4(1.0f);
 };
 
-bool yz_rect::hit(const Ray& global_r, double t_min, double t_max, hitRecord& rec) const {
+bool yz_rect::hit(const Ray& global_r, double t_min, double t_max, hit_record& rec) const {
     Ray r = global_r; //local r
     //glm::mat4 inv_model = glm::inverse(this->model);
     // pos: w = 1.0f, vec: w = 0.0f

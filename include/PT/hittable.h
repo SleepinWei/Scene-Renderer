@@ -10,9 +10,9 @@ namespace PT {
 	class AABB;
 	class Ray;
 
-	class hitRecord {
+	class hit_record {
 	public:
-		hitRecord() {
+		hit_record() {
 			mat_ptr = nullptr;
 		}
 	public:
@@ -31,7 +31,7 @@ namespace PT {
 
 	class hittable {
 	public:
-		virtual bool hit(const Ray& r, double t_min, double t_max, hitRecord& rec)const =0;
+		virtual bool hit(const Ray& r, double t_min, double t_max, hit_record& rec)const =0;
 		virtual bool bounding_box(double time0, double time1, AABB& output_box)const = 0;
 		virtual void addTexture(std::shared_ptr<Material>& mat);
 		//virtual void setModel(glm::mat4 model) {}
@@ -44,7 +44,7 @@ namespace PT {
 
 		void clear(); 
 		void add(std::shared_ptr<hittable> object);
-		virtual bool hit(const Ray& r, double t_min, double t_max, hitRecord& rec) const override;
+		virtual bool hit(const Ray& r, double t_min, double t_max, hit_record& rec) const override;
 		virtual bool bounding_box(double time0, double time1, AABB& output_box)const override;
 
 	public:
@@ -56,7 +56,7 @@ namespace PT {
 		Sphere(const vec3& center, double radius,std::shared_ptr<Material> m);
 		~Sphere();
 
-		virtual bool hit(const Ray& r, double t_min, double t_max, hitRecord& rec) const override;
+		virtual bool hit(const Ray& r, double t_min, double t_max, hit_record& rec) const override;
 		virtual bool bounding_box(double time0, double time1, AABB& output_box)const;
 		virtual void addTexture(std::shared_ptr<Material>& mat);
 

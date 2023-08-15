@@ -57,7 +57,7 @@ PT::BVH_Node::BVH_Node(
 	box = AABB::surrounding_box(box_left, box_right);
 }
 
-bool PT::BVH_Node::hit(const Ray& r, double t_min, double t_max, hitRecord& rec) const {
+bool PT::BVH_Node::hit(const Ray& r, double t_min, double t_max, hit_record& rec) const {
 	if (!box.hit(r, t_min, t_max))
 		return false;
 

@@ -29,6 +29,7 @@
 #include"GUI.h"
 #include"component/Atmosphere.h"
 #include"system/Loader.h"
+#include"PT/PathTracing.h"
 //json
 #include<json/json.hpp>
 using json = nlohmann::json;
@@ -100,11 +101,11 @@ void render() {
 //#endif
 
 //#include"PT/PathTracing.h"
-int main() {
+int main(int argc, char** argv[]) {
 	// 
-	render();
+	// render();
 	//test();
-	//PT::render();
+	PT::render();
 	return 0; 
 }
 

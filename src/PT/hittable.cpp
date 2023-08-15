@@ -14,7 +14,7 @@ PT::Sphere::Sphere(const vec3& center, double radius, std::shared_ptr<Material> 
 	
 }
 
-void PT::hitRecord::set_face_normal(const Ray& r, const vec3& outward_normal) {
+void PT::hit_record::set_face_normal(const Ray& r, const vec3& outward_normal) {
 	this->front_face = dot(r.dir, outward_normal) < 0;
 	this->normal = front_face ? outward_normal : -outward_normal;
 }
@@ -30,8 +30,8 @@ void PT::hittable_list::add(std::shared_ptr<hittable> object) {
 	objects.push_back(object);
 }
 
-bool PT::hittable_list::hit(const Ray& r, double t_min, double t_max, hitRecord& rec) const {
-	hitRecord temp_rec; 
+bool PT::hittable_list::hit(const Ray& r, double t_min, double t_max, hit_record& rec) const {
+	hit_record temp_rec; 
 	bool hit_anything = false;
 	auto closest = t_max;
 	for (auto object : objects) {
@@ -88,7 +88,7 @@ PT::Sphere::~Sphere() {
 
 }
 
-bool PT::Sphere::hit(const Ray& r,double t_min,double t_max,hitRecord& rec)const {
+bool PT::Sphere::hit(const Ray& r,double t_min,double t_max,hit_record& rec)const {
 	float t = -1.0f;
 	vec3 ooc = r.orig - center; 
 	float a = dot(r.dir, r.dir);

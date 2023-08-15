@@ -11,7 +11,7 @@ using std::shared_ptr;
 namespace PT {
     class Material;
     class Ray;
-    class hitRecord;
+    class hit_record;
     class AABB;
 
     class Box: public hittable {
@@ -21,7 +21,7 @@ namespace PT {
 
         //void setModel(glm::mat4 model) override;
 
-        virtual bool hit(const Ray& r, double t_min, double t_max, hitRecord& rec) const override;
+        virtual bool hit(const Ray& r, double t_min, double t_max, hit_record& rec) const override;
 
         virtual bool bounding_box(double time0, double time1, AABB& output_box) const override;
     public:

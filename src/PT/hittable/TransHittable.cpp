@@ -18,7 +18,7 @@ TransHittable::~TransHittable() {
 
 }
 
-bool TransHittable::hit(const Ray& r, double t_min, double t_max, hitRecord& rec)const {
+bool TransHittable::hit(const Ray& r, double t_min, double t_max, hit_record& rec)const {
 	if (object == nullptr) {
 		return false;
 	}

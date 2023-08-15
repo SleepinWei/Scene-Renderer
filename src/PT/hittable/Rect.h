@@ -17,7 +17,7 @@ namespace PT {
         xy_rect(double _x0, double _x1, double _y0, double _y1, double _k,
             shared_ptr<Material> mat);
 
-        virtual bool hit(const Ray& r, double t_min, double t_max, hitRecord& rec) const override;
+        virtual bool hit(const Ray& r, double t_min, double t_max, hit_record& rec) const override;
         virtual bool bounding_box(double time0, double time1, AABB& output_box) const override;
         //virtual void setModel(glm::mat4 model) override;
 
@@ -34,7 +34,7 @@ namespace PT {
         xz_rect(double _x0, double _x1, double _z0, double _z1, double _k,
             shared_ptr<Material> mat);
 
-        virtual bool hit(const Ray& r, double t_min, double t_max, hitRecord& rec) const override;
+        virtual bool hit(const Ray& r, double t_min, double t_max, hit_record& rec) const override;
 
         virtual bool bounding_box(double time0, double time1, AABB& output_box) const override;
 
@@ -53,7 +53,7 @@ namespace PT {
         yz_rect(double _y0, double _y1, double _z0, double _z1, double _k,
             shared_ptr<Material> mat);
 
-        virtual bool hit(const Ray& r, double t_min, double t_max, hitRecord& rec) const override;
+        virtual bool hit(const Ray& r, double t_min, double t_max, hit_record& rec) const override;
 
         virtual bool bounding_box(double time0, double time1, AABB& output_box) const override;
     

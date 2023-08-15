@@ -95,7 +95,7 @@ vec3 Renderer::rayColor(const Ray &r, int depth)
 {
 	hit_record rec;
 
-	if (depth <= 0)
+	if (depth < 0)
 	{
 		return vec3(0, 0, 0);
 	}
@@ -122,6 +122,7 @@ vec3 Renderer::rayColor(const Ray &r, int depth)
 
 	vec3 color_from_scatter =
 		(attenuation * scattering_pdf * rayColor(scattered, depth - 1)) / pdf;
+	// vec3 color_from_scatter = attenuation * rayColor(scattered, depth - 1);
 
 	vec3 finalColor = emitted + color_from_scatter;
 	return finalColor;
@@ -137,7 +138,7 @@ void Renderer::threadRender(int start, int end)
 
 	for (int j = end; j >= start; j--)
 	{
-		if ((end - j) % 5 == 0)
+		if ( (end - j) % 5 == 0)
 		{
 			printMtx.lock();
 			std::cerr << "Thread: " << id << " Progress: " << (end - j) * 1.0 / (end - start) * 100 << " % \n";

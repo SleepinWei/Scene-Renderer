@@ -13,7 +13,7 @@ PT::Lambertian::Lambertian(const vec3& a)
 }
 #include<iostream>
 bool PT::Lambertian::scatter(
-	const Ray& r,const hitRecord & rec,
+	const Ray& r,const hit_record & rec,
 	vec3& attenuation, 
 	Ray& scattered
 ) const 
@@ -33,7 +33,7 @@ bool PT::Lambertian::scatter(
 PT::Metal::Metal(const vec3 & a,double f):albedo(a),fuzz(f<1?f:1) {
 }
 bool PT::Metal::scatter(
-	const Ray& r, const hitRecord& rec,
+	const Ray& r, const hit_record& rec,
 	vec3& attenuation,
 	Ray& scattered
 	) const {
@@ -47,7 +47,7 @@ PT::Dielectric::Dielectric(double index_of_refraction) : ir(index_of_refraction)
 }
 
 bool PT::Dielectric::scatter(
-	const Ray& r_in, const hitRecord& rec, vec3& attenuation, Ray& scattered
+	const Ray& r_in, const hit_record& rec, vec3& attenuation, Ray& scattered
 )const {
 	attenuation = vec3(1.0, 1.0, 1.0);
 	double refraction_ratio = rec.front_face ? (1.0 / ir) : ir;
@@ -77,7 +77,7 @@ double PT::Dielectric::reflectance(double cosine, double ref_idx) {
 }
 	
 
-bool DiffuseLight::scatter(const Ray& r_in, const hitRecord& rec, vec3& attenuation, Ray& scattered)const {
+bool DiffuseLight::scatter(const Ray& r_in, const hit_record& rec, vec3& attenuation, Ray& scattered)const {
 	// lights have no scattering
 	return false; 
 }
@@ -95,5 +95,10 @@ DiffuseLight::DiffuseLight(vec3 c) {
 DiffuseLight::DiffuseLight(std::shared_ptr<Texture> a) :emit(a) 
 {
 	intensity = 1.0f;
-};
+}
 
+double Lambertian::scattering_pdf(const Ray &r_in, const hit_record &rec, const Ray &scattered) const
+{
+	auto cos_theta = glm::dot(rec.normal, glm::normalize(scattered.dir));
+	return cos_theta < 0 ? 0 : cos_theta / PI;
+}

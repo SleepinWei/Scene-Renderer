@@ -10,11 +10,11 @@ using namespace PT;
 using std::make_shared;
 
 bool Medium::hit(
-	const Ray& r, double t_min, double t_max, hitRecord& rec) const {
+	const Ray& r, double t_min, double t_max, hit_record& rec) const {
     const bool enableDebug = false;
     const bool debugging = enableDebug && random_double() < 0.00001;
 
-    hitRecord rec1, rec2;
+    hit_record rec1, rec2;
 
     const double infinity = std::numeric_limits<float>::infinity();
 

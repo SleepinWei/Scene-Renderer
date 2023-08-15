@@ -50,7 +50,7 @@ void cornell_box() {
 void PT::render() {
 	srand(time(0));
 	int samples = 100;
-	int max_depth = 10;
+	int max_depth = 1;
 
 	// std::shared_ptr<Renderer> renderer = std::make_shared<Renderer>(samples,max_depth);
 	auto renderer = Renderer::GetInstance();
@@ -59,7 +59,7 @@ void PT::render() {
 	// world 
 	cornell_box();
 
-	int threadNum = 9;
+	int threadNum = 16;
 	renderer->GetInstance()->render(threadNum);
 	renderer->writeToFile("./out.ppm");
 }
