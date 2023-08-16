@@ -1,20 +1,25 @@
 #pragma once
-#include<memory>
-#include<vector>
-#include<glm/glm.hpp>
+#include <glm/glm.hpp>
+#include <memory>
+#include <vector>
+#include<PT/PTrandom.h>
 
 using glm::vec3;
 
-namespace PT {
-	class Material; 
+namespace PT
+{
+	class Material;
 	class AABB;
 	class Ray;
 
-	class hit_record {
+	class hit_record
+	{
 	public:
-		hit_record() {
+		hit_record()
+		{
 			mat_ptr = nullptr;
 		}
+
 	public:
 		vec3 p;
 		vec3 normal;
@@ -23,44 +28,77 @@ namespace PT {
 		float v;
 		bool front_face;
 		std::shared_ptr<Material> mat_ptr; // pointer of material
-		//vec3 T;
-		//vec3 B;
+		// vec3 T;
+		// vec3 B;
 
-		inline void set_face_normal(const Ray& r, const vec3& outward_normal);
+		inline void set_face_normal(const Ray &r, const vec3 &outward_normal);
 	};
 
-	class hittable {
+	class hittable
+	{
 	public:
-		virtual bool hit(const Ray& r, double t_min, double t_max, hit_record& rec)const =0;
-		virtual bool bounding_box(double time0, double time1, AABB& output_box)const = 0;
-		virtual void addTexture(std::shared_ptr<Material>& mat);
-		//virtual void setModel(glm::mat4 model) {}
+		virtual bool hit(const Ray &r, double t_min, double t_max, hit_record &rec) const = 0;
+		virtual bool bounding_box(double time0, double time1, AABB &output_box) const = 0;
+		virtual void addTexture(std::shared_ptr<Material> &mat);
+		// virtual void setModel(glm::mat4 model) {}
+
+		// for sampling light
+		virtual double pdf_value(const vec3 &o, const vec3 &v) const
+		{
+			return 0.0;
+		}
+
+		virtual vec3 random(const vec3 &o) const
+		{
+			return vec3(1, 0, 0);
+		}
 	};
 
-	class hittable_list : public hittable {
+	class hittable_list : public hittable
+	{
 	public:
 		hittable_list() = default;
-		hittable_list(std::shared_ptr<hittable> object); 
+		hittable_list(std::shared_ptr<hittable> object);
 
-		void clear(); 
+		void clear();
 		void add(std::shared_ptr<hittable> object);
-		virtual bool hit(const Ray& r, double t_min, double t_max, hit_record& rec) const override;
-		virtual bool bounding_box(double time0, double time1, AABB& output_box)const override;
+		virtual bool hit(const Ray &r, double t_min, double t_max, hit_record &rec) const override;
+		virtual bool bounding_box(double time0, double time1, AABB &output_box) const override;
+
+		double pdf_value(const vec3&o, const vec3 &v) const override
+		{
+			auto weight = 1.0 / objects.size();
+			auto sum = 0.0;
+
+			for (const auto &object : objects)
+				sum += weight * object->pdf_value(o, v);
+
+			return sum;
+		}
+		vec3 random(const vec3 &o) const override
+		{
+			auto int_size = static_cast<int>(objects.size());
+			return objects[random_int(0, int_size - 1)]->random(o);
+		}
 
 	public:
 		std::vector<std::shared_ptr<hittable>> objects;
 	};
 
-	class Sphere : public hittable{
+	class Sphere : public hittable
+	{
 	public:
-		Sphere(const vec3& center, double radius,std::shared_ptr<Material> m);
+		Sphere(const vec3 &center, double radius, std::shared_ptr<Material> m);
 		~Sphere();
 
-		virtual bool hit(const Ray& r, double t_min, double t_max, hit_record& rec) const override;
-		virtual bool bounding_box(double time0, double time1, AABB& output_box)const;
-		virtual void addTexture(std::shared_ptr<Material>& mat);
+		virtual bool hit(const Ray &r, double t_min, double t_max, hit_record &rec) const override;
+		virtual bool bounding_box(double time0, double time1, AABB &output_box) const;
+		virtual void addTexture(std::shared_ptr<Material> &mat);
 
-		static void get_sphere_uv(const vec3& p, float& u, float& v);
+		static void get_sphere_uv(const vec3 &p, float &u, float &v);
+		double pdf_value(const vec3&o, const vec3 &v) const;
+		vec3 random(const vec3&o) const;
+
 	public:
 		vec3 center;
 		float radius;

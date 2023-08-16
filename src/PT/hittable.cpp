@@ -2,6 +2,8 @@
 #include"PT/PTAABB.h"
 #include"PT/PTRay.h"
 #include"PT/PTMaterial.h"
+#include"PT/onb.h"
+#include"PT/glm_vec3.h"
 using namespace PT;
 
 void hittable::addTexture(std::shared_ptr<Material>& mat) {
@@ -124,3 +126,21 @@ void PT::Sphere::addTexture(std::shared_ptr<Material>& mat) {
 }
 
 
+double Sphere::pdf_value(const vec3& o, const vec3& v) const {
+    hit_record rec;
+    if (!this->hit(Ray(o, v), 0.001, INFINITY, rec))
+        return 0;
+
+    auto cos_theta_max = sqrt(1 - radius*radius/glm::dot(center-o,center-o));
+    auto solid_angle = 2*PI*(1-cos_theta_max);
+
+    return  1 / solid_angle;
+}
+
+vec3 Sphere::random(const vec3& o) const {
+     vec3 direction = center - o;
+     auto distance_squared = dot(direction,direction);
+     onb uvw;
+     uvw.build_from_w(direction);
+     return uvw.local(random_to_sphere(radius, distance_squared));
+}

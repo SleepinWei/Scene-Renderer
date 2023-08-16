@@ -1,4 +1,4 @@
-#include"TransHittable.h"
+#include"PT/hittable/TransHittable.h"
 #include"PT/PTRay.h"
 #include"PT/PTAABB.h"
 

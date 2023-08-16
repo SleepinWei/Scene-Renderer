@@ -1,5 +1,8 @@
 #pragma once
-#include"../hittable.h"
+#include"PT/hittable.h"
+#include"PT/glm_vec3.h"
+#include<PT/PTrandom.h>
+#include<PT/PTRay.h>
 #include<memory>
 
 using std::shared_ptr;
@@ -19,7 +22,8 @@ namespace PT {
 
         virtual bool hit(const Ray& r, double t_min, double t_max, hit_record& rec) const override;
         virtual bool bounding_box(double time0, double time1, AABB& output_box) const override;
-        //virtual void setModel(glm::mat4 model) override;
+
+
 
     public:
         //glm::mat4 model;
@@ -38,8 +42,22 @@ namespace PT {
 
         virtual bool bounding_box(double time0, double time1, AABB& output_box) const override;
 
-        //virtual void setModel(glm::mat4 model) override;
+        virtual double pdf_value(const vec3& origin, const vec3& v) const override {
+            hit_record rec;
+            if (!this->hit(Ray(origin, v), 0.001, INFINITY, rec))
+                return 0;
 
+            auto area = (x1-x0)*(z1-z0);
+            auto distance_squared = rec.t * rec.t * glm::dot(v, v);
+            auto cosine = fabs(dot(v, rec.normal) / v.length());
+
+            return distance_squared / (cosine * area);
+        }
+
+        virtual vec3 random(const vec3& origin) const override {
+            auto random_point = vec3(random_double(x0,x1), k, random_double(z0,z1));
+            return random_point - origin;
+        }
     public:
         //glm::mat4 model;
         shared_ptr<Material> mp;

@@ -7,8 +7,11 @@
 #include <glm/glm.hpp>
 #include <iostream>
 #include <utility>
+#include<PT/pdf.h>
+#include<memory>
 
 using namespace PT;
+using std::make_shared;
 
 void Renderer::write_color(const vec3 &color, int samples_per_pixel, int pos)
 {
@@ -47,6 +50,7 @@ Renderer::Renderer()
 void Renderer::init(int samples, int max_depth)
 {
 	world = std::make_shared<hittable_list>();
+	lights = std::make_shared<hittable_list>();
 	camera = nullptr;
 	this->samples = samples;
 	this->max_depth = max_depth;
@@ -66,6 +70,11 @@ void Renderer::addCam(std::shared_ptr<Camera> cam)
 void Renderer::addObject(std::shared_ptr<hittable> object)
 {
 	world->add(object);
+}
+
+void Renderer::addLight(std::shared_ptr<hittable> object)
+{
+	lights->add(object);
 }
 
 void Renderer::render(int threadNum)
@@ -105,24 +114,30 @@ vec3 Renderer::rayColor(const Ray &r, int depth)
 	{
 		return background;
 	}
-	Ray scattered;
-	vec3 attenuation; // color of the surface brdf
-	vec3 emitted = rec.mat_ptr->emitted(rec.u, rec.v, rec.p);
-	double pdf; 
 
-	bool hasScatter = rec.mat_ptr->scatter(r, rec, attenuation, scattered,pdf);
+	scatter_record srec;
+	vec3 emitted = rec.mat_ptr->emitted(rec.u, rec.v, rec.p);
+
+	bool hasScatter = rec.mat_ptr->scatter(r, rec, srec);
 	if (!hasScatter)
 	{
-		// float distAtten = std::min(1.0f, 1.0f / (rec.t * rec.t));
-		// return emitted *distAtten;
 		return emitted;
 	}
+
+	if(srec.is_specular){
+		return srec.attenuation * rayColor(srec.specular_ray, depth - 1);
+	}
+
+	auto light_ptr = make_shared<hittable_pdf>(lights, rec.p);
+	mixture_pdf p(light_ptr, srec.pdf_ptr);
+
+	Ray scattered = Ray(rec.p, p.generate());
+	double pdf_val = p.value(scattered.dir);
+
 	float scattering_pdf = rec.mat_ptr->scattering_pdf(r, rec, scattered);
 
-	// float pdf = scattering_pdf;
-
 	vec3 color_from_scatter =
-		(attenuation * scattering_pdf * rayColor(scattered, depth - 1)) / (float)pdf;
+		(srec.attenuation * scattering_pdf * rayColor(scattered, depth - 1)) / (float)pdf_val;
 	// vec3 color_from_scatter = attenuation * rayColor(scattered, depth - 1);
 
 	vec3 finalColor = emitted + color_from_scatter;
