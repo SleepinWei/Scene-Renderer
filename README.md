@@ -1,8 +1,8 @@
 # Scene Renderer
 
-Scene Renderer is a group project of Computer Graphics Course in Tongji University.
+Scene Renderer starts as a group project of Computer Graphics Course in Tongji University.
 
-It is a renderer based on modern opengl, focusing on natural  and in-door scene rendering.
+It is a renderer based on modern opengl, focusing on natural and in-door scene rendering. It also contains a path-tracing offline renderer, but currently these two are still separated.
 
 ## Feature
 
@@ -11,23 +11,27 @@ It is a renderer based on modern opengl, focusing on natural  and in-door scene 
 * Physically based skies
 * Volumetric cloud
 * PCSS soft shadows
-* PBR Material
+* PBR Material (only isotropic is supported in deferred pipeline)
   * isotropic
   * anisotropic
   * clear coat
-  * estimation of sss (gdc 2011: fast approximation)
+  * approx of sss (gdc 2011: fast approximation)
 * Reflective shadow maps
 * Realtime Ocean
 * Procedural Terrain
   * quad tree lod powered by GPU driven pipeline (GDC 2018)
 * Deferred Pipeline
+* SSAO
+* IBL
+* simple grass implementation based on gpu instancing.
 * [ ] auto exposure
 
-### Render System
+### Other functions
 
 * multi thread model loading
 * asset loading from json files
-* component based system
+* gameobject-component structure
+* gltf scene loading
 
 ### Modern Opengl
 
@@ -36,6 +40,17 @@ It is a renderer based on modern opengl, focusing on natural  and in-door scene 
   * quad tree traversal & mesh generatioin in procedural terrain
   * IFFT in ocean surface generation
   * Transmission map & sky-view lut computation in sky rendering
+
+### Path Tracing
+
+* basic shapes: sphere, triangle, rectangle
+* simple materials : lambertian, dieletric, medium
+* BVH
+* importance sampling (material & light)
+* multi-thread rendering on cpu
+* [ ] pbr material
+* [ ] gltf scene loading
+* [ ] 
 
 ## Gallery
 
@@ -49,7 +64,8 @@ It is a renderer based on modern opengl, focusing on natural  and in-door scene 
 + House
   ![house](./img/house.png)
   ![house2](./img/house2.png)
-+ Path tracing component 
++ Path tracing 
+  cornell box (100 spp, max depth 10)
   ![path_tracing](./img/ray_tracing.png)
 
 ## Control
