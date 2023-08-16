@@ -1,10 +1,11 @@
 #pragma once
+#include <PT/PTrandom.h>
 #include <glm/glm.hpp>
 #include <memory>
 #include <vector>
-#include<PT/PTrandom.h>
 
 using glm::vec3;
+using std::shared_ptr;
 
 namespace PT
 {
@@ -65,7 +66,7 @@ namespace PT
 		virtual bool hit(const Ray &r, double t_min, double t_max, hit_record &rec) const override;
 		virtual bool bounding_box(double time0, double time1, AABB &output_box) const override;
 
-		double pdf_value(const vec3&o, const vec3 &v) const override
+		double pdf_value(const vec3 &o, const vec3 &v) const override
 		{
 			auto weight = 1.0 / objects.size();
 			auto sum = 0.0;
@@ -96,8 +97,8 @@ namespace PT
 		virtual void addTexture(std::shared_ptr<Material> &mat);
 
 		static void get_sphere_uv(const vec3 &p, float &u, float &v);
-		double pdf_value(const vec3&o, const vec3 &v) const;
-		vec3 random(const vec3&o) const;
+		double pdf_value(const vec3 &o, const vec3 &v) const;
+		vec3 random(const vec3 &o) const;
 
 	public:
 		vec3 center;
@@ -105,4 +106,23 @@ namespace PT
 		std::shared_ptr<Material> mat_ptr;
 	};
 
+	struct Vertex{
+		vec3 pos; 
+		vec3 normal; 
+		glm::vec2 uv; 
+	};
+
+	class Triangle : public hittable
+	{
+	public:
+		Triangle(const Vertex &a, const Vertex &b, const Vertex &c,const shared_ptr<Material>& m);
+		~Triangle();
+
+		virtual bool hit(const Ray &r, double t_min, double t_max, hit_record &rec) const override;
+		virtual bool bounding_box(double time0, double time1, AABB &output_box) const;
+
+	public:
+		Vertex a, b, c;
+		std::shared_ptr<Material> mat_ptr;
+	};
 }

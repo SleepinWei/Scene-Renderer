@@ -18,7 +18,10 @@ void Renderer::write_color(const vec3 &color, int samples_per_pixel, int pos)
 	auto r = color.x;
 	auto g = color.y;
 	auto b = color.z;
-
+    // Replace NaN components with zero.
+    if (r != r) r = 0.0;
+    if (g != g) g = 0.0;
+    if (b != b) b = 0.0;
 	float scale = 1.0f / samples_per_pixel;
 
 	r = sqrtf(scale * r);
