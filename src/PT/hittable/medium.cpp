@@ -3,7 +3,7 @@
 #include"PT/PTAABB.h"
 #include"PT/PTRay.h"
 #include"PT/PTTexture.h"
-#include"PT/material/isotropic.h"
+#include"PT/PTMaterial.h"
 #include<iostream>
 using namespace PT;
 

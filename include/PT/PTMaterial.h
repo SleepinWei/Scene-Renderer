@@ -17,7 +17,7 @@ namespace PT
 	{
 	public:
 		virtual bool scatter(
-			const Ray &r_in, const hit_record &rec, vec3 &attenuation, Ray &scattered) const = 0;
+			const Ray &r_in, const hit_record &rec, vec3 &attenuation, Ray &scattered, double &pdf) const = 0;
 		virtual vec3 emitted(float u, float v, const vec3 &p) const { return vec3(0.0f, 0.0f, 0.0f); }
 		virtual double scattering_pdf(const Ray &r_in, const hit_record &rec, const Ray &scattered)
 			const
@@ -35,8 +35,9 @@ namespace PT
 		virtual bool scatter(
 			const Ray &r, const hit_record &rec,
 			vec3 &attenuation,
-			Ray &scattered) const override;
+			Ray &scattered, double &pdf) const override;
 		virtual double scattering_pdf(const Ray &r_in, const hit_record &rec, const Ray &scattered) const override;
+
 	public:
 		// vec3 albedo;
 		std::shared_ptr<Texture> albedo;
@@ -49,7 +50,7 @@ namespace PT
 		virtual bool scatter(
 			const Ray &r, const hit_record &rec,
 			vec3 &attenuation,
-			Ray &scattered) const override;
+			Ray &scattered, double &pdf) const override;
 
 	public:
 		vec3 albedo;
@@ -62,7 +63,7 @@ namespace PT
 		Dielectric(double index_of_refraction);
 
 		virtual bool scatter(
-			const Ray &r, const hit_record &rec, vec3 &attenuation, Ray &scattered) const override;
+			const Ray &r, const hit_record &rec, vec3 &attenuation, Ray &scattered, double &pdf) const override;
 
 	public:
 		float ir;
@@ -77,12 +78,28 @@ namespace PT
 		DiffuseLight(std::shared_ptr<Texture> a);
 		DiffuseLight(vec3 c);
 
-		virtual bool scatter(const Ray &r_in, const hit_record &rec, vec3 &attenuation, Ray &scattered) const override;
+		virtual bool scatter(const Ray &r_in, const hit_record &rec, vec3 &attenuation, Ray &scattered, double &pdf) const override;
 
 		virtual vec3 emitted(float u, float v, const vec3 &p) const override;
 
 	public:
 		std::shared_ptr<Texture> emit;
 		float intensity;
+	};
+
+	class Isotropic : public Material
+	{
+	public:
+		Isotropic(vec3 c);
+		Isotropic(shared_ptr<Texture> a);
+
+		virtual bool scatter(
+			const Ray &r_in, const hit_record &rec, vec3 &attenuation, Ray &scattered, double &pdf) const override;
+
+		virtual double scattering_pdf(const Ray &r_in, const hit_record &rec, const Ray &scattered)
+			const override;
+
+	public:
+		shared_ptr<Texture> albedo;
 	};
 }

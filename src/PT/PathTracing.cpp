@@ -49,7 +49,7 @@ void cornell_box() {
 
 void PT::render() {
 	srand(time(0));
-	int samples = 100;
+	int samples = 200;
 	int max_depth = 1;
 
 	// std::shared_ptr<Renderer> renderer = std::make_shared<Renderer>(samples,max_depth);

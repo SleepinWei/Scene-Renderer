@@ -31,13 +31,29 @@ vec3 refract(const vec3& uv, const vec3& n, float etai_over_etat) {
 	return r_out_perp + r_out_parallel;
 }
 vec3 random_in_unit_sphere(){
-    while (true) {
-        auto p = vec3(random_double(-1, 1),random_double(-1,1),random_double(-1,1));
-        if (glm::dot(p,p)>= 1) continue;
-        return p;
-    }
+    // while (true) {
+        // auto p = vec3(random_double(-1, 1),random_double(-1,1),random_double(-1,1));
+        // if (glm::dot(p,p)>= 1) continue;
+        // return p;
+    // }
+	float theta =  PI / 2 * random_double(-1, 1);
+	float phi = PI * 2 * random_double(0, 1);
+
+	return vec3(sin(theta) * sin(phi), cos(theta), sin(theta) * cos(phi));
 }
 
 vec3 random_unit_vector() {
 	return glm::normalize(random_in_unit_sphere());
+}
+
+vec3 random_cosine_direction(){
+	auto r1 = random_double();
+    auto r2 = random_double();
+
+    auto phi = 2*PI*r1;
+    auto x = cos(phi)*sqrt(r2);
+    auto y = sin(phi)*sqrt(r2);
+    auto z = sqrt(1-r2);
+
+    return vec3(x, y, z);
 }

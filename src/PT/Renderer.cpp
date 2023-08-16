@@ -108,8 +108,9 @@ vec3 Renderer::rayColor(const Ray &r, int depth)
 	Ray scattered;
 	vec3 attenuation; // color of the surface brdf
 	vec3 emitted = rec.mat_ptr->emitted(rec.u, rec.v, rec.p);
+	double pdf; 
 
-	bool hasScatter = rec.mat_ptr->scatter(r, rec, attenuation, scattered);
+	bool hasScatter = rec.mat_ptr->scatter(r, rec, attenuation, scattered,pdf);
 	if (!hasScatter)
 	{
 		// float distAtten = std::min(1.0f, 1.0f / (rec.t * rec.t));
@@ -118,10 +119,10 @@ vec3 Renderer::rayColor(const Ray &r, int depth)
 	}
 	float scattering_pdf = rec.mat_ptr->scattering_pdf(r, rec, scattered);
 
-	float pdf = scattering_pdf;
+	// float pdf = scattering_pdf;
 
 	vec3 color_from_scatter =
-		(attenuation * scattering_pdf * rayColor(scattered, depth - 1)) / pdf;
+		(attenuation * scattering_pdf * rayColor(scattered, depth - 1)) / (float)pdf;
 	// vec3 color_from_scatter = attenuation * rayColor(scattered, depth - 1);
 
 	vec3 finalColor = emitted + color_from_scatter;
