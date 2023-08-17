@@ -62,6 +62,8 @@ void PT::render() {
 	// world 
 	cornell_box();
 
+	renderer->buildBVH();
+
 	int threadNum = 16;
 	renderer->GetInstance()->render(threadNum);
 	renderer->writeToFile("./out.ppm");

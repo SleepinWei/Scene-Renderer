@@ -9,6 +9,8 @@
 #include <utility>
 #include<PT/pdf.h>
 #include<memory>
+#include "PT/Renderer.h"
+#include<PT/BVH.h>
 
 using namespace PT;
 using std::make_shared;
@@ -52,8 +54,9 @@ Renderer::Renderer()
 
 void Renderer::init(int samples, int max_depth)
 {
-	world = std::make_shared<hittable_list>();
+	_world = std::make_shared<hittable_list>();
 	lights = std::make_shared<hittable_list>();
+	world = nullptr;
 	camera = nullptr;
 	this->samples = samples;
 	this->max_depth = max_depth;
@@ -72,7 +75,12 @@ void Renderer::addCam(std::shared_ptr<Camera> cam)
 
 void Renderer::addObject(std::shared_ptr<hittable> object)
 {
-	world->add(object);
+	_world->add(object);
+}
+
+void PT::Renderer::buildBVH()
+{
+	world = make_shared<BVH_Node>(_world);
 }
 
 void Renderer::addLight(std::shared_ptr<hittable> object)

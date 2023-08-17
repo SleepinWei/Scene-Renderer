@@ -2,6 +2,7 @@
 #include"PT/PTAABB.h"
 #include"PT/BVH.h"
 #include<algorithm>
+#include "PT/BVH.h"
 
 using namespace PT;
 
@@ -13,6 +14,11 @@ PT::BVH_Node::BVH_Node(const hittable_list& list, double time0, double time1):
 	BVH_Node(list.objects,0,list.objects.size(),time0,time1) {
 	
 }
+PT::BVH_Node::BVH_Node(const shared_ptr<hittable_list> &list) : 
+	BVH_Node(list->objects,0,list->objects.size(),0,0)
+{
+}
+
 PT::BVH_Node::BVH_Node(
 	const std::vector<std::shared_ptr<hittable>>& src_objects,
 	size_t start, size_t end, double time0, double time1

@@ -13,6 +13,7 @@ namespace PT
 	class Camera;
 	class Ray;
 	class hit_record;
+	class BVH_Node;
 
 	class Renderer
 	{
@@ -30,12 +31,14 @@ namespace PT
 		void render(int threadNum);
 		void addCam(std::shared_ptr<Camera> cam);
 		void addObject(std::shared_ptr<hittable> object);
+		void buildBVH();
 		void addLight(std::shared_ptr<hittable> object);
 		void threadRender(int start, int end);
 		void writeToFile(const std::string &filename);
 
 	public:
-		std::shared_ptr<hittable_list> world;
+		std::shared_ptr<hittable_list> _world;
+		std::shared_ptr<BVH_Node> world; 
 		std::shared_ptr<hittable_list> lights; 
 		std::shared_ptr<Camera> camera;
 		std::vector<std::thread> threads;

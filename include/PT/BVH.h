@@ -3,7 +3,8 @@
 #include<memory>
 #include<iostream>
 
-#include"hittable.h"
+#include"PT/hittable.h"
+#include"PT/PTAABB.h"
 
 namespace PT {
 	class AABB;
@@ -13,6 +14,7 @@ namespace PT {
 	public:
 		BVH_Node();
 		BVH_Node(const hittable_list& list, double time0, double time1);
+		BVH_Node(const shared_ptr<hittable_list> &list);
 		BVH_Node(
 			const std::vector<std::shared_ptr<hittable>>& src_objects,
 			size_t start, size_t end, double time0, double time1
