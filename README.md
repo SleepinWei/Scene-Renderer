@@ -54,6 +54,8 @@ It is a renderer based on modern opengl, focusing on natural and in-door scene r
 
 ## Gallery
 
++ a random helmet
+  ![helmet](./img/helmet_mine.png)
 + Sky & ocean
   ![sky_ocean](./img/sky.png)
   ![sky2](./img/sky2.png)
