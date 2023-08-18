@@ -11,7 +11,7 @@
 #include"hittable.h"
 #include"PTTexture.h"
 #include"hittable/Rect.h"
-#include"Renderer.h"
+#include"PTRenderer.h"
 #include"hittable/Box.h"
 #include"hittable/TransHittable.h"
 #include"hittable/medium.h"

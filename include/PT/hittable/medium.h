@@ -21,7 +21,7 @@ namespace PT {
 		virtual bool bounding_box(double time0, double time1, AABB& output_box) const override;
 	public:
 		shared_ptr<hittable> boundary;
-		shared_ptr<Material> phase_function;
+		shared_ptr<PTMaterial> phase_function;
 		float neg_inv_density;
 	};
 

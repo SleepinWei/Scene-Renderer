@@ -24,7 +24,7 @@ namespace PT
 		shared_ptr<pdf> pdf_ptr;
 	};
 
-	class Material
+	class PTMaterial
 	{
 	public:
 		virtual bool scatter(
@@ -40,7 +40,7 @@ namespace PT
 		}
 	};
 
-	class Lambertian : public Material
+	class Lambertian : public PTMaterial
 	{
 	public:
 		Lambertian(const vec3 &a);
@@ -55,7 +55,7 @@ namespace PT
 		std::shared_ptr<Texture> albedo;
 	};
 
-	class Metal : public Material
+	class Metal : public PTMaterial
 	{
 	public:
 		Metal(const vec3 &a, double f);
@@ -67,7 +67,7 @@ namespace PT
 		float fuzz;
 	};
 
-	class Dielectric : public Material
+	class Dielectric : public PTMaterial
 	{
 	public:
 		Dielectric(double index_of_refraction);
@@ -82,7 +82,7 @@ namespace PT
 		static double reflectance(double cosine, double ref_idx);
 	};
 
-	class DiffuseLight : public Material
+	class DiffuseLight : public PTMaterial
 	{
 	public:
 		DiffuseLight(std::shared_ptr<Texture> a);
@@ -98,7 +98,7 @@ namespace PT
 		float intensity;
 	};
 
-	class Isotropic : public Material
+	class Isotropic : public PTMaterial
 	{
 	public:
 		Isotropic(vec3 c);

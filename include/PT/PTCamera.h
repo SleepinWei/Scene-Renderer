@@ -5,9 +5,9 @@
 using glm::vec3;
 
 namespace PT {
-    class Camera {
+    class PTCamera {
     public:
-        Camera(
+        PTCamera(
             vec3 lookfrom,
             vec3 lookat,
             vec3 up,

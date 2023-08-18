@@ -9,7 +9,7 @@ using std::shared_ptr;
 
 namespace PT
 {
-	class Material;
+	class PTMaterial;
 	class AABB;
 	class Ray;
 
@@ -28,7 +28,7 @@ namespace PT
 		float u;
 		float v;
 		bool front_face;
-		std::shared_ptr<Material> mat_ptr; // pointer of material
+		std::shared_ptr<PTMaterial> mat_ptr; // pointer of material
 		// vec3 T;
 		// vec3 B;
 
@@ -40,7 +40,7 @@ namespace PT
 	public:
 		virtual bool hit(const Ray &r, double t_min, double t_max, hit_record &rec) const = 0;
 		virtual bool bounding_box(double time0, double time1, AABB &output_box) const = 0;
-		virtual void addTexture(std::shared_ptr<Material> &mat);
+		virtual void addTexture(std::shared_ptr<PTMaterial> &mat);
 		// virtual void setModel(glm::mat4 model) {}
 
 		// for sampling light
@@ -89,12 +89,12 @@ namespace PT
 	class Sphere : public hittable
 	{
 	public:
-		Sphere(const vec3 &center, double radius, std::shared_ptr<Material> m);
+		Sphere(const vec3 &center, double radius, std::shared_ptr<PTMaterial> m);
 		~Sphere();
 
 		virtual bool hit(const Ray &r, double t_min, double t_max, hit_record &rec) const override;
 		virtual bool bounding_box(double time0, double time1, AABB &output_box) const;
-		virtual void addTexture(std::shared_ptr<Material> &mat);
+		virtual void addTexture(std::shared_ptr<PTMaterial> &mat);
 
 		static void get_sphere_uv(const vec3 &p, float &u, float &v);
 		double pdf_value(const vec3 &o, const vec3 &v) const;
@@ -103,10 +103,10 @@ namespace PT
 	public:
 		vec3 center;
 		float radius;
-		std::shared_ptr<Material> mat_ptr;
+		std::shared_ptr<PTMaterial> mat_ptr;
 	};
 
-	struct Vertex{
+	struct PTVertex{
 		vec3 pos; 
 		vec3 normal; 
 		glm::vec2 uv; 
@@ -115,14 +115,14 @@ namespace PT
 	class Triangle : public hittable
 	{
 	public:
-		Triangle(const Vertex &a, const Vertex &b, const Vertex &c,const shared_ptr<Material>& m);
+		Triangle(const PTVertex &a, const PTVertex &b, const PTVertex &c,const shared_ptr<PTMaterial>& m);
 		~Triangle();
 
 		virtual bool hit(const Ray &r, double t_min, double t_max, hit_record &rec) const override;
 		virtual bool bounding_box(double time0, double time1, AABB &output_box) const;
 
 	public:
-		Vertex a, b, c;
-		std::shared_ptr<Material> mat_ptr;
+		PTVertex a, b, c;
+		std::shared_ptr<PTMaterial> mat_ptr;
 	};
 }

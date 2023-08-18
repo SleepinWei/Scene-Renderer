@@ -1,5 +1,5 @@
 #include"PT/PTVec.h"
-//extern Camera camera;
+//extern PTCamera camera;
 #include<cmath>
 
 PT::vec3::vec3(double x, double y, double z):x(x),y(y),z(z) {

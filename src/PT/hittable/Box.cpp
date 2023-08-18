@@ -25,7 +25,7 @@ bool Box::bounding_box(double time0, double time1, AABB& output_box) const {
 	//}
 //}
 
-Box::Box(const point3& p0, const point3& p1, shared_ptr<Material> ptr) {
+Box::Box(const point3& p0, const point3& p1, shared_ptr<PTMaterial> ptr) {
 	box_min = p0;
 	box_max = p1;
 

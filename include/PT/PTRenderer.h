@@ -12,7 +12,7 @@ namespace PT
 {
 	class hittable_list;
 	class hittable;
-	class Camera;
+	class PTCamera;
 	class Ray;
 	class hit_record;
 	class BVH_Node;
@@ -31,16 +31,16 @@ namespace PT
 		bool bUseBVH : true;
 	};
 
-	class Renderer
+	class PTRenderer
 	{
 	private:
-		Renderer();
-		~Renderer();
+		PTRenderer();
+		~PTRenderer();
 
 	public:
-		static Renderer *GetInstance()
+		static PTRenderer *GetInstance()
 		{
-			static Renderer renderer;
+			static PTRenderer renderer;
 			return &renderer;
 		}
 		void init(int samples, int max_depth);

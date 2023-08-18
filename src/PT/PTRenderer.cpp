@@ -1,5 +1,5 @@
-#include "PT\Renderer.h"
-#include "PT/Renderer.h"
+#include "PT\PTRenderer.h"
+#include "PT/PTRenderer.h"
 #include "PT\PTCamera.h"
 #include "PT\PTMaterial.h"
 #include "PT\PTRay.h"
@@ -17,7 +17,7 @@
 using namespace PT;
 using std::make_shared;
 
-void Renderer::write_color(const vec3 &color, int samples_per_pixel, int pos)
+void PTRenderer::write_color(const vec3 &color, int samples_per_pixel, int pos)
 {
 	auto r = color.x;
 	auto g = color.y;
@@ -48,26 +48,26 @@ void Renderer::write_color(const vec3 &color, int samples_per_pixel, int pos)
 	writeMtx.unlock();
 }
 
-Renderer::Renderer()
+PTRenderer::PTRenderer()
 {
 	this->samples = 0;
 	this->max_depth = 0;
 	this->pixelCnt = 0;
 }
 
-void Renderer::init(int samples, int max_depth)
+void PTRenderer::init(int samples, int max_depth)
 {
 	this->samples = samples;
 	this->max_depth = max_depth;
 	this->pixelCnt = 0;
 }
 
-Renderer::~Renderer()
+PTRenderer::~PTRenderer()
 {
 	delete[] resultImage;
 }
 
-void Renderer::render(shared_ptr<PTScene> scene, int threadNum)
+void PTRenderer::render(shared_ptr<PTScene> scene, int threadNum)
 {
 	auto camera = scene->camera;
 
@@ -93,12 +93,12 @@ void Renderer::render(shared_ptr<PTScene> scene, int threadNum)
 	{
 		int start = i * interval;
 		int end = std::min(start + interval - 1, h - 1);
-		std::thread t(&Renderer::threadRender, this, scene, start, end, i);
+		std::thread t(&PTRenderer::threadRender, this, scene, start, end, i);
 		threads.push_back(std::move(t));
 	}
 }
 
-vec3 Renderer::rayColor(shared_ptr<PTScene> scene, const Ray &r, int depth)
+vec3 PTRenderer::rayColor(shared_ptr<PTScene> scene, const Ray &r, int depth)
 {
 	auto world = scene->getWorld();
 	auto lights = scene->lights;
@@ -146,7 +146,7 @@ vec3 Renderer::rayColor(shared_ptr<PTScene> scene, const Ray &r, int depth)
 	return finalColor;
 }
 
-void Renderer::threadRender(shared_ptr<PTScene> scene, int start, int end, int id)
+void PTRenderer::threadRender(shared_ptr<PTScene> scene, int start, int end, int id)
 {
 	auto camera = scene->camera;
 
@@ -157,7 +157,7 @@ void Renderer::threadRender(shared_ptr<PTScene> scene, int start, int end, int i
 
 	for (int j = end; j >= start; j--)
 	{
-		if (id == 0 && (end - j) % 5 == 0)
+		if (id == 0 && (end - j) % 3 == 0)
 		{
 			printMtx.lock();
 			std::cerr << "Thread: " << id << " Progress: " << (end - j) * 1.0 / (end - start) * 100 << " % \n";
@@ -180,7 +180,7 @@ void Renderer::threadRender(shared_ptr<PTScene> scene, int start, int end, int i
 		}
 	}
 }
-void Renderer::writeToFile(shared_ptr<PTScene> scene, const std::string &filename)
+void PTRenderer::writeToFile(shared_ptr<PTScene> scene, const std::string &filename)
 {
 	for (int i = 0; i < threads.size(); i++)
 	{

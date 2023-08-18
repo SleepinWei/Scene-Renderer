@@ -1,9 +1,11 @@
 #include "PT/PTScene.h"
 #include "PT/BVH.h"
-#include "PT/Renderer.h"
+#include "PT/PTRenderer.h"
+#include "PT/hittable.h"
+
 using std::make_shared;
 
-void PTScene::addCam(std::shared_ptr<Camera> cam)
+void PTScene::addCam(std::shared_ptr<PTCamera> cam)
 {
     camera = cam;
 }

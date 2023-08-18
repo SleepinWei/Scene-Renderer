@@ -10,7 +10,7 @@ xy_rect::xy_rect()
 }
 
 xy_rect::xy_rect(double _x0, double _x1, double _y0, double _y1, double _k,
-        shared_ptr<Material> mat)
+        shared_ptr<PTMaterial> mat)
         : x0(_x0), x1(_x1), y0(_y0), y1(_y1), k(_k), mp(mat) {
     //model = glm::mat4(1.0f);
 };
@@ -62,7 +62,7 @@ xz_rect::xz_rect() {
 }
 
 xz_rect::xz_rect(double _x0, double _x1, double _z0, double _z1, double _k,
-        shared_ptr<Material> mat)
+        shared_ptr<PTMaterial> mat)
         : x0(_x0), x1(_x1), z0(_z0), z1(_z1), k(_k), mp(mat) {
     //model = glm::mat4(model);
 };
@@ -114,7 +114,7 @@ yz_rect::yz_rect() {
 }
 
 yz_rect::yz_rect(double _y0, double _y1, double _z0, double _z1, double _k,
-        shared_ptr<Material> mat)
+        shared_ptr<PTMaterial> mat)
         : y0(_y0), y1(_y1), z0(_z0), z1(_z1), k(_k), mp(mat) {
     //model = glm::mat4(1.0f);
 };

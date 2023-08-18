@@ -9,7 +9,7 @@ using point3 = glm::vec3;
 using std::shared_ptr;
 
 namespace PT {
-    class Material;
+    class PTMaterial;
     class Ray;
     class hit_record;
     class AABB;
@@ -17,7 +17,7 @@ namespace PT {
     class Box: public hittable {
     public:
         Box();
-		Box(const point3& p0, const point3& p1, shared_ptr<Material> ptr);
+		Box(const point3& p0, const point3& p1, shared_ptr<PTMaterial> ptr);
 
         //void setModel(glm::mat4 model) override;
 

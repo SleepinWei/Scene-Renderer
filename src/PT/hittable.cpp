@@ -8,11 +8,11 @@
 #include "PT/hittable.h"
 using namespace PT;
 
-void hittable::addTexture(std::shared_ptr<Material> &mat)
+void hittable::addTexture(std::shared_ptr<PTMaterial> &mat)
 {
 }
 
-PT::Sphere::Sphere(const vec3 &center, double radius, std::shared_ptr<Material> material) : center(center), radius(radius), mat_ptr(material)
+PT::Sphere::Sphere(const vec3 &center, double radius, std::shared_ptr<PTMaterial> material) : center(center), radius(radius), mat_ptr(material)
 {
 }
 
@@ -137,7 +137,7 @@ bool PT::Sphere::hit(const Ray &r, double t_min, double t_max, hit_record &rec) 
 	return true;
 }
 
-void PT::Sphere::addTexture(std::shared_ptr<Material> &mat)
+void PT::Sphere::addTexture(std::shared_ptr<PTMaterial> &mat)
 {
 	this->mat_ptr = mat;
 }
@@ -163,7 +163,7 @@ vec3 Sphere::random(const vec3 &o) const
 	return uvw.local(random_to_sphere(radius, distance_squared));
 }
 
-PT::Triangle::Triangle(const Vertex &a, const Vertex &b, const Vertex &c, const shared_ptr<Material> &m)
+PT::Triangle::Triangle(const PTVertex &a, const PTVertex &b, const PTVertex &c, const shared_ptr<PTMaterial> &m)
 {
 	this->a = a;
 	this->b = b;

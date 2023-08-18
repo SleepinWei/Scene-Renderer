@@ -33,27 +33,30 @@ bool TransHittable::hit(const Ray &r, double t_min, double t_max, hit_record &re
 	local_r.orig = inv_model * glm::vec4(r.orig, 1.0f);
 	local_r.dir = inv_model * glm::vec4(r.dir, 0.0f);
 	// bool isHit = object->hit(local_r, t_min, t_max, rec);
-	bool isHit = object->hit(local_r, t_min, INFINITY, local_rec);
+	float len = sqrtf(glm::dot(local_r.dir,local_r.dir));
+	local_r.dir = glm::normalize(local_r.dir);
+
+	bool isHit = object->hit(local_r, t_min, rec.t * len, local_rec);
 
 	if (!isHit)
 	{
 		return false;
 	}
 
-	double newt = 0.0f;
+	double newt = local_rec.t / len;
 	vec3 newp = model * glm::vec4(local_rec.p, 1.0f);
-	if (fabs(r.dir.x) > 1e-6)
-	{
-		newt = (newp.x - r.orig.x) / (r.dir.x);
-	}
-	else if (fabs(r.dir.y) > 1e-6)
-	{
-		newt = (newp.y - r.orig.y) / (r.dir.y);
-	}
-	else
-	{
-		newt = (newp.z - r.orig.z) / (r.dir.z);
-	}
+	// if (fabs(r.dir.x) > 1e-6)
+	// {
+		// newt = (newp.x - r.orig.x) / (r.dir.x);
+	// }
+	// else if (fabs(r.dir.y) > 1e-6)
+	// {
+		// newt = (newp.y - r.orig.y) / (r.dir.y);
+	// }
+	// else
+	// {
+		// newt = (newp.z - r.orig.z) / (r.dir.z);
+	// }
 
 	if (rec.t < newt)
 	{
@@ -112,7 +115,7 @@ bool TransHittable::bounding_box(double time0, double time1, AABB &output_box) c
 	return returnVal;
 }
 
-void TransHittable::addTexture(std::shared_ptr<Material> &mat)
+void TransHittable::addTexture(std::shared_ptr<PTMaterial> &mat)
 {
 	if (object)
 		object->addTexture(mat);

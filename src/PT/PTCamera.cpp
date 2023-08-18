@@ -3,7 +3,7 @@
 using glm::radians;
 using namespace PT;
 
-PT::Camera::Camera(
+PT::PTCamera::PTCamera(
 	vec3 lookfrom, vec3 lookat,
 	vec3 vup,
 	float fov,
@@ -29,6 +29,6 @@ PT::Camera::Camera(
 	lower_left_corner = origin - horizontal / 2.0f - vertical / 2.0f - w;
 }
 
-PT::Ray PT::Camera::get_ray(float u, float v)const{
+PT::Ray PT::PTCamera::get_ray(float u, float v)const{
 	return Ray(origin, lower_left_corner + u * horizontal + v * vertical - origin);
 }
