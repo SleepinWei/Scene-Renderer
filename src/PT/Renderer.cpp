@@ -1,18 +1,18 @@
 #include "PT\Renderer.h"
+#include "PT/Renderer.h"
 #include "PT\PTCamera.h"
 #include "PT\PTMaterial.h"
 #include "PT\PTRay.h"
+#include "PT\PTScene.h"
 #include "PT\PTrandom.h"
 #include "PT\hittable.h"
-#include"utils/log.h"
-#include"PT\PTScene.h"
+#include "utils/log.h"
+#include <PT/BVH.h>
+#include <PT/pdf.h>
 #include <glm/glm.hpp>
 #include <iostream>
+#include <memory>
 #include <utility>
-#include<PT/pdf.h>
-#include<memory>
-#include "PT/Renderer.h"
-#include<PT/BVH.h>
 
 using namespace PT;
 using std::make_shared;
@@ -22,10 +22,13 @@ void Renderer::write_color(const vec3 &color, int samples_per_pixel, int pos)
 	auto r = color.x;
 	auto g = color.y;
 	auto b = color.z;
-    // Replace NaN components with zero.
-    if (r != r) r = 0.0;
-    if (g != g) g = 0.0;
-    if (b != b) b = 0.0;
+	// Replace NaN components with zero.
+	if (r != r)
+		r = 0.0;
+	if (g != g)
+		g = 0.0;
+	if (b != b)
+		b = 0.0;
 	float scale = 1.0f / samples_per_pixel;
 
 	r = sqrtf(scale * r);
@@ -64,13 +67,12 @@ Renderer::~Renderer()
 	delete[] resultImage;
 }
 
-
-
 void Renderer::render(shared_ptr<PTScene> scene, int threadNum)
 {
-	auto camera = scene->camera; 
+	auto camera = scene->camera;
 
-	if(!camera){
+	if (!camera)
+	{
 		LOG_ERROR("PTScene no camera");
 		return;
 	}
@@ -86,11 +88,12 @@ void Renderer::render(shared_ptr<PTScene> scene, int threadNum)
 		interval += 1;
 	}
 
+	LOG_INFO("Running with " << threadNum << "threads");
 	for (int i = 0; i < threadNum; i++)
 	{
 		int start = i * interval;
 		int end = std::min(start + interval - 1, h - 1);
-		std::thread t(&Renderer::threadRender, this,scene, start, end);
+		std::thread t(&Renderer::threadRender, this, scene, start, end, i);
 		threads.push_back(std::move(t));
 	}
 }
@@ -122,8 +125,9 @@ vec3 Renderer::rayColor(shared_ptr<PTScene> scene, const Ray &r, int depth)
 		return emitted;
 	}
 
-	if(srec.is_specular){
-		return srec.attenuation * rayColor(scene,srec.specular_ray, depth - 1);
+	if (srec.is_specular)
+	{
+		return srec.attenuation * rayColor(scene, srec.specular_ray, depth - 1);
 	}
 
 	auto light_ptr = make_shared<hittable_pdf>(lights, rec.p);
@@ -135,14 +139,14 @@ vec3 Renderer::rayColor(shared_ptr<PTScene> scene, const Ray &r, int depth)
 	float scattering_pdf = rec.mat_ptr->scattering_pdf(r, rec, scattered);
 
 	vec3 color_from_scatter =
-		(srec.attenuation * scattering_pdf * rayColor(scene,scattered, depth - 1)) / (float)pdf_val;
+		(srec.attenuation * scattering_pdf * rayColor(scene, scattered, depth - 1)) / (float)pdf_val;
 	// vec3 color_from_scatter = attenuation * rayColor(scattered, depth - 1);
 
 	vec3 finalColor = emitted + color_from_scatter;
 	return finalColor;
 }
 
-void Renderer::threadRender(shared_ptr<PTScene> scene,int start, int end)
+void Renderer::threadRender(shared_ptr<PTScene> scene, int start, int end, int id)
 {
 	auto camera = scene->camera;
 
@@ -150,11 +154,10 @@ void Renderer::threadRender(shared_ptr<PTScene> scene,int start, int end)
 	int w = camera->width;
 
 	int samples_per_pixel = this->samples;
-	auto id = std::this_thread::get_id();
 
 	for (int j = end; j >= start; j--)
 	{
-		if ( (end - j) % 5 == 0)
+		if (id == 0 && (end - j) % 5 == 0)
 		{
 			printMtx.lock();
 			std::cerr << "Thread: " << id << " Progress: " << (end - j) * 1.0 / (end - start) * 100 << " % \n";
@@ -177,7 +180,7 @@ void Renderer::threadRender(shared_ptr<PTScene> scene,int start, int end)
 		}
 	}
 }
-void Renderer::writeToFile(shared_ptr<PTScene> scene,const std::string &filename)
+void Renderer::writeToFile(shared_ptr<PTScene> scene, const std::string &filename)
 {
 	for (int i = 0; i < threads.size(); i++)
 	{

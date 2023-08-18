@@ -45,7 +45,7 @@ namespace PT
 		}
 		void init(int samples, int max_depth);
 		void render(shared_ptr<PTScene> scene, int threadNum);
-		void threadRender(shared_ptr<PTScene> scene,int start, int end);
+		void threadRender(shared_ptr<PTScene> scene,int start, int end,int id);
 		void writeToFile(shared_ptr<PTScene> scene,const std::string &filename);
 
 	public:
