@@ -45,18 +45,6 @@ bool TransHittable::hit(const Ray &r, double t_min, double t_max, hit_record &re
 
 	double newt = local_rec.t / len;
 	vec3 newp = model * glm::vec4(local_rec.p, 1.0f);
-	// if (fabs(r.dir.x) > 1e-6)
-	// {
-		// newt = (newp.x - r.orig.x) / (r.dir.x);
-	// }
-	// else if (fabs(r.dir.y) > 1e-6)
-	// {
-		// newt = (newp.y - r.orig.y) / (r.dir.y);
-	// }
-	// else
-	// {
-		// newt = (newp.z - r.orig.z) / (r.dir.z);
-	// }
 
 	if (rec.t < newt)
 	{

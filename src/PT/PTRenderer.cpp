@@ -53,6 +53,7 @@ PTRenderer::PTRenderer()
 	this->samples = 0;
 	this->max_depth = 0;
 	this->pixelCnt = 0;
+	this->resultImage = nullptr;
 	background = vec3(0, 0, 0);
 }
 
@@ -65,7 +66,8 @@ void PTRenderer::init(int samples, int max_depth)
 
 PTRenderer::~PTRenderer()
 {
-	delete[] resultImage;
+	if(resultImage)
+		delete[] resultImage;
 }
 
 void PTRenderer::render(shared_ptr<PTScene> scene, int threadNum)
@@ -190,6 +192,7 @@ void PTRenderer::threadRender(shared_ptr<PTScene> scene, int start, int end, int
 		}
 	}
 }
+#include<fstream>
 void PTRenderer::writeToFile(shared_ptr<PTScene> scene, const std::string &filename)
 {
 	for (int i = 0; i < threads.size(); i++)
@@ -205,8 +208,9 @@ void PTRenderer::writeToFile(shared_ptr<PTScene> scene, const std::string &filen
 
 	int w = camera->width;
 	int h = camera->height;
-	freopen(filename.c_str(), "w", stdout);
-	std::cout << "P3\n"
+
+	std::ofstream fout(filename);
+	fout << "P3\n"
 			  << w << ' ' << h << "\n255\n";
 
 	for (int j = h - 1; j >= 0; j--)
@@ -214,11 +218,13 @@ void PTRenderer::writeToFile(shared_ptr<PTScene> scene, const std::string &filen
 		for (int i = 0; i < w; i++)
 		{
 			int index = j * w + i;
-			std::cout << resultImage[3 * index] << ' ' << resultImage[3 * index + 1]
+			fout << resultImage[3 * index] << ' ' << resultImage[3 * index + 1]
 					  << ' ' << resultImage[3 * index + 2] << '\n';
 		}
 	}
-	fclose(stdout);
+	fout.close();
+	delete[] resultImage;
+	resultImage = nullptr;
 }
 
 void PTConfig::parse(json &data)

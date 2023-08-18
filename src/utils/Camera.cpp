@@ -97,7 +97,7 @@ glm::mat4 Camera::GetViewMatrix ()const
 }
 
 glm::mat4 Camera:: GetPerspective()const {
-	float aspect = std::max(aspect_ratio, 0.1f);
+	float aspect = std::max((float)aspect_ratio, 0.1f);
 	return glm::perspective(glm::radians(Zoom), aspect, 0.1f, 1000.0f);
 }
 

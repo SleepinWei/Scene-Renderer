@@ -28,7 +28,7 @@ PTCamera::PTCamera(
 	origin = lookfrom;
 	horizontal = viewport_width * u;
 	vertical = viewport_height * v;
-	lower_left_corner = origin - horizontal / 2.0f - vertical / 2.0f - w;
+	lower_left_corner = origin - horizontal / 2.0f - vertical / 2.0f + w;
 }
 
 Ray PTCamera::get_ray(float u, float v)const{
