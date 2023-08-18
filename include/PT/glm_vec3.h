@@ -3,7 +3,7 @@
 #include<PT/PTrandom.h>
 using glm::vec3;
 #define PI 3.1415926f
-#define INFINITY 1e8
+constexpr double PT_INFINITY = std::numeric_limits<double>::max();
 
 bool nearZero(const vec3& v);
 //vec3 random_in_unit_sphere();

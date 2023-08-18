@@ -16,6 +16,7 @@ PTScene::PTScene()
     bvh = nullptr;
     lights = make_shared<hittable_list>();
     objects = make_shared<hittable_list>();
+    other_objects = make_shared<hittable_list>();
 }
 
 void PTScene::addObject(std::shared_ptr<hittable> object)

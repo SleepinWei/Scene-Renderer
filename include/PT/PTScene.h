@@ -7,7 +7,6 @@
 
 using std::shared_ptr;
 using std::make_shared; 
-using namespace PT;
 
 class RenderScene;
 class PTScene{
@@ -16,7 +15,8 @@ public:
     shared_ptr<PTCamera> camera;
     shared_ptr<BVH_Node> bvh;
     shared_ptr<hittable_list> lights; 
-    shared_ptr<hittable_list> objects; 
+    shared_ptr<hittable_list> objects;
+    shared_ptr<hittable_list> other_objects; // objects that have no bounding box
 
 public:
     void addObject(shared_ptr<hittable> object);

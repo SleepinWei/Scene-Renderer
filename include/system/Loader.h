@@ -29,7 +29,7 @@ public:
 	//std::mutex istream_lock;
 	std::vector<std::thread> threadpool;
 	//std::queue<std::thread> threadQueue;
-	const int maxThread = 16;
+	int maxThread;
 
 public:
 	void loadObject(std::shared_ptr<RenderScene>& scene, const std::string& filename);

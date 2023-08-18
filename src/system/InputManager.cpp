@@ -11,7 +11,7 @@ void InputManager::reset() {
 }
 
 InputManager::InputManager() {
-	keyStatus = std::vector<int>(20,0);
+	keyStatus = std::vector<int>(KEY_NUM,0);
 	cursorEnbaled = true;
 
 	lastX = 0;

@@ -7,7 +7,7 @@
 using std::shared_ptr; 
 
 class onb;
-using namespace PT;
+
 
 class pdf
 {
@@ -64,6 +64,10 @@ class mixture_pdf : public pdf {
         mixture_pdf(shared_ptr<pdf> p0, shared_ptr<pdf> p1) {
             p[0] = p0;
             p[1] = p1;
+        }
+
+        mixture_pdf(){
+            p[0] = p[1] = nullptr;
         }
 
         virtual double value(const vec3& direction) const override {

@@ -6,7 +6,7 @@
 #include<utility>
 
 Loader::Loader() {
-
+	maxThread = std::max(1u,std::thread::hardware_concurrency() - 2);
 }
 
 Loader::~Loader() {
@@ -66,7 +66,8 @@ void Loader::loadSceneAsync(std::shared_ptr<RenderScene>& scene, const std::stri
 		for (auto iter = objectData.begin(); iter != objectData.end(); ++iter) {
 			objectname.emplace_back(iter.key());
 		}
-		for (int i = 0; i < maxThread; ++i) {
+		int num_thread = std::min(maxThread, (int)objectData.size());
+		for (int i = 0; i < num_thread; ++i) {
 			std::thread loadThread = std::thread(&Loader::loadObjectAsync, this, scene, objectData,objectname, i);
 			threadpool.push_back(std::move(loadThread));
 		}

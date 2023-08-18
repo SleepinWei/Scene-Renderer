@@ -6,8 +6,8 @@
 #include<PT/hittable/Rect.h>
 #include<utility>
 
-using namespace PT;
-class PT::PTMaterial;
+
+class PTMaterial;
 using std::make_shared;
 using std::shared_ptr;
 
@@ -62,23 +62,18 @@ void cornell_box(shared_ptr<PTScene> scene) {
 	scene->addObject(b2_model);
 }
 
-void PT::render() {
+void PathTracingRun(shared_ptr<PTScene> pt_scene) {
 	srand(time(0));
-	int samples = 20;
-	int max_depth = 1;
+	auto config = PTConfig::GetInstance();
 
-	// std::shared_ptr<PTRenderer> renderer = std::make_shared<PTRenderer>(samples,max_depth);
+	int samples = config->samples;
+	int max_depth = config->max_depth;
+
 	auto renderer = PTRenderer::GetInstance();
 	renderer->init(samples, max_depth);
-	shared_ptr<PTScene> scene = make_shared<PTScene>();
 
-	// world 
-	cornell_box(scene);
-
-	scene->buildBVH();
-
-	int threadNum = std::max(0u,std::thread::hardware_concurrency() - 1);
-	renderer->GetInstance()->render(scene,threadNum);
-	renderer->writeToFile(scene,"./out.ppm");
+	int threadNum = std::max(1u,std::thread::hardware_concurrency() - 1);
+	renderer->GetInstance()->render(pt_scene,threadNum);
+	renderer->writeToFile(pt_scene,"./out.ppm");
 }
 

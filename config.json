@@ -1,4 +1,9 @@
 {
-    "gui" : true,
-    "scene": "./asset/objects/secne2.json"
+    "gui" : false,
+    "scene": "./asset/objects/scene2.json",
+    "tracer":{
+        "samples" : 20,
+        "max_depth" : 1,
+        "useBVH": true
+    }
 }

@@ -9,14 +9,14 @@
 #include <iostream>
 using std::make_shared;
 
-using namespace PT;
+
 using glm::normalize;
 
-PT::Lambertian::Lambertian(const vec3 &a)
+Lambertian::Lambertian(const vec3 &a)
 	: albedo(std::make_shared<SolidColor>(a))
 {
 }
-bool PT::Lambertian::scatter(
+bool Lambertian::scatter(
 	const Ray &r, const hit_record &rec, scatter_record &srec) const
 {
 	srec.is_specular = false;
@@ -31,10 +31,10 @@ double Lambertian::scattering_pdf(const Ray &r_in, const hit_record &rec, const 
 	return cos_theta < 0 ? 0 : cos_theta / PI;
 }
 
-PT::Metal::Metal(const vec3 &a, double f) : albedo(a), fuzz(f < 1 ? f : 1)
+Metal::Metal(const vec3 &a, double f) : albedo(a), fuzz(f < 1 ? f : 1)
 {
 }
-bool PT::Metal::scatter(
+bool Metal::scatter(
 	const Ray &r_in, const hit_record &rec, scatter_record &srec) const
 {
 	vec3 reflected = glm::reflect(glm::normalize(r_in.dir), rec.normal);
@@ -45,11 +45,11 @@ bool PT::Metal::scatter(
 	srec.pdf_ptr = nullptr;
 	return true;
 }
-PT::Dielectric::Dielectric(double index_of_refraction) : ir(index_of_refraction)
+Dielectric::Dielectric(double index_of_refraction) : ir(index_of_refraction)
 {
 }
 
-bool PT::Dielectric::scatter(
+bool Dielectric::scatter(
 	const Ray &r_in, const hit_record &rec, scatter_record &srec) const
 {
 	srec.is_specular = true;
@@ -72,7 +72,7 @@ bool PT::Dielectric::scatter(
 	srec.specular_ray = Ray(rec.p, direction);
 	return true;
 }
-double PT::Dielectric::reflectance(double cosine, double ref_idx)
+double Dielectric::reflectance(double cosine, double ref_idx)
 {
 	// Use Schlik's approximation
 	auto r0 = (1 - ref_idx) / (1 + ref_idx);
@@ -94,17 +94,17 @@ vec3 DiffuseLight::emitted(float u, float v, const vec3 &p) const
 
 DiffuseLight::DiffuseLight(vec3 c)
 {
-	emit = std::static_pointer_cast<Texture>(
+	emit = std::static_pointer_cast<PTTexture>(
 		std::make_shared<SolidColor>(c));
 	intensity = 1.0f;
 }
-DiffuseLight::DiffuseLight(std::shared_ptr<Texture> a) : emit(a)
+DiffuseLight::DiffuseLight(std::shared_ptr<PTTexture> a) : emit(a)
 {
 	intensity = 1.0f;
 }
 
 Isotropic::Isotropic(vec3 c) : albedo(std::make_shared<SolidColor>(c)) {}
-Isotropic::Isotropic(shared_ptr<Texture> a) : albedo(a) {}
+Isotropic::Isotropic(shared_ptr<PTTexture> a) : albedo(a) {}
 
 // never called and should not be called; 
 bool Isotropic::scatter(

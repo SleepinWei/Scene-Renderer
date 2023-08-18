@@ -2,16 +2,16 @@
 #include"PT/PTTexture.h"
 #include<stb/stb_image.h>
 #include"PT/PTrandom.h"
-using namespace PT;
 
-ImageTexture::ImageTexture() {
+
+PTImageTexture::PTImageTexture() {
 	data = nullptr;
 	width = height = 0;
 	bytes_per_scanline = 0;
 	path = "";
 }
 
-ImageTexture::ImageTexture(const std::string& path) {
+PTImageTexture::PTImageTexture(const std::string& path) {
 	this->path = path;
 	
 	auto channels = bytes_per_pixel;
@@ -21,13 +21,13 @@ ImageTexture::ImageTexture(const std::string& path) {
 
 	bytes_per_scanline = width * bytes_per_pixel;
 }
-ImageTexture::~ImageTexture() {
+PTImageTexture::~PTImageTexture() {
 	if (data) {
 		stbi_image_free(data);
 	}
 }
 
-vec3 ImageTexture::value(float u, float v, const vec3& p)const {
+vec3 PTImageTexture::value(float u, float v, const vec3& p)const {
     // If we have no texture data, then return solid cyan as a debugging aid.
     if (data == nullptr)
         return vec3(0, 1, 1);

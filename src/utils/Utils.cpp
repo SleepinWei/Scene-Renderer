@@ -99,6 +99,10 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         if (key == GLFW_KEY_LEFT_SHIFT || key == GLFW_KEY_RIGHT_SHIFT) {
             InputManager::GetInstance()->keyStatus[KEY_SHIFT] = PRESSED;
         }
+        
+        if (key == GLFW_KEY_R){
+            InputManager::GetInstance()->keyStatus[KEY_R] = PRESSED;
+        }
 	}
     else if (action == GLFW_RELEASE) {
         if (key == GLFW_KEY_W) {
@@ -132,6 +136,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         if (key == GLFW_KEY_LEFT_SHIFT || key == GLFW_KEY_RIGHT_SHIFT) {
             InputManager::GetInstance()->keyStatus[KEY_SHIFT] = RELEASED;
         }
+
     }
 }
 

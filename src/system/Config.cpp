@@ -1,4 +1,5 @@
 #include "system/Config.h"
+#include "PT/Connector.h"
 #include<fstream>
 using std::ifstream; 
 
@@ -12,5 +13,8 @@ void Config::parse(const string &filename)
     }
     if(data.find("scene") != data.end()){
         scene_file = data["scene"].get<string>();
+    }
+    if(data.find("tracer")!=data.end()){
+        Connector::GetInstance()->passDataToPTConfig(data["tracer"]);
     }
 }

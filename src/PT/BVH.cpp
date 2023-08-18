@@ -4,22 +4,22 @@
 #include<algorithm>
 #include "PT/BVH.h"
 
-using namespace PT;
+
 
 BVH_Node::BVH_Node() {
 
 }
 
-PT::BVH_Node::BVH_Node(const hittable_list& list, double time0, double time1):
+BVH_Node::BVH_Node(const hittable_list& list, double time0, double time1):
 	BVH_Node(list.objects,0,list.objects.size(),time0,time1) {
 	
 }
-PT::BVH_Node::BVH_Node(const shared_ptr<hittable_list> &list) : 
+BVH_Node::BVH_Node(const shared_ptr<hittable_list> &list) : 
 	BVH_Node(list->objects,0,list->objects.size(),0,0)
 {
 }
 
-PT::BVH_Node::BVH_Node(
+BVH_Node::BVH_Node(
 	const std::vector<std::shared_ptr<hittable>>& src_objects,
 	size_t start, size_t end, double time0, double time1
 ) {
@@ -63,7 +63,7 @@ PT::BVH_Node::BVH_Node(
 	box = AABB::surrounding_box(box_left, box_right);
 }
 
-bool PT::BVH_Node::hit(const Ray& r, double t_min, double t_max, hit_record& rec) const {
+bool BVH_Node::hit(const Ray& r, double t_min, double t_max, hit_record& rec) const {
 	if (!box.hit(r, t_min, t_max))
 		return false;
 
@@ -72,12 +72,12 @@ bool PT::BVH_Node::hit(const Ray& r, double t_min, double t_max, hit_record& rec
 
 	return hit_left || hit_right;
 }
-bool PT::BVH_Node::bounding_box(double time0, double time1, AABB& output_box) const {
+bool BVH_Node::bounding_box(double time0, double time1, AABB& output_box) const {
 	output_box = box;
 	return true;
 }
 
-inline bool PT::box_compare(const std::shared_ptr<hittable> a, const std::shared_ptr<hittable> b, int axis) {
+inline bool box_compare(const std::shared_ptr<hittable> a, const std::shared_ptr<hittable> b, int axis) {
 	AABB box_a;
 	AABB box_b;
 
@@ -88,15 +88,15 @@ inline bool PT::box_compare(const std::shared_ptr<hittable> a, const std::shared
 }
 
 
-bool PT::box_x_compare(const std::shared_ptr<hittable> a, const std::shared_ptr<hittable> b) {
+bool box_x_compare(const std::shared_ptr<hittable> a, const std::shared_ptr<hittable> b) {
 	return box_compare(a, b, 0);
 }
 
-bool PT::box_y_compare(const std::shared_ptr<hittable> a, const std::shared_ptr<hittable> b) {
+bool box_y_compare(const std::shared_ptr<hittable> a, const std::shared_ptr<hittable> b) {
 	return box_compare(a, b, 1);
 }
 
-bool PT::box_z_compare(const std::shared_ptr<hittable> a, const std::shared_ptr<hittable> b) {
+bool box_z_compare(const std::shared_ptr<hittable> a, const std::shared_ptr<hittable> b) {
 	return box_compare(a, b, 2);
 }
 

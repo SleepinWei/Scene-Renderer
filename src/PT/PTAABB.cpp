@@ -2,9 +2,9 @@
 #include"PT/PTAABB.h"
 #include"PT/PTRay.h"
 
-using namespace PT;
 
-PT::AABB::AABB(const vec3& a, const vec3& b):
+
+AABB::AABB(const vec3& a, const vec3& b):
 	minimum(a),maximum(b) {
 }
 
@@ -21,7 +21,7 @@ AABB::AABB(const AABB& box_) {
     maximum = box_.maximum;
 }
 
-bool PT::AABB::hit(const Ray& r, double t_min, double t_max)const {
+bool AABB::hit(const Ray& r, double t_min, double t_max)const {
      for (int a = 0; a < 3; a++) {
         auto invD = 1.0f / r.dir[a];
         auto t0 = (minimum[a] - r.orig[a]) * invD;

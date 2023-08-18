@@ -14,7 +14,7 @@
 #include <memory>
 #include <utility>
 
-using namespace PT;
+
 using std::make_shared;
 
 void PTRenderer::write_color(const vec3 &color, int samples_per_pixel, int pos)
@@ -53,6 +53,7 @@ PTRenderer::PTRenderer()
 	this->samples = 0;
 	this->max_depth = 0;
 	this->pixelCnt = 0;
+	background = vec3(0, 0, 0);
 }
 
 void PTRenderer::init(int samples, int max_depth)
@@ -110,12 +111,16 @@ vec3 PTRenderer::rayColor(shared_ptr<PTScene> scene, const Ray &r, int depth)
 		return vec3(0, 0, 0);
 	}
 
-	bool isHit = world->hit(r, 0.001, infinity, rec);
+	bool isHit = world->hit(r, 0.001, PT_INFINITY, rec);
 	if (!isHit)
 	{
-		return background;
+		// hit other objects 
+		if(!scene->other_objects->hit(r,0.001,PT_INFINITY,rec)){
+			return background;
+		}
 	}
 
+	// scatter direction 
 	scatter_record srec;
 	vec3 emitted = rec.mat_ptr->emitted(rec.u, rec.v, rec.p);
 
@@ -130,7 +135,11 @@ vec3 PTRenderer::rayColor(shared_ptr<PTScene> scene, const Ray &r, int depth)
 		return srec.attenuation * rayColor(scene, srec.specular_ray, depth - 1);
 	}
 
-	auto light_ptr = make_shared<hittable_pdf>(lights, rec.p);
+	shared_ptr<pdf> light_ptr = make_shared<hittable_pdf>(lights, rec.p);
+	if(lights->objects.size() == 0){
+		// no ordinary lights
+		light_ptr = srec.pdf_ptr;
+	}
 	mixture_pdf p(light_ptr, srec.pdf_ptr);
 
 	Ray scattered = Ray(rec.p, p.generate());
@@ -205,4 +214,11 @@ void PTRenderer::writeToFile(shared_ptr<PTScene> scene, const std::string &filen
 		}
 	}
 	fclose(stdout);
+}
+
+void PTConfig::parse(json &data)
+{
+	this->samples = data["samples"].get<int>();
+	this->max_depth = data["max_depth"].get<int>();
+	this->bUseBVH = data["useBVH"].get<bool>();
 }

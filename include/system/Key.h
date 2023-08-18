@@ -17,6 +17,10 @@
 #define KEY_SHIFT 18
 #define ALT_PRESSED 19
 #define KEY_ALT 19
+#define KEY_R 20
+#define R_PRESSED 20
+
+#define KEY_NUM 21
 
 #define ESC_PRESSED 4
 #define MOUSE_CLICKED_LEFT 5

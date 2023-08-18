@@ -6,37 +6,37 @@
 #include "PT/onb.h"
 #include "PT/hittable.h"
 #include "PT/hittable.h"
-using namespace PT;
+
 
 void hittable::addTexture(std::shared_ptr<PTMaterial> &mat)
 {
 }
 
-PT::Sphere::Sphere(const vec3 &center, double radius, std::shared_ptr<PTMaterial> material) : center(center), radius(radius), mat_ptr(material)
+Sphere::Sphere(const vec3 &center, double radius, std::shared_ptr<PTMaterial> material) : center(center), radius(radius), mat_ptr(material)
 {
 }
 
-void PT::hit_record::set_face_normal(const Ray &r, const vec3 &outward_normal)
+void hit_record::set_face_normal(const Ray &r, const vec3 &outward_normal)
 {
 	this->front_face = dot(r.dir, outward_normal) < 0;
 	this->normal = front_face ? outward_normal : -outward_normal;
 }
-PT::hittable_list::hittable_list(std::shared_ptr<hittable> object)
+hittable_list::hittable_list(std::shared_ptr<hittable> object)
 {
 	add(object);
 }
 
-void PT::hittable_list::clear()
+void hittable_list::clear()
 {
 	objects.clear();
 }
 
-void PT::hittable_list::add(std::shared_ptr<hittable> object)
+void hittable_list::add(std::shared_ptr<hittable> object)
 {
 	objects.push_back(object);
 }
 
-bool PT::hittable_list::hit(const Ray &r, double t_min, double t_max, hit_record &rec) const
+bool hittable_list::hit(const Ray &r, double t_min, double t_max, hit_record &rec) const
 {
 	hit_record temp_rec;
 	bool hit_anything = false;
@@ -55,7 +55,7 @@ bool PT::hittable_list::hit(const Ray &r, double t_min, double t_max, hit_record
 	return hit_anything;
 }
 
-bool PT::Sphere::bounding_box(double time0, double time1, AABB &output_box) const
+bool Sphere::bounding_box(double time0, double time1, AABB &output_box) const
 {
 	output_box = AABB(
 		center - vec3(radius, radius, radius),
@@ -63,7 +63,7 @@ bool PT::Sphere::bounding_box(double time0, double time1, AABB &output_box) cons
 	return true;
 }
 
-bool PT::hittable_list::bounding_box(double time0, double time1, AABB &output_box) const
+bool hittable_list::bounding_box(double time0, double time1, AABB &output_box) const
 {
 	if (objects.empty())
 		return false;
@@ -82,7 +82,7 @@ bool PT::hittable_list::bounding_box(double time0, double time1, AABB &output_bo
 	return true;
 }
 
-void PT::Sphere::get_sphere_uv(const vec3 &p, float &u, float &v)
+void Sphere::get_sphere_uv(const vec3 &p, float &u, float &v)
 {
 	// p: a given point on the sphere of radius one, centered at the origin.
 	// u: returned value [0,1] of angle around the Y axis from X=-1.
@@ -98,11 +98,11 @@ void PT::Sphere::get_sphere_uv(const vec3 &p, float &u, float &v)
 	v = theta / PI;
 }
 
-PT::Sphere::~Sphere()
+Sphere::~Sphere()
 {
 }
 
-bool PT::Sphere::hit(const Ray &r, double t_min, double t_max, hit_record &rec) const
+bool Sphere::hit(const Ray &r, double t_min, double t_max, hit_record &rec) const
 {
 	float t = -1.0f;
 	vec3 ooc = r.orig - center;
@@ -137,7 +137,7 @@ bool PT::Sphere::hit(const Ray &r, double t_min, double t_max, hit_record &rec) 
 	return true;
 }
 
-void PT::Sphere::addTexture(std::shared_ptr<PTMaterial> &mat)
+void Sphere::addTexture(std::shared_ptr<PTMaterial> &mat)
 {
 	this->mat_ptr = mat;
 }
@@ -145,7 +145,7 @@ void PT::Sphere::addTexture(std::shared_ptr<PTMaterial> &mat)
 double Sphere::pdf_value(const vec3 &o, const vec3 &v) const
 {
 	hit_record rec;
-	if (!this->hit(Ray(o, v), 0.001, INFINITY, rec))
+	if (!this->hit(Ray(o, v), 0.001, PT_INFINITY, rec))
 		return 0;
 
 	auto cos_theta_max = sqrt(1 - radius * radius / glm::dot(center - o, center - o));
@@ -163,7 +163,7 @@ vec3 Sphere::random(const vec3 &o) const
 	return uvw.local(random_to_sphere(radius, distance_squared));
 }
 
-PT::Triangle::Triangle(const PTVertex &a, const PTVertex &b, const PTVertex &c, const shared_ptr<PTMaterial> &m)
+Triangle::Triangle(const PTVertex &a, const PTVertex &b, const PTVertex &c, const shared_ptr<PTMaterial> &m)
 {
 	this->a = a;
 	this->b = b;
@@ -171,11 +171,11 @@ PT::Triangle::Triangle(const PTVertex &a, const PTVertex &b, const PTVertex &c, 
 	this->mat_ptr = m;
 }
 
-PT::Triangle::~Triangle()
+Triangle::~Triangle()
 {
 }
 
-bool PT::Triangle::hit(const Ray &r, double t_min, double t_max, hit_record &rec) const
+bool Triangle::hit(const Ray &r, double t_min, double t_max, hit_record &rec) const
 {
 	vec3 origin = r.orig;
     vec3 d = r.dir;
@@ -214,10 +214,29 @@ bool PT::Triangle::hit(const Ray &r, double t_min, double t_max, hit_record &rec
     return true;
 }
 
-bool PT::Triangle::bounding_box(double time0, double time1, AABB &output_box) const
+bool Triangle::bounding_box(double time0, double time1, AABB &output_box) const
 {
 	vec3 pos_min = glm::min(glm::min(a.pos, b.pos),c.pos);
 	vec3 pos_max = glm::max(glm::max(a.pos, b.pos), c.pos);
 	output_box = AABB(pos_min, pos_max);
 	return true;
+}
+
+bool Directional::hit(const Ray &r, double t_min, double t_max, hit_record &rec) const
+{
+	// ray 的方向是从 光源开始的
+	float costheta = glm::dot(r.dir, this->dir);
+	if(costheta >= 0 || t_max < PT_INFINITY){
+		return false; 
+	}
+
+	rec.t = PT_INFINITY;
+	rec.mat_ptr = this->mat_ptr;
+	rec.p = r.orig + rec.t * r.dir;
+	return true;
+}
+
+bool Directional::bounding_box(double time0, double time1, AABB &output_box) const
+{
+    return false;
 }

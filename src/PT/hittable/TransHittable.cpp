@@ -2,7 +2,7 @@
 #include "PT/PTAABB.h"
 #include "PT/PTRay.h"
 
-using namespace PT;
+
 
 TransHittable::TransHittable()
 {

@@ -4,8 +4,9 @@
 #include"PT/PTRay.h"
 #include"PT/PTTexture.h"
 #include"PT/PTMaterial.h"
+#include"PT/glm_vec3.h"
 #include<iostream>
-using namespace PT;
+
 
 using std::make_shared;
 
@@ -16,12 +17,10 @@ bool Medium::hit(
 
     hit_record rec1, rec2;
 
-    const double infinity = std::numeric_limits<float>::infinity();
-
-    if (!boundary->hit(r, -infinity, infinity, rec1))
+    if (!boundary->hit(r, -PT_INFINITY, PT_INFINITY, rec1))
         return false;
 
-    if (!boundary->hit(r, rec1.t + 0.0001, infinity, rec2))
+    if (!boundary->hit(r, rec1.t + 0.0001, PT_INFINITY, rec2))
         return false;
 
     if (debugging) std::cerr << "\nt_min=" << rec1.t << ", t_max=" << rec2.t << '\n';
@@ -63,7 +62,7 @@ bool Medium::bounding_box(double time0, double time1, AABB& output_box) const {
 	return this->boundary->bounding_box(time0, time1, output_box);
 }
 
-Medium::Medium(shared_ptr<hittable> bound_, float d, shared_ptr<Texture> a)
+Medium::Medium(shared_ptr<hittable> bound_, float d, shared_ptr<PTTexture> a)
 	:boundary(bound_),
 	neg_inv_density(-1.0f/d),
 	phase_function(make_shared<Isotropic>(a))

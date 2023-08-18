@@ -4,7 +4,7 @@
 #include"PT/PTRay.h"
 #include"PT/hittable/Rect.h"
 
-using namespace PT;
+
 
 Box::Box(){
 	//model = glm::mat4(1.0f);

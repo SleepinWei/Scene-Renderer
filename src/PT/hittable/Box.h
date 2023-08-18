@@ -1,35 +1,35 @@
 #pragma once
-#include<glm/glm.hpp>
-#include<memory>
+#include <glm/glm.hpp>
+#include <memory>
 
-#include"PT/hittable.h"
+#include "PT/hittable.h"
 
 using glm::vec3;
 using point3 = glm::vec3;
 using std::shared_ptr;
 
-namespace PT {
-    class PTMaterial;
-    class Ray;
-    class hit_record;
-    class AABB;
+class PTMaterial;
+class Ray;
+class hit_record;
+class AABB;
 
-    class Box: public hittable {
-    public:
-        Box();
-		Box(const point3& p0, const point3& p1, shared_ptr<PTMaterial> ptr);
+class Box : public hittable
+{
+public:
+    Box();
+    Box(const point3 &p0, const point3 &p1, shared_ptr<PTMaterial> ptr);
 
-        //void setModel(glm::mat4 model) override;
+    // void setModel(glm::mat4 model) override;
 
-        virtual bool hit(const Ray& r, double t_min, double t_max, hit_record& rec) const override;
+    virtual bool hit(const Ray &r, double t_min, double t_max, hit_record &rec) const override;
 
-        virtual bool bounding_box(double time0, double time1, AABB& output_box) const override;
-    public:
-        // TODO: add model transformation to all;
-        //glm::mat4 model;
+    virtual bool bounding_box(double time0, double time1, AABB &output_box) const override;
 
-        vec3 box_min;
-        vec3 box_max;
-        hittable_list sides;
-    };
-}
+public:
+    // TODO: add model transformation to all;
+    // glm::mat4 model;
+
+    vec3 box_min;
+    vec3 box_max;
+    hittable_list sides;
+};

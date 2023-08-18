@@ -31,6 +31,8 @@
 #include"system/Loader.h"
 #include"PT/PathTracing.h"
 #include"system/Config.h"
+#include"PT/PTScene.h"
+#include"PT/Connector.h"
 //json
 #include<json/json.hpp>
 using json = nlohmann::json;
@@ -44,49 +46,30 @@ const unsigned int  SCR_WIDTH = 1600;
 const unsigned int SCR_HEIGHT = 900;
 
 // manager
-std::shared_ptr<RenderScene> scene;
 //#define TEST
 //#ifndef TEST
-void render() {
-	glfwInit();
-	GLFWwindow* window; 
-	createWindow(window, SCR_WIDTH, SCR_HEIGHT);
-	glfwMakeContextCurrent(window);
-	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
+shared_ptr<RenderScene> scene;
+
+void RealTimeRun(GLFWwindow* window, shared_ptr<RenderScene>& scene) {
 	
-	//glad
-	gladInit();
-	glEnable(GL_DEPTH_TEST);
-	//glDepthMask(GL_FALSE);
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_BACK);
-	glEnable(GL_PROGRAM_POINT_SIZE);
-	// init Managers 
-	{
-		RenderManager::GetInstance()->init();
-		//renderScene = std::make_shared<RenderScene>();
-	}
-	scene = std::make_shared<RenderScene>();
-	// Camera
-	{
-		std::shared_ptr<Camera> camera = std::make_shared<Camera>();
-		scene->main_camera = camera;
-	}
+	
 	//gui
 	Gui gui(window);
 
-	// configuration
-	auto config = Config::GetInstance();
-	config->parse("./config.json");
 	// model loading
-	Loader::GetInstance()->loadSceneAsync(scene, config->scene_file);
 			
 	while (!glfwWindowShouldClose(window)) {
 		gui.window(scene);
 		glfwPollEvents();
 		//input manager tick
 		InputManager::GetInstance()->tick();
-		
+
+		if(InputManager::GetInstance()->keyStatus[KEY_R] == PRESSED){
+			//阻塞
+			Connector::GetInstance()->LaunchPathTracingWithRenderScene(scene);
+		}
+
 		// camera tick
 		if (scene->main_camera) {
 			scene->main_camera->tick();
@@ -103,14 +86,46 @@ void render() {
 	glfwDestroyWindow(window);
 	glfwTerminate();
 }
-//#endif
 
-//#include"PT/PathTracing.h"
 int main(int argc, char** argv[]) {
 	// 
 	// render();
 	//test();
-	PT::render();
+
+	auto config = Config::GetInstance();
+	config->parse("./config.json");
+
+	glfwInit();
+	GLFWwindow* window; 
+	createWindow(window, SCR_WIDTH, SCR_HEIGHT);
+	glfwMakeContextCurrent(window);
+	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+	
+	//glad
+	gladInit();
+	glEnable(GL_DEPTH_TEST);
+	//glDepthMask(GL_FALSE);
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
+	glEnable(GL_PROGRAM_POINT_SIZE);
+
+	// scene loading
+	scene = std::make_shared<RenderScene>();
+	RenderManager::GetInstance()->init();
+	// Camera
+	{
+		std::shared_ptr<Camera> camera = std::make_shared<Camera>();
+		scene->main_camera = camera;
+	}
+	Loader::GetInstance()->loadSceneAsync(scene, config->scene_file);
+
+	if(config->bGui){
+		RealTimeRun(window,scene);
+	}
+	else {
+		Connector::GetInstance()->LaunchPathTracingWithRenderScene(scene);
+	}
+
 	return 0; 
 }
 

@@ -2,7 +2,7 @@
 #include"PT/PTRay.h"
 #include"PT/PTAABB.h"
 
-using namespace PT;
+
 
 xy_rect::xy_rect() 
 {

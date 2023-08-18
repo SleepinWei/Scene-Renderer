@@ -1,116 +1,112 @@
 #pragma once
+#include <PT/PTRay.h>
 #include <glm/glm.hpp>
 #include <memory>
-#include<PT/PTRay.h>
 
 using glm::vec3;
 using std::shared_ptr;
 
 class pdf;
-namespace PT
+class PTTexture;
+class SolidColor;
+class Ray;
+class hittable;
+class hit_record;
+
+struct scatter_record
 {
+	Ray specular_ray;
+	bool is_specular;
+	vec3 attenuation;
+	shared_ptr<pdf> pdf_ptr;
+};
 
-	class Texture;
-	class SolidColor;
-	class Ray;
-	class hittable;
-	class hit_record;
-
-	struct scatter_record
+class PTMaterial
+{
+public:
+	virtual bool scatter(
+		const Ray &r_in, const hit_record &rec, scatter_record &srec) const = 0;
+	virtual vec3 emitted(float u, float v, const vec3 &p) const
 	{
-		Ray specular_ray;
-		bool is_specular;
-		vec3 attenuation;
-		shared_ptr<pdf> pdf_ptr;
-	};
-
-	class PTMaterial
+		return vec3(0.0f, 0.0f, 0.0f);
+	}
+	virtual double scattering_pdf(const Ray &r_in, const hit_record &rec, const Ray &scattered)
+		const
 	{
-	public:
-		virtual bool scatter(
-			const Ray &r_in, const hit_record &rec, scatter_record &srec) const = 0;
-		virtual vec3 emitted(float u, float v, const vec3 &p) const
-		{
-			return vec3(0.0f, 0.0f, 0.0f);
-		}
-		virtual double scattering_pdf(const Ray &r_in, const hit_record &rec, const Ray &scattered)
-			const
-		{
-			return 0;
-		}
-	};
+		return 0;
+	}
+};
 
-	class Lambertian : public PTMaterial
-	{
-	public:
-		Lambertian(const vec3 &a);
-		Lambertian(shared_ptr<Texture> a) : albedo(a){};
+class Lambertian : public PTMaterial
+{
+public:
+	Lambertian(const vec3 &a);
+	Lambertian(shared_ptr<PTTexture> a) : albedo(a){};
 
-		virtual bool scatter(
-			const Ray &r, const hit_record &rec, scatter_record &srec) const override;
-		virtual double scattering_pdf(const Ray &r_in, const hit_record &rec, const Ray &scattered) const override;
+	virtual bool scatter(
+		const Ray &r, const hit_record &rec, scatter_record &srec) const override;
+	virtual double scattering_pdf(const Ray &r_in, const hit_record &rec, const Ray &scattered) const override;
 
-	public:
-		// vec3 albedo;
-		std::shared_ptr<Texture> albedo;
-	};
+public:
+	// vec3 albedo;
+	std::shared_ptr<PTTexture> albedo;
+};
 
-	class Metal : public PTMaterial
-	{
-	public:
-		Metal(const vec3 &a, double f);
-		virtual bool scatter(
-			const Ray &r, const hit_record &rec, scatter_record &srec) const override;
+class Metal : public PTMaterial
+{
+public:
+	Metal(const vec3 &a, double f);
+	virtual bool scatter(
+		const Ray &r, const hit_record &rec, scatter_record &srec) const override;
 
-	public:
-		vec3 albedo;
-		float fuzz;
-	};
+public:
+	vec3 albedo;
+	float fuzz;
+};
 
-	class Dielectric : public PTMaterial
-	{
-	public:
-		Dielectric(double index_of_refraction);
+class Dielectric : public PTMaterial
+{
+public:
+	Dielectric(double index_of_refraction);
 
-		virtual bool scatter(
-			const Ray &r, const hit_record &rec, scatter_record &srec) const override;
+	virtual bool scatter(
+		const Ray &r, const hit_record &rec, scatter_record &srec) const override;
 
-	public:
-		float ir;
+public:
+	float ir;
 
-	private:
-		static double reflectance(double cosine, double ref_idx);
-	};
+private:
+	static double reflectance(double cosine, double ref_idx);
+};
 
-	class DiffuseLight : public PTMaterial
-	{
-	public:
-		DiffuseLight(std::shared_ptr<Texture> a);
-		DiffuseLight(vec3 c);
+class DiffuseLight : public PTMaterial
+{
+public:
+	DiffuseLight(std::shared_ptr<PTTexture> a);
+	DiffuseLight(vec3 c);
 
-		virtual bool scatter(const Ray &r_in, const hit_record &rec, scatter_record &srec)
-			const override;
+	virtual bool scatter(const Ray &r_in, const hit_record &rec, scatter_record &srec)
+		const override;
 
-		virtual vec3 emitted(float u, float v, const vec3 &p) const override;
+	virtual vec3 emitted(float u, float v, const vec3 &p) const override;
 
-	public:
-		std::shared_ptr<Texture> emit;
-		float intensity;
-	};
+public:
+	std::shared_ptr<PTTexture> emit;
+	float intensity;
+};
 
-	class Isotropic : public PTMaterial
-	{
-	public:
-		Isotropic(vec3 c);
-		Isotropic(shared_ptr<Texture> a);
+class Isotropic : public PTMaterial
+{
+public:
+	Isotropic(vec3 c);
+	Isotropic(shared_ptr<PTTexture> a);
 
-		virtual bool scatter(
-			const Ray &r_in, const hit_record &rec, scatter_record &srec) const override;
+	virtual bool scatter(
+		const Ray &r_in, const hit_record &rec, scatter_record &srec) const override;
 
-		virtual double scattering_pdf(const Ray &r_in, const hit_record &rec, const Ray &scattered)
-			const override;
+	virtual double scattering_pdf(const Ray &r_in, const hit_record &rec, const Ray &scattered)
+		const override;
 
-	public:
-		shared_ptr<Texture> albedo;
-	};
-}
+public:
+	shared_ptr<PTTexture> albedo;
+};

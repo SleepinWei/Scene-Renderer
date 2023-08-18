@@ -18,7 +18,7 @@
 #include<random>
 #include<time.h>
 
-extern std::shared_ptr<RenderScene> scene;
+extern shared_ptr<RenderScene> scene;
 
 Ocean::Ocean()
 {
@@ -429,6 +429,7 @@ void Ocean::Draw()
 
     // 绑定之前的图像和深度
     glActiveTexture(GL_TEXTURE3);
+    // get sky: a better way is to put this proces in a render pass. 
     if (scene->sky) {
         auto&& atmos = std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));
         if (atmos) {
