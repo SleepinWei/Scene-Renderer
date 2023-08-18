@@ -89,8 +89,9 @@ void PTRenderer::render(shared_ptr<PTScene> scene, int threadNum)
 		interval += 1;
 	}
 
-	LOG_INFO("Running with " << threadNum << "threads");
-	for (int i = 0; i < threadNum; i++)
+	int thread_num = std::min((unsigned int)h, std::max(1u,std::thread::hardware_concurrency() - 1));
+	LOG_INFO("Running with " << thread_num << "threads");
+	for (int i = 0; i < thread_num; i++)
 	{
 		int start = i * interval;
 		int end = std::min(start + interval - 1, h - 1);
@@ -195,6 +196,10 @@ void PTRenderer::writeToFile(shared_ptr<PTScene> scene, const std::string &filen
 	{
 		threads[i].join();
 	}
+	threads.clear();
+	std::vector<std::thread>().swap(threads); // 释放
+
+	LOG_INFO("TRACING DONE!");
 
 	auto camera = scene->camera;
 

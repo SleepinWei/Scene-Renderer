@@ -20,7 +20,7 @@ shared_ptr<hittable_list> buildHittableFromMesh(const shared_ptr<Mesh> mesh){
     int triangle_cnt = indices.size() / 3;
     for (int i = 0; i < indices.size() / 3; i++){
         if(i % 5 == 0){
-            LOG_INFO("Mesh Progress " << i * 1.0f / triangle_cnt * 100 << "%");
+            // LOG_INFO("Mesh Progress " << i * 1.0f / triangle_cnt * 100 << "%");
         }
         int index0 = indices[3 * i];
         int index1 = indices[3 * i + 1];
@@ -58,8 +58,8 @@ void Connector::buildPTSceneFromRenderScene(shared_ptr<PTScene> ptscene, const s
         camera->Position + camera->Front,
         camera->WorldUp,
         camera->Zoom,
-        InputManager::GetInstance()->width,
-        InputManager::GetInstance()->height));
+        InputManager::GetInstance()->width/2,
+        InputManager::GetInstance()->height/2));
 
     // objects
     shared_ptr<hittable_list>& pt_objects= ptscene->objects;

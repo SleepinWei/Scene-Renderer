@@ -68,6 +68,7 @@ void RealTimeRun(GLFWwindow* window, shared_ptr<RenderScene>& scene) {
 		if(InputManager::GetInstance()->keyStatus[KEY_R] == PRESSED){
 			//阻塞
 			Connector::GetInstance()->LaunchPathTracingWithRenderScene(scene);
+			InputManager::GetInstance()->keyStatus[KEY_R] = RELEASED;
 		}
 
 		// camera tick

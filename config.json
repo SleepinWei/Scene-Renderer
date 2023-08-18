@@ -1,5 +1,5 @@
 {
-    "gui" : false,
+    "gui" : true,
     "scene": "./asset/objects/scene2.json",
     "tracer":{
         "samples" : 20,
