@@ -4,6 +4,8 @@
 #include "PT\PTRay.h"
 #include "PT\PTrandom.h"
 #include "PT\hittable.h"
+#include"utils/log.h"
+#include"PT\PTScene.h"
 #include <glm/glm.hpp>
 #include <iostream>
 #include <utility>
@@ -45,8 +47,6 @@ void Renderer::write_color(const vec3 &color, int samples_per_pixel, int pos)
 
 Renderer::Renderer()
 {
-	world = nullptr;
-	camera = nullptr;
 	this->samples = 0;
 	this->max_depth = 0;
 	this->pixelCnt = 0;
@@ -54,10 +54,6 @@ Renderer::Renderer()
 
 void Renderer::init(int samples, int max_depth)
 {
-	_world = std::make_shared<hittable_list>();
-	lights = std::make_shared<hittable_list>();
-	world = nullptr;
-	camera = nullptr;
 	this->samples = samples;
 	this->max_depth = max_depth;
 	this->pixelCnt = 0;
@@ -68,28 +64,16 @@ Renderer::~Renderer()
 	delete[] resultImage;
 }
 
-void Renderer::addCam(std::shared_ptr<Camera> cam)
-{
-	camera = cam;
-}
 
-void Renderer::addObject(std::shared_ptr<hittable> object)
-{
-	_world->add(object);
-}
 
-void PT::Renderer::buildBVH()
+void Renderer::render(shared_ptr<PTScene> scene, int threadNum)
 {
-	world = make_shared<BVH_Node>(_world);
-}
+	auto camera = scene->camera; 
 
-void Renderer::addLight(std::shared_ptr<hittable> object)
-{
-	lights->add(object);
-}
-
-void Renderer::render(int threadNum)
-{
+	if(!camera){
+		LOG_ERROR("PTScene no camera");
+		return;
+	}
 	int w = camera->width;
 	int h = camera->height;
 
@@ -106,13 +90,16 @@ void Renderer::render(int threadNum)
 	{
 		int start = i * interval;
 		int end = std::min(start + interval - 1, h - 1);
-		std::thread t(&Renderer::threadRender, this, start, end);
+		std::thread t(&Renderer::threadRender, this,scene, start, end);
 		threads.push_back(std::move(t));
 	}
 }
 
-vec3 Renderer::rayColor(const Ray &r, int depth)
+vec3 Renderer::rayColor(shared_ptr<PTScene> scene, const Ray &r, int depth)
 {
+	auto world = scene->getWorld();
+	auto lights = scene->lights;
+
 	hit_record rec;
 
 	if (depth < 0)
@@ -136,7 +123,7 @@ vec3 Renderer::rayColor(const Ray &r, int depth)
 	}
 
 	if(srec.is_specular){
-		return srec.attenuation * rayColor(srec.specular_ray, depth - 1);
+		return srec.attenuation * rayColor(scene,srec.specular_ray, depth - 1);
 	}
 
 	auto light_ptr = make_shared<hittable_pdf>(lights, rec.p);
@@ -148,15 +135,17 @@ vec3 Renderer::rayColor(const Ray &r, int depth)
 	float scattering_pdf = rec.mat_ptr->scattering_pdf(r, rec, scattered);
 
 	vec3 color_from_scatter =
-		(srec.attenuation * scattering_pdf * rayColor(scattered, depth - 1)) / (float)pdf_val;
+		(srec.attenuation * scattering_pdf * rayColor(scene,scattered, depth - 1)) / (float)pdf_val;
 	// vec3 color_from_scatter = attenuation * rayColor(scattered, depth - 1);
 
 	vec3 finalColor = emitted + color_from_scatter;
 	return finalColor;
 }
 
-void Renderer::threadRender(int start, int end)
+void Renderer::threadRender(shared_ptr<PTScene> scene,int start, int end)
 {
+	auto camera = scene->camera;
+
 	int h = camera->height;
 	int w = camera->width;
 
@@ -180,7 +169,7 @@ void Renderer::threadRender(int start, int end)
 				auto u = (i + random_double()) / (w - 1);
 				auto v = (j + random_double()) / (h - 1);
 				Ray r = camera->get_ray(u, v);
-				color = color + rayColor(r, max_depth);
+				color = color + rayColor(scene, r, max_depth);
 			}
 
 			int pos = j * w + i;
@@ -188,12 +177,14 @@ void Renderer::threadRender(int start, int end)
 		}
 	}
 }
-void Renderer::writeToFile(const std::string &filename)
+void Renderer::writeToFile(shared_ptr<PTScene> scene,const std::string &filename)
 {
 	for (int i = 0; i < threads.size(); i++)
 	{
 		threads[i].join();
 	}
+
+	auto camera = scene->camera;
 
 	int w = camera->width;
 	int h = camera->height;

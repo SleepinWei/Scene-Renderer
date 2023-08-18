@@ -5,7 +5,9 @@
 #include <thread>
 #include <vector>
 using glm::vec3;
+using std::shared_ptr;
 
+class PTScene; 
 namespace PT
 {
 	class hittable_list;
@@ -14,6 +16,20 @@ namespace PT
 	class Ray;
 	class hit_record;
 	class BVH_Node;
+
+	class PTConfig{
+	private:
+		PTConfig(){};
+		~PTConfig(){}; 
+
+	public:
+		static PTConfig *GetInstance() { 
+			static PTConfig config;
+			return &config;
+		}
+
+		bool bUseBVH : true;
+	};
 
 	class Renderer
 	{
@@ -28,19 +44,11 @@ namespace PT
 			return &renderer;
 		}
 		void init(int samples, int max_depth);
-		void render(int threadNum);
-		void addCam(std::shared_ptr<Camera> cam);
-		void addObject(std::shared_ptr<hittable> object);
-		void buildBVH();
-		void addLight(std::shared_ptr<hittable> object);
-		void threadRender(int start, int end);
-		void writeToFile(const std::string &filename);
+		void render(shared_ptr<PTScene> scene, int threadNum);
+		void threadRender(shared_ptr<PTScene> scene,int start, int end);
+		void writeToFile(shared_ptr<PTScene> scene,const std::string &filename);
 
 	public:
-		std::shared_ptr<hittable_list> _world;
-		std::shared_ptr<BVH_Node> world; 
-		std::shared_ptr<hittable_list> lights; 
-		std::shared_ptr<Camera> camera;
 		std::vector<std::thread> threads;
 		int samples;
 		int max_depth;
@@ -52,7 +60,7 @@ namespace PT
 		std::mutex writeMtx;
 		// std::mutex
 	private:
-		vec3 rayColor(const Ray &r, int depth);
+		vec3 rayColor(shared_ptr<PTScene> scene,const Ray &r, int depth);
 		void write_color(const vec3 &color, int samples_per_pixel, int pos);
 	};
 }
