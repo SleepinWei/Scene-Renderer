@@ -30,6 +30,7 @@
 #include"component/Atmosphere.h"
 #include"system/Loader.h"
 #include"PT/PathTracing.h"
+#include"system/Config.h"
 //json
 #include<json/json.hpp>
 using json = nlohmann::json;
@@ -74,7 +75,11 @@ void render() {
 	//gui
 	Gui gui(window);
 
-	Loader::GetInstance()->loadSceneAsync(scene, "./asset/objects/scene2.json");
+	// configuration
+	auto config = Config::GetInstance();
+	config->parse("./config.json");
+	// model loading
+	Loader::GetInstance()->loadSceneAsync(scene, config->scene_file);
 			
 	while (!glfwWindowShouldClose(window)) {
 		gui.window(scene);

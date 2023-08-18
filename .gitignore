@@ -29,7 +29,7 @@ package-lock.json
 package.json
 node_modules/
 *.js
-*.json
+asset/*.json
 *.rar
 lib/
 

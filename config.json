@@ -1,0 +1,4 @@
+{
+    "gui" : true,
+    "scene": "./asset/objects/secne2.json"
+}
