@@ -37,7 +37,7 @@ void Grass::prepareData() {
 	}
 	indirectBuffer->bindBuffer();
 	if (indirectBuffer->dirty) {
-		unsigned int six= 6;
+		unsigned int six= 3;
 		unsigned int zero = 0;
 		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0,4, &six);
 		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 8, 4, &zero);

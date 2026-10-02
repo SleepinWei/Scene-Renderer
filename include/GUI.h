@@ -1,7 +1,11 @@
 #pragma once
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_glfw.h>
+#ifdef SCENERENDERER_METAL
+#include "metal/MetalBackend.h"
+#else
 #include <imgui/imgui_impl_opengl3.h>
+#endif
 #include<imgui/imfilebrowser.h>
 // #include<glfw/glfw3.h>
 #include<glm/glm.hpp>
@@ -29,23 +33,44 @@ public:
 	const std::string base_path = "./asset/objects";
 public:
 	Gui(GLFWwindow* window) {
+#ifdef __APPLE__
+		const char* glsl_version = "#version 410 core";
+#else
 		const char* glsl_version = "#version 330";
+#endif
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
+#ifdef SCENERENDERER_METAL
+        extern int frameLimit;
+        if(frameLimit>0)ImGui::GetIO().IniFilename=nullptr;
+#endif
 		ImGui::StyleColorsLight();
+		#ifdef SCENERENDERER_METAL
+		ImGui_ImplGlfw_InitForOther(window, true);
+		MetalBackend::guiInitialize();
+#else
 		ImGui_ImplGlfw_InitForOpenGL(window, true);
 		ImGui_ImplOpenGL3_Init(glsl_version);
+#endif
 
 		fileDialog.SetTypeFilters({ ".json" });
 		fileDialog.SetPwd(base_path);
 	}
 	void destroy() {
-		ImGui_ImplOpenGL3_Shutdown();
+		#ifdef SCENERENDERER_METAL
+        MetalBackend::guiShutdown();
+#else
+        ImGui_ImplOpenGL3_Shutdown();
+#endif
 		ImGui_ImplGlfw_Shutdown();
 		ImGui::DestroyContext();
 	}
 	void window(std::shared_ptr<RenderScene>& scene) {
-		ImGui_ImplOpenGL3_NewFrame();
+		#ifdef SCENERENDERER_METAL
+        MetalBackend::guiNewFrame();
+#else
+        ImGui_ImplOpenGL3_NewFrame();
+#endif
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
@@ -227,6 +252,10 @@ public:
 	}
 
 	void render() {
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+		#ifdef SCENERENDERER_METAL
+        MetalBackend::guiRender(ImGui::GetDrawData());
+#else
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+#endif
 	}
 };

@@ -97,7 +97,7 @@ void Atmosphere::prepareAtmosphere() {
 		glBufferSubData(GL_UNIFORM_BUFFER, 80, 16, glm::value_ptr(data.absorption_extinction));
 
 		//ozone width 
-		glBufferSubData(GL_UNIFORM_BUFFER, 96, 4, &data.OzoneWidth);
+		glBufferSubData(GL_UNIFORM_BUFFER, 92, 4, &data.OzoneWidth);
 
 		////debug
 		//atmBuffer->bindBuffer();
@@ -111,14 +111,9 @@ void Atmosphere::prepareAtmosphere() {
 void Atmosphere::computeTransTexture() {
 	//set binding
 	transmittanceTexture->setBinding(0);
-	static bool firstCall = true;
-	if (firstCall) {
-		compTransShader->use();
-		compTransShader->setInt("TexWidth", transWidth);
-		compTransShader->setInt("TexHeight", transHeight);
-		firstCall = false;
-	}
 	compTransShader->use();
+	compTransShader->setInt("TexWidth", transWidth);
+	compTransShader->setInt("TexHeight", transHeight);
 	glDispatchCompute(transWidth, transHeight, 1);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
@@ -126,16 +121,11 @@ void Atmosphere::computeTransTexture() {
 void Atmosphere::computeSkyViewTexutre() {
 	//set binding
 	skyViewTexture->setBinding(1);
-	static bool firstCall = true;
-	if (firstCall) {
-		firstCall = false;
-		compskyViewShader->use();
-		compskyViewShader->setInt("transTexWidth", transWidth);
-		compskyViewShader->setInt("transTexHeight", transHeight);
-		compskyViewShader->setInt("TexWidth", skyViewWidth);
-		compskyViewShader->setInt("TexHeight", skyViewHeight);
-	}
 	compskyViewShader->use();
+	compskyViewShader->setInt("transTexWidth", transWidth);
+	compskyViewShader->setInt("transTexHeight", transHeight);
+	compskyViewShader->setInt("TexWidth", skyViewWidth);
+	compskyViewShader->setInt("TexHeight", skyViewHeight);
 	//TODO: sunposition
 
 	//debug

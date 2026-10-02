@@ -1,6 +1,68 @@
 #include<glad/glad.h>
 #include"utils/Shader.h"
 #include<glfw/glfw3.h>
+#include<regex>
+#include<vector>
+
+namespace {
+struct UniformBlockBinding {
+    std::string name;
+    GLuint binding;
+};
+
+// macOS system OpenGL is 4.1 core (GLSL 410). The Windows shaders target
+// 4.3–4.6 and use layout(binding), which needs GLSL 420. Record those
+// bindings, then rewrite the source so the 4.1 compiler can accept it.
+// Shader storage blocks and compute shaders still need 4.3 and will not compile.
+std::vector<UniformBlockBinding> collectUniformBlockBindings(const std::string& source) {
+    std::vector<UniformBlockBinding> result;
+#if defined(__APPLE__)
+    const std::regex blockRe(R"(layout[ \t]*\(([^)]*)\)[ \t]*uniform[ \t]+([A-Za-z_][A-Za-z0-9_]*))");
+    const std::regex bindRe(R"(binding[ \t]*=[ \t]*(\d+))");
+    for (auto it = std::sregex_iterator(source.begin(), source.end(), blockRe);
+         it != std::sregex_iterator(); ++it) {
+        std::smatch bind;
+        const std::string layout = (*it)[1].str();
+        if (std::regex_search(layout, bind, bindRe)) {
+            result.push_back({(*it)[2].str(), static_cast<GLuint>(std::stoi(bind[1].str()))});
+        }
+    }
+#else
+    (void)source;
+#endif
+    return result;
+}
+
+void adaptShaderForMac(std::string& source) {
+#if defined(__APPLE__)
+    source = std::regex_replace(
+        source,
+        std::regex(R"(#version[ \t]+\d+[ \t]*(core|compatibility)?)"),
+        "#version 410 core");
+    source = std::regex_replace(
+        source,
+        std::regex(R"(layout[ \t]*\([ \t]*early_fragment_tests[ \t]*\)[ \t]*in[ \t]*;)"),
+        "");
+    source = std::regex_replace(
+        source,
+        std::regex(R"(,?[ \t]*binding[ \t]*=[ \t]*\d+[ \t]*,?)"),
+        "");
+    source = std::regex_replace(source, std::regex(R"(layout[ \t]*\([ \t]*,)"), "layout(");
+    source = std::regex_replace(source, std::regex(R"(,[ \t]*\))"), ")");
+#else
+    (void)source;
+#endif
+}
+
+void applyUniformBlockBindings(GLuint program, const std::vector<UniformBlockBinding>& bindings) {
+    for (const auto& item : bindings) {
+        GLuint index = glGetUniformBlockIndex(program, item.name.c_str());
+        if (index != GL_INVALID_INDEX) {
+            glUniformBlockBinding(program, index, item.binding);
+        }
+    }
+}
+}
 
 Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath,const char* tessControlPath,const char* tessEvalPath)
 {
@@ -65,6 +127,16 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geo
     {
         std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << std::endl;
     }
+    std::vector<UniformBlockBinding> blockBindings = collectUniformBlockBindings(vertexCode);
+    for (const std::string* stage : {&fragmentCode, &geometryCode, &tessControlCode, &tessEvalCode}) {
+        auto extra = collectUniformBlockBindings(*stage);
+        blockBindings.insert(blockBindings.end(), extra.begin(), extra.end());
+    }
+    adaptShaderForMac(vertexCode);
+    adaptShaderForMac(fragmentCode);
+    adaptShaderForMac(geometryCode);
+    adaptShaderForMac(tessControlCode);
+    adaptShaderForMac(tessEvalCode);
     const char* vShaderCode = vertexCode.c_str();
     const char* fShaderCode = fragmentCode.c_str();
     // 2. compile shaders
@@ -115,6 +187,12 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geo
     if (tessEvalPath != nullptr)
         glAttachShader(ID, tessEval);
     glLinkProgram(ID);
+    GLint linkStatus = GL_FALSE;
+    glGetProgramiv(ID, GL_LINK_STATUS, &linkStatus);
+    linked = linkStatus == GL_TRUE;
+    if (linked) {
+        applyUniformBlockBindings(ID, blockBindings);
+    }
     checkCompileErrors(ID, "PROGRAM", vertexPath);
     // delete the shaders as they're linked into our program now and no longer necessery
     glDeleteShader(vertex);
@@ -151,6 +229,7 @@ Shader::Shader(const char* computePath)
     {
         std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << std::endl;
     }
+    adaptShaderForMac(computeCode);
     const char* computeShaderCode = computeCode.c_str();
     // 2. compile shaders
     unsigned int compute;
@@ -163,6 +242,9 @@ Shader::Shader(const char* computePath)
     ID = glCreateProgram();
     glAttachShader(ID, compute);
     glLinkProgram(ID);
+    GLint linkStatus = GL_FALSE;
+    glGetProgramiv(ID, GL_LINK_STATUS, &linkStatus);
+    linked = linkStatus == GL_TRUE;
     checkCompileErrors(ID, "PROGRAM",computePath);
     // delete the shaders as they're linked into our program now and no longer necessery
     glDeleteShader(compute);
@@ -172,67 +254,83 @@ Shader::Shader(const char* computePath)
 // ------------------------------------------------------------------------
 void Shader::use()
 {
+    if (!linked) {
+        return;
+    }
     glUseProgram(ID);
 }
 // utility uniform functions
 // ------------------------------------------------------------------------
 void Shader::setBool(const std::string& name, bool value) const
 {
+    if (!linked) return;
     glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value);
 }
 // ------------------------------------------------------------------------
 void Shader::setInt(const std::string& name, int value) const
 {
+    if (!linked) return;
     glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
 }
 void Shader::setUInt(const std::string& name, unsigned int value)const {
+    if (!linked) return;
     glUniform1ui(glGetUniformLocation(ID, name.c_str()), value);
 }
 // ------------------------------------------------------------------------
 void Shader::setFloat(const std::string& name, float value) const
 {
+    if (!linked) return;
     glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
 }
 // ------------------------------------------------------------------------
 void Shader::setVec2(const std::string& name, const glm::vec2& value) const
 {
+    if (!linked) return;
     glUniform2fv(glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
 }
 void Shader::setVec2(const std::string& name, float x, float y) const
 {
+    if (!linked) return;
     glUniform2f(glGetUniformLocation(ID, name.c_str()), x, y);
 }
 // ------------------------------------------------------------------------
 void Shader::setVec3(const std::string& name, const glm::vec3& value) const
 {
+    if (!linked) return;
     glUniform3fv(glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
 }
 void Shader::setVec3(const std::string& name, float x, float y, float z) const
 {
+    if (!linked) return;
     glUniform3f(glGetUniformLocation(ID, name.c_str()), x, y, z);
 }
 // ------------------------------------------------------------------------
 void Shader::setVec4(const std::string& name, const glm::vec4& value) const
 {
+    if (!linked) return;
     glUniform4fv(glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
 }
 void Shader::setVec4(const std::string& name, float x, float y, float z, float w)
 {
+    if (!linked) return;
     glUniform4f(glGetUniformLocation(ID, name.c_str()), x, y, z, w);
 }
 // ------------------------------------------------------------------------
 void Shader::setMat2(const std::string& name, const glm::mat2& mat) const
 {
+    if (!linked) return;
     glUniformMatrix2fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
 }
 // ------------------------------------------------------------------------
 void Shader::setMat3(const std::string& name, const glm::mat3& mat) const
 {
+    if (!linked) return;
     glUniformMatrix3fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
 }
 // ------------------------------------------------------------------------
 void Shader::setMat4(const std::string& name, const glm::mat4& mat) const
 {
+    if (!linked) return;
     glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
 }
 
@@ -265,6 +363,7 @@ void Shader::checkCompileErrors(unsigned int shader, std::string type,const char
 }
 
 void Shader::setUniformBuffer(const std::string& name, int binding)const {
+    if (!linked) return;
     glUniformBlockBinding(ID,
         glGetUniformBlockIndex(ID, name.c_str()),binding
     );

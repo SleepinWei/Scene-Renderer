@@ -25,7 +25,6 @@
 
 void BasePass::render(const std::shared_ptr<RenderScene> &scene, const std::shared_ptr<Shader> &outShader)
 {
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glViewport(0, 0, InputManager::GetInstance()->width, InputManager::GetInstance()->height);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -107,6 +106,11 @@ void PostPass::initPass(int width, int height)
 
 void PostPass::bindBuffer()
 {
+	if (dirty || InputManager::GetInstance()->viewPortChange)
+	{
+		initPass(InputManager::GetInstance()->width, InputManager::GetInstance()->height);
+		dirty = false;
+	}
 	glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
 }
 
@@ -117,12 +121,6 @@ void PostPass::unbindBuffer()
 
 void PostPass::render()
 {
-	// check whether Pass textures/buffers should be regenerated
-	if (dirty || InputManager::GetInstance()->viewPortChange)
-	{
-		initPass(InputManager::GetInstance()->width, InputManager::GetInstance()->height);
-		dirty = false;
-	}
 	unbindBuffer();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	postShader->use();
@@ -468,6 +466,7 @@ void DepthPass::render(const std::shared_ptr<RenderScene> &scene)
 		backDepth->genTexture(GL_RGBA32F, GL_RGBA, InputManager::GetInstance()->width, InputManager::GetInstance()->height);
 		renderBuffer->genBuffer(InputManager::GetInstance()->width, InputManager::GetInstance()->height);
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, renderBuffer->rbo);
+		frameBuffer->bindTexture(frontDepth, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
 		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 			std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
 		dirty = false;
@@ -602,6 +601,7 @@ void DeferredPass::renderGbuffer(const std::shared_ptr<RenderScene> &scene)
 		glDrawBuffers(4, attachments);
 
 		// post buffer
+		postBuffer->bindTexture(postTexture, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
 		postBuffer->bindBuffer();
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, postRbo->rbo);
 		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
@@ -611,8 +611,8 @@ void DeferredPass::renderGbuffer(const std::shared_ptr<RenderScene> &scene)
 
 	gBuffer->bindBuffer();
 	glViewport(0, 0, InputManager::GetInstance()->width, InputManager::GetInstance()->height);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	gBufferShader->use();
 
@@ -655,6 +655,7 @@ void DeferredPass::render(const std::shared_ptr<RenderScene> &scene)
 	}
 
 	glCheckError();
+	postBuffer->bindTexture(postTexture, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
 	postBuffer->bindBuffer();
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -669,11 +670,20 @@ void DeferredPass::render(const std::shared_ptr<RenderScene> &scene)
 	glBindTexture(GL_TEXTURE_2D, gPBR->id);
 	glActiveTexture(GL_TEXTURE4);
 	glBindTexture(GL_TEXTURE_2D, gPosition->id);
-	glActiveTexture(GL_TEXTURE5);
-	auto atmosphere = std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));
-	atmosphere->convolutionTexture->bindBuffer(); // bind environment map
 	glActiveTexture(GL_TEXTURE6);
-	atmosphere->skyViewTexture->bindBuffer();
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glActiveTexture(GL_TEXTURE5);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	if (scene->sky) {
+		auto atmosphere = std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));
+		if (atmosphere && atmosphere->convolutionTexture) {
+			atmosphere->convolutionTexture->bindBuffer(); // bind environment map
+		}
+		glActiveTexture(GL_TEXTURE6);
+		if (atmosphere && atmosphere->skyViewTexture) {
+			atmosphere->skyViewTexture->bindBuffer();
+		}
+	}
 	glActiveTexture(GL_TEXTURE7);
 	glBindTexture(GL_TEXTURE_2D,RenderManager::GetInstance()->ssaoPass->gSSAO->id);
 
@@ -826,8 +836,8 @@ GLuint RSMPass::createRandomTexture(int size)
 {
 	std::default_random_engine eng;
 	std::uniform_real_distribution<float> dist(0.0f, 1.0f);
-	eng.seed(std::time(0));
-	float PI = std::cos(-1.0f);
+	eng.seed(42); // Stable RSM samples for reproducible scene captures.
+	float PI = std::acos(-1.0f);
 	glm::vec3 *randomData = new glm::vec3[size];
 	for (int i = 0; i < size; ++i)
 	{
@@ -982,11 +992,19 @@ void RSMPass::render(const std::shared_ptr<RenderScene> &scene)
 	auto &light = scene->spotLights[0];
 	auto trans = std::static_pointer_cast<Transform>(light->gameObject->GetComponent("Transform"));
 	glm::vec3 lightPos = trans->position;
-	glm::mat4 lightProjection = glm::perspective(glm::radians(60.0f), (float)RSM_WIDTH / (float)RSM_HEIGHT, light->near, light->far);
+	glm::mat4 lightProjection = glm::perspective(glm::radians(100.0f), (float)RSM_WIDTH / (float)RSM_HEIGHT, light->near, light->far);
 	glm::mat4 lightView = glm::lookAt(lightPos, lightPos + light->data.direction, glm::vec3(0.0f, 1.0f, 0.0f));
 	glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+#ifdef SCENERENDERER_METAL
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, RenderManager::GetInstance()->deferredPass->postBuffer->FBO);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, rsmBuffer->FBO);
+    glBlitFramebuffer(0,0,InputManager::GetInstance()->width,InputManager::GetInstance()->height,
+                      0,0,InputManager::GetInstance()->width,InputManager::GetInstance()->height,
+                      GL_COLOR_BUFFER_BIT,GL_NEAREST);
+#endif
 	indirectShader->use();
 	indirectShader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
+    indirectShader->setVec2("screenSize",float(InputManager::GetInstance()->width),float(InputManager::GetInstance()->height));
 	indirectShader->setInt("depthMap", 20);
 	indirectShader->setInt("normalMap", 21);
 	indirectShader->setInt("worldPosMap", 22);

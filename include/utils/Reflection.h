@@ -68,7 +68,7 @@ public:
 	auto& vars = newMeta->vars;\
 	newMeta->setConstructor(className::createInstance);
 
-#define REGISTER(classname,var) vars.insert({#var,offsetof(##classname,##var)})
+#define REGISTER(classname,var) vars.insert({#var, offsetof(classname, var)})
 
 #define REFLECTION_END() \
 	return newMeta;\

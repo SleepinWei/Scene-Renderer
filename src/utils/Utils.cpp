@@ -1,6 +1,9 @@
 #include<glad/glad.h>
 #include<glfw/glfw3.h>
 #include"utils/Utils.h"
+#ifdef SCENERENDERER_METAL
+#include "metal/MetalBackend.h"
+#endif
 #include"system/InputManager.h"
 #include<memory>
 #include "stb/stb_image.h"
@@ -25,22 +28,36 @@ GLenum glCheckError_(const char* file, int line)
     return errorCode;
 }
 int gladInit() {
+#ifdef SCENERENDERER_METAL
+    return 0;
+#else
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
         std::cout << "Failed to initialize" << std::endl;
         return -1;
     }
     return 0;
+#endif
 }
 
 int createWindow(GLFWwindow*& window,
     int width,
     int height,
     std::string title) {
-    //create a glfw window 
+    //create a glfw window
+#ifdef SCENERENDERER_METAL
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+#elif defined(__APPLE__)
+    // System OpenGL on macOS stops at 4.1, and only the core profile is available.
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+#else
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
+#endif
 
     //create window
     window = glfwCreateWindow(width, height, title.c_str(), NULL, NULL);
@@ -50,7 +67,11 @@ int createWindow(GLFWwindow*& window,
         glfwTerminate();
         return -1;
     }
+#ifdef SCENERENDERER_METAL
+    MetalBackend::initialize(window,width,height);
+#else
     glfwMakeContextCurrent(window);
+#endif
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetMouseButtonCallback(window, mouse_button_callback);

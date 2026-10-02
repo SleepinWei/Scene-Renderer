@@ -174,7 +174,12 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 			if(drawMode == GL_PATCHES)
 				glPatchParameteri(GL_PATCH_VERTICES, 3);
 			// --- end debug
-			glDrawElements(drawMode, indices.size(), GL_UNSIGNED_INT, 0);
+			#ifdef SCENERENDERER_METAL
+            const auto actualMode=(outShader && outShader!=shader && drawMode==GL_PATCHES)?GL_TRIANGLES:drawMode;
+            glDrawElements(actualMode, indices.size(), GL_UNSIGNED_INT, 0);
+#else
+            glDrawElements(drawMode, indices.size(), GL_UNSIGNED_INT, 0);
+#endif
 			glCheckError();
 
 			if (polyMode == GL_LINE) {

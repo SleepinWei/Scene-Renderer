@@ -36,3 +36,5 @@ lib/
 packages/
 Testing/
 lib/*
+# Redistributable classic sample assets, credited in samples/README.md.
+!samples/assets/damaged-helmet/*.jpg

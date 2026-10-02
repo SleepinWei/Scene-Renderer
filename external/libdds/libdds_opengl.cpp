@@ -32,7 +32,7 @@
 
 //PFNGLCOMPRESSEDTEXIMAGE2DARBPROC ddsglCompressedTexImage2D = NULL;
 
-dds_uint ddsGL_load (const char* filename, shared_ptr<Texture> texture) {
+dds_uint ddsGL_load (const char* filename, std::shared_ptr<Texture> texture) {
     DDSTextureInfo textureInfo;
     dds_int error = dds_load (filename, &textureInfo);
     if (error != DDS_OK) {

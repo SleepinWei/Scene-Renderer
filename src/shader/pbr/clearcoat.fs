@@ -197,7 +197,7 @@ void main(){
     //directional lights
     for(int i =0;i<dLightNum;i++){
         DirectionLight light = directionLights[i];
-        vec3 L = normalize(light.Direction);
+        vec3 L = normalize(-light.Direction);
         vec3 brdf = BRDF(N,V,L);
         // clear cloat uses geometric normal
         float NdotL = max(dot(object.Normal,L),0.0);

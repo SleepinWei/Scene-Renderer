@@ -85,7 +85,7 @@ std::shared_ptr<Mesh> AssimpLoader::processMesh(aiMesh *mesh, const aiScene *sce
 	// walk through each of the mesh's vertices
 	for (unsigned int i = 0; i < mesh->mNumVertices; i++)
 	{
-		Vertex vertex;
+		Vertex vertex{};
 		glm::vec3 vector; // we declare a placeholder vector since assimp uses its own vector class that doesn't directly convert to glm's vec3 class so we transfer the data to this placeholder glm::vec3 first.
 		// positions
 		vector.x = mesh->mVertices[i].x;
@@ -110,6 +110,7 @@ std::shared_ptr<Mesh> AssimpLoader::processMesh(aiMesh *mesh, const aiScene *sce
 			vec.y = mesh->mTextureCoords[0][i].y;
 			vertex.TexCoords = vec;
 			// tangent
+			if (mesh->HasTangentsAndBitangents()) {
 			vector.x = mesh->mTangents[i].x;
 			vector.y = mesh->mTangents[i].y;
 			vector.z = mesh->mTangents[i].z;
@@ -119,6 +120,7 @@ std::shared_ptr<Mesh> AssimpLoader::processMesh(aiMesh *mesh, const aiScene *sce
 			vector.y = mesh->mBitangents[i].y;
 			vector.z = mesh->mBitangents[i].z;
 			vertex.Bitangent = vector;
+			}
 		}
 		else
 			vertex.TexCoords = glm::vec2(0.0f, 0.0f);

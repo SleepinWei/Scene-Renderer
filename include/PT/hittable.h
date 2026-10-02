@@ -30,7 +30,7 @@ public:
 	// vec3 T;
 	// vec3 B;
 
-	inline void set_face_normal(const Ray &r, const vec3 &outward_normal);
+	void set_face_normal(const Ray &r, const vec3 &outward_normal);
 };
 
 class hittable

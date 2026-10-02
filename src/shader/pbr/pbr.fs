@@ -181,7 +181,7 @@ void main(){
     //directional lights
     for(int i =0;i<dLightNum;i++){
         DirectionLight light = directionLights[i];
-        vec3 L = normalize(light.Direction);
+        vec3 L = normalize(-light.Direction);
         vec3 brdf = BRDF(N,V,L);
         float NdotL = max(dot(N,L),0.0);
 

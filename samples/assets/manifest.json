@@ -1,0 +1,45 @@
+{
+  "khronos_revision": "edc7c9e67c639d230715049ee31f9a96a6babbbe",
+  "files": [
+    {
+      "file": "bunny/bun_zipper.ply",
+      "source": "https://graphics.stanford.edu/pub/3Dscanrep/bunny.tar.gz",
+      "sha256": "b1acc63bece78444aa2e15bdcc72371a201279b98c6f5d4b74c993d02f0566fe"
+    },
+    {
+      "file": "damaged-helmet/DamagedHelmet.gltf",
+      "source": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/edc7c9e67c639d230715049ee31f9a96a6babbbe/Models/DamagedHelmet/glTF/DamagedHelmet.gltf",
+      "sha256": "efe99dfac198094a30c71dc02a4d3421f0eef6bf335aeb695daa4d62134cd93f"
+    },
+    {
+      "file": "damaged-helmet/DamagedHelmet.bin",
+      "source": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/edc7c9e67c639d230715049ee31f9a96a6babbbe/Models/DamagedHelmet/glTF/DamagedHelmet.bin",
+      "sha256": "61b33ead6aa3de23f39f02aaf0965bc3988575716a768f45b15d5ea3fb783fdf"
+    },
+    {
+      "file": "damaged-helmet/Default_albedo.jpg",
+      "source": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/edc7c9e67c639d230715049ee31f9a96a6babbbe/Models/DamagedHelmet/glTF/Default_albedo.jpg",
+      "sha256": "2dc95e87aeb0cd7c8a65ef0eb8b23212388da0534ca379811427a9a8780511f5"
+    },
+    {
+      "file": "damaged-helmet/Default_metalRoughness.jpg",
+      "source": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/edc7c9e67c639d230715049ee31f9a96a6babbbe/Models/DamagedHelmet/glTF/Default_metalRoughness.jpg",
+      "sha256": "0f05e7ffbeaa974f7d2c83436b04109969966d64ab188cbc3a19a265a0a69ae0"
+    },
+    {
+      "file": "damaged-helmet/Default_emissive.jpg",
+      "source": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/edc7c9e67c639d230715049ee31f9a96a6babbbe/Models/DamagedHelmet/glTF/Default_emissive.jpg",
+      "sha256": "dd0057989f22f93a4ab796d06ebf85a7c12fbfae1d59a86ae8b0c54770dc1159"
+    },
+    {
+      "file": "damaged-helmet/Default_AO.jpg",
+      "source": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/edc7c9e67c639d230715049ee31f9a96a6babbbe/Models/DamagedHelmet/glTF/Default_AO.jpg",
+      "sha256": "7024051b65ed2ead8d24ebc9bd5ea61d4c21639a57b15dab29870668bcc6b90f"
+    },
+    {
+      "file": "damaged-helmet/Default_normal.jpg",
+      "source": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/edc7c9e67c639d230715049ee31f9a96a6babbbe/Models/DamagedHelmet/glTF/Default_normal.jpg",
+      "sha256": "f253ba09a90a86ffd8a807dc45d7953111f8b3421e15d7a21d1e915b01dd33c1"
+    }
+  ]
+}

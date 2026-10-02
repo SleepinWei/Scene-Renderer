@@ -326,7 +326,7 @@ float MapLatitudeToUnit(float latitude) {
 
 vec3 sampleSphericalMap(sampler2D tex, vec3 dir) {
     float sinLat = dir.y;
-    float tanLon = -abs(dir.x) / dir.z;
+    float tanLon = -abs(dir.x) / (abs(dir.z)<1e-6 ? 1e-6 : dir.z);
     float Lat = asin(sinLat);
     float Lon = atan(tanLon);
     if(Lon < 0.0)
@@ -346,7 +346,7 @@ vec3 calculateIBL(vec3 N,vec3 V){
     vec3 kD = 1.0 - kS;
     vec3 irradiance = sampleSphericalMap(environment, N);
     vec3 diffuse    = irradiance * albedo;
-    float ao = texture(gPBR,TexCoords).a;
+    float ao = texture(gPBR,TexCoords).b;
     vec3 R = reflect(-V, N);
     vec3 specular = sampleSphericalMap(specular_map,R); 
     vec3 ambient    = (kD * diffuse + kS * specular) * ao; 
@@ -448,7 +448,7 @@ vec3 shading(){
 
     // ambient? 
     // vec3 albedo = texture(gAlbedoSpec,TexCoords).rgb;
-    // float ao = texture(gPBR,TexCoords).a;
+    // float ao = texture(gPBR,TexCoords).b;
     // vec3 ambient = vec3(0.03) * albedo * ao;
     // finalColor += ambient;
 

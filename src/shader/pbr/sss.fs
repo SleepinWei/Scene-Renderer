@@ -111,7 +111,7 @@ float V_SmithGGXCorrelated(float roughness, float NoV, float NoL) {
     // TODO: lambdaV can be pre-computed for all the lights, it should be moved out of this function
     float lambdaV = NoL * sqrt((NoV - a2 * NoV) * NoV + a2);
     float lambdaL = NoV * sqrt((NoL - a2 * NoL) * NoL + a2);
-    float v = 0.5 / (lambdaV + lambdaL);
+    float v = 0.5 / max(lambdaV + lambdaL, 1e-6);
     // a2=0 => v = 1 / 4*NoL*NoV   => min=1/4, max=+inf
     // a2=1 => v = 1 / 2*(NoL+NoV) => min=1/4, max=+inf
     // clamp to the maximum value representable in mediump
@@ -203,7 +203,7 @@ void main(){
     //directional lights
     for(int i =0;i<dLightNum;i++){
         DirectionLight light = directionLights[i];
-        vec3 L = normalize(light.Direction);
+        vec3 L = normalize(-light.Direction);
         vec3 brdf = BRDF(N,V,L,thickness,ambient);
 
         float attenuation = 1.0f;

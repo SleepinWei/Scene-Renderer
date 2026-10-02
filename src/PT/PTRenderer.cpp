@@ -1,11 +1,10 @@
-#include "PT\PTRenderer.h"
 #include "PT/PTRenderer.h"
-#include "PT\PTCamera.h"
-#include "PT\PTMaterial.h"
-#include "PT\PTRay.h"
-#include "PT\PTScene.h"
-#include "PT\PTrandom.h"
-#include "PT\hittable.h"
+#include "PT/PTCamera.h"
+#include "PT/PTMaterial.h"
+#include "PT/PTRay.h"
+#include "PT/PTScene.h"
+#include "PT/PTrandom.h"
+#include "PT/hittable.h"
 #include "utils/log.h"
 #include <PT/BVH.h>
 #include <PT/pdf.h>

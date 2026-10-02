@@ -295,6 +295,8 @@ void RenderManager::prepareCompData(const std::shared_ptr<RenderScene>& scene) {
 }
 
 void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
+	// RSM requires a spotlight; keep scenes without one on the regular lighting path.
+	if (scene->spotLights.empty()) setting.enableRSM = false;
 	prepareVPData(scene);
 	glCheckError();
 
@@ -347,6 +349,9 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 		// base pass
 		if (setting.enableHDR) {
 			postPass->bindBuffer();
+		}
+		else {
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 		basePass->render(scene, nullptr);
 

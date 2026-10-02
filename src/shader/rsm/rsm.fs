@@ -18,6 +18,7 @@ uniform float sample_radius;
 const float RSM_INTENSITY = 0.4;
 
 uniform sampler2D inTexture;
+uniform vec2 screenSize;
 
 vec3 shading()
 {
@@ -47,6 +48,6 @@ vec3 shading()
 void main(){
     vec3 color = shading();
 
-    color = color + texture(inTexture,gl_FragCoord.xy/vec2(1600,900)).rgb;
+    color = color + texture(inTexture,gl_FragCoord.xy/screenSize).rgb;
 	FragColor = vec4(color,1.0);
 }
