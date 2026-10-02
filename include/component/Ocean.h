@@ -1,107 +1,67 @@
 #pragma once
+#include "component/Component.h"
+#include "buffer/ImageTexture.h"
+#include "utils/Shader.h"
+#include <memory>
+#include <vector>
 
-#include<string>
-#include<vector>
-#include"../component/Component.h"
-#include<memory>
+class Texture;
+class FrameBuffer;
 
-
-#include "../buffer/ImageTexture.h"
-#include "../utils/Shader.h"
-
-class Material;
-enum class ShaderType;
-class Shader;
-class SSBO;
-class ImageTexture;
-class Component;
-
-
-class Ocean :public Component, public std::enable_shared_from_this<Ocean>
-{
+// Periodic Tessendorf surface: meters, seconds, wind speed in m/s.
+class Ocean : public Component, public std::enable_shared_from_this<Ocean> {
 public:
-	Ocean();
-	~Ocean();
-    void render();//外部接口
-    
-//origin
-public:
-    // texture
-    std::shared_ptr<ImageTexture> GaussianRandomRT_Texture;
-    std::shared_ptr<ImageTexture> HeightSpectrumRT_Texture;
-    std::shared_ptr<ImageTexture> DisplaceXSpectrumRT_Texture;
-    std::shared_ptr<ImageTexture> DisplaceZSpectrumRT_Texture;
-    std::shared_ptr<ImageTexture> InputRT_Texture;
-    std::shared_ptr<ImageTexture> OutputRT_Texture;
-    std::shared_ptr<ImageTexture> DisplaceRT_Texture;
-    std::shared_ptr<ImageTexture> NormalRT_Texture;
-    std::shared_ptr<ImageTexture> BubblesRT_Texture;
-
-    //shaders
-    std::shared_ptr<Shader> GaussianRandomRT_Shader;
-    std::shared_ptr<Shader> DisplaceSpectrum_Shader;
-    std::shared_ptr<Shader> HeightSpectrum_Shader;
-    std::shared_ptr<Shader> FFTHorizontal_Shader;
-    std::shared_ptr<Shader> FFTHorizontalEnd_Shader;
-    std::shared_ptr<Shader> FFTVertical_Shader;
-    std::shared_ptr<Shader> FFTVerticalEnd_Shader;
-    std::shared_ptr<Shader> TextureDisplace_Shader;
-    std::shared_ptr<Shader> TextureNormalBubbles_Shader;
-
-    std::shared_ptr<Shader> draw_shader;
-
-public:
-    int FFTPow = 9;         //生成海洋纹理大小 2的次幂，例 为10时，纹理大小为1024*1024
-    int fft_size = 512;//fft纹理大小 = pow(2,FFTPow)
-    int MeshSize = 100;		//网格长宽数量
-    float MeshLength = 512;	//网格长度
-    float TimeScale = 2;     //时间影响
-    glm::vec4 WindAndSeed = glm::vec4(1.0f, 1.0f, 0, 0);//风向和随机种子 xy为风, zw为两个随机种子
-    // timing
-    float inner_time = 0.0f;//时间
-    float deltaTime = 0.0f;	// time between current frame and last frame
-    float lastFrame = 0.0f;
-
-    //fs parameter-may revised in control panel
-    float A = 73;			//phillips谱参数，影响波浪高度
-    float Lambda = 8;       //用来控制偏移大小
-    float HeightScale = 30.0f;   //高度影响
-    float BubblesScale = 1.0f;  //泡沫强度1.0
-    float BubblesThreshold = 0.86f;//泡沫阈值 0.86
-    float WindScale = 30;     //风强
-
+    Ocean();
+    ~Ocean();
+    void render();
+    void simulate(float seconds); // Deterministic compute-only entry for numerical validation.
+    std::shared_ptr<ImageTexture> GaussianRandomRT_Texture, HeightSpectrumRT_Texture;
+    std::shared_ptr<ImageTexture> DisplaceXSpectrumRT_Texture, DisplaceZSpectrumRT_Texture;
+    std::shared_ptr<ImageTexture> InputRT_Texture, OutputRT_Texture, DisplaceRT_Texture;
+    std::shared_ptr<ImageTexture> NormalRT_Texture, BubblesRT_Texture;
+    std::shared_ptr<Shader> GaussianRandomRT_Shader, DisplaceSpectrum_Shader, HeightSpectrum_Shader;
+    std::shared_ptr<Shader> FFTHorizontal_Shader, FFTHorizontalEnd_Shader;
+    std::shared_ptr<Shader> FFTVertical_Shader, FFTVerticalEnd_Shader;
+    std::shared_ptr<Shader> TextureDisplace_Shader, TextureNormalBubbles_Shader, draw_shader;
+    int FFTPow=10, fft_size=1024, MeshSize=513;
+    float MeshLength=512, TimeScale=1;
+    glm::vec4 WindAndSeed={1,1,0,0}; // xy wind direction; zw retained for source compatibility.
+    int seed=1337;
+    bool animate=true, detailWaves=true;
+    float detailStrength=1;
+    float inner_time=0, deltaTime=0, lastFrame=0;
+    float A=0.0005f, Lambda=0.8f, HeightScale=1;
+    float BubblesScale=2, BubblesThreshold=0.86f, WindScale=30;
+    float seaLevel=-5;
+    bool refraction=true;
+    float refractionStrength=1, deepWaterDistance=40, subsurfaceStrength=1;
+    glm::vec3 absorption={.12f,.04f,.02f}; // RGB absorption coefficient, 1/metre.
+    glm::vec3 scattering={.025f,.05f,.07f};
+    float scatteringAnisotropy=.65f;
     float outer_FresnelScale=0.02f;
-    glm::vec3 outer_OceanColorShallow = pow(glm::vec3(0.30713776f, 0.4703595f, 0.5471698f), glm::vec3(2.2f, 2.2f, 2.2f));
-    glm::vec3 outer_OceanColorDeep=pow(glm::vec3(0.0499288f, 0.1436479f, 0.20754719f), glm::vec3(2.2f, 2.2f, 2.2f));
-    glm::vec3 outer_BubblesColor = pow(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(2.2f, 2.2f, 2.2f));
-    glm::vec3 outer_Specular = pow(glm::vec3(0.3962264f, 0.3943574f, 0.3943574f), glm::vec3(2.2f, 2.2f, 2.2f));
-    int outer_Gloss = 256;//256
-    glm::vec3 outer_ambient = pow(glm::vec3(0, 0, 0) / 256.0f, glm::vec3(2.2f, 2.2f, 2.2f));//material.ka
-
+    glm::vec3 outer_OceanColorShallow=pow(glm::vec3(.30713776f,.4703595f,.5471698f),glm::vec3(2.2f));
+    glm::vec3 outer_OceanColorDeep=pow(glm::vec3(.0499288f,.1436479f,.20754719f),glm::vec3(2.2f));
+    glm::vec3 outer_BubblesColor={1,1,1};
+    glm::vec3 outer_Specular=pow(glm::vec3(.3962264f,.3943574f,.3943574f),glm::vec3(2.2f));
+    int outer_Gloss=256;
+    glm::vec3 outer_ambient={0,0,0};
 private:
-    //Mesh data
-    std::vector<unsigned int>vertexIndexs;		//网格三角形索引EBO
-    //std::vector<glm::vec3> positions;    //位置 vertex coordinates
-    //std::vector<glm::vec2>uvs; 			//uv坐标 texture coordinates
-    std::vector<float> vertexInfo;//positions uvs
-
-    unsigned int VAO, texture_VAO, VBO, EBO;
-    bool initDone;
-
-private:
-
-    void init();
+    std::vector<unsigned> vertexIndexs;
+    std::vector<float> vertexInfo;
+    unsigned VAO=0,VBO=0,EBO=0;
+    bool initDone=false;
+    int initializedSize=0, initializedMeshSize=0, initializedSeed=0;
+    float initializedLength=0;
     void Start();
     void Update();
     void Draw();
-    //init
+    std::shared_ptr<Ocean> detailOcean;
+    std::shared_ptr<Texture> opaqueSceneColor;
+    std::shared_ptr<FrameBuffer> opaqueSceneBuffer;
     void initTextures();
     void initMesh();
     void initShaders();
     void initGaussianRandom();
-    void initClock();
-
-    //compute
-    void ComputeFFT(std::shared_ptr<Shader> shader, std::shared_ptr<ImageTexture>input_Texture);
+    void ComputeFFT(std::shared_ptr<Shader> shader,std::shared_ptr<ImageTexture> input);
     void ComputeOceanValue();
 };

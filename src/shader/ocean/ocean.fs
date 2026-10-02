@@ -1,129 +1,123 @@
-#version 430 
-#define PI 3.1415926f
-
-// layout(rgba32f,binding=8) uniform sampler2D NormalRT;
-// layout(rgba32f,binding=9) uniform sampler2D BubblesRT;
-uniform sampler2D NormalRT;
-uniform sampler2D BubblesRT;
-// uniform sampler2D SkyView;
-uniform sampler2D skyview;
-
-struct DirLight 
-{
-    vec3 direction;
-
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
-};
-
-
-in vec3 FragPos;
-in vec3 FragNormal;
-in vec2 FragTexCoord;
-
-out vec4 FragColor;
-layout(std140,binding=0) uniform VP
-{
-    mat4 projection;
-    mat4 view;
-    vec3 viewPos;
-};
-
+#version 430 core
+const float PI=3.14159265359;
+uniform sampler2D NormalRT, BubblesRT, skyview;
+uniform int hasSky, enableDetail;
+uniform sampler2D detailNormal, detailFoam;
+uniform sampler2D opaqueScene, scenePosition, sceneNormal;
+uniform int enableRefraction;
+uniform float refractionStrength, deepWaterDistance, subsurfaceStrength, scatteringAnisotropy, seaLevel, waveHeightScale;
+uniform vec3 absorption, scattering;
+struct DirLight { vec3 direction;vec3 diffuse;vec3 specular; };
 uniform DirLight dirLight;
+layout(std140,binding=0) uniform VP {mat4 projection;mat4 view;vec3 viewPos;};
 uniform float outer_FresnelScale;
-uniform vec3 outer_OceanColorShallow;
-uniform vec3 outer_OceanColorDeep;
-uniform vec3 outer_BubblesColor;
-uniform vec3 outer_Specular;
+uniform vec3 outer_OceanColorShallow, outer_OceanColorDeep, outer_BubblesColor, outer_Specular, outer_ambient;
 uniform int outer_Gloss;
-uniform vec3 outer_ambient;
-
-vec3 lerp(vec3 a,vec3 b,float alpha);
-void func();
-
-void main()
-{
-    func();
+in vec3 FragPos;
+in vec2 FragTexCoord;
+layout(location=5) in vec2 DetailTexCoord;
+out vec4 FragColor;
+vec3 skyRadiance(vec3 direction) {
+    if(hasSky==0)return vec3(0);
+    // Same latitude encoding as skyRender.fs; radiance LUT is already linear HDR.
+    float latitude=asin(clamp(direction.y,-1.0,1.0));
+    float longitude=mod(atan(direction.x,-direction.z)+2.0*PI,2.0*PI);
+    float y=.5+.5*sign(latitude)*sqrt(abs(latitude)/(PI/2.0+.2));
+    return texture(skyview,vec2(longitude/(2.0*PI),y)).rgb;
 }
-
-#define epsilon 0.2f
-float MapLatitudeToUnit(float latitude){
-    return 0.5f + 0.5f * sign(latitude) * sqrt(abs(latitude)/(PI/2+epsilon));
+vec2 screenUV(vec3 point) {
+    vec4 clip=projection*view*vec4(point,1);
+    return clip.xy/max(clip.w,1e-5)*.5+.5;
 }
-
-void func()
-{
-    float _FresnelScale=outer_FresnelScale;
-    vec3 _OceanColorShallow=outer_OceanColorShallow;
-    vec3 _OceanColorDeep=outer_OceanColorDeep;
-    vec3 _BubblesColor=outer_BubblesColor;
-    vec3 _Specular=outer_Specular;
-    int _Gloss=outer_Gloss;
-    vec3 _ambient=outer_ambient;
-    // float _FresnelScale=0.02f;
-    // vec3 _OceanColorShallow=pow(vec3(0.30713776f,0.4703595f,0.5471698f),vec3(2.2f,2.2f,2.2f));
-    // vec3 _OceanColorDeep=pow(vec3(0.0499288f,0.1436479f,0.20754719f),vec3(2.2f,2.2f,2.2f));
-    // vec3 _BubblesColor=pow(vec3(1.0f,1.0f,1.0f),vec3(2.2f,2.2f,2.2f));
-    // vec3 _Specular=pow(vec3(0.3962264f,0.3943574f,0.3943574f),vec3(2.2f,2.2f,2.2f));
-    // int _Gloss=256;//256
-    // vec3 _ambient=pow(vec3(54, 58, 66)/256.0f,vec3(2.2f,2.2f,2.2f));//material.ka
-
-    vec3 normal = normalize(texture(NormalRT,FragTexCoord).xyz);
-    float bubbles = texture(BubblesRT,FragTexCoord).x;
-    
-    vec3 viewDir = normalize(viewPos - FragPos);
-    vec3 lightDir = normalize(-dirLight.direction);
-
-
-    //ambient
-    vec3 ambient = _ambient;
-
-    //diffuse
-    float facing = clamp(dot(viewDir, normal),0.0f,1.0f);//cosθ         
-    vec3 oceanColor=lerp(_OceanColorShallow,_OceanColorDeep,facing);//物体颜色，cosθ 线性插值
-    vec3 oceanDiffuse = dirLight.diffuse * oceanColor * clamp(pow(dot(lightDir, normal), 20.0f),0.0f,1.0f);//海洋颜色-光照
-    vec3 bubblesDiffuse = dirLight.diffuse * _BubblesColor *clamp(dot(lightDir, normal),0.0f,1.0f);//泡沫颜色-光照
-    vec3 cur_diffuse =lerp(oceanDiffuse,bubblesDiffuse,bubbles);
-    // vec3 cur_diffuse =oceanDiffuse;
-
-    vec3 reflectDir = normalize(reflect(-viewDir, normal));
-    float sinLat = abs(reflectDir.y);
-    float tanLon = -abs(reflectDir.x) / reflectDir.z; 
-    float Lat = asin(sinLat);
-    float Lon = atan(tanLon);
-    if(Lon < 0.0f)
-        Lon = PI + Lon;
-    if(reflectDir.x < 0.0f)
-        Lon = 2 * PI - Lon;
-    float LatUnit = MapLatitudeToUnit(Lat);
-    float LonUnit = Lon / (2 * PI);
-
-    vec3 sky = pow(texture(skyview,vec2(LonUnit,LatUnit)).xyz,vec3(2.2));
-
-    float fresnel = clamp(_FresnelScale + (1 - _FresnelScale) * pow(1 - dot(normal, viewDir), 5),0.0f,1.0f); //菲涅尔
-    vec3 diffuse =lerp(cur_diffuse, sky, fresnel);
-    // vec3 diffuse =sky;
-
-    //specular
-    vec3 halfDir = normalize(lightDir + viewDir);
-    vec3 specular = dirLight.specular * _Specular * pow(max(0, dot(normal, halfDir)), _Gloss);//_Gloss或可以使用material.ks
-    // vec3 specular = vec3(0.0f);
-    
-    //result
-    vec3 result_color = ambient + diffuse + specular;
-    // vec3 result_color = diffuse;
-    // result_color.x=pow(result_color.x,1/2.2f);
-    // result_color.y=pow(result_color.y,1/2.2f);
-    // result_color.z=pow(result_color.z,1/2.2f);
-    result_color = clamp(result_color, 0.0f, 1.0f);
-
-    FragColor=vec4(result_color, clamp(2.0f * fresnel + 0.4f, 0.0f, 1.0f));
-    // FragColor = vec4(1.0f);
+bool submerged(vec2 uv,vec3 surface,vec3 V) {
+    if(any(lessThan(uv,vec2(0))) || any(greaterThan(uv,vec2(1))))return false;
+    vec3 p=texture(scenePosition,uv).xyz;
+    return dot(texture(sceneNormal,uv).xyz,texture(sceneNormal,uv).xyz)>.25 &&
+           p.y<surface.y-.02 && dot(p-surface,-V)>.01;
 }
-
-vec3 lerp(vec3 a,vec3 b,float t)
-{
-    //a + (b - a) * t
-    return a+(b-a)*t;
+// Intersect the refracted ray with the visible opaque depth layer. A single
+// depth-projected offset duplicates silhouettes when a sphere replaces the floor.
+bool refractedUV(vec3 surface,vec3 V,vec3 R,float range,out vec2 hitUV) {
+    float previous=0.0;
+    for(int step=1;step<=24;++step) {
+        float distance=range*float(step)/24.0;
+        vec3 point=surface+R*distance;vec2 uv=screenUV(point);
+        if(submerged(uv,surface,V)) {
+            vec3 p=texture(scenePosition,uv).xyz;
+            if((view*vec4(p-point,0)).z>=0.0) {
+                float low=previous,high=distance;
+                for(int refine=0;refine<5;++refine) {
+                    float middle=(low+high)*.5;vec3 q=surface+R*middle;vec2 trial=screenUV(q);
+                    bool behind=false;
+                    if(submerged(trial,surface,V))behind=(view*vec4(texture(scenePosition,trial).xyz-q,0)).z>=0.0;
+                    if(behind)high=middle;else low=middle;
+                }
+                hitUV=screenUV(surface+R*high);
+                return submerged(hitUV,surface,V);
+            }
+        }
+        previous=distance;
+    }
+    return false;
+}
+vec3 transmittedWater(vec3 N,vec3 V,vec3 L) {
+    vec2 baseUV=screenUV(FragPos),uv=baseUV;
+    float distance=deepWaterDistance;vec3 background=vec3(0);
+    if(enableRefraction!=0 && submerged(baseUV,FragPos,V)) {
+        vec3 p=texture(scenePosition,baseUV).xyz;
+        // Snell direction with water IOR=1.333; strength blends toward straight transmission.
+        vec3 R=normalize(mix(-V,refract(-V,N,1.0/1.333),refractionStrength));
+        float rayLength=max(FragPos.y-p.y,0.0)/max(-R.y,.1);
+        vec2 candidate;
+        if(refractionStrength>0.0 && refractedUV(FragPos,V,R,min(deepWaterDistance,max(2.0*rayLength,1.0)),candidate))uv=candidate;
+        distance=min(length(texture(scenePosition,uv).xyz-FragPos),deepWaterDistance);
+        background=texture(opaqueScene,uv).rgb;
+    }
+    vec3 sigmaT=max(absorption+scattering,vec3(0));
+    vec3 T=exp(-sigmaT*distance);
+    vec3 albedo=scattering/max(sigmaT,vec3(1e-5));
+    float g=scatteringAnisotropy,cosTheta=dot(-L,V);
+    float phase=(1.0-g*g)/(4.0*PI*pow(max(1.0+g*g-2.0*g*cosTheta,1e-4),1.5));
+    // Wave-top thickness is a visual estimate, not a traced volume thickness.
+    float crest=clamp(max(FragPos.y-seaLevel,0.0)/waveHeightScale,0.0,1.0);
+    float sunDepth=mix(2.0,.25,crest)/max(L.y,.2);
+    vec3 sunT=exp(-sigmaT*sunDepth);
+    vec3 tint=mix(outer_OceanColorShallow,outer_OceanColorDeep,1.0-exp(-distance*.08));
+    vec3 source=tint*(skyRadiance(N)*.25+dirLight.diffuse*phase*sunT);
+    vec3 scatter=subsurfaceStrength*albedo*(vec3(1)-T)*source;
+    return background*T+scatter+outer_ambient;
+}
+void main() {
+    vec3 N=normalize(texture(NormalRT,FragTexCoord).xyz),V=normalize(viewPos-FragPos);
+    if(enableDetail!=0) {
+        vec3 detail=normalize(texture(detailNormal,DetailTexCoord).xyz);
+        vec2 slope=N.xz/max(N.y,.1)+detail.xz/max(detail.y,.1);
+        N=normalize(vec3(slope.x,1,slope.y));
+    }
+    if(dot(N,V)<0.0)N=-N;
+    vec3 L=normalize(-dirLight.direction);
+    float NoV=max(dot(N,V),0.0),NoL=max(dot(N,L),0.0);
+    float F0=clamp(outer_FresnelScale,0.0,1.0);
+    float fresnel=F0+(1.0-F0)*pow(1.0-NoV,5.0);
+    float foam=clamp(texture(BubblesRT,FragTexCoord).r,0.0,1.0);
+    if(enableDetail!=0)foam=1.0-(1.0-foam)*(1.0-clamp(texture(detailFoam,DetailTexCoord).r,0.0,1.0));
+    vec3 body=transmittedWater(N,V,L);
+    vec3 reflection=skyRadiance(reflect(-V,N));
+    // Normalized GGX sun highlight; existing gloss UI maps to roughness.
+    float roughness=clamp(pow(2.0/float(max(outer_Gloss,1)+2),.25),.06,1.0);
+    // Screen-space normal variance broadens unresolved highlights instead of letting them sparkle.
+    float variance=dot(dFdx(N),dFdx(N))+dot(dFdy(N),dFdy(N));
+    float alpha2=clamp(pow(roughness,4.0)+.5*variance,pow(.06,4.0),1.0);
+    roughness=pow(alpha2,.25);
+    vec3 sum=L+V;vec3 H=dot(sum,sum)>1e-8?normalize(sum):N;
+    float NoH=max(dot(N,H),0.0),VoH=max(dot(V,H),0.0);
+    float denom=NoH*NoH*(alpha2-1.0)+1.0;
+    float D=alpha2/(PI*denom*denom);
+    float k=(roughness+1.0)*(roughness+1.0)/8.0;
+    float G=(NoV/(NoV*(1.0-k)+k))*(NoL/(NoL*(1.0-k)+k));
+    float F=F0+(1.0-F0)*pow(1.0-VoH,5.0);
+    vec3 sun=dirLight.specular*outer_Specular*(D*G*F/max(4.0*NoV*NoL,1e-5))*NoL;
+    vec3 foamDiffuse=outer_BubblesColor*(dirLight.diffuse*NoL/PI+skyRadiance(N)*0.25);
+    vec3 result=mix((1.0-fresnel)*body+fresnel*reflection+sun,foamDiffuse,foam);
+    FragColor=vec4(max(result,vec3(0)),1); // Tone mapping belongs to the HDR post pass.
 }

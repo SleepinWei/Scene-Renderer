@@ -209,6 +209,22 @@ public:
 			if (ImGui::CollapsingHeader("Ocean")) {
 				auto&& oceanComp = std::static_pointer_cast<Ocean>(scene->terrain->GetComponent("Ocean"));
 
+				ImGui::Checkbox("Animate waves", &oceanComp->animate);
+                ImGui::SliderFloat("Wind speed (m/s)", &oceanComp->WindScale, 0, 40);
+                ImGui::SliderFloat2("Wind direction", &oceanComp->WindAndSeed.x, -1, 1);
+                ImGui::SliderFloat("Choppiness", &oceanComp->Lambda, 0, 2);
+                ImGui::SliderFloat("Spectrum amplitude", &oceanComp->A, 0, .003f, "%.6f");
+                ImGui::InputInt("Wave seed", &oceanComp->seed);
+                ImGui::InputFloat("Sea level", &oceanComp->seaLevel);
+                ImGui::Text("FFT: %d x %d | mesh: %d x %d", oceanComp->fft_size, oceanComp->fft_size, oceanComp->MeshSize, oceanComp->MeshSize);
+                ImGui::Checkbox("Small FFT waves", &oceanComp->detailWaves);
+                ImGui::SliderFloat("Small wave detail", &oceanComp->detailStrength, 0, 2);
+                ImGui::Checkbox("Water refraction", &oceanComp->refraction);
+                ImGui::SliderFloat("Refraction strength", &oceanComp->refractionStrength, 0, 1);
+                ImGui::SliderFloat3("Absorption (1/m)", &oceanComp->absorption.x, 0, 1);
+                ImGui::SliderFloat3("Scattering (1/m)", &oceanComp->scattering.x, 0, .3f);
+                ImGui::SliderFloat("Subsurface scattering", &oceanComp->subsurfaceStrength, 0, 3);
+                ImGui::SliderFloat("Forward scattering g", &oceanComp->scatteringAnisotropy, 0, .9f);
 				ImGui::InputFloat("BubblesScale", &oceanComp->BubblesScale);
 				ImGui::InputFloat("BubblesThreshold", &oceanComp->BubblesThreshold);
 				ImGui::InputFloat("TimeScale", &oceanComp->TimeScale);

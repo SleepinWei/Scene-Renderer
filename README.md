@@ -77,6 +77,27 @@ python3 tools/fetch_gi_assets.py
 ./build/Scene-Renderer --classic helmet
 ```
 
+## 高清海洋与透明水体
+
+海洋使用 **1024×1024 主 FFT、256×256 短波 FFT 和 513×513 水面网格**。主频谱表现长波，独立短波补充细小波纹；水面读取场景太阳和线性 HDR 天空，使用 Fresnel／GGX 光照及基于 Jacobian 的泡沫。
+
+新增按水深计算的屏幕空间折射、RGB Beer–Lambert 吸收和近似单次散射，表现浅水透射及背光浪尖。GUI 可调吸收、散射、折射和短波细节。算法修复、数值测试、开关对照与限制见 [FFT 海洋与透明水体修复记录](docs/ocean-fft-and-rendering-review.md)。
+
+| 高清海面 | 浅水透射与散射 |
+| --- | --- |
+| ![Metal 高清海洋](img/metal/ocean.png) | ![Metal 透明水体](img/metal/ocean-clear.png) |
+
+截图为 1920×1080 原生 Metal 渲染；浅水场景中的材质球和底面用于观察透射。散射与折射是实时近似，尚未实现体积多次散射、焦散或屏幕外折射。
+
+```sh
+./build/Scene-Renderer --classic ocean
+./build/Scene-Renderer --classic ocean-clear
+./build/Scene-Renderer --render-gallery img/metal ocean
+./build/Scene-Renderer --render-gallery img/metal ocean-clear
+```
+
+综合 `--demo` 使用 512×512 主 FFT，专用海洋场景使用上述高清配置。
+
 ## 整体系统设计
 
 项目按场景、渲染调度、资源和 GPU 后端分层。`GameObject` 通过组件组合变换、网格、材质、灯光和自然场景逻辑；`RenderScene` 收集对象与相机，`RenderManager` 管理着色器、相机／光照缓冲区及各个渲染通道。
@@ -109,7 +130,7 @@ flowchart TD
 3. 将不透明对象写入 G-buffer，记录位置、法线、底色及材质参数，并计算 SSAO。
 4. 延迟光照读取 G-buffer，合成 PBR 直接光照和环境光；绘制需要前向着色的对象及天空。
 5. 可选 RSM 在太阳方向的正交投影中生成位置、法线和太阳＋天空反射功率贴图；全屏读取 G-buffer，按接收表面材质采样并加入一次间接光照。无太阳和大气时可回退到聚光灯。
-6. 绘制水面等混合对象，进行 HDR 曝光和色调映射，最后绘制 ImGui 并呈现。
+6. 拷贝不透明 HDR 场景，绘制包含折射、吸收和散射的水面；统一进行 HDR 曝光和色调映射，最后绘制 ImGui 并呈现。
 
 独立前向路径使用 `DepthPass → BasePass → PostPass`，其中相机空间的前后表面深度用于近似 SSS。渲染通道的实现集中在 [RenderPass.cpp](src/renderer/RenderPass.cpp)，调度入口为 [RenderManager.cpp](src/system/RenderManager.cpp)。
 
@@ -136,7 +157,7 @@ flowchart LR
 | SSAO | 屏幕空间采样核与噪声纹理，增强接触处的遮蔽 | 不包含屏幕外几何的信息，不等同于 GI |
 | RSM | 太阳方向正交投影；太阳辐照度＋大气天空漫反射 LUT；每纹素反射功率、显式采样 PDF、G-buffer 全屏合成；支持聚光灯回退 | 单个投影仅记录最近表面，天空入射未计算遮蔽；局部一次漫反射反弹，可能漏光、有采样噪声 |
 | 大气与 IBL | Rayleigh、Mie 与臭氧吸收；透射率、多重散射、天空视图和卷积 LUT | 使用大气天空环境，不是完整的场景反射探针系统 |
-| FFT 海洋 | 随机初始频谱、水平／垂直 FFT、位移、法线与泡沫，水面混合绘制 | 实时频谱水面，不是流体求解器 |
+| FFT 海洋与水体 | 共轭 Phillips 频谱、归一化二维 IFFT、主波与短波叠加、法线与 Jacobian 泡沫；深度折射、RGB 消光、近似单次散射与 HDR 光照 | 周期有限海面；折射限于屏幕空间，散射厚度是近似；不是流体求解器 |
 | 地形与草 | GPU 四叉树 LOD、队列、间接调度与绘制；GPU 草分布和实例化 | 当前验证使用程序生成资源 |
 | 模型导入 | Assimp、glTF；GI 示例增加 OBJ/MTL 材质、透明遮罩与高度图转法线 | OBJ 的传统材质参数近似转换为 PBR，玻璃／水不做真实折射 |
 | CPU 路径追踪 | 球、三角形、矩形、基础漫反射／金属／介质材质、BVH、重要性采样和多线程 | 实时场景转换仍不完整，网格材质转换为白色 Lambertian，不能作为实时 PBR 的完整参考解 |
@@ -164,13 +185,14 @@ flowchart LR
 | `tools/` | 着色器转换及可复现的资源下载脚本 |
 | `samples/`、`img/metal/` | 示例资产与来源清单、本项目生成的截图 |
 | `doc/metal.md`、`doc/rsm.md` | 中文 Metal 迁移说明与太阳／天空 RSM 实现、验证说明 |
+| `docs/ocean-fft-and-rendering-review.md` | 海洋 FFT、高清波纹、透明与散射的修复和验证记录 |
 
 ## 命令与操作
 
 | 命令 | 用途 |
 | --- | --- |
 | `--demo` | 自动生成的功能演示，无需历史资产包 |
-| `--classic <name>` | 选择 `cornell`、`bunny`、`helmet`、`sponza` 或 `san-miguel` |
+| `--classic <name>` | 选择 `cornell`、`bunny`、`helmet`、`sponza`、`san-miguel`、`ocean` 或 `ocean-clear` |
 | `--frames <N>` | 窗口渲染 N 帧后退出 |
 | `--render-gallery <目录> core` | 离屏生成三个随仓库提供的基础示例 |
 | `--render-gallery <目录> gi` | 生成两个 GI 场景、RSM 开关对照及纯间接光／太阳／天空贡献图 |
@@ -200,7 +222,7 @@ MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 ctest --test-dir build --output-on-fai
 ./build/Scene-Renderer --demo --frames 3
 ```
 
-GPU 自检包含 15 项具有解析预期值的 RSM 能量与合成测试，并覆盖着色器库加载、计算结果读回、材质、曲面细分、天空、海洋、地形、草、阴影、SSAO/RSM，以及前向 HDR/SSS 深度。画廊测试覆盖连续切换场景，读回 HDR、法线和天空 LUT，检查非空输出与 NaN／Inf；这些是渲染正确性检查，不是与物理参考图像的误差测试。
+GPU 自检包含 22 项海洋数值测试、5 项水体光学测试和 15 项 RSM 能量与合成测试，并覆盖着色器库加载、计算结果读回、材质、曲面细分、天空、海洋、地形、草、阴影、SSAO/RSM，以及前向 HDR/SSS 深度。画廊测试覆盖连续切换场景，读回 HDR、法线和天空 LUT，检查非空输出与 NaN／Inf；这些是渲染正确性检查，不是与物理参考图像的误差测试。
 
 已在 Apple M4 上使用 Metal API 与着色器校验进行验证。当前没有跨 GPU 性能对比；Metal 后端采用单命令队列并等待每帧完成，尚未优化为多帧并行提交。大规模 OBJ 导入仍需较多 CPU 内存与启动时间。
 

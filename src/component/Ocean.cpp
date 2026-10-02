@@ -1,465 +1,192 @@
-#include<glad/glad.h>
-#include<glm/gtc/type_ptr.hpp>
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <vector>
+#include <glm/gtc/matrix_transform.hpp>
+#include "component/Ocean.h"
+#include "component/Atmosphere.h"
+#include "component/Lights.h"
+#include "renderer/Texture.h"
+#include "renderer/RenderScene.h"
+#include "renderer/RenderPass.h"
+#include "buffer/FrameBuffer.h"
+#include "system/InputManager.h"
+#include "object/SkyBox.h"
+#include "system/RenderManager.h"
+#include <algorithm>
+#include <cmath>
+#include <stdexcept>
+#include <utility>
+extern std::shared_ptr<RenderScene> scene;
 
-#include"component/Ocean.h"
-#include"buffer/ImageTexture.h"
-#include"renderer/Texture.h"
-#include"system/RenderManager.h"
-#include"renderer/Renderpass.h"
-#include"renderer/RenderScene.h"
-#include"object/SkyBox.h"
-#include"component/Atmosphere.h"
-//#include"buffer/UniformBuffer.h"
-#include"utils/Shader.h"
-#include"utils/Utils.h"
-#include<utility>
-#include<random>
-#include<time.h>
-
-extern shared_ptr<RenderScene> scene;
-
-Ocean::Ocean()
-{
-    Component::name = "Ocean";
-    initDone = false;
-
-    // texture
-    GaussianRandomRT_Texture=nullptr;
-    HeightSpectrumRT_Texture=nullptr;
-    DisplaceXSpectrumRT_Texture=nullptr;
-    DisplaceZSpectrumRT_Texture=nullptr;
-    InputRT_Texture=nullptr;
-    OutputRT_Texture=nullptr;
-    DisplaceRT_Texture=nullptr;
-    NormalRT_Texture=nullptr;
-    BubblesRT_Texture=nullptr;
-
-    //shaders
-    GaussianRandomRT_Shader=nullptr;
-    DisplaceSpectrum_Shader=nullptr;
-    HeightSpectrum_Shader=nullptr;
-    FFTHorizontal_Shader=nullptr;
-    FFTHorizontalEnd_Shader=nullptr;
-    FFTVertical_Shader=nullptr;
-    FFTVerticalEnd_Shader=nullptr;
-    TextureDisplace_Shader=nullptr;
-    TextureNormalBubbles_Shader=nullptr;
-    
-    draw_shader=nullptr;
+Ocean::Ocean() { Component::name="Ocean"; }
+Ocean::~Ocean() {
+    if(VAO)glDeleteVertexArrays(1,&VAO);
+    if(VBO)glDeleteBuffers(1,&VBO);
+    if(EBO)glDeleteBuffers(1,&EBO);
 }
-Ocean::~Ocean()
-{
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteVertexArrays(1, &texture_VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);  
+void Ocean::render() {
+    if(!initDone)Start();
+    Update();Draw();
 }
-void Ocean::init()
-{
-    name = "Ocean";
-    //prepare all data
-    this->Start();
+void Ocean::simulate(float seconds) {
+    if(!initDone)Start();
+    inner_time=seconds;ComputeOceanValue();
 }
-void Ocean::render()
-{
-    if (!initDone)
-    {
-        init();
-        initDone = true;
+void Ocean::Start() {
+    if(FFTPow<3 || FFTPow>11 || fft_size!=(1<<FFTPow) || MeshSize<2 || !std::isfinite(MeshLength) || MeshLength<=0)
+        throw std::invalid_argument("Ocean requires fft_size=2^FFTPow (8..2048), MeshSize>=2 and positive length");
+    initMesh();initTextures();initShaders();initGaussianRandom();
+    initializedSize=fft_size;initializedMeshSize=MeshSize;initializedLength=MeshLength;initializedSeed=seed;
+    lastFrame=static_cast<float>(glfwGetTime());initDone=true;
+}
+void Ocean::initTextures() {
+    for(auto* target : {&GaussianRandomRT_Texture,&HeightSpectrumRT_Texture,&DisplaceXSpectrumRT_Texture,
+                       &DisplaceZSpectrumRT_Texture,&OutputRT_Texture,&DisplaceRT_Texture,&NormalRT_Texture,&BubblesRT_Texture}) {
+        *target=std::make_shared<ImageTexture>();(*target)->genImageTexture(GL_RGBA32F,GL_RGBA,fft_size,fft_size);
+        glBindTexture(GL_TEXTURE_2D,(*target)->tex->id);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
     }
-
-    this->Update();
-    this->Draw();
 }
-
-//origin
-void Ocean::initTextures()
-{
-    // initTextures
-        //创建对象
-    GaussianRandomRT_Texture = std::make_shared<ImageTexture>();//高斯随机数
-    HeightSpectrumRT_Texture = std::make_shared<ImageTexture>();//高度频谱
-    DisplaceXSpectrumRT_Texture = std::make_shared<ImageTexture>();//X偏移频谱
-    DisplaceZSpectrumRT_Texture = std::make_shared<ImageTexture>();//Z偏移频谱
-    OutputRT_Texture = std::make_shared<ImageTexture>();
-    DisplaceRT_Texture = std::make_shared<ImageTexture>();
-    NormalRT_Texture = std::make_shared<ImageTexture>();
-    BubblesRT_Texture = std::make_shared<ImageTexture>();
-
-    //生成对应空间
-    GaussianRandomRT_Texture->genImageTexture(GL_RGBA32F, GL_RGBA, fft_size, fft_size);
-    HeightSpectrumRT_Texture->genImageTexture(GL_RGBA32F, GL_RGBA, fft_size, fft_size);
-    DisplaceXSpectrumRT_Texture->genImageTexture(GL_RGBA32F, GL_RGBA, fft_size, fft_size);
-    DisplaceZSpectrumRT_Texture->genImageTexture(GL_RGBA32F, GL_RGBA, fft_size, fft_size);
-    OutputRT_Texture->genImageTexture(GL_RGBA32F, GL_RGBA, fft_size, fft_size);
-    DisplaceRT_Texture->genImageTexture(GL_RGBA32F, GL_RGBA, fft_size, fft_size);
-    NormalRT_Texture->genImageTexture(GL_RGBA32F, GL_RGBA, fft_size, fft_size);
-    BubblesRT_Texture->genImageTexture(GL_RGBA32F, GL_RGBA, fft_size, fft_size);
-
-    //绑定
-    //GaussianRandomRT_Texture->setBinding(1);
- //   HeightSpectrumRT_Texture->setBinding(2);
- //   DisplaceXSpectrumRT_Texture->setBinding(3);
- //   DisplaceZSpectrumRT_Texture->setBinding(4);
- //   InputRT_Texture->setBinding(5);
- //   OutputRT_Texture->setBinding(6);
- //   DisplaceRT_Texture->setBinding(7);
- //   NormalRT_Texture->setBinding(8);
- //   BubblesRT_Texture->setBinding(9);
+void Ocean::initShaders() {
+    GaussianRandomRT_Shader=std::make_shared<Shader>("./src/shader/ocean/ocean_ComputeGaussianRandom.comp");
+    HeightSpectrum_Shader=std::make_shared<Shader>("./src/shader/ocean/ocean_CreateHeightSpectrum.comp");
+    DisplaceSpectrum_Shader=std::make_shared<Shader>("./src/shader/ocean/ocean_CreateDisplaceSpectrum.comp");
+    FFTHorizontal_Shader=std::make_shared<Shader>("./src/shader/ocean/ocean_FFTHorizontal.comp");
+    FFTHorizontalEnd_Shader=std::make_shared<Shader>("./src/shader/ocean/ocean_FFTHorizontalEnd.comp");
+    FFTVertical_Shader=std::make_shared<Shader>("./src/shader/ocean/ocean_FFTVertical.comp");
+    FFTVerticalEnd_Shader=std::make_shared<Shader>("./src/shader/ocean/ocean_FFTVerticalEnd.comp");
+    TextureDisplace_Shader=std::make_shared<Shader>("./src/shader/ocean/ocean_TextureGenerationDisplace.comp");
+    TextureNormalBubbles_Shader=std::make_shared<Shader>("./src/shader/ocean/ocean_TextureGenerationNormalBubbles.comp");
+    draw_shader=std::make_shared<Shader>("./src/shader/ocean/ocean.vs","./src/shader/ocean/ocean.fs");
 }
-
-void Ocean::initShaders()
-{
-    // initShaders
-    //new shader
-    GaussianRandomRT_Shader = std::make_shared<Shader>("./src/shader/ocean/ocean_ComputeGaussianRandom.comp");
-    DisplaceSpectrum_Shader = std::make_shared<Shader>("./src/shader/ocean/ocean_CreateDisplaceSpectrum.comp");
-    HeightSpectrum_Shader = std::make_shared<Shader>("./src/shader/ocean/ocean_CreateHeightSpectrum.comp");
-    FFTHorizontal_Shader = std::make_shared<Shader>("./src/shader/ocean/ocean_FFTHorizontal.comp");
-    FFTHorizontalEnd_Shader = std::make_shared<Shader>("./src/shader/ocean/ocean_FFTHorizontalEnd.comp");
-    FFTVertical_Shader = std::make_shared<Shader>("./src/shader/ocean/ocean_FFTVertical.comp");
-    FFTVerticalEnd_Shader = std::make_shared<Shader>("./src/shader/ocean/ocean_FFTVerticalEnd.comp");
-    TextureDisplace_Shader = std::make_shared<Shader>("./src/shader/ocean/ocean_TextureGenerationDisplace.comp");
-    TextureNormalBubbles_Shader = std::make_shared<Shader>("./src/shader/ocean/ocean_TextureGenerationNormalBubbles.comp");
-
-    draw_shader = std::make_shared<Shader>("./src/shader/ocean/ocean.vs", "./src/shader/ocean/ocean.fs");
+void Ocean::initGaussianRandom() {
+    GaussianRandomRT_Shader->use();GaussianRandomRT_Shader->setInt("N",fft_size);
+    GaussianRandomRT_Shader->setInt("Seed",seed);GaussianRandomRT_Texture->setBinding(1);
+    glDispatchCompute(fft_size/8,fft_size/8,1);glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
-
-void Ocean::initGaussianRandom()
-{
-    GaussianRandomRT_Shader->use();
-    GaussianRandomRT_Shader->setInt("N", fft_size);//fft纹理大小
-
-    GaussianRandomRT_Texture->setBinding(1);
-    glDispatchCompute(fft_size / 8, fft_size / 8, 1);
-    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-}
-
-void Ocean::initClock()
-{
-    srand((unsigned int)time(NULL));
-}
-
-void Ocean::initMesh()//VAO,VBO,EBO
-{
-    //fftSize = (int)Mathf.Pow(2, FFTPow);
-
-    //生成指定大小空间
-    vertexInfo.resize(5 * MeshSize * MeshSize);
-    //positions.resize(MeshSize * MeshSize);
-    vertexIndexs.resize((MeshSize - 1) * (MeshSize - 1) * 6);
-    //uvs.resize(MeshSize * MeshSize);
-
-    int inx = 0;
-    for (int i = 0; i < MeshSize; i++)
-    {
-        for (int j = 0; j < MeshSize; j++)
-        {
-            int index = i * MeshSize + j;
-            vertexInfo[5 * index] = (j - MeshSize / 2.0f) * MeshLength / MeshSize;
-            vertexInfo[5 * index + 1] = 0;
-            vertexInfo[5 * index + 2] = (i - MeshSize / 2.0f) * MeshLength / MeshSize;
-            vertexInfo[5 * index + 3] = j / (MeshSize - 1.0f);
-            vertexInfo[5 * index + 4] = i / (MeshSize - 1.0f);
-
-            //positions[index] = glm::vec3((j - MeshSize / 2.0f) * MeshLength / MeshSize, 0, (i - MeshSize / 2.0f) * MeshLength / MeshSize);//Vertex Pos
-            //uvs[index] = glm::vec2(j / (MeshSize - 1.0f), i / (MeshSize - 1.0f));//texture coordinates
-
-            if (i != MeshSize - 1 && j != MeshSize - 1)
-            {
-                //EBO
-                // vertexIndexs.push_back(index);
-                // vertexIndexs.push_back(index + MeshSize);
-                // vertexIndexs.push_back(index + MeshSize+1);
-
-                // vertexIndexs.push_back(index);
-                // vertexIndexs.push_back(index + MeshSize + 1);
-                // vertexIndexs.push_back(index+1);
-
-                vertexIndexs[inx++] = index;
-                vertexIndexs[inx++] = index + MeshSize;
-                vertexIndexs[inx++] = index + MeshSize + 1;
-
-                vertexIndexs[inx++] = index;
-                vertexIndexs[inx++] = index + MeshSize + 1;
-                vertexIndexs[inx++] = index + 1;
-            }
-        }
+void Ocean::initMesh() {
+    vertexInfo.resize(5*MeshSize*MeshSize);vertexIndexs.clear();
+    for(int z=0;z<MeshSize;++z)for(int x=0;x<MeshSize;++x) {
+        int index=z*MeshSize+x;float u=float(x)/(MeshSize-1),v=float(z)/(MeshSize-1);
+        vertexInfo[5*index]=(u-.5f)*MeshLength;vertexInfo[5*index+1]=0;
+        vertexInfo[5*index+2]=(v-.5f)*MeshLength;vertexInfo[5*index+3]=u;vertexInfo[5*index+4]=v;
+        if(x+1<MeshSize && z+1<MeshSize)vertexIndexs.insert(vertexIndexs.end(),
+            {unsigned(index),unsigned(index+MeshSize),unsigned(index+MeshSize+1),
+             unsigned(index),unsigned(index+MeshSize+1),unsigned(index+1)});
     }
-
-    //binding
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-
-    glBindVertexArray(VAO);//VAO会自动记录相应EBO信息
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, vertexInfo.size() * sizeof(float), &vertexInfo[0], GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, vertexIndexs.size() * sizeof(unsigned int), &vertexIndexs[0], GL_STATIC_DRAW);
-
-
-    // 设置顶点属性指针(这样VAO才设置结束）
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);//pos
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));//uv
-    //最后一个指定起始地址，第一个指定对应location = i的数据如何从VBO中读取（VAO装入VBO信息）
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-
-
+    glGenVertexArrays(1,&VAO);glGenBuffers(1,&VBO);glGenBuffers(1,&EBO);
+    glBindVertexArray(VAO);glBindBuffer(GL_ARRAY_BUFFER,VBO);
+    glBufferData(GL_ARRAY_BUFFER,vertexInfo.size()*sizeof(float),vertexInfo.data(),GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,vertexIndexs.size()*sizeof(unsigned),vertexIndexs.data(),GL_STATIC_DRAW);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,5*sizeof(float),nullptr);
+    glVertexAttribPointer(1,2,GL_FLOAT,GL_FALSE,5*sizeof(float),(void*)(3*sizeof(float)));
+    glEnableVertexAttribArray(0);glEnableVertexAttribArray(1);
 }
-
-void Ocean::ComputeFFT(std::shared_ptr<Shader> shader, std::shared_ptr<ImageTexture>input_Texture)//单行/列求和
-{
-    //shader->use();
-
-    //设置需要使用的数据给"InputRT"
-    input_Texture->setBinding(5);//binding=5的区域指向了对应input_Texture的数据区
-    OutputRT_Texture->setBinding(6);//指向Output_Texture空间
-
-    glDispatchCompute(fft_size / 8, fft_size / 8, 1);//调用FFTHorizontal_Shader对应的comp
-    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-    //目前计算结果存在OutputRT_Texture里（并行算出所有的这一层的输出）
-
-    //交换输入输出区——使得for循环里这一层的输出再变成下一层的输入->不断累加
-    std::swap(input_Texture->tex->id, OutputRT_Texture->tex->id);
+void Ocean::ComputeFFT(std::shared_ptr<Shader> shader,std::shared_ptr<ImageTexture> input) {
+    shader->use();input->setBinding(5);OutputRT_Texture->setBinding(6);
+    glDispatchCompute(fft_size/8,fft_size/8,1);glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    std::swap(input->tex->id,OutputRT_Texture->tex->id);
 }
-
-//计算海洋数据
-void Ocean::ComputeOceanValue()
-{
-    //uniform赋值
-    //1、GaussianRandomRT_Shader——only once
-    //GaussianRandomRT_Shader->use();
-    //GaussianRandomRT_Shader->setInt("N", fft_size);//fft纹理大小
-
-    //GaussianRandomRT_Texture->setBinding(1);
-    //glDispatchCompute(fft_size / 8, fft_size / 8, 1);
-    //glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-    //2、HeightSpectrum_Shader
-    WindAndSeed.z = (10 + rand() % 90) / (10.0f);//Random.Range(1,10.0f)
-    WindAndSeed.w = (10 + rand() % 90) / (10.0f);//Random.Range(1,10.0f)
-    glm::vec2 wind = glm::vec2(WindAndSeed.x, WindAndSeed.y);
-    wind = normalize(wind);
-    wind *= WindScale;
-    HeightSpectrum_Shader->use();
-    HeightSpectrum_Shader->setInt("N", fft_size);
-    HeightSpectrum_Shader->setFloat("Time", inner_time);// inner_time
-    HeightSpectrum_Shader->setVec4("WindAndSeed", glm::vec4(wind.x, wind.y, WindAndSeed.z, WindAndSeed.w));
-    HeightSpectrum_Shader->setFloat("A", A);
-
-    GaussianRandomRT_Texture->setBinding(1);
-    HeightSpectrumRT_Texture->setBinding(2);
-    glDispatchCompute(fft_size / 8, fft_size / 8, 1);
-    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-
-    //3、DisplaceSpectrum_Shader
-    DisplaceSpectrum_Shader->use();
-    DisplaceSpectrum_Shader->setInt("N", fft_size);//fft纹理大小
-
-    HeightSpectrumRT_Texture->setBinding(2);
-    DisplaceXSpectrumRT_Texture->setBinding(3);
-    DisplaceZSpectrumRT_Texture->setBinding(4);
-    glDispatchCompute(fft_size / 8, fft_size / 8, 1);
-    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-    //4、FFT
-    //FFT部分 for循环
-
-    //横向FFT
-    for (int m = 1; m <= FFTPow; m++)
-    {
-        int ns = int(pow(2, m - 1));
-        //最后一次特殊处理
-        if (m != FFTPow)
-        {
-            FFTHorizontal_Shader->use();
-            FFTHorizontal_Shader->setInt("N", fft_size);
-            FFTHorizontal_Shader->setInt("Ns", ns);//Ns = pow(2,m-1); m为第几阶段
-            ComputeFFT(FFTHorizontal_Shader, HeightSpectrumRT_Texture);//结果又在HeightSpectrumRT_Texture中
-            ComputeFFT(FFTHorizontal_Shader, DisplaceXSpectrumRT_Texture);
-            ComputeFFT(FFTHorizontal_Shader, DisplaceZSpectrumRT_Texture);
-        }
-        else
-        {
-            FFTHorizontalEnd_Shader->use();
-            FFTHorizontalEnd_Shader->setInt("N", fft_size);
-            FFTHorizontalEnd_Shader->setInt("Ns", ns);
-            ComputeFFT(FFTHorizontalEnd_Shader, HeightSpectrumRT_Texture);
-            ComputeFFT(FFTHorizontalEnd_Shader, DisplaceXSpectrumRT_Texture);
-            ComputeFFT(FFTHorizontalEnd_Shader, DisplaceZSpectrumRT_Texture);
-        }
-
+void Ocean::ComputeOceanValue() {
+    if(FFTPow<3 || FFTPow>11 || fft_size!=initializedSize || MeshSize!=initializedMeshSize || MeshLength!=initializedLength || fft_size!=(1<<FFTPow))
+        throw std::invalid_argument("Ocean grid/domain changed after initialization; recreate the component");
+    if(seed!=initializedSeed){initGaussianRandom();initializedSeed=seed;}
+    glm::vec2 wind(WindAndSeed);float length=glm::length(wind);
+    wind=length>1e-6f ? wind/length*std::max(WindScale,0.f) : glm::vec2(0);
+    HeightSpectrum_Shader->use();HeightSpectrum_Shader->setInt("N",fft_size);
+    HeightSpectrum_Shader->setFloat("Time",inner_time);HeightSpectrum_Shader->setFloat("OceanLength",MeshLength);
+    HeightSpectrum_Shader->setVec4("WindAndSeed",glm::vec4(wind,0,0));HeightSpectrum_Shader->setFloat("A",std::max(A,0.f));
+    GaussianRandomRT_Texture->setBinding(1);HeightSpectrumRT_Texture->setBinding(2);
+    glDispatchCompute(fft_size/8,fft_size/8,1);glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    DisplaceSpectrum_Shader->use();DisplaceSpectrum_Shader->setInt("N",fft_size);
+    HeightSpectrumRT_Texture->setBinding(2);DisplaceXSpectrumRT_Texture->setBinding(3);DisplaceZSpectrumRT_Texture->setBinding(4);
+    glDispatchCompute(fft_size/8,fft_size/8,1);glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    for(int axis=0;axis<2;++axis)for(int stage=1;stage<=FFTPow;++stage) {
+        auto shader=axis==0 ? (stage==FFTPow?FFTHorizontalEnd_Shader:FFTHorizontal_Shader) :
+                             (stage==FFTPow?FFTVerticalEnd_Shader:FFTVertical_Shader);
+        shader->use();shader->setInt("N",fft_size);shader->setInt("Ns",1<<(stage-1));
+        for(auto texture : {HeightSpectrumRT_Texture,DisplaceXSpectrumRT_Texture,DisplaceZSpectrumRT_Texture})ComputeFFT(shader,texture);
     }
-    //纵向FFT
-    for (int m = 1; m <= FFTPow; m++)
-    {
-        int ns = int(pow(2, m - 1));
-
-        //最后一次特殊处理
-        if (m != FFTPow)
-        {
-            FFTVertical_Shader->use();
-            FFTVertical_Shader->setInt("N", fft_size);
-            FFTVertical_Shader->setInt("Ns", ns);
-            ComputeFFT(FFTVertical_Shader, HeightSpectrumRT_Texture);//结果又在HeightSpectrumRT_Texture中
-            ComputeFFT(FFTVertical_Shader, DisplaceXSpectrumRT_Texture);
-            ComputeFFT(FFTVertical_Shader, DisplaceZSpectrumRT_Texture);
+    TextureDisplace_Shader->use();TextureDisplace_Shader->setInt("N",fft_size);
+    TextureDisplace_Shader->setFloat("Lambda",Lambda);TextureDisplace_Shader->setFloat("HeightScale",HeightScale);
+    HeightSpectrumRT_Texture->setBinding(2);DisplaceXSpectrumRT_Texture->setBinding(3);
+    DisplaceZSpectrumRT_Texture->setBinding(4);DisplaceRT_Texture->setBinding(7);
+    glDispatchCompute(fft_size/8,fft_size/8,1);glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    TextureNormalBubbles_Shader->use();TextureNormalBubbles_Shader->setInt("N",fft_size);
+    TextureNormalBubbles_Shader->setFloat("OceanLength",MeshLength);
+    TextureNormalBubbles_Shader->setFloat("BubblesScale",std::max(BubblesScale,0.f));
+    TextureNormalBubbles_Shader->setFloat("BubblesThreshold",BubblesThreshold);
+    DisplaceRT_Texture->setBinding(7);NormalRT_Texture->setBinding(5);BubblesRT_Texture->setBinding(6);
+    glDispatchCompute(fft_size/8,fft_size/8,1);
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT|GL_TEXTURE_FETCH_BARRIER_BIT);
+    if(detailWaves && FFTPow>=6) {
+        if(!detailOcean) {
+            detailOcean=std::make_shared<Ocean>();detailOcean->detailWaves=false;
+            detailOcean->FFTPow=8;detailOcean->fft_size=256;detailOcean->MeshSize=2;detailOcean->MeshLength=24;
         }
-        else
-        {
-            FFTVerticalEnd_Shader->use();
-            FFTVerticalEnd_Shader->setInt("N", fft_size);
-            FFTVerticalEnd_Shader->setInt("Ns", ns);
-            ComputeFFT(FFTVerticalEnd_Shader, HeightSpectrumRT_Texture);
-            ComputeFFT(FFTVerticalEnd_Shader, DisplaceXSpectrumRT_Texture);
-            ComputeFFT(FFTVerticalEnd_Shader, DisplaceZSpectrumRT_Texture);
-        }
-
+        detailOcean->seed=seed^9001;detailOcean->WindAndSeed=WindAndSeed;
+        detailOcean->WindScale=std::min(WindScale,6.f);detailOcean->A=A*.3f;
+        detailOcean->HeightScale=HeightScale*.5f*std::max(detailStrength,0.f);
+        detailOcean->Lambda=Lambda*.3f*std::max(detailStrength,0.f);
+        detailOcean->BubblesScale=BubblesScale;detailOcean->BubblesThreshold=BubblesThreshold;
+        detailOcean->simulate(inner_time);
     }
-
-
-    //此时已经算出XYZ的偏移
-
-    //5、TextureDisplace_Shader
-    TextureDisplace_Shader->use();
-    TextureDisplace_Shader->setInt("N", fft_size);
-    TextureDisplace_Shader->setFloat("Lambda", Lambda);
-    TextureDisplace_Shader->setFloat("HeightScale", HeightScale);
-
-    //计算纹理偏移——读偏移量x,y,z从三张图里，写到DisplaceRT
-    HeightSpectrumRT_Texture->setBinding(2);
-    DisplaceXSpectrumRT_Texture->setBinding(3);
-    DisplaceZSpectrumRT_Texture->setBinding(4);
-    DisplaceRT_Texture->setBinding(7);
-    glDispatchCompute(fft_size / 8, fft_size / 8, 1);
-    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-
-    //6、TextureNormalBubbles_Shader
-    //计算法线和泡沫纹理
-    TextureNormalBubbles_Shader->use();
-    TextureNormalBubbles_Shader->setInt("N", fft_size);
-    TextureNormalBubbles_Shader->setFloat("OceanLength", MeshLength);
-    TextureNormalBubbles_Shader->setFloat("BubblesScale", BubblesScale);
-    TextureNormalBubbles_Shader->setFloat("BubblesThreshold", BubblesThreshold);
-
-    DisplaceRT_Texture->setBinding(7);
-    NormalRT_Texture->setBinding(5);//new 覆盖
-    BubblesRT_Texture->setBinding(6);//new 覆盖
-    glDispatchCompute(fft_size / 8, fft_size / 8, 1);
-    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
-
-
-//总控程序
-void Ocean::Start()
-{
-    //创建mesh
-    initMesh();
-    
-    //初始化ComputerShader相关数据
-    initTextures();
-    
-    initShaders();
-    
-    //计算GaussianRandom
-
-    //初始化随机数
-    initClock();
-    
-    initGaussianRandom();
-    
-}
-
-void Ocean::Update()
-{
-    //inner_time += this->deltaTime * TimeScale;
-    inner_time=static_cast<float>(glfwGetTime() * TimeScale);
-
-    //计算海洋数据
+void Ocean::Update() {
+    float now=static_cast<float>(glfwGetTime());deltaTime=std::clamp(now-lastFrame,0.f,.1f);lastFrame=now;
+    if(animate)inner_time+=deltaTime*TimeScale;
     ComputeOceanValue();
 }
-
-void Ocean::Draw()
-{
-    draw_shader->use();
-
-
-    //lighting
-    //draw_shader->setVec3("material.ka", 2.0f, 2.0f, 2.0f);
-    //draw_shader->setVec3("material.kd", 0.5f, 0.5f, 0.5f);
-    //draw_shader->setVec3("material.ks", 0.5f, 0.5f, 0.5f);
-    //draw_shader->setFloat("material.shininess", 32.0f);
-    
-    //const glm::vec3 camera_Position = glm::vec3(0.0f, 1.0f, 0.0f);
-    //draw_shader->setVec3("viewPos", camera_Position);
-
-    draw_shader->setVec3("dirLight.direction", 0.0f, -1.0f, 0.0f);
-    draw_shader->setVec3("dirLight.ambient", 0.2f, 0.2f, 0.2f);
-    draw_shader->setVec3("dirLight.diffuse", 1.0f, 1.0f, 1.0f);
-    draw_shader->setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
-
-    draw_shader->setFloat("outer_FresnelScale", outer_FresnelScale);
-    draw_shader->setVec3("outer_OceanColorShallow", outer_OceanColorShallow);
-    draw_shader->setVec3("outer_OceanColorDeep", outer_OceanColorDeep);
-    draw_shader->setVec3("outer_BubblesColor", outer_BubblesColor);
-    draw_shader->setVec3("outer_Specular", outer_Specular);
-    draw_shader->setInt("outer_Gloss", outer_Gloss);
-    draw_shader->setVec3("outer_ambient", outer_ambient);
-
-    //texture
-    glActiveTexture(GL_TEXTURE0); // 在绑定纹理之前先激活纹理单元0
-    glBindTexture(GL_TEXTURE_2D, DisplaceRT_Texture->tex->id);
-    draw_shader->setInt("DisplaceRT", 0);//set up textures——对应激活位置
-
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, NormalRT_Texture->tex->id);
-    draw_shader->setInt("NormalRT", 1);
-
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, BubblesRT_Texture->tex->id);
-    draw_shader->setInt("BubblesRT", 2);//此时通过名字查找，而非binding号
-
-    // 绑定之前的图像和深度
-    glActiveTexture(GL_TEXTURE3);
-    // get sky: a better way is to put this proces in a render pass. 
-    if (scene->sky) {
-        auto&& atmos = std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));
-        if (atmos) {
-            glBindTexture(GL_TEXTURE_2D, atmos->skyViewTexture->tex->id);
-        }
+void Ocean::Draw() {
+    auto deferred=RenderManager::GetInstance()->deferredPass;
+    const int width=InputManager::GetInstance()->width,height=InputManager::GetInstance()->height;
+    if(!opaqueSceneColor || opaqueSceneColor->width!=width || opaqueSceneColor->height!=height) {
+        opaqueSceneColor=std::make_shared<Texture>();opaqueSceneColor->genTexture(GL_RGBA16F,GL_RGBA,width,height);
+        opaqueSceneBuffer=std::make_shared<FrameBuffer>();opaqueSceneBuffer->bindTexture(opaqueSceneColor,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D);
     }
-    draw_shader->setInt("skyview", 3);
-
-    //MVP
-    glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(0.0f,-5.0f,0.0f));
-    
-    draw_shader->setMat4("model", model);
-    //draw_shader->setMat4("view", view);
-    //draw_shader->setMat4("projection", projection);
-
-    //draw
-    draw_shader->setFloat("OceanLength", MeshLength);
-
-
-    // glEnable(GL_CULL_FACE);
-    // glCullFace(GL_BACK);
-    //glDisable(GL_CULL_FACE);
-
-    glBindVertexArray(VAO);
-    //glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
-
-    // 此处需要开启混合功能
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDrawElements(GL_TRIANGLES, (MeshSize - 1) * (MeshSize - 1) * 6, GL_UNSIGNED_INT, 0);
-    glDisable(GL_BLEND);
+    // Copy the lit opaque scene before writing water: never sample the active color attachment.
+    glBindFramebuffer(GL_READ_FRAMEBUFFER,deferred->postBuffer->FBO);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER,opaqueSceneBuffer->FBO);
+    glBlitFramebuffer(0,0,width,height,0,0,width,height,GL_COLOR_BUFFER_BIT,GL_NEAREST);
+    deferred->postBuffer->bindBuffer();glViewport(0,0,width,height);
+    draw_shader->use();glm::vec3 sunDirection(0,-1,0),sunColor(0);
+    if(scene && RenderManager::GetInstance()->setting.enableDirectional)
+        for(auto light : scene->directionLights)if(light && light->enabled){sunDirection=light->data.direction;sunColor=light->data.color;break;}
+    draw_shader->setVec3("dirLight.direction",sunDirection);draw_shader->setVec3("dirLight.diffuse",sunColor);
+    draw_shader->setVec3("dirLight.specular",sunColor);
+    draw_shader->setFloat("outer_FresnelScale",outer_FresnelScale);
+    draw_shader->setVec3("outer_OceanColorShallow",outer_OceanColorShallow);
+    draw_shader->setVec3("outer_OceanColorDeep",outer_OceanColorDeep);
+    draw_shader->setVec3("outer_BubblesColor",outer_BubblesColor);draw_shader->setVec3("outer_Specular",outer_Specular);
+    draw_shader->setInt("outer_Gloss",outer_Gloss);draw_shader->setVec3("outer_ambient",outer_ambient);
+    DisplaceRT_Texture->tex->bind(GL_TEXTURE_2D,0);draw_shader->setInt("DisplaceRT",0);
+    NormalRT_Texture->tex->bind(GL_TEXTURE_2D,1);draw_shader->setInt("NormalRT",1);
+    BubblesRT_Texture->tex->bind(GL_TEXTURE_2D,2);draw_shader->setInt("BubblesRT",2);
+    glActiveTexture(GL_TEXTURE3);glBindTexture(GL_TEXTURE_2D,0);
+    auto atmosphere=scene && scene->sky ? std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere")) : nullptr;
+    if(atmosphere && atmosphere->skyViewTexture)glBindTexture(GL_TEXTURE_2D,atmosphere->skyViewTexture->tex->id);
+    draw_shader->setInt("hasSky",atmosphere && atmosphere->skyViewTexture ? 1:0);draw_shader->setInt("skyview",3);
+    opaqueSceneColor->bind(GL_TEXTURE_2D,4);draw_shader->setInt("opaqueScene",4);
+    deferred->gPosition->bind(GL_TEXTURE_2D,5);draw_shader->setInt("scenePosition",5);
+    deferred->gNormal->bind(GL_TEXTURE_2D,6);draw_shader->setInt("sceneNormal",6);
+    const bool detail=detailWaves && bool(detailOcean);
+    (detail?detailOcean->DisplaceRT_Texture:DisplaceRT_Texture)->tex->bind(GL_TEXTURE_2D,7);draw_shader->setInt("detailDisplace",7);
+    (detail?detailOcean->NormalRT_Texture:NormalRT_Texture)->tex->bind(GL_TEXTURE_2D,8);draw_shader->setInt("detailNormal",8);
+    (detail?detailOcean->BubblesRT_Texture:BubblesRT_Texture)->tex->bind(GL_TEXTURE_2D,9);draw_shader->setInt("detailFoam",9);
+    draw_shader->setInt("enableDetail",detail?1:0);draw_shader->setFloat("detailLength",24);
+    draw_shader->setInt("enableRefraction",refraction?1:0);
+    draw_shader->setFloat("refractionStrength",std::clamp(refractionStrength,0.f,1.f));
+    draw_shader->setFloat("deepWaterDistance",std::max(deepWaterDistance,.01f));
+    draw_shader->setFloat("subsurfaceStrength",std::max(subsurfaceStrength,0.f));
+    draw_shader->setVec3("absorption",glm::max(absorption,glm::vec3(0)));
+    draw_shader->setVec3("scattering",glm::max(scattering,glm::vec3(0)));
+    draw_shader->setFloat("scatteringAnisotropy",std::clamp(scatteringAnisotropy,-.95f,.95f));
+    draw_shader->setFloat("seaLevel",seaLevel);draw_shader->setFloat("waveHeightScale",std::max(std::abs(HeightScale),.01f));
+    draw_shader->setMat4("model",glm::translate(glm::mat4(1),glm::vec3(0,seaLevel,0)));
+    glBindVertexArray(VAO);glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,EBO);
+    // Shader composites transmission/scattering with the copied scene in HDR; no alpha double-blend.
+    glDisable(GL_BLEND);glDrawElements(GL_TRIANGLES,static_cast<int>(vertexIndexs.size()),GL_UNSIGNED_INT,nullptr);
 }

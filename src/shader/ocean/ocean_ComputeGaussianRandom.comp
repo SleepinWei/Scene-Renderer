@@ -7,6 +7,7 @@ layout(rgba32f,binding=1) uniform image2D GaussianRandomRT;//高斯随机数
 
 #define PI 3.14159274f
 uniform int N;//fft纹理大小
+uniform int Seed;
 
 uint rngState;
 
@@ -28,7 +29,7 @@ void ComputeGaussianRandom(uvec3 SV_DispatchThreadID)//线程唯一全局坐标
 vec2 gaussian(vec2 id)
 {
     //均匀分布随机数
-    rngState = wangHash(uint(id.y * N + id.x));
+    rngState = wangHash(uint(id.y * N + id.x) ^ uint(Seed));
     float x1 = rand();
     float x2 = rand();
 
@@ -66,5 +67,6 @@ void main()
 {
     // rngState = rngState_;
     uvec3 SV_DispatchThreadID=gl_GlobalInvocationID;
+    if (any(greaterThanEqual(SV_DispatchThreadID.xy,uvec2(N)))) return;
     ComputeGaussianRandom(SV_DispatchThreadID);
 }

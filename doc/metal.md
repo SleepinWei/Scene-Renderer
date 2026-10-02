@@ -66,6 +66,10 @@ MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 ./build/Scene-Renderer --render-galler
 
 画廊分别输出 `<场景>-direct.png` 与 `<场景>.png`，仅切换 RSM，相机、曝光、直接光照、天空 IBL 与 SSAO 一致。当前 RSM 以太阳方向的正交投影记录表面，将太阳照射与大气漫反射天空 LUT 合为每纹素反射功率，再通过 G-buffer 全屏采样合成一次漫反射反弹；无太阳和大气时支持聚光灯回退。还输出 `-indirect.png`、`-sun-indirect.png`、`-sky-indirect.png` 用于区分贡献。不具备完整的间接可见性、多次反弹和焦散；对照图不是完整 GI 参考解。具体能量公式、修复内容与捕获步骤见 [RSM 实现与验证](rsm.md)。模型归属、材质转换和上游使用条件见 [场景资源说明](../samples/README.md)。
 
+### 高清海洋
+
+`--classic ocean` 和 `--classic ocean-clear` 使用 1024×1024 主频谱、256×256 短波频谱与 513×513 网格。画廊命令输出 1920×1080 截图及短波、散射或透明开关对照。综合演示使用 512×512 主频谱。具体问题、修复、27 项新增 GPU 数值测试及实时折射／散射限制见 [海洋修复记录](../docs/ocean-fft-and-rendering-review.md)。
+
 ## 已迁移的实时渲染功能
 
 | 功能 | Metal 实现 |
@@ -78,7 +82,7 @@ MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 ./build/Scene-Renderer --render-galler
 | 反射阴影贴图（RSM） | 太阳正交投影记录位置、法线和太阳＋天空反射功率，显式 PDF 采样并按 G-buffer 材质全屏合成 |
 | 屏幕空间环境遮蔽（SSAO） | 保留原有采样核、噪声纹理和遮蔽计算通道 |
 | 大气与基于图像的光照（IBL） | 通过计算着色器生成透射率、天空视图、多重散射和辐照度查找表（LUT） |
-| FFT 海洋 | 高斯随机数和频谱生成、水平与垂直 FFT 交替读写、位移／法线／泡沫生成，以及水面混合绘制 |
+| FFT 海洋与透明水体 | 共轭 Phillips 频谱、归一化二维 IFFT、1024² 主波与 256² 短波叠加、周期位移／法线／泡沫；场景太阳与 HDR 天空、深度折射、RGB 消光与近似单次散射 |
 | 地形 | 保留四叉树队列、间接调度、LOD 图、曲面片拼接和间接绘制 |
 | 草 | 在 GPU 上生成草的分布与姿态数据，并进行间接实例化绘制 |
 | ImGui | GLFW 处理输入，原生 Metal 渲染器处理字体、管线和绘制列表 |

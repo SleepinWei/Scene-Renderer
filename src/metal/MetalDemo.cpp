@@ -69,7 +69,7 @@ std::shared_ptr<RenderScene> makeMetalDemoScene() {
     tc->yScale=2;tc->yShift=-1;tc->model=glm::translate(glm::mat4(1),glm::vec3(0,-1,0))*glm::scale(glm::mat4(1),glm::vec3(100,2,100));tc->material=material({.35f,.48f,.18f});
     auto height=std::make_shared<Texture>();height->width=height->height=128;height->internalformat=GL_R32F;height->format=GL_RED;tc->terrainMaterial->addTexture(height,"heightMap");
     tc->heightData=new float[128*128];for(int y=0;y<128;y++)for(int x=0;x<128;x++)tc->heightData[y*128+x]=.5f+.2f*std::sin(x*.08f)*std::cos(y*.07f);
-    terrain->addComponent(std::make_shared<Grass>());auto ocean=std::make_shared<Ocean>();ocean->FFTPow=6;ocean->fft_size=64;ocean->HeightScale=.3f;ocean->MeshLength=100;ocean->MeshSize=48;terrain->addComponent(ocean);result->terrain=terrain;
+    terrain->addComponent(std::make_shared<Grass>());auto ocean=std::make_shared<Ocean>();ocean->FFTPow=9;ocean->fft_size=512;ocean->HeightScale=1;ocean->WindScale=16;ocean->MeshLength=100;ocean->MeshSize=257;terrain->addComponent(ocean);result->terrain=terrain;
     return result;
 }
 void validateMetalFeatures() {
@@ -101,6 +101,7 @@ void validateMetalFeatures() {
     MetalBackend::inspectTexture(manager->depthPass->frontDepth->id,"build/metal-front-depth.png");
     MetalBackend::inspectTexture(manager->depthPass->backDepth->id,"build/metal-back-depth.png");
     MetalBackend::capture("build/metal-forward-validation.png");MetalBackend::present();
+    validateMetalOcean();
     std::cout<<"Metal standalone forward/HDR/SSS depth frames passed\n";
     std::cout<<"Metal deferred/PBR/tessellation/shadows/SSAO/RSM/sky/ocean/terrain/grass frames passed\n";
 }

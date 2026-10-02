@@ -10,6 +10,8 @@
 #include "component/Mesh_Renderer.h"
 #include "component/Lights.h"
 #include "component/Atmosphere.h"
+#include "component/Ocean.h"
+#include "object/Terrain.h"
 #include "renderer/RenderScene.h"
 #include "renderer/Material.h"
 #include "renderer/Texture.h"
@@ -140,6 +142,7 @@ void floor(const std::shared_ptr<RenderScene>& target) {
 }
 }
 std::shared_ptr<RenderScene> makeMetalClassicScene(const std::string& name) {
+    if(name=="ocean" || name=="ocean-clear")return makeMetalOceanScene(name=="ocean-clear");
     auto target = std::make_shared<RenderScene>();
     auto manager = RenderManager::GetInstance();
     manager->setting.enableShadow = true; manager->setting.enableSSAO = true; manager->setting.enableRSM = false;
@@ -214,14 +217,16 @@ std::shared_ptr<RenderScene> makeMetalClassicScene(const std::string& name) {
         target->main_camera->Zoom = 58; target->main_camera->exposure = 1.1f;
         atmosphere(target);sun(target,{2.8f,2.6f,2.3f},{-.35f,-1,-.2f});
         manager->setting.enableRSM = true;
-    } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose bunny, helmet, cornell, sponza or san-miguel");
+    } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose bunny, helmet, cornell, sponza, san-miguel, ocean or ocean-clear");
     return target;
 }
 void renderMetalGallery(const std::string& directory, const std::string& selected) {
     std::filesystem::create_directories(directory);
-    MetalBackend::initialize(nullptr, 960, 720);
+    const bool oceanGallery=selected=="ocean" || selected=="ocean-clear";
+    const int width=oceanGallery?1920:960,height=oceanGallery?1080:720;
+    MetalBackend::initialize(nullptr, width, height);
     glEnable(GL_DEPTH_TEST); glEnable(GL_CULL_FACE); glCullFace(GL_BACK);
-    auto input = InputManager::GetInstance(); input->width = 960; input->height = 720;
+    auto input = InputManager::GetInstance(); input->width = width; input->height = height;
     auto manager = RenderManager::GetInstance(); manager->init();
     std::vector<std::string> names;
     if (selected == "gi") names = {"sponza", "san-miguel"};
@@ -234,6 +239,7 @@ void renderMetalGallery(const std::string& directory, const std::string& selecte
     for (const std::string& name : names) {
         MetalBackend::FloatTexture direct{};
         scene = makeMetalClassicScene(name);
+        if(name=="ocean" || name=="ocean-clear") {auto water=std::static_pointer_cast<Ocean>(scene->terrain->GetComponent("Ocean"));water->animate=false;water->inner_time=8;}
         if (name == "sponza" || name == "san-miguel") {
             manager->setting.enableRSM = false;
             for (int frame=0;frame<2;++frame) {
@@ -254,7 +260,7 @@ void renderMetalGallery(const std::string& directory, const std::string& selecte
                 MetalBackend::inspectTexture(manager->deferredPass->postTexture->id, ("build/metal-gallery-" + name + "-hdr.png").c_str());
                 if (manager->setting.enableRSM)
                     MetalBackend::inspectTexture(manager->rsmPass->outTexture->id, ("build/metal-gallery-" + name + "-rsm.png").c_str());
-                MetalBackend::inspectTexture(manager->deferredPass->gNormal->id, ("build/metal-gallery-" + name + "-normal.png").c_str());
+                if(name!="ocean" && name!="ocean-clear")MetalBackend::inspectTexture(manager->deferredPass->gNormal->id, ("build/metal-gallery-" + name + "-normal.png").c_str());
                 if (scene->sky) {
                     auto sky = std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));
                     MetalBackend::inspectTexture(sky->skyViewTexture->tex->id, ("build/metal-gallery-" + name + "-sky.png").c_str());
@@ -280,6 +286,28 @@ void renderMetalGallery(const std::string& directory, const std::string& selecte
             }
             MetalBackend::present();
             if (captureGPU) { MetalBackend::endGPUCapture(); capturedGPU = true; }
+        }
+        if(name=="ocean" || name=="ocean-clear") {
+            auto water=std::static_pointer_cast<Ocean>(scene->terrain->GetComponent("Ocean"));
+            auto reference=MetalBackend::readFloatTexture(manager->deferredPass->postTexture->id);
+            auto comparison=[&](const char* suffix) {
+                MetalBackend::beginFrame();manager->render(scene);
+                auto variant=MetalBackend::readFloatTexture(manager->deferredPass->postTexture->id);
+                double maxDelta=0;
+                for(size_t i=0;i<variant.rgba.size();i+=4)for(int c=0;c<3;++c) {
+                    if(!std::isfinite(variant.rgba[i+c]))throw std::runtime_error("Non-finite ocean comparison");
+                    maxDelta=std::max(maxDelta,double(std::abs(variant.rgba[i+c]-reference.rgba[i+c])));
+                }
+                if(maxDelta<1e-5)throw std::runtime_error("Ocean toggle did not change rendered output");
+                MetalBackend::capture((std::filesystem::path(directory)/(name+suffix+".png")).string().c_str());
+                MetalBackend::present();std::cout<<name<<suffix<<" max HDR difference="<<maxDelta<<'\n';
+            };
+            if(name=="ocean") {
+                water->detailWaves=false;comparison("-no-detail");water->detailWaves=true;
+                water->subsurfaceStrength=0;comparison("-no-scattering");water->subsurfaceStrength=1;
+            } else {
+                water->refraction=false;comparison("-opaque");water->refraction=true;
+            }
         }
         if (!direct.rgba.empty()) {
             manager->rsmPass->indirectOnly = true;
