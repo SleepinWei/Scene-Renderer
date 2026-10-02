@@ -170,13 +170,17 @@ std::shared_ptr<RenderScene> makeMetalOceanScene(bool clearWater) {
         renderer->shader=RenderManager::GetInstance()->getShader(ShaderType::PBR);renderer->drawMode=GL_TRIANGLES;
     }
     result->pointLights.clear();result->spotLights.clear();
-    result->main_camera=std::make_shared<Camera>(glm::vec3(0,3.2f,30),glm::vec3(0,1,0),-90,-6);result->main_camera->Zoom=58;result->main_camera->exposure=1;
+    result->main_camera=std::make_shared<Camera>(glm::vec3(0,7.5f,30),glm::vec3(0,1,0),-90,-10);result->main_camera->Zoom=58;result->main_camera->exposure=1;
     if(!result->directionLights.empty())result->directionLights[0]->data.direction={0,-.17364818f,.98480775f};
     auto ocean=std::make_shared<Ocean>();ocean->FFTPow=10;ocean->fft_size=1024;ocean->MeshSize=513;
-    ocean->MeshLength=256;ocean->seaLevel=0;ocean->WindScale=18;ocean->HeightScale=1;
+    ocean->MeshLength=256;ocean->seaLevel=0;
+    // A rough deep-water preset: larger swell, steep crests and compression-driven whitecaps.
+    ocean->WindScale=28;ocean->A=.0008f;ocean->HeightScale=1.8f;ocean->Lambda=1.15f;
+    ocean->BubblesThreshold=.92f;ocean->BubblesScale=3;
     ocean->outer_OceanColorShallow={.2f,.75f,.85f};ocean->outer_OceanColorDeep={.035f,.28f,.35f};
     if(clearWater) {
-        ocean->WindScale=9;ocean->HeightScale=.6f;ocean->Lambda=.5f;ocean->refractionStrength=.35f;
+        ocean->WindScale=9;ocean->A=.0005f;ocean->HeightScale=.6f;ocean->Lambda=.5f;ocean->refractionStrength=.35f;
+        ocean->BubblesThreshold=.86f;ocean->BubblesScale=2;
         ocean->absorption={.08f,.025f,.012f};ocean->scattering={.01f,.02f,.025f};
         result->main_camera=std::make_shared<Camera>(glm::vec3(0,9,13),glm::vec3(0,1,0),-90,-38);result->main_camera->Zoom=58;
         result->directionLights[0]->data.direction={0,-.5735764f,.8191520f};

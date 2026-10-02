@@ -81,11 +81,13 @@ python3 tools/fetch_gi_assets.py
 
 海洋使用 **1024×1024 主 FFT、256×256 短波 FFT 和 513×513 水面网格**。主频谱表现长波，独立短波补充细小波纹；水面读取场景太阳和线性 HDR 天空，使用 Fresnel／GGX 光照及基于 Jacobian 的泡沫。
 
+`--classic ocean` 默认展示波涛汹涌的深海：28 m/s 风速、1.8 倍高度和更陡的浪峰，配合压缩区域的白沫及透亮浪尖。GUI 可继续调整风速、`HeightScale` 与 `Choppiness`；`ocean-clear` 保留较平缓的浅水配置。
+
 新增按水深计算的屏幕空间折射、RGB Beer–Lambert 吸收和近似单次散射，表现浅水透射及背光浪尖。GUI 可调吸收、散射、折射和短波细节。算法修复、数值测试、开关对照与限制见 [FFT 海洋与透明水体修复记录](docs/ocean-fft-and-rendering-review.md)。
 
-| 高清海面 | 浅水透射与散射 |
+| 高清大浪海面 | 浅水透射与散射 |
 | --- | --- |
-| ![Metal 高清海洋](img/metal/ocean.png) | ![Metal 透明水体](img/metal/ocean-clear.png) |
+| ![Metal 高清大浪海洋](img/metal/ocean.png) | ![Metal 透明水体](img/metal/ocean-clear.png) |
 
 截图为 1920×1080 原生 Metal 渲染，开启 TSAA 并累积 16 帧；浅水场景中的材质球和底面用于观察透射。散射与折射是实时近似，尚未实现体积多次散射、焦散或屏幕外折射。
 

@@ -293,6 +293,21 @@ void renderMetalGallery(const std::string& directory, const std::string& selecte
         }
         if(name=="ocean" || name=="ocean-clear") {
             auto water=std::static_pointer_cast<Ocean>(scene->terrain->GetComponent("Ocean"));
+            // Report the main spectrum in metres so preset tuning can be compared objectively.
+            auto displacement=MetalBackend::readFloatTexture(water->DisplaceRT_Texture->tex->id);
+            double heightSum=0,heightSquaredSum=0;
+            float heightMin=std::numeric_limits<float>::max(),heightMax=-heightMin;
+            for(size_t i=0;i<displacement.rgba.size();i+=4) {
+                const float h=displacement.rgba[i+1];
+                if(!std::isfinite(h))throw std::runtime_error("Non-finite ocean height");
+                heightMin=std::min(heightMin,h);heightMax=std::max(heightMax,h);
+                heightSum+=h;heightSquaredSum+=double(h)*h;
+            }
+            const double sampleCount=displacement.width*displacement.height;
+            if(sampleCount==0)throw std::runtime_error("Missing ocean displacement readback");
+            const double mean=heightSum/sampleCount;
+            std::cout<<name<<" main-spectrum height min="<<heightMin<<" max="<<heightMax
+                     <<" stddev="<<std::sqrt(std::max(0.0,heightSquaredSum/sampleCount-mean*mean))<<" metres\n";
             auto reference=MetalBackend::readFloatTexture(manager->deferredPass->postTexture->id);
             auto comparison=[&](const char* suffix) {
                 manager->temporalAA->reset();
