@@ -19,6 +19,8 @@ const float RSM_INTENSITY = 0.4;
 
 uniform sampler2D inTexture;
 uniform vec2 screenSize;
+uniform sampler2D alphaTexture;
+uniform float alphaCutoff;
 
 vec3 shading()
 {
@@ -36,7 +38,7 @@ vec3 shading()
 		vec3 target_flux=texture(fluxMap, sample_coord).rgb;
 
         vec3 dis=FragPos-target_worldPos;
-		vec3 indirect_result=target_flux*max(0, dot(target_normal, dis))*max(0, dot(Normal, -dis));
+		vec3 indirect_result=target_flux*max(0, dot(target_normal, dis))*max(0, dot(gl_FrontFacing ? Normal : -Normal, -dis));
         indirect_result *=  weight/max(1.0,pow(length(dis),4.0));
 		indirect+=indirect_result;
 	}
@@ -46,6 +48,7 @@ vec3 shading()
 }
 
 void main(){
+    if (alphaCutoff > 0.0 && texture(alphaTexture,texCoords).a < alphaCutoff) discard;
     vec3 color = shading();
 
     color = color + texture(inTexture,gl_FragCoord.xy/screenSize).rgb;

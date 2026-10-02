@@ -49,7 +49,22 @@ cmake --build build/opengl -j 8
 ./build/Scene-Renderer --render-gallery img/metal
 ```
 
-最后一条命令以 960 × 720 离屏渲染三个场景，输出 PNG 截图；可在输出目录后再指定一个场景名，仅生成该场景。测试也覆盖多个场景连续创建时的天空 LUT 初始化。
+默认画廊以 960 × 720 离屏渲染基础场景；两个 GI 模型均已下载时，也会加入 Sponza 和 San Miguel。可在输出目录后指定 `core`、`gi` 或单个场景名。测试也覆盖多个场景连续创建时的天空 LUT 初始化。
+
+### Sponza 与 San Miguel
+
+```sh
+python3 tools/fetch_gi_assets.py
+./build/Scene-Renderer --classic sponza
+./build/Scene-Renderer --classic san-miguel
+MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 ./build/Scene-Renderer --render-gallery img/metal gi
+```
+
+大型资源从 McGuire 归档下载，校验值保存在 `samples/gi-assets.json`，不直接提交到 Git。San Miguel 使用上游低面数 OBJ，三角化后仍有约 562 万个三角形，导入需要较长时间和较多内存。
+
+新增 OBJ/MTL 导入保持几何与 UV，读取底色、法线、高度图和透明遮罩，将传统材质参数近似转换为 PBR。植物使用透明裁切和双面绘制，G-buffer、RSM 与两种阴影路径遵循相同裁切规则；阴影顶点阶段传递 UV，Metal 分层阴影适配同步保留这些阶段接口。法线重建对退化 UV 导数使用几何法线，避免产生非有限值。
+
+画廊分别输出 `<场景>-direct.png` 与 `<场景>.png`，仅切换 RSM，相机、曝光、直接光照、天空 IBL 与 SSAO 一致。当前 RSM 以聚光灯的反射阴影贴图采样近似一次间接反弹，不具备完整的间接可见性、多次反弹和焦散；对照图不是完整 GI 参考解。模型归属、材质转换和上游使用条件见 [场景资源说明](../samples/README.md)。
 
 ## 已迁移的实时渲染功能
 
@@ -92,7 +107,15 @@ MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 ./build/Scene-Renderer --demo --frames
 ctest --test-dir build --output-on-failure
 ```
 
-GPU 测试需要访问桌面 GPU；受限的进程沙箱可能无法获取 Metal 设备。
+基础测试只依赖仓库内资源。下载完成后可单独启用大型 GI 测试：
+
+```sh
+cmake -S . -B build -DSCENERENDERER_METAL=ON -DSCENERENDERER_GI_TESTS=ON
+cmake --build build -j 8
+MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 ctest --test-dir build -R metal-gi-gallery --output-on-failure
+```
+
+此测试连续导入 Sponza 与 San Miguel，输出 RSM 开关对照，并检查 HDR、法线、RSM 与天空 LUT 的有限值及非空输出。GPU 测试需要访问桌面 GPU；受限的进程沙箱可能无法获取 Metal 设备。
 
 目前已在 Apple M4 上开启 Metal API 和着色器校验完成验证，未报告 GPU 越界或资源绑定错误。真实窗口测试覆盖了 Retina 尺寸处理及 ImGui 绘制，旧 OpenGL 后端也已通过编译。原始场景的视觉对照仍需要缺失的资产包；其他 GPU 型号的兼容性及性能指标尚未测量。
 

@@ -20,7 +20,9 @@ struct Material{
     sampler2D ao; 
     sampler2D height;
 };
-uniform Material material; 
+uniform Material material;
+uniform float alphaCutoff;
+uniform vec3 albedoFactor;
 vec3 getNormalFromMap()
 {
     // transform tangent-normals into world-space
@@ -34,7 +36,10 @@ vec3 getNormalFromMap()
     vec2 st2 = dFdy(object.TexCoords);
 
     vec3 N   = normalize(object.Normal);
-    vec3 T  = normalize(Q1*st2.t - Q2*st1.t);
+    if (!gl_FrontFacing) N = -N;
+    vec3 basis = Q1*st2.t - Q2*st1.t;
+    if (dot(basis,basis) < 1e-12) return N;
+    vec3 T = normalize(basis);
     vec3 B  = normalize(cross(N, T));
     mat3 TBN = mat3(T, B, N);
     vec3 actualNormal = TBN * tangentNormal; 
@@ -47,7 +52,8 @@ vec3 getNormalFromMap()
 }
 
 void main()
-{    
+{
+    if (texture(material.albedo, object.TexCoords).a < alphaCutoff) discard;
     vec2 uv = object.TexCoords;
     // store the fragment position vector in the first gbuffer texture
     gPosition.rgb = object.Position;
@@ -56,7 +62,7 @@ void main()
     vec3 N = getNormalFromMap();
     gNormal.rgb = normalize(N);
     // and the diffuse per-fragment color
-    gAlbedoSpec.rgb = pow(texture(material.albedo, uv).rgb,vec3(2.2f));
+    gAlbedoSpec.rgb = pow(texture(material.albedo, uv).rgb,vec3(2.2f)) * albedoFactor;
     gAlbedoSpec.a = 0.0f; // 是否透光，对草渲染有用
     // store specular intensity in gAlbedoSpec's alpha component
 

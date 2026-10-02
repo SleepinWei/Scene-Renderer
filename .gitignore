@@ -38,3 +38,7 @@ Testing/
 lib/*
 # Redistributable classic sample assets, credited in samples/README.md.
 !samples/assets/damaged-helmet/*.jpg
+
+# Large GI datasets are reproducibly downloaded, not committed.
+samples/downloads/
+samples/assets/gi/

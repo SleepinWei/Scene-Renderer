@@ -1,0 +1,14 @@
+{
+  "sponza": {
+    "url": "https://casual-effects.com/g3d/data10/common/model/crytek_sponza/sponza.zip",
+    "sha256": "da005cbee0be2df2abc8513f3ceb61bcb6f69aac112babcd9c00169a27c2770c",
+    "model": "samples/assets/gi/sponza/sponza.obj",
+    "runtime_files": 57
+  },
+  "san-miguel": {
+    "url": "https://casual-effects.com/g3d/data10/research/model/San_Miguel/San_Miguel.zip",
+    "sha256": "85874077735808150e679b3c71d70a37a270cb8833f4911325aa1099da3f7d4a",
+    "model": "samples/assets/gi/san-miguel/san-miguel-low-poly.obj",
+    "runtime_files": 327
+  }
+}

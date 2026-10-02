@@ -2,6 +2,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "metal/MetalDemo.h"
 #include "metal/MetalBackend.h"
+#include "metal/MetalSceneImport.h"
 #include "component/Model.h"
 #include "component/GameObject.h"
 #include "component/transform.h"
@@ -24,6 +25,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
+#include <fstream>
 #include <limits>
 #include <stdexcept>
 
@@ -143,6 +145,7 @@ std::shared_ptr<RenderScene> makeMetalClassicScene(const std::string& name) {
     manager->setting.enableShadow = true; manager->setting.enableSSAO = true; manager->setting.enableRSM = false;
     // Shadow attachments belong to the lights in each scene.
     manager->shadowPass = std::make_shared<ShadowPass>();
+    manager->rsmPass = std::make_shared<RSMPass>();
     if (name == "bunny") {
         target->main_camera = std::make_shared<Camera>(glm::vec3(0,3.8f,12), glm::vec3(0,1,0), -90, -10);
         const glm::vec3 colors[] = {{.78f,.83f,.86f},{.9f,.62f,.22f},{.25f,.56f,.72f}};
@@ -192,7 +195,30 @@ std::shared_ptr<RenderScene> makeMetalClassicScene(const std::string& name) {
         spotObject->addComponent(spotLight); target->addObject(spotObject);
         manager->setting.enableRSM = true;
 
-    } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose bunny, helmet or cornell");
+    } else if (name == "sponza" || name == "san-miguel") {
+        std::ifstream input("samples/gi-assets.json");
+        if (!input) throw std::runtime_error("Run python3 tools/fetch_gi_assets.py first");
+        nlohmann::json manifest; input >> manifest;
+        const auto importedScene = importMetalOBJScene(manifest.at(name).at("model").get<std::string>(), 12);
+        auto object = std::make_shared<GameObject>(); object->name = name;
+        object->addComponent(std::make_shared<Transform>());
+        auto filter = std::make_shared<MeshFilter>();
+        for (const auto& mesh : importedScene.meshes) filter->addMesh(mesh);
+        object->addComponent(filter);
+        auto renderer = std::make_shared<MeshRenderer>();renderer->shader = manager->getShader(ShaderType::PBR);
+        object->addComponent(renderer);object->setDeferred(true);target->addObject(object);
+        if (name == "sponza")
+            target->main_camera = std::make_shared<Camera>(glm::vec3(-8.5f,2.2f,0),glm::vec3(0,1,0),0,6);
+        else
+            target->main_camera = std::make_shared<Camera>(glm::vec3(7,2.4f,8),glm::vec3(0,1,0),-115,-3);
+        target->main_camera->Zoom = 58; target->main_camera->exposure = 1.1f;
+        atmosphere(target);sun(target,{2.8f,2.6f,2.3f},{-.35f,-1,-.2f});
+        auto spot = std::make_shared<GameObject>();spot->name = "S0";
+        auto transform = std::make_shared<Transform>();transform->position = {0,10,0};spot->addComponent(transform);
+        auto light = std::make_shared<SpotLight>();light->data.color = {18,16,14};light->data.direction = glm::normalize(glm::vec3(.15f,-1,.1f));
+        light->data.cutOff = std::cos(glm::radians(45.f));light->data.outerCutOff = std::cos(glm::radians(50.f));
+        spot->addComponent(light);target->addObject(spot);manager->setting.enableRSM = true;
+    } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose bunny, helmet, cornell, sponza or san-miguel");
     return target;
 }
 void renderMetalGallery(const std::string& directory, const std::string& selected) {
@@ -201,9 +227,24 @@ void renderMetalGallery(const std::string& directory, const std::string& selecte
     glEnable(GL_DEPTH_TEST); glEnable(GL_CULL_FACE); glCullFace(GL_BACK);
     auto input = InputManager::GetInstance(); input->width = 960; input->height = 720;
     auto manager = RenderManager::GetInstance(); manager->init();
-    const std::vector<std::string> names = selected.empty() ? std::vector<std::string>{"cornell", "bunny", "helmet"} : std::vector<std::string>{selected};
+    std::vector<std::string> names;
+    if (selected == "gi") names = {"sponza", "san-miguel"};
+    else if (selected.empty() || selected == "core") {
+        names = {"cornell", "bunny", "helmet"};
+        if (selected.empty() && std::filesystem::exists("samples/assets/gi/san-miguel/san-miguel-low-poly.obj") && std::filesystem::exists("samples/assets/gi/sponza/sponza.obj"))
+            names.insert(names.end(), {"sponza", "san-miguel"});
+    } else names = {selected};
     for (const std::string& name : names) {
         scene = makeMetalClassicScene(name);
+        if (name == "sponza" || name == "san-miguel") {
+            manager->setting.enableRSM = false;
+            for (int frame=0;frame<2;++frame) {
+                MetalBackend::beginFrame();manager->render(scene);
+                if (frame==1) MetalBackend::capture((std::filesystem::path(directory)/(name+"-direct.png")).string().c_str());
+                MetalBackend::present();
+            }
+            manager->setting.enableRSM = true;
+        }
         for (int frame = 0; frame < 2; ++frame) {
             MetalBackend::beginFrame(); manager->render(scene);
             if (frame == 1) {

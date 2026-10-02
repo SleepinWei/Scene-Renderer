@@ -135,6 +135,15 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 		glCheckError();
 
 		actualShader->setMat4("model", model);
+		actualShader->setFloat("alphaCutoff", material ? material->alphaCutoff : 0.0f);
+		actualShader->setVec3("albedoFactor", material ? material->albedoFactor : glm::vec3(1.0f));
+		if (material && material->alphaCutoff > 0.0f) {
+			material->genTexture();
+			glActiveTexture(GL_TEXTURE31);
+			glBindTexture(GL_TEXTURE_2D, material->textures.at("material.albedo")->id);
+			actualShader->setInt("alphaTexture", 31);
+		}
+
 		if (actualShader->requireMat==true && material)
 		{
 			material->genTexture();
@@ -164,6 +173,7 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 		}
 
 		
+		if (material && material->twoSided) glDisable(GL_CULL_FACE);
 		glBindVertexArray(VAO);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 		assert(VAO > 0);
@@ -182,6 +192,7 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 #endif
 			glCheckError();
 
+			if (material && material->twoSided) glEnable(GL_CULL_FACE);
 			if (polyMode == GL_LINE) {
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			}

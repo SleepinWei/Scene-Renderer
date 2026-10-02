@@ -18,6 +18,8 @@ struct Material{
     sampler2D height;
 };
 uniform Material material;
+uniform float alphaCutoff;
+uniform vec3 albedoFactor;
 
 struct Light {
 	vec3 Position;
@@ -38,7 +40,10 @@ vec3 getNormalFromMap()
     vec2 st2 = dFdy(object.TexCoords);
 
     vec3 N   = normalize(object.Normal);
-    vec3 T  = normalize(Q1*st2.t - Q2*st1.t);
+    if (!gl_FrontFacing) N = -N;
+    vec3 basis = Q1*st2.t - Q2*st1.t;
+    if (dot(basis,basis) < 1e-12) return N;
+    vec3 T = normalize(basis);
     vec3 B  = normalize(cross(N, T));
     mat3 TBN = mat3(T, B, N);
     vec3 actualNormal = TBN * tangentNormal;
@@ -52,11 +57,12 @@ vec3 getNormalFromMap()
 
 void main()
 {
+    if (texture(material.albedo, object.TexCoords).a < alphaCutoff) discard;
     worldPos = object.Position;
     vec3 N = getNormalFromMap();
     normal = normalize(N);
 
     vec3 lightDir = normalize(light.Position - worldPos);
 	float diff = max(0.0, dot(normal, lightDir));
-	flux = diff*texture(material.albedo, object.TexCoords).xyz*light.Color;
+	flux = diff*pow(texture(material.albedo, object.TexCoords).xyz,vec3(2.2)) * albedoFactor * light.Color;
 }

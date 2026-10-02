@@ -27,11 +27,13 @@ def compile_one(path, out, temp, variant=''):
     if path.name == 'cascaded_shadow_depth.vs':
         source = source.replace('void main()', 'uniform mat4 lightSpaceMatrices[16];\nuniform int srLayer;\nvoid main()')
         source = source.replace('gl_Position=model*vec4(aPos,1.0);', 'gl_Position=lightSpaceMatrices[srLayer]*model*vec4(aPos,1.0);')
+    if path.name in ("point_shadow_depth.vs", "cascaded_shadow_depth.vs"):
+        source = source.replace("VertexUV", "ShadowUV")
     # Fix inter-stage locations by semantic name. Independent SPIR-V stages
     # cannot rely on declaration order (the original GL linker matched names).
     varyings={'Normal':0,'FragPos':1,'FragPosLightSpace':2,'texCoords':3,
               'FragTexCoord':4,'TexCoords':0,'TexCoord':0,'TextureCoord':0,
-              'viewDirection':0,'FragColor':0}
+              'viewDirection':0,'FragColor':0,'VertexUV':2,'ShadowUV':2}
     source = re.sub(r'(?m)^(\s*)((?:in|out)\s+(?:vec[234]|float)\s+(\w+)\s*;)',
                     lambda m:m[1]+(f'layout(location={varyings[m[3]]}) ' if m[3] in varyings else '')+m[2],source)
     # Old GLSL contains numeric overloads accepted by drivers but rejected by SPIR-V.
