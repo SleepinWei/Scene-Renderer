@@ -1,5 +1,6 @@
 #pragma once
 #include <cstddef>
+#include <vector>
 struct GLFWwindow;
 struct ImDrawData;
 namespace MetalBackend {
@@ -21,5 +22,9 @@ void useProgram(unsigned program);
 void setBlockBinding(unsigned program, const char* name, unsigned binding);
 void selfTest();
 void capture(const char* path);
+struct FloatTexture { unsigned width, height; std::vector<float> rgba; };
+FloatTexture readFloatTexture(unsigned texture);
+void beginGPUCapture(const char* path);
+void endGPUCapture();
 void inspectTexture(unsigned texture,const char* path);
 }

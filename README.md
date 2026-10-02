@@ -29,7 +29,7 @@ python3 tools/fetch_gi_assets.py
 
 ## 场景与效果
 
-下面的图片均由本项目在 Apple M4 上以 **960 × 720** 离屏渲染输出，使用真实导入的模型与纹理。GI 场景使用统一的 PBR 材质近似、方向光、天空环境和用于 RSM 的聚光灯；曝光、相机及光源配置见 [MetalClassicScenes.cpp](src/metal/MetalClassicScenes.cpp)。
+下面的图片均由本项目在 Apple M4 上以 **960 × 720** 离屏渲染输出，使用真实导入的模型与纹理。GI 场景使用统一的 PBR 材质近似，以太阳方向光和大气天空作为直接光照及 RSM 反弹的来源；曝光、相机及光源配置见 [MetalClassicScenes.cpp](src/metal/MetalClassicScenes.cpp)。
 
 ### Sponza：中庭与多层拱廊
 
@@ -47,7 +47,21 @@ python3 tools/fetch_gi_assets.py
 | --- | --- |
 | ![San Miguel：RSM 关闭](img/metal/san-miguel-direct.png) | ![San Miguel：RSM 开启](img/metal/san-miguel.png) |
 
-两组对照保持相机、曝光、直接光照、天空 IBL 和 SSAO 一致，只切换 RSM。`*-direct.png` 文件名表示 RSM 关闭，画面仍包含环境光和环境遮蔽。RSM 的增量可能较弱；它近似局部的一次漫反射间接照明，不提供完整的遮挡、多次反弹、焦散或 GI 参考解。
+两组对照保持相机、曝光、直接光照、天空 IBL 和 SSAO 一致，只切换 RSM。`*-direct.png` 文件名表示 RSM 关闭，画面仍包含环境光和环境遮蔽。默认强度为 1，RSM 在色调映射前使 Sponza 的平均 RGB 亮度增加 **9.26%**，San Miguel 增加 **3.00%**。这些数值衡量当前固定视角的增量，不代表与参考 GI 的准确度。它近似局部的一次漫反射间接照明，有限采样会产生噪声，且不提供完整间接遮挡、多次反弹或焦散。
+
+<details>
+<summary>查看太阳与天空各自的间接光贡献</summary>
+
+下面仅显示 RSM 一次反弹，经相同曝光和色调映射输出；不叠加直接光或天空 IBL。
+
+| 场景 | 太阳反弹 | 天空反弹 |
+| --- | --- | --- |
+| Sponza | ![Sponza 太阳间接光](img/metal/sponza-sun-indirect.png) | ![Sponza 天空间接光](img/metal/sponza-sky-indirect.png) |
+| San Miguel | ![San Miguel 太阳间接光](img/metal/san-miguel-sun-indirect.png) | ![San Miguel 天空间接光](img/metal/san-miguel-sky-indirect.png) |
+
+</details>
+
+实现、原有问题、能量公式、15 项 GPU 数值测试和 Xcode 捕获方法见[中文 RSM 说明](doc/rsm.md)。界面可独立切换太阳／天空反弹、查看纯间接光，并调整正交覆盖范围、采样半径和采样数。
 
 ### Cornell 风格场景、Bunny 与 Helmet
 
@@ -94,7 +108,7 @@ flowchart TD
 2. 渲染方向光级联阴影和点光源阴影，为后续光照提供可见性信息。
 3. 将不透明对象写入 G-buffer，记录位置、法线、底色及材质参数，并计算 SSAO。
 4. 延迟光照读取 G-buffer，合成 PBR 直接光照和环境光；绘制需要前向着色的对象及天空。
-5. 可选 RSM 生成光源空间的位置、法线和光通量贴图，再采样并加入近似间接光照。
+5. 可选 RSM 在太阳方向的正交投影中生成位置、法线和太阳＋天空反射功率贴图；全屏读取 G-buffer，按接收表面材质采样并加入一次间接光照。无太阳和大气时可回退到聚光灯。
 6. 绘制水面等混合对象，进行 HDR 曝光和色调映射，最后绘制 ImGui 并呈现。
 
 独立前向路径使用 `DepthPass → BasePass → PostPass`，其中相机空间的前后表面深度用于近似 SSS。渲染通道的实现集中在 [RenderPass.cpp](src/renderer/RenderPass.cpp)，调度入口为 [RenderManager.cpp](src/system/RenderManager.cpp)。
@@ -120,7 +134,7 @@ flowchart LR
 | 延迟与前向渲染 | G-buffer 解耦几何与光照，前向路径处理特殊材质，HDR 合成后色调映射 | 尚未实现自动曝光 |
 | 阴影 | 方向光级联阴影、PCSS 软阴影、点光源立方体阴影 | 通过阴影贴图近似可见性 |
 | SSAO | 屏幕空间采样核与噪声纹理，增强接触处的遮蔽 | 不包含屏幕外几何的信息，不等同于 GI |
-| RSM | 从聚光灯视角记录位置、法线及反射光通量，采样为虚拟点光源并合成间接照明 | 当前示例使用 `S0` 聚光灯；局部一次反弹近似，可能漏光，不计算多次反弹或完整间接可见性 |
+| RSM | 太阳方向正交投影；太阳辐照度＋大气天空漫反射 LUT；每纹素反射功率、显式采样 PDF、G-buffer 全屏合成；支持聚光灯回退 | 单个投影仅记录最近表面，天空入射未计算遮蔽；局部一次漫反射反弹，可能漏光、有采样噪声 |
 | 大气与 IBL | Rayleigh、Mie 与臭氧吸收；透射率、多重散射、天空视图和卷积 LUT | 使用大气天空环境，不是完整的场景反射探针系统 |
 | FFT 海洋 | 随机初始频谱、水平／垂直 FFT、位移、法线与泡沫，水面混合绘制 | 实时频谱水面，不是流体求解器 |
 | 地形与草 | GPU 四叉树 LOD、队列、间接调度与绘制；GPU 草分布和实例化 | 当前验证使用程序生成资源 |
@@ -149,7 +163,7 @@ flowchart LR
 | `src/PT/` | CPU 路径追踪与实时场景转换 |
 | `tools/` | 着色器转换及可复现的资源下载脚本 |
 | `samples/`、`img/metal/` | 示例资产与来源清单、本项目生成的截图 |
-| `doc/metal.md` | 中文 Metal 迁移说明 |
+| `doc/metal.md`、`doc/rsm.md` | 中文 Metal 迁移说明与太阳／天空 RSM 实现、验证说明 |
 
 ## 命令与操作
 
@@ -159,7 +173,7 @@ flowchart LR
 | `--classic <name>` | 选择 `cornell`、`bunny`、`helmet`、`sponza` 或 `san-miguel` |
 | `--frames <N>` | 窗口渲染 N 帧后退出 |
 | `--render-gallery <目录> core` | 离屏生成三个随仓库提供的基础示例 |
-| `--render-gallery <目录> gi` | 生成两个 GI 场景及各自 RSM 开关对照 |
+| `--render-gallery <目录> gi` | 生成两个 GI 场景、RSM 开关对照及纯间接光／太阳／天空贡献图 |
 | `--render-gallery <目录> <场景名>` | 仅生成指定场景 |
 | `--render-gallery <目录>` | 生成基础示例；两个 GI 模型均已下载时也生成 GI 示例 |
 | `--metal-self-test` | Metal GPU 正确性自检 |
@@ -186,7 +200,7 @@ MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 ctest --test-dir build --output-on-fai
 ./build/Scene-Renderer --demo --frames 3
 ```
 
-GPU 自检覆盖着色器库加载、计算结果读回、材质、曲面细分、天空、海洋、地形、草、阴影、SSAO/RSM，以及前向 HDR/SSS 深度。画廊测试覆盖连续切换场景，读回 HDR、法线和天空 LUT，检查非空输出与 NaN／Inf；这些是渲染正确性检查，不是与物理参考图像的误差测试。
+GPU 自检包含 15 项具有解析预期值的 RSM 能量与合成测试，并覆盖着色器库加载、计算结果读回、材质、曲面细分、天空、海洋、地形、草、阴影、SSAO/RSM，以及前向 HDR/SSS 深度。画廊测试覆盖连续切换场景，读回 HDR、法线和天空 LUT，检查非空输出与 NaN／Inf；这些是渲染正确性检查，不是与物理参考图像的误差测试。
 
 已在 Apple M4 上使用 Metal API 与着色器校验进行验证。当前没有跨 GPU 性能对比；Metal 后端采用单命令队列并等待每帧完成，尚未优化为多帧并行提交。大规模 OBJ 导入仍需较多 CPU 内存与启动时间。
 

@@ -295,8 +295,8 @@ void RenderManager::prepareCompData(const std::shared_ptr<RenderScene>& scene) {
 }
 
 void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
-	// RSM requires a spotlight; keep scenes without one on the regular lighting path.
-	if (scene->spotLights.empty()) setting.enableRSM = false;
+	// Outdoor RSM uses the sun/sky; indoor scenes can fall back to a spotlight.
+	if (scene->spotLights.empty() && scene->directionLights.empty() && !scene->sky) setting.enableRSM = false;
 	prepareVPData(scene);
 	glCheckError();
 

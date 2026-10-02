@@ -64,7 +64,7 @@ MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 ./build/Scene-Renderer --render-galler
 
 新增 OBJ/MTL 导入保持几何与 UV，读取底色、法线、高度图和透明遮罩，将传统材质参数近似转换为 PBR。植物使用透明裁切和双面绘制，G-buffer、RSM 与两种阴影路径遵循相同裁切规则；阴影顶点阶段传递 UV，Metal 分层阴影适配同步保留这些阶段接口。法线重建对退化 UV 导数使用几何法线，避免产生非有限值。
 
-画廊分别输出 `<场景>-direct.png` 与 `<场景>.png`，仅切换 RSM，相机、曝光、直接光照、天空 IBL 与 SSAO 一致。当前 RSM 以聚光灯的反射阴影贴图采样近似一次间接反弹，不具备完整的间接可见性、多次反弹和焦散；对照图不是完整 GI 参考解。模型归属、材质转换和上游使用条件见 [场景资源说明](../samples/README.md)。
+画廊分别输出 `<场景>-direct.png` 与 `<场景>.png`，仅切换 RSM，相机、曝光、直接光照、天空 IBL 与 SSAO 一致。当前 RSM 以太阳方向的正交投影记录表面，将太阳照射与大气漫反射天空 LUT 合为每纹素反射功率，再通过 G-buffer 全屏采样合成一次漫反射反弹；无太阳和大气时支持聚光灯回退。还输出 `-indirect.png`、`-sun-indirect.png`、`-sky-indirect.png` 用于区分贡献。不具备完整的间接可见性、多次反弹和焦散；对照图不是完整 GI 参考解。具体能量公式、修复内容与捕获步骤见 [RSM 实现与验证](rsm.md)。模型归属、材质转换和上游使用条件见 [场景资源说明](../samples/README.md)。
 
 ## 已迁移的实时渲染功能
 
@@ -75,7 +75,7 @@ MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 ./build/Scene-Renderer --render-galler
 | PBR 曲面细分与位移 | 通过计算着色器执行索引顶点处理、生成控制点和细分因子，再绘制原生 Metal 三角形曲面片 |
 | 级联方向光阴影与 PCSS 软阴影 | 分别绘制深度纹理数组的五个切片，保留原有 PCSS 光照算法 |
 | 点光源阴影 | 分别绘制立方体纹理的六个面，并写入径向片元深度 |
-| 反射阴影贴图（RSM） | 生成光源空间的位置、法线和光通量贴图，并合成间接光照 |
+| 反射阴影贴图（RSM） | 太阳正交投影记录位置、法线和太阳＋天空反射功率，显式 PDF 采样并按 G-buffer 材质全屏合成 |
 | 屏幕空间环境遮蔽（SSAO） | 保留原有采样核、噪声纹理和遮蔽计算通道 |
 | 大气与基于图像的光照（IBL） | 通过计算着色器生成透射率、天空视图、多重散射和辐照度查找表（LUT） |
 | FFT 海洋 | 高斯随机数和频谱生成、水平与垂直 FFT 交替读写、位移／法线／泡沫生成，以及水面混合绘制 |
@@ -99,7 +99,7 @@ MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 ./build/Scene-Renderer --metal-self-te
 MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 ./build/Scene-Renderer --demo --frames 3
 ```
 
-自检会加载全部 `.metallib`，执行海洋高斯随机数计算并读回结果。随后渲染包含五种材质、地形、草、大气和 SSAO 的场景，并切换阴影与 RSM；另行验证仅含海洋的地形配置，以及带有 SSS 前后表面深度的独立前向渲染路径。
+自检还执行 15 项 RSM GPU 数值测试，验证太阳／天空功率、采样归一化、接收材质及 HDR 合成。自检会加载全部 `.metallib`，执行海洋高斯随机数计算并读回结果。随后渲染包含五种材质、地形、草、大气和 SSAO 的场景，并切换阴影与 RSM；另行验证仅含海洋的地形配置，以及带有 SSS 前后表面深度的独立前向渲染路径。
 
 浮点纹理读回检查会确认 G-buffer、HDR、天空视图、海洋位移和前向深度结果均为有限值且具有非零输出。截图保存在 `build/metal-*.png`。也可通过以下命令运行同一 GPU 测试：
 

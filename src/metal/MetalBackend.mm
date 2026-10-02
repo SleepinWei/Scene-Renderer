@@ -416,7 +416,7 @@ void draw(GLenum mode,unsigned count,bool indexed=false,size_t offset=0,unsigned
     if(mode==GL_PATCHES) {require(p.tess,"patch draw without tessellation shaders");tessDraw(p,count,indexed,offset);return;}
     for(int layer=0;layer<p.layers;layer++) {
         if(p.layers>1) {endEncoders();int value=layer;MetalBackend::setUniform(s.program,"srLayer",&value,1);}
-        beginRender(layer);[s.render setRenderPipelineState:pipeline(p)];renderState();
+        beginRender(layer);s.render.label=[NSString stringWithUTF8String:p.fragment.name.c_str()];[s.render setRenderPipelineState:pipeline(p)];renderState();
         if(p.vertex.name.find("hdr.vs")!=std::string::npos||p.vertex.name.find("deferred/deferred.vs")!=std::string::npos||p.vertex.name.find("ssao/ssao.vs")!=std::string::npos)[s.render setCullMode:MTLCullModeNone];
         bindStage(p.vertex,p,0);bindStage(p.fragment,p,1);bindVertices(p.vertex);
         if(indirect) [s.render drawPrimitives:primitive(mode) indirectBuffer:indirect indirectBufferOffset:indirectOffset];
@@ -663,6 +663,37 @@ void guiRender(ImDrawData* data) {
     endEncoders();
 }
 void guiShutdown(){s.font=nil;s.guiPipeline=nil;}
+void beginGPUCapture(const char* path) {
+    finish();
+    auto manager = [MTLCaptureManager sharedCaptureManager];
+    require([manager supportsDestination:MTLCaptureDestinationGPUTraceDocument],
+            "GPU capture unavailable; launch with MTL_CAPTURE_ENABLED=1");
+    MTLCaptureDescriptor* descriptor = [MTLCaptureDescriptor new];
+    descriptor.captureObject = s.device;
+    descriptor.destination = MTLCaptureDestinationGPUTraceDocument;
+    descriptor.outputURL = [NSURL fileURLWithPath:[NSString stringWithUTF8String:path]];
+    NSError* error = nil;
+    bool started = [manager startCaptureWithDescriptor:descriptor error:&error];
+    require(started, error ? std::string(error.localizedDescription.UTF8String) : "GPU capture failed");
+}
+void endGPUCapture() {
+    finish();
+    [[MTLCaptureManager sharedCaptureManager] stopCapture];
+}
+FloatTexture readFloatTexture(unsigned texture) {
+    auto gpu=s.textures.at(texture).gpu;auto format=gpu.pixelFormat;
+    require(format==MTLPixelFormatRGBA16Float||format==MTLPixelFormatRGBA32Float,"readback requires RGBA float");
+    size_t w=gpu.width,h=gpu.height,component=format==MTLPixelFormatRGBA16Float?2:4,row=(w*component*4+255)&~size_t(255);
+    auto buffer=[s.device newBufferWithLength:row*h options:MTLResourceStorageModeShared];endEncoders();command();auto e=[s.command blitCommandEncoder];
+    [e copyFromTexture:gpu sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0,0,0) sourceSize:MTLSizeMake(w,h,1) toBuffer:buffer destinationOffset:0 destinationBytesPerRow:row destinationBytesPerImage:row*h];[e endEncoding];finish();
+    FloatTexture result{unsigned(w),unsigned(h),std::vector<float>(w*h*4)};
+    for(size_t y=0;y<h;y++)for(size_t x=0;x<w;x++)for(size_t c=0;c<4;c++) {
+        auto bytes=(uint8_t*)buffer.contents+y*row+(x*4+c)*component;
+        if(component==2){_Float16 half;memcpy(&half,bytes,2);result.rgba[(y*w+x)*4+c]=half;}
+        else memcpy(&result.rgba[(y*w+x)*4+c],bytes,4);
+    }
+    return result;
+}
 void inspectTexture(unsigned texture,const char* path) {
     auto gpu=s.textures.at(texture).gpu;auto format=gpu.pixelFormat;
     require(format==MTLPixelFormatRGBA16Float||format==MTLPixelFormatRGBA32Float,"inspection requires RGBA float");
@@ -709,6 +740,6 @@ void selfTest() {
     api_glDispatchCompute(2,2,1);endEncoders();command();auto readback=[s.device newBufferWithLength:n*n*16 options:MTLResourceStorageModeShared];
     auto e=[s.command blitCommandEncoder];[e copyFromTexture:s.textures.at(tex).gpu sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0,0,0) sourceSize:MTLSizeMake(n,n,1) toBuffer:readback destinationOffset:0 destinationBytesPerRow:n*16 destinationBytesPerImage:n*n*16];[e endEncoding];finish();
     float* samples=(float*)readback.contents;bool nonzero=false;for(int i=0;i<n*n*4;i++){require(std::isfinite(samples[i]),"nonfinite Gaussian output");nonzero|=samples[i]!=0;}require(nonzero,"Gaussian compute did not write its texture");
-    std::cout<<"Metal shader libraries and GPU Gaussian readback passed\n";resize(320,180);validateMetalFeatures();shutdown();
+    std::cout<<"Metal shader libraries and GPU Gaussian readback passed\n";resize(320,180);validateMetalFeatures();validateMetalRSM();shutdown();
 }
 } // namespace MetalBackend

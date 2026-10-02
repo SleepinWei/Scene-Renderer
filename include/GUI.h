@@ -95,10 +95,18 @@ public:
 			if (ImGui::Toggle("Enable Shadow", &enableShadow)) {
 				setting.enableShadow = enableShadow;
 			}
-			static bool enableRSM = setting.enableRSM;
-			if (ImGui::Toggle("Enable RSM", &enableRSM)) {
-				setting.enableRSM= enableRSM;
-			}
+			ImGui::Toggle("Enable RSM", &setting.enableRSM);
+            if (setting.enableRSM) {
+                auto rsm = RenderManager::GetInstance()->rsmPass;
+                ImGui::Checkbox("Sun and sky RSM", &rsm->useSunSky);
+                ImGui::Checkbox("Sun bounce", &rsm->sunBounce);
+                ImGui::Checkbox("Sky bounce", &rsm->skyBounce);
+                ImGui::SliderFloat("RSM world radius", &rsm->worldRadius, 2.0f, 80.0f);
+                ImGui::SliderFloat("RSM intensity", &rsm->intensity, 0.0f, 4.0f);
+                ImGui::SliderFloat("RSM UV radius", &rsm->sampleRadius, 0.01f, 1.0f);
+                ImGui::SliderInt("RSM samples", &rsm->sampleCount, 1, 256);
+                ImGui::Checkbox("RSM indirect only", &rsm->indirectOnly);
+            }
 			static bool enableDirectional= setting.enableDirectional;
 			if (ImGui::Toggle("Enable Directional", &enableDirectional)) {
 				setting.enableDirectional= enableDirectional;

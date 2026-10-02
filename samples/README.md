@@ -69,7 +69,7 @@ MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 ./build/Scene-Renderer --render-galler
 MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 ./build/Scene-Renderer --render-gallery img/metal gi
 ```
 
-`core` 生成三个基础场景，`gi` 生成两个大型场景及 RSM 开关对照。不传选择项时生成基础场景，并在两个 GI 模型都存在时追加 GI 场景；也可传入单个场景名。`*-direct.png` 关闭 RSM，但仍含天空环境光和 SSAO；相机、曝光及其他光照保持一致。RSM 是一次间接反弹的近似，不是完整 GI 基准解。
+`core` 生成三个基础场景，`gi` 生成两个大型场景及 RSM 开关对照。不传选择项时生成基础场景，并在两个 GI 模型都存在时追加 GI 场景；也可传入单个场景名。`*-direct.png` 关闭 RSM，但仍含天空环境光和 SSAO；相机、曝光及其他光照保持一致。两个 GI 场景的 RSM 使用太阳与天空，不再添加额外聚光灯；同时输出 `*-indirect.png`、`*-sun-indirect.png`、`*-sky-indirect.png`。RSM 是一次间接反弹的近似，不是完整 GI 基准解，详见[实现与验证](../doc/rsm.md)。
 
 Bunny 与 Helmet 资源丢失时可执行：
 

@@ -2,6 +2,7 @@
 #include "renderer/RenderPass.h"
 #include "buffer/FrameBuffer.h"
 #include "buffer/RenderBuffer.h"
+#include "buffer/ImageTexture.h"
 #include "component/Atmosphere.h"
 #include "component/GameObject.h"
 #include "component/Grass.h"
@@ -828,35 +829,28 @@ void RSMPass::initShader()
 	RSMShader = std::make_shared<Shader>("./src/shader/rsm/lightSpace.vs", "./src/shader/rsm/lightSpace.fs");
 	RSMShader->requireMat = true;
 	indirectShader = std::make_shared<Shader>("./src/shader/rsm/rsm.vs", "./src/shader/rsm/rsm.fs");
-	RSMShader->requireMat = true;
+	indirectShader->requireMat = false;
 	// RSMShader->use();
 }
 
 GLuint RSMPass::createRandomTexture(int size)
 {
-	std::default_random_engine eng;
-	std::uniform_real_distribution<float> dist(0.0f, 1.0f);
-	eng.seed(42); // Stable RSM samples for reproducible scene captures.
-	float PI = std::acos(-1.0f);
-	glm::vec3 *randomData = new glm::vec3[size];
-	for (int i = 0; i < size; ++i)
-	{
-		float r1 = dist(eng);
-		float r2 = dist(eng);
-		randomData[i].x = r1 * std::sin(2 * PI * r2);
-		randomData[i].y = r1 * std::cos(2 * PI * r2);
-		randomData[i].z = r1 * r1;
-	}
-	GLuint randomTexture;
-	glGenTextures(1, &randomTexture);
-	glBindTexture(GL_TEXTURE_2D, randomTexture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, size, 1, 0, GL_RGB, GL_FLOAT, randomData);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	delete[] randomData;
-	return randomTexture;
+    // Prefix-stable R2 sequence: every sampleCount uses the entire disk.
+    std::vector<glm::vec3> samples(size);
+    const float pi = std::acos(-1.0f);
+    for (int i = 0; i < size; ++i) {
+        float u = std::fmod(0.5 + (i + 1) * 0.7548776662466927, 1.0);
+        float v = std::fmod(0.5 + (i + 1) * 0.5698402909980532, 1.0);
+        float radius = std::sqrt(u); // Uniform area density, NOT uniform radius.
+        samples[i] = {radius * std::cos(2 * pi * v), radius * std::sin(2 * pi * v), 1};
+    }
+    GLuint texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, size, 1, 0, GL_RGB, GL_FLOAT, samples.data());
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    return texture;
 }
 void RSMPass::initTextures()
 {
@@ -871,9 +865,14 @@ void RSMPass::initTextures()
 	rbo = std::make_shared<RenderBuffer>();
 	randomMap = createRandomTexture();
 	depthMap->genTexture(GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, RSM_WIDTH, RSM_HEIGHT);
-	normalMap->genTexture(GL_RGB32F, GL_RGB, RSM_WIDTH, RSM_HEIGHT);
-	worldPosMap->genTexture(GL_RGB32F, GL_RGB, RSM_WIDTH, RSM_HEIGHT);
-	fluxMap->genTexture(GL_RGB32F, GL_RGB, RSM_WIDTH, RSM_HEIGHT);
+	normalMap->genTexture(GL_RGBA32F, GL_RGBA, RSM_WIDTH, RSM_HEIGHT);
+	worldPosMap->genTexture(GL_RGBA32F, GL_RGBA, RSM_WIDTH, RSM_HEIGHT);
+	fluxMap->genTexture(GL_RGBA32F, GL_RGBA, RSM_WIDTH, RSM_HEIGHT);
+    for (const auto& texture : {normalMap, worldPosMap, fluxMap}) {
+        glBindTexture(GL_TEXTURE_2D, texture->id);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    }
 }
 
 void RSMPass::renderGbuffer(const std::shared_ptr<RenderScene> &scene)
@@ -898,34 +897,60 @@ void RSMPass::renderGbuffer(const std::shared_ptr<RenderScene> &scene)
 			GL_COLOR_ATTACHMENT2};
 		glDrawBuffers(3, attachments);
 
-		for (auto &object : scene->objects)
-		{
-			if (object->name == "S0")
-			{
-				this->light = std::static_pointer_cast<SpotLight>(object->GetComponent("SpotLight"));
-				break;
-			}
-		}
 	}
 
-	rsmFBO->bindBuffer();
-	glViewport(0, 0, RSM_WIDTH, RSM_HEIGHT);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-
-	// TODO:set light uniform
-
-	// auto& light = scene->spotLights[0];
-	auto trans = std::static_pointer_cast<Transform>(light->gameObject->GetComponent("Transform"));
-	glm::vec3 lightPos = trans->position;
-	glm::mat4 lightProjection = glm::perspective(glm::radians(100.0f), (float)RSM_WIDTH / (float)RSM_HEIGHT, light->near, light->far);
-	glm::mat4 lightView = glm::lookAt(lightPos, lightPos + light->data.direction, glm::vec3(0.0f, 1.0f, 0.0f));
-	glm::mat4 lightSpaceMatrix = lightProjection * lightView;
-	RSMShader->use();
-	RSMShader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
-	RSMShader->setVec3("light.Position", lightPos);
-	RSMShader->setVec3("light.Color", light->data.color);
-	RSMShader->setVec3("light.Direction", light->data.direction);
+    // Generation and gather share one cached projection. Outdoor scenes use
+    // directional irradiance and the same diffuse sky LUT as deferred IBL.
+    auto atmosphere = scene->sky ? std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere")) : nullptr;
+    std::shared_ptr<DirectionLight> sun;
+    for (const auto& candidate : scene->directionLights)
+        if (candidate && candidate->enabled) { sun = candidate; break; }
+    const bool outdoor = useSunSky && (sun || atmosphere);
+    light.reset();
+    if (!outdoor) for (const auto& candidate : scene->spotLights)
+        if (candidate && candidate->enabled) { light = candidate; break; }
+    sourceAvailable = outdoor || bool(light);
+    rsmFBO->bindBuffer();
+    glViewport(0, 0, RSM_WIDTH, RSM_HEIGHT);
+    glClearColor(0, 0, 0, 0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    if (!sourceAvailable) return;
+    RSMShader->use();
+    if (outdoor) {
+        const auto direction = sun ? glm::normalize(sun->data.direction) : glm::vec3(0,-1,0);
+        const auto up = std::abs(direction.y) > .99f ? glm::vec3(0,0,1) : glm::vec3(0,1,0);
+        const float radius = std::max(worldRadius, 1.0f);
+        glm::vec3 center = scene->main_camera->Position + scene->main_camera->Front * (radius * .5f);
+        const auto right = glm::normalize(glm::cross(direction,up));
+        const auto lightUp = glm::cross(right,direction);
+        const float texelSize = 2 * radius / RSM_WIDTH;
+        center -= right * std::fmod(glm::dot(center,right),texelSize) + lightUp * std::fmod(glm::dot(center,lightUp),texelSize);
+        lightSpaceMatrix = glm::ortho(-radius,radius,-radius,radius,.1f,4*radius) *
+                           glm::lookAt(center-direction*(2*radius),center,up);
+        RSMShader->setInt("light.type",1);
+        RSMShader->setVec3("light.Direction",direction);
+        RSMShader->setVec3("light.Color",sun && sunBounce && RenderManager::GetInstance()->setting.enableDirectional ? sun->data.color : glm::vec3(0));
+        const bool sky = atmosphere && skyBounce;
+        RSMShader->setInt("enableSky",sky?1:0);
+        glActiveTexture(GL_TEXTURE19);
+        glBindTexture(GL_TEXTURE_2D,sky ? atmosphere->convolutionTexture->tex->id : 0);
+        RSMShader->setInt("skyIrradiance",19);
+    } else {
+        auto trans = std::static_pointer_cast<Transform>(light->gameObject->GetComponent("Transform"));
+        const auto direction = glm::normalize(light->data.direction);
+        const auto up = std::abs(direction.y) > .99f ? glm::vec3(0,0,1) : glm::vec3(0,1,0);
+        lightSpaceMatrix = glm::perspective(2*std::acos(glm::clamp(light->data.outerCutOff,-.999f,.999f)),
+                                          float(RSM_WIDTH)/RSM_HEIGHT,light->near,light->far) *
+                           glm::lookAt(trans->position,trans->position+direction,up);
+        RSMShader->setInt("light.type",0);
+        RSMShader->setVec3("light.Position",trans->position);
+        RSMShader->setVec3("light.Color",light->data.color);
+        RSMShader->setVec3("light.Direction",direction);
+        RSMShader->setFloat("light.cutOff",light->data.cutOff);
+        RSMShader->setFloat("light.outerCutOff",light->data.outerCutOff);
+        RSMShader->setInt("enableSky",0);
+    }
+    RSMShader->setMat4("lightSpaceMatrix",lightSpaceMatrix);
 
 	for (int i = 0; i < scene->objects.size(); i++)
 	{
@@ -953,76 +978,48 @@ void RSMPass::renderGbuffer(const std::shared_ptr<RenderScene> &scene)
 	//  no sky
 }
 
-void RSMPass::render(const std::shared_ptr<RenderScene> &scene)
+void RSMPass::render(const std::shared_ptr<RenderScene>& scene)
 {
-	// post buffer
-	if (rsmBuffer->dirty)
-	{
-		// set attachments
-		rsmBuffer->dirty = false;
-		outTexture->genTexture(GL_RGBA16F, GL_RGBA, InputManager::GetInstance()->width, InputManager::GetInstance()->height);
-		rsmBuffer->bindTexture(outTexture, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
-
-		rbo->genBuffer(InputManager::GetInstance()->width, InputManager::GetInstance()->height);
-		rsmBuffer->bindBuffer();
-		// - Attach buffers
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo->rbo);
-		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-			std::cout << "Framebuffer not complete!" << std::endl;
-	}
-
-	rsmBuffer->bindBuffer();
-
-	// 锟斤拷锟斤拷锟斤拷
-	depthMap->bind(GL_TEXTURE_2D, 20);
-	normalMap->bind(GL_TEXTURE_2D, 21);
-	worldPosMap->bind(GL_TEXTURE_2D, 22);
-	fluxMap->bind(GL_TEXTURE_2D, 23);
-	RenderManager::GetInstance()->deferredPass->postTexture->bind(GL_TEXTURE_2D, 24);
-
-	glActiveTexture(GL_TEXTURE4);
-	glBindTexture(GL_TEXTURE_2D, randomMap);
-	// TODO: bind deffer postTexture -> 5
-
-	glViewport(0, 0, InputManager::GetInstance()->width, InputManager::GetInstance()->height);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-
-	// TODO:set light uniform
-	auto &light = scene->spotLights[0];
-	auto trans = std::static_pointer_cast<Transform>(light->gameObject->GetComponent("Transform"));
-	glm::vec3 lightPos = trans->position;
-	glm::mat4 lightProjection = glm::perspective(glm::radians(100.0f), (float)RSM_WIDTH / (float)RSM_HEIGHT, light->near, light->far);
-	glm::mat4 lightView = glm::lookAt(lightPos, lightPos + light->data.direction, glm::vec3(0.0f, 1.0f, 0.0f));
-	glm::mat4 lightSpaceMatrix = lightProjection * lightView;
-#ifdef SCENERENDERER_METAL
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, RenderManager::GetInstance()->deferredPass->postBuffer->FBO);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, rsmBuffer->FBO);
-    glBlitFramebuffer(0,0,InputManager::GetInstance()->width,InputManager::GetInstance()->height,
-                      0,0,InputManager::GetInstance()->width,InputManager::GetInstance()->height,
-                      GL_COLOR_BUFFER_BIT,GL_NEAREST);
-#endif
-	indirectShader->use();
-	indirectShader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
-    indirectShader->setVec2("screenSize",float(InputManager::GetInstance()->width),float(InputManager::GetInstance()->height));
-	indirectShader->setInt("depthMap", 20);
-	indirectShader->setInt("normalMap", 21);
-	indirectShader->setInt("worldPosMap", 22);
-	indirectShader->setInt("fluxMap", 23);
-	indirectShader->setInt("inTexture", 24);
-	indirectShader->setInt("randomMap", 4);
-	indirectShader->setInt("sample_num", 64);
-	indirectShader->setFloat("sample_radius", 0.3);
-
-	for (int i = 0; i < scene->objects.size(); i++)
-	{
-		auto &object = scene->objects[i];
-		std::shared_ptr<MeshRenderer> &&renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
-		if (renderer && renderer->shader)
-		{
-			renderer->render(indirectShader);
-		}
-	}
+    const int width = InputManager::GetInstance()->width;
+    const int height = InputManager::GetInstance()->height;
+    if (rsmBuffer->dirty || outTexture->width != width || outTexture->height != height) {
+        rsmBuffer->dirty = false;
+        outTexture->genTexture(GL_RGBA16F, GL_RGBA, width, height);
+        rsmBuffer->bindTexture(outTexture, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
+    }
+    rsmBuffer->bindBuffer();
+    glViewport(0, 0, width, height);
+    auto deferred = RenderManager::GetInstance()->deferredPass;
+    normalMap->bind(GL_TEXTURE_2D, 20);
+    worldPosMap->bind(GL_TEXTURE_2D, 21);
+    fluxMap->bind(GL_TEXTURE_2D, 22);
+    deferred->postTexture->bind(GL_TEXTURE_2D, 23);
+    deferred->gPosition->bind(GL_TEXTURE_2D, 24);
+    deferred->gNormal->bind(GL_TEXTURE_2D, 25);
+    deferred->gAlbedoSpec->bind(GL_TEXTURE_2D, 26);
+    deferred->gPBR->bind(GL_TEXTURE_2D, 27);
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, randomMap);
+    indirectShader->use();
+    indirectShader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
+    indirectShader->setInt("normalMap", 20);
+    indirectShader->setInt("worldPosMap", 21);
+    indirectShader->setInt("fluxMap", 22);
+    indirectShader->setInt("inTexture", 23);
+    indirectShader->setInt("gPosition", 24);
+    indirectShader->setInt("gNormal", 25);
+    indirectShader->setInt("gAlbedoSpec", 26);
+    indirectShader->setInt("gPBR", 27);
+    indirectShader->setInt("randomMap", 4);
+    indirectShader->setInt("sample_num", glm::clamp(sampleCount, 1, 256));
+    indirectShader->setFloat("sample_radius", glm::clamp(sampleRadius, 0.001f, 1.0f));
+    indirectShader->setFloat("rsmIntensity", sourceAvailable ? intensity : 0.0f);
+    indirectShader->setFloat("minDistance", std::max(minDistance, 0.001f));
+    indirectShader->setInt("indirectOnly", indirectOnly ? 1 : 0);
+    // Gather from the visible G-buffer instead of rasterizing the scene again.
+    glDisable(GL_DEPTH_TEST);
+    renderQuad();
+    glEnable(GL_DEPTH_TEST);
 }
 void SSAOPass::initTextures()
 {

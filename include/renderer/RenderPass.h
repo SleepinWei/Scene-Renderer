@@ -191,11 +191,23 @@ public:
 	std::shared_ptr<SpotLight> light;
 
 	GLuint randomMap;
+	// Flux is per RSM texel; gather integrates a disk in light UV space.
+	int sampleCount = 128;
+	float sampleRadius = 0.3f;
+	float intensity = 1.0f;
+	float minDistance = 0.1f; // World units, regularizes the VPL singularity.
+	bool indirectOnly = false;
+    bool useSunSky = true; // Falls back to the first enabled spotlight indoors.
+    bool sunBounce = true;
+    bool skyBounce = true;
+    float worldRadius = 20.0f; // Half extent of the camera-following orthographic RSM.
+    bool sourceAvailable = false;
+	glm::mat4 lightSpaceMatrix = glm::mat4(1.0f);
 	bool dirty;
 private:
 	const GLuint RSM_WIDTH = 1024, RSM_HEIGHT = 1024;
 	// const float light_near_plane = 0.5f, light_far_plane = 20.0f;
 	void initShader();
-	GLuint createRandomTexture(int size=64);
+	GLuint createRandomTexture(int size=256);
 	void initTextures();
 };

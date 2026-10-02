@@ -213,11 +213,7 @@ std::shared_ptr<RenderScene> makeMetalClassicScene(const std::string& name) {
             target->main_camera = std::make_shared<Camera>(glm::vec3(7,2.4f,8),glm::vec3(0,1,0),-115,-3);
         target->main_camera->Zoom = 58; target->main_camera->exposure = 1.1f;
         atmosphere(target);sun(target,{2.8f,2.6f,2.3f},{-.35f,-1,-.2f});
-        auto spot = std::make_shared<GameObject>();spot->name = "S0";
-        auto transform = std::make_shared<Transform>();transform->position = {0,10,0};spot->addComponent(transform);
-        auto light = std::make_shared<SpotLight>();light->data.color = {18,16,14};light->data.direction = glm::normalize(glm::vec3(.15f,-1,.1f));
-        light->data.cutOff = std::cos(glm::radians(45.f));light->data.outerCutOff = std::cos(glm::radians(50.f));
-        spot->addComponent(light);target->addObject(spot);manager->setting.enableRSM = true;
+        manager->setting.enableRSM = true;
     } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose bunny, helmet, cornell, sponza or san-miguel");
     return target;
 }
@@ -234,7 +230,9 @@ void renderMetalGallery(const std::string& directory, const std::string& selecte
         if (selected.empty() && std::filesystem::exists("samples/assets/gi/san-miguel/san-miguel-low-poly.obj") && std::filesystem::exists("samples/assets/gi/sponza/sponza.obj"))
             names.insert(names.end(), {"sponza", "san-miguel"});
     } else names = {selected};
+    bool capturedGPU = false;
     for (const std::string& name : names) {
+        MetalBackend::FloatTexture direct{};
         scene = makeMetalClassicScene(name);
         if (name == "sponza" || name == "san-miguel") {
             manager->setting.enableRSM = false;
@@ -243,9 +241,13 @@ void renderMetalGallery(const std::string& directory, const std::string& selecte
                 if (frame==1) MetalBackend::capture((std::filesystem::path(directory)/(name+"-direct.png")).string().c_str());
                 MetalBackend::present();
             }
+            direct = MetalBackend::readFloatTexture(manager->deferredPass->postTexture->id);
             manager->setting.enableRSM = true;
         }
         for (int frame = 0; frame < 2; ++frame) {
+            const char* trace = std::getenv("SR_METAL_CAPTURE_PATH");
+            const bool captureGPU = frame == 1 && trace && !capturedGPU;
+            if (captureGPU) MetalBackend::beginGPUCapture(trace);
             MetalBackend::beginFrame(); manager->render(scene);
             if (frame == 1) {
                 const auto output = (std::filesystem::path(directory) / (name + ".png")).string();
@@ -257,9 +259,48 @@ void renderMetalGallery(const std::string& directory, const std::string& selecte
                     auto sky = std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));
                     MetalBackend::inspectTexture(sky->skyViewTexture->tex->id, ("build/metal-gallery-" + name + "-sky.png").c_str());
                 }
+                if (!direct.rgba.empty()) {
+                    auto combined = MetalBackend::readFloatTexture(manager->rsmPass->outTexture->id);
+                    double baseMean = 0, deltaMean = 0; size_t changed = 0;
+                    for (size_t i=0;i<direct.rgba.size();i+=4) {
+                        bool positive = false;
+                        for (int c=0;c<3;++c) {
+                            baseMean += direct.rgba[i+c];
+                            double delta = combined.rgba[i+c]-direct.rgba[i+c];
+                            deltaMean += delta; positive |= delta > 1e-4;
+                        }
+                        changed += positive;
+                    }
+                    const double components = direct.width * direct.height * 3;
+                    std::cout << name << " linear HDR baseMean=" << baseMean/components
+                              << " indirectMean=" << deltaMean/components
+                              << " ratio=" << deltaMean/baseMean << " changedPixels=" << changed << '\n';
+                }
                 MetalBackend::capture(output.c_str()); std::cout << "Rendered " << output << '\n';
             }
             MetalBackend::present();
+            if (captureGPU) { MetalBackend::endGPUCapture(); capturedGPU = true; }
+        }
+        if (!direct.rgba.empty()) {
+            manager->rsmPass->indirectOnly = true;
+            MetalBackend::beginFrame();manager->render(scene);
+            MetalBackend::capture((std::filesystem::path(directory)/(name+"-indirect.png")).string().c_str());
+            MetalBackend::inspectTexture(manager->rsmPass->outTexture->id,("build/metal-gallery-"+name+"-indirect.png").c_str());
+            MetalBackend::present();
+            for (int source = 0; source < 2; ++source) {
+                manager->rsmPass->sunBounce = source == 0;
+                manager->rsmPass->skyBounce = source == 1;
+                MetalBackend::beginFrame();manager->render(scene);
+                const std::string label = source == 0 ? "sun-indirect" : "sky-indirect";
+                MetalBackend::capture((std::filesystem::path(directory)/(name+"-"+label+".png")).string().c_str());
+                auto raw = MetalBackend::readFloatTexture(manager->rsmPass->outTexture->id);
+                double mean = 0;
+                for(size_t i=0;i<raw.rgba.size();i+=4)for(int c=0;c<3;++c)mean+=raw.rgba[i+c];
+                std::cout<<name<<" "<<label<<" mean="<<mean/(raw.width*raw.height*3)<<'\n';
+                MetalBackend::present();
+            }
+            manager->rsmPass->sunBounce = manager->rsmPass->skyBounce = true;
+            manager->rsmPass->indirectOnly = false;
         }
     }
     MetalBackend::shutdown();
