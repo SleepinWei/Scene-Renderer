@@ -15,6 +15,7 @@ class DeferredPass;
 class RSMPass;
 class ShadowPass;
 class SSAOPass;
+class TemporalAA;
 
 enum class ShaderType
 {
@@ -43,6 +44,7 @@ struct RenderSetting
 	bool enableRSM;
 	bool enableDirectional;
 	bool enableSSAO;
+    bool enableTSAA=true;
 };
 
 class RenderManager
@@ -98,6 +100,7 @@ public:
 	std::shared_ptr<ShadowPass> shadowPass;
 	std::shared_ptr<DeferredPass> deferredPass;
 	std::shared_ptr<SSAOPass> ssaoPass;
+    std::shared_ptr<TemporalAA> temporalAA;
 
 	// uniform buffer
 	std::shared_ptr<UniformBuffer> uniformVPBuffer;

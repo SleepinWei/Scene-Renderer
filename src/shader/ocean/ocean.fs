@@ -16,7 +16,11 @@ uniform int outer_Gloss;
 in vec3 FragPos;
 in vec2 FragTexCoord;
 layout(location=5) in vec2 DetailTexCoord;
-out vec4 FragColor;
+layout(location=0) out vec4 FragColor;
+layout(location=1) out vec4 TemporalMotion;
+layout(location=6) in vec4 PreviousClip;
+layout(location=7) in float PreviousDepth;
+uniform int temporalActive;
 vec3 skyRadiance(vec3 direction) {
     if(hasSky==0)return vec3(0);
     // Same latitude encoding as skyRender.fs; radiance LUT is already linear HDR.
@@ -119,5 +123,7 @@ void main() {
     vec3 sun=dirLight.specular*outer_Specular*(D*G*F/max(4.0*NoV*NoL,1e-5))*NoL;
     vec3 foamDiffuse=outer_BubblesColor*(dirLight.diffuse*NoL/PI+skyRadiance(N)*0.25);
     vec3 result=mix((1.0-fresnel)*body+fresnel*reflection+sun,foamDiffuse,foam);
+    TemporalMotion=vec4(0);
+    if(temporalActive!=0 && PreviousClip.w>0.0)TemporalMotion=vec4(PreviousClip.xy/PreviousClip.w*.5+.5-screenUV(FragPos),PreviousDepth,1);
     FragColor=vec4(max(result,vec3(0)),1); // Tone mapping belongs to the HDR post pass.
 }

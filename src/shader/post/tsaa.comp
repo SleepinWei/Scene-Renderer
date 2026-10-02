@@ -1,0 +1,57 @@
+#version 430 core
+layout(local_size_x=8,local_size_y=8) in;
+layout(rgba16f,binding=0) writeonly uniform image2D resolvedColor;
+layout(rgba32f,binding=1) writeonly uniform image2D resolvedDepth;
+uniform sampler2D currentColor,currentDepth,historyColor,historyDepth,surfaceMotion;
+uniform mat4 inverseVP,currentView,previousVP,previousView;
+uniform vec3 cameraPosition;
+uniform float historyWeight;
+uniform int historyValid;
+vec3 compressHDR(vec3 c){c=max(c,vec3(0));return c/(1.0+dot(c,vec3(.2126,.7152,.0722)));}
+vec3 expandHDR(vec3 c){return c/max(1.0-dot(c,vec3(.2126,.7152,.0722)),1e-4);}
+vec3 toYCoCg(vec3 c){return vec3(dot(c,vec3(.25,.5,.25)),.5*(c.r-c.b),.5*c.g-.25*(c.r+c.b));}
+vec3 fromYCoCg(vec3 c){return vec3(c.x+c.y-c.z,c.x+c.z,c.x-c.y-c.z);}
+bool finite3(vec3 c){return !any(isnan(c)) && !any(isinf(c));}
+void main() {
+    ivec2 p=ivec2(gl_GlobalInvocationID.xy),size=imageSize(resolvedColor);
+    if(any(greaterThanEqual(p,size)))return;
+    vec2 uv=(vec2(p)+.5)/vec2(size);
+    vec3 current=texelFetch(currentColor,p,0).rgb;
+    float z=texelFetch(currentDepth,p,0).r;
+    vec4 world=inverseVP*vec4(uv*2.0-1.0,z*2.0-1.0,1);
+    world/=world.w;
+    bool sky=z>=.999999;
+    float linearDepth=sky?0.0:max(-(currentView*world).z,0.0);
+    vec4 oldClip=previousVP*(sky?vec4(normalize(world.xyz-cameraPosition),0):world);
+    vec2 previousUV=oldClip.xy/max(oldClip.w,1e-6)*.5+.5;
+    float expectedDepth=sky?0.0:max(-(previousView*world).z,0.0);
+    vec4 motion=texelFetch(surfaceMotion,p,0);
+    if(motion.w>0.5){previousUV=uv+motion.xy;expectedDepth=motion.z;}
+    bool inside=all(greaterThanEqual(previousUV,vec2(0))) && all(lessThanEqual(previousUV,vec2(1)));
+    bool accept=historyValid!=0 && inside && (oldClip.w>0.0 || motion.w>.5);
+    vec3 result=current;
+    if(accept) {
+        float oldDepth=texture(historyDepth,previousUV).r;
+        bool depthValid=sky?oldDepth==0.0:oldDepth>0.0 && abs(oldDepth-expectedDepth)<=max(.03,.02*expectedDepth);
+        vec3 history=texture(historyColor,previousUV).rgb;
+        if(depthValid && finite3(history)) {
+            vec3 lo=vec3(1e10),hi=vec3(-1e10),mean=vec3(0),square=vec3(0);
+            for(int y=-1;y<=1;++y)for(int x=-1;x<=1;++x) {
+                vec3 v=toYCoCg(compressHDR(texelFetch(currentColor,clamp(p+ivec2(x,y),ivec2(0),size-1),0).rgb));
+                lo=min(lo,v);hi=max(hi,v);mean+=v;square+=v*v;
+            }
+            mean/=9.0;vec3 sigma=sqrt(max(square/9.0-mean*mean,vec3(0)));
+            lo=max(lo,mean-1.25*sigma);hi=min(hi,mean+1.25*sigma);
+            vec3 c=toYCoCg(compressHDR(current));
+            vec3 h=clamp(toYCoCg(compressHDR(history)),lo,hi);
+            float weight=clamp(historyWeight,0.0,.98);
+            // Refraction, foam and specular shading need faster response than static surfaces.
+            if(motion.w>.5)weight=min(weight,.85);
+            float change=clamp(abs(h.x-c.x)/max(abs(c.x),.05),0.0,1.0);
+            weight*=1.0-.5*change;
+            result=expandHDR(fromYCoCg(mix(c,h,weight)));
+        }
+    }
+    imageStore(resolvedColor,p,vec4(max(result,vec3(0)),1));
+    imageStore(resolvedDepth,p,vec4(linearDepth,0,0,1));
+}

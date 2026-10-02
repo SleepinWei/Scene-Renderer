@@ -7,6 +7,7 @@
 #include "renderer/Texture.h"
 #include "renderer/RenderScene.h"
 #include "renderer/RenderPass.h"
+#include "renderer/TemporalAA.h"
 #include "buffer/FrameBuffer.h"
 #include "system/InputManager.h"
 #include "object/SkyBox.h"
@@ -186,7 +187,37 @@ void Ocean::Draw() {
     draw_shader->setFloat("scatteringAnisotropy",std::clamp(scatteringAnisotropy,-.95f,.95f));
     draw_shader->setFloat("seaLevel",seaLevel);draw_shader->setFloat("waveHeightScale",std::max(std::abs(HeightScale),.01f));
     draw_shader->setMat4("model",glm::translate(glm::mat4(1),glm::vec3(0,seaLevel,0)));
+    auto taa=RenderManager::GetInstance()->temporalAA;
+    const bool temporal=taa && taa->active();
+    draw_shader->setInt("temporalActive",temporal?1:0);
+    (previousDisplacement?previousDisplacement:DisplaceRT_Texture->tex)->bind(GL_TEXTURE_2D,10);draw_shader->setInt("previousDisplace",10);
+    (previousDetailDisplacement?previousDetailDisplacement:(detail?detailOcean->DisplaceRT_Texture->tex:DisplaceRT_Texture->tex))->bind(GL_TEXTURE_2D,11);draw_shader->setInt("previousDetailDisplace",11);
+    draw_shader->setMat4("previousVP",temporal?taa->previousVP:glm::mat4(1));
+    draw_shader->setMat4("previousView",temporal?taa->previousView:glm::mat4(1));
+    draw_shader->setMat4("previousModel",glm::translate(glm::mat4(1),glm::vec3(0,previousSeaLevel,0)));
+    if(temporal) {
+        glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT1,GL_TEXTURE_2D,taa->motionTexture(),0);
+        const GLenum targets[]={GL_COLOR_ATTACHMENT0,GL_COLOR_ATTACHMENT1};glDrawBuffers(2,targets);
+    }
     glBindVertexArray(VAO);glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,EBO);
     // Shader composites transmission/scattering with the copied scene in HDR; no alpha double-blend.
     glDisable(GL_BLEND);glDrawElements(GL_TRIANGLES,static_cast<int>(vertexIndexs.size()),GL_UNSIGNED_INT,nullptr);
+    if(temporal) {
+        glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT1,GL_TEXTURE_2D,0,0);glDrawBuffer(GL_COLOR_ATTACHMENT0);
+        if(!copyDisplacementShader)copyDisplacementShader=std::make_shared<Shader>("./src/shader/ocean/ocean_CopyDisplacement.comp");
+        auto copy=[&](const std::shared_ptr<Texture>& source,std::shared_ptr<Texture>& target) {
+            if(!target || target->width!=source->width || target->height!=source->height) {
+                target=std::make_shared<Texture>();target->genTexture(GL_RGBA32F,GL_RGBA,source->width,source->height);
+                glBindTexture(GL_TEXTURE_2D,target->id);glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
+            }
+            copyDisplacementShader->use();
+            glBindImageTexture(0,source->id,0,GL_FALSE,0,GL_READ_ONLY,GL_RGBA32F);
+            glBindImageTexture(1,target->id,0,GL_FALSE,0,GL_WRITE_ONLY,GL_RGBA32F);
+            glDispatchCompute((source->width+7)/8,(source->height+7)/8,1);
+            glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT|GL_TEXTURE_FETCH_BARRIER_BIT);
+        };
+        copy(DisplaceRT_Texture->tex,previousDisplacement);
+        if(detail)copy(detailOcean->DisplaceRT_Texture->tex,previousDetailDisplacement);
+        previousSeaLevel=seaLevel;
+    }
 }

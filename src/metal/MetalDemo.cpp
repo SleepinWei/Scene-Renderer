@@ -102,6 +102,7 @@ void validateMetalFeatures() {
     MetalBackend::inspectTexture(manager->depthPass->backDepth->id,"build/metal-back-depth.png");
     MetalBackend::capture("build/metal-forward-validation.png");MetalBackend::present();
     validateMetalOcean();
+    validateMetalTemporalAA();
     std::cout<<"Metal standalone forward/HDR/SSS depth frames passed\n";
     std::cout<<"Metal deferred/PBR/tessellation/shadows/SSAO/RSM/sky/ocean/terrain/grass frames passed\n";
 }

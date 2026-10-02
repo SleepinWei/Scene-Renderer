@@ -11,6 +11,7 @@
 #include"component/transform.h"
 #include"component/TerrainComponent.h"
 #include"renderer/RenderPass.h"
+#include "renderer/TemporalAA.h"
 #include"utils/Utils.h"
 #include"component/Atmosphere.h"
 
@@ -46,6 +47,7 @@ void RenderManager::init() {
 }
 
 void RenderManager::initRenderPass() {
+    temporalAA=std::make_shared<TemporalAA>();
 	// render Pass initialization
 	rsmPass = std::make_shared<RSMPass>();
 	shadowPass = std::make_shared<ShadowPass>();
@@ -104,7 +106,7 @@ void RenderManager::prepareVPData(const std::shared_ptr<RenderScene>& renderScen
 		return;
 	}
 
-	const glm::mat4& projection = camera->GetPerspective();
+	const glm::mat4 projection = temporalAA && temporalAA->active() ? temporalAA->projection : camera->GetPerspective();
 	const glm::mat4& view = camera->GetViewMatrix();
 	const glm::vec3& pos = camera->Position;
 	//glm::mat4 skyboxView = glm::mat4(glm::mat3(view));
@@ -297,6 +299,7 @@ void RenderManager::prepareCompData(const std::shared_ptr<RenderScene>& scene) {
 void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 	// Outdoor RSM uses the sun/sky; indoor scenes can fall back to a spotlight.
 	if (scene->spotLights.empty() && scene->directionLights.empty() && !scene->sky) setting.enableRSM = false;
+    temporalAA->begin(scene,setting.enableTSAA && setting.useDefer);
 	prepareVPData(scene);
 	glCheckError();
 

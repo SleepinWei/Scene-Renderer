@@ -113,6 +113,7 @@ public:
 			}
 
 			ImGui::Toggle("Enable SSAO", &setting.enableSSAO);
+            ImGui::Toggle("Enable TSAA", &setting.enableTSAA);
 			ImGui::SliderFloat("SSAO radius", &(RenderManager::GetInstance()->ssaoPass->radius),0.0f,0.5f);
 		}
 

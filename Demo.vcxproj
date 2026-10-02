@@ -205,6 +205,7 @@
     <ClCompile Include="src\renderer\Mesh_Filter.cpp" />
     <ClCompile Include="src\renderer\Mesh_Renderer.cpp" />
     <ClCompile Include="src\renderer\RenderPass.cpp" />
+    <ClCompile Include="src\renderer\TemporalAA.cpp" />
     <ClCompile Include="src\renderer\RenderScene.cpp" />
     <ClCompile Include="src\renderer\ResourceManager.cpp" />
     <ClCompile Include="src\renderer\Texture.cpp" />
@@ -263,6 +264,7 @@
     <ClInclude Include="include\renderer\Mesh_Filter.h" />
     <ClInclude Include="include\renderer\Mesh_Renderer.h" />
     <ClInclude Include="include\renderer\RenderPass.h" />
+    <ClInclude Include="include\renderer\TemporalAA.h" />
     <ClInclude Include="include\renderer\RenderScene.h" />
     <ClInclude Include="include\renderer\ResourceManager.h" />
     <ClInclude Include="include\renderer\Texture.h" />

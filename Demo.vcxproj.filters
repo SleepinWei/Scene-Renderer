@@ -158,6 +158,9 @@
     <ClCompile Include="src\buffer\FrameBuffer.cpp">
       <Filter>src\buffer</Filter>
     </ClCompile>
+    <ClCompile Include="src\renderer\TemporalAA.cpp">
+      <Filter>src\renderer</Filter>
+    </ClCompile>
     <ClCompile Include="src\renderer\RenderPass.cpp">
       <Filter>src\renderer</Filter>
     </ClCompile>
@@ -377,6 +380,9 @@
       <Filter>头文件\renderer</Filter>
     </ClInclude>
     <ClInclude Include="include\renderer\Mesh_Renderer.h">
+      <Filter>头文件\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="include\renderer\TemporalAA.h">
       <Filter>头文件\renderer</Filter>
     </ClInclude>
     <ClInclude Include="include\renderer\RenderPass.h">

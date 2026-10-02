@@ -16,6 +16,7 @@
 #include "renderer/Material.h"
 #include "renderer/Texture.h"
 #include "renderer/RenderPass.h"
+#include "renderer/TemporalAA.h"
 #include "buffer/ImageTexture.h"
 #include "object/SkyBox.h"
 #include "system/RenderManager.h"
@@ -224,6 +225,7 @@ void renderMetalGallery(const std::string& directory, const std::string& selecte
     std::filesystem::create_directories(directory);
     const bool oceanGallery=selected=="ocean" || selected=="ocean-clear";
     const int width=oceanGallery?1920:960,height=oceanGallery?1080:720;
+    constexpr int accumulationFrames=16;
     MetalBackend::initialize(nullptr, width, height);
     glEnable(GL_DEPTH_TEST); glEnable(GL_CULL_FACE); glCullFace(GL_BACK);
     auto input = InputManager::GetInstance(); input->width = width; input->height = height;
@@ -239,24 +241,26 @@ void renderMetalGallery(const std::string& directory, const std::string& selecte
     for (const std::string& name : names) {
         MetalBackend::FloatTexture direct{};
         scene = makeMetalClassicScene(name);
+        manager->temporalAA->reset();
         if(name=="ocean" || name=="ocean-clear") {auto water=std::static_pointer_cast<Ocean>(scene->terrain->GetComponent("Ocean"));water->animate=false;water->inner_time=8;}
         if (name == "sponza" || name == "san-miguel") {
             manager->setting.enableRSM = false;
-            for (int frame=0;frame<2;++frame) {
+            for (int frame=0;frame<accumulationFrames;++frame) {
                 MetalBackend::beginFrame();manager->render(scene);
-                if (frame==1) MetalBackend::capture((std::filesystem::path(directory)/(name+"-direct.png")).string().c_str());
+                if (frame==accumulationFrames-1) MetalBackend::capture((std::filesystem::path(directory)/(name+"-direct.png")).string().c_str());
                 MetalBackend::present();
             }
             direct = MetalBackend::readFloatTexture(manager->deferredPass->postTexture->id);
             manager->setting.enableRSM = true;
         }
-        for (int frame = 0; frame < 2; ++frame) {
+        for (int frame = 0; frame < accumulationFrames; ++frame) {
             const char* trace = std::getenv("SR_METAL_CAPTURE_PATH");
-            const bool captureGPU = frame == 1 && trace && !capturedGPU;
+            const bool captureGPU = frame == accumulationFrames-1 && trace && !capturedGPU;
             if (captureGPU) MetalBackend::beginGPUCapture(trace);
             MetalBackend::beginFrame(); manager->render(scene);
-            if (frame == 1) {
+            if (frame == accumulationFrames-1) {
                 const auto output = (std::filesystem::path(directory) / (name + ".png")).string();
+                MetalBackend::inspectTexture(manager->temporalAA->outputTexture(), ("build/metal-gallery-" + name + "-tsaa.png").c_str());
                 MetalBackend::inspectTexture(manager->deferredPass->postTexture->id, ("build/metal-gallery-" + name + "-hdr.png").c_str());
                 if (manager->setting.enableRSM)
                     MetalBackend::inspectTexture(manager->rsmPass->outTexture->id, ("build/metal-gallery-" + name + "-rsm.png").c_str());
@@ -291,6 +295,8 @@ void renderMetalGallery(const std::string& directory, const std::string& selecte
             auto water=std::static_pointer_cast<Ocean>(scene->terrain->GetComponent("Ocean"));
             auto reference=MetalBackend::readFloatTexture(manager->deferredPass->postTexture->id);
             auto comparison=[&](const char* suffix) {
+                manager->temporalAA->reset();
+                for(int i=0;i<accumulationFrames-1;++i){MetalBackend::beginFrame();manager->render(scene);MetalBackend::present();}
                 MetalBackend::beginFrame();manager->render(scene);
                 auto variant=MetalBackend::readFloatTexture(manager->deferredPass->postTexture->id);
                 double maxDelta=0;
@@ -311,6 +317,8 @@ void renderMetalGallery(const std::string& directory, const std::string& selecte
         }
         if (!direct.rgba.empty()) {
             manager->rsmPass->indirectOnly = true;
+            manager->temporalAA->reset();
+            for(int i=0;i<accumulationFrames-1;++i){MetalBackend::beginFrame();manager->render(scene);MetalBackend::present();}
             MetalBackend::beginFrame();manager->render(scene);
             MetalBackend::capture((std::filesystem::path(directory)/(name+"-indirect.png")).string().c_str());
             MetalBackend::inspectTexture(manager->rsmPass->outTexture->id,("build/metal-gallery-"+name+"-indirect.png").c_str());
@@ -318,6 +326,9 @@ void renderMetalGallery(const std::string& directory, const std::string& selecte
             for (int source = 0; source < 2; ++source) {
                 manager->rsmPass->sunBounce = source == 0;
                 manager->rsmPass->skyBounce = source == 1;
+                MetalBackend::beginFrame();manager->render(scene);
+                MetalBackend::present();manager->temporalAA->reset();
+                for(int i=0;i<accumulationFrames-1;++i){MetalBackend::beginFrame();manager->render(scene);MetalBackend::present();}
                 MetalBackend::beginFrame();manager->render(scene);
                 const std::string label = source == 0 ? "sun-indirect" : "sky-indirect";
                 MetalBackend::capture((std::filesystem::path(directory)/(name+"-"+label+".png")).string().c_str());

@@ -1,0 +1,5 @@
+#version 430 core
+layout(local_size_x=8,local_size_y=8) in;
+layout(rgba32f,binding=0) readonly uniform image2D currentDisplacement;
+layout(rgba32f,binding=1) writeonly uniform image2D previousDisplacement;
+void main(){ivec2 p=ivec2(gl_GlobalInvocationID.xy);if(any(greaterThanEqual(p,imageSize(previousDisplacement))))return;imageStore(previousDisplacement,p,imageLoad(currentDisplacement,p));}

@@ -56,6 +56,9 @@ private:
     void Update();
     void Draw();
     std::shared_ptr<Ocean> detailOcean;
+    std::shared_ptr<Texture> previousDisplacement,previousDetailDisplacement;
+    std::shared_ptr<Shader> copyDisplacementShader;
+    float previousSeaLevel=0;
     std::shared_ptr<Texture> opaqueSceneColor;
     std::shared_ptr<FrameBuffer> opaqueSceneBuffer;
     void initTextures();

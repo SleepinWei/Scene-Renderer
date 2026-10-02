@@ -35,7 +35,7 @@ void validateMetalWaterOptics() {
         const std::shared_ptr<Texture> textures[]={zero,up,zero,zero,background,position,up};
         const char* names[]={"DisplaceRT","NormalRT","BubblesRT","skyview","opaqueScene","scenePosition","sceneNormal"};
         for(int i=0;i<7;++i){textures[i]->bind(GL_TEXTURE_2D,i);shader->setInt(names[i],i);}
-        shader->setInt("enableDetail",0);shader->setInt("detailDisplace",0);shader->setInt("detailNormal",1);shader->setInt("detailFoam",2);shader->setFloat("detailLength",24);shader->setInt("hasSky",0);shader->setInt("enableRefraction",1);shader->setFloat("refractionStrength",0);
+        shader->setInt("temporalActive",0);shader->setInt("previousDisplace",0);shader->setInt("previousDetailDisplace",0);shader->setInt("enableDetail",0);shader->setInt("detailDisplace",0);shader->setInt("detailNormal",1);shader->setInt("detailFoam",2);shader->setFloat("detailLength",24);shader->setInt("hasSky",0);shader->setInt("enableRefraction",1);shader->setFloat("refractionStrength",0);
         shader->setFloat("deepWaterDistance",40);shader->setFloat("subsurfaceStrength",strength);
         shader->setVec3("absorption",absorption);shader->setVec3("scattering",scattering);shader->setFloat("scatteringAnisotropy",.65);
         shader->setFloat("seaLevel",0);shader->setFloat("waveHeightScale",1);

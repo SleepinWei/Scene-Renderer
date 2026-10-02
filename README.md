@@ -2,7 +2,7 @@
 
 一个用于学习和实验的 C++ 图形渲染项目，起源于同济大学计算机图形学课程小组作业。项目把**实时光栅化渲染、自然场景的 GPU 计算和独立的 CPU 路径追踪**放在同一套代码中，用可运行的场景展示材质、光照、阴影和几何生成之间的关系。
 
-macOS 默认使用原生 **Metal**：资源创建、计算、绘制、曲面细分、ImGui 和呈现都在 Metal 上执行，不创建 OpenGL 上下文。原 OpenGL 后端仍可通过 CMake 选择。迁移过程和实现细节见[中文 Metal 迁移说明](doc/metal.md)。
+macOS 默认使用原生 **Metal**：资源创建、计算、绘制、曲面细分、ImGui 和呈现都在 Metal 上执行，不创建 OpenGL 上下文。原 OpenGL 后端仍可通过 CMake 选择。延迟路径默认启用 **TSAA 时域超采样抗锯齿**。迁移过程和实现细节见[中文 Metal 迁移说明](doc/metal.md)。
 
 ![本项目在 Metal 上渲染的 Sponza 中庭](img/metal/sponza.png)
 
@@ -17,7 +17,7 @@ cmake --build build -j 8
 ./build/Scene-Renderer --demo
 ```
 
-所有运行命令均从**项目根目录**执行。`--demo` 自动生成材质、天空、海洋、地形和草；仓库未包含历史 `asset/` 资源包，配置场景缺失时也会回退到此演示。Cornell 风格场景、Bunny 和 Helmet 可直接运行，Sponza 与 San Miguel 需单独下载。
+所有运行命令均从**项目根目录**执行。`--demo` 自动生成材质、天空、海洋、地形和草；仓库未包含历史 `asset/` 资源包，配置场景缺失时也会回退到此演示。Cornell 风格场景、Bunny 和 Helmet 可直接运行，Sponza 与 San Miguel 需单独下载；高清海洋和透明浅水场景由程序生成，可直接运行。
 
 ```sh
 python3 tools/fetch_gi_assets.py
@@ -87,7 +87,7 @@ python3 tools/fetch_gi_assets.py
 | --- | --- |
 | ![Metal 高清海洋](img/metal/ocean.png) | ![Metal 透明水体](img/metal/ocean-clear.png) |
 
-截图为 1920×1080 原生 Metal 渲染；浅水场景中的材质球和底面用于观察透射。散射与折射是实时近似，尚未实现体积多次散射、焦散或屏幕外折射。
+截图为 1920×1080 原生 Metal 渲染，开启 TSAA 并累积 16 帧；浅水场景中的材质球和底面用于观察透射。散射与折射是实时近似，尚未实现体积多次散射、焦散或屏幕外折射。
 
 ```sh
 ./build/Scene-Renderer --classic ocean
@@ -97,6 +97,12 @@ python3 tools/fetch_gi_assets.py
 ```
 
 综合 `--demo` 使用 512×512 主 FFT，专用海洋场景使用上述高清配置。
+
+## TSAA 时域超采样抗锯齿
+
+默认延迟路径使用 16 点 Halton 子像素抖动，在 HDR 色调映射前重投影并累积历史颜色。线性深度检查、YCoCg 邻域裁剪和自适应权重减少残影；海面使用前后两帧 FFT 位移生成运动信息，处理波浪自身运动。
+
+GUI 的 `Enable TSAA` 可关闭此效果。场景切换、窗口尺寸和明显相机跳变会重置历史。当前 Metal 效果图均已重新生成，每张图累积 16 帧，各开关对照单独清空历史；历史图片仍保留历史标记。具体设计、测试与边界见 [TSAA 实现说明](docs/tsaa.md)。
 
 ## 整体系统设计
 
@@ -108,7 +114,7 @@ flowchart TD
     B --> C[GameObject 与 Component]
     C --> D[RenderManager]
     I[InputManager / Camera / ImGui] --> D
-    D --> E[RenderPass：阴影 / G-buffer / SSAO / 光照 / RSM / HDR]
+    D --> E[RenderPass：阴影 / G-buffer / SSAO / 光照 / RSM / TSAA / HDR]
     D --> F[GPU 计算：大气 / 海洋 / 地形 / 草]
     E --> G[Shader / Buffer / Texture / Mesh 资源接口]
     F --> G
@@ -130,7 +136,8 @@ flowchart TD
 3. 将不透明对象写入 G-buffer，记录位置、法线、底色及材质参数，并计算 SSAO。
 4. 延迟光照读取 G-buffer，合成 PBR 直接光照和环境光；绘制需要前向着色的对象及天空。
 5. 可选 RSM 在太阳方向的正交投影中生成位置、法线和太阳＋天空反射功率贴图；全屏读取 G-buffer，按接收表面材质采样并加入一次间接光照。无太阳和大气时可回退到聚光灯。
-6. 拷贝不透明 HDR 场景，绘制包含折射、吸收和散射的水面；统一进行 HDR 曝光和色调映射，最后绘制 ImGui 并呈现。
+6. 拷贝不透明 HDR 场景，绘制包含折射、吸收和散射的水面，并记录水面运动信息。
+7. TSAA 读取最终场景深度，在 HDR 空间重投影与裁剪历史，随后统一曝光、色调映射，最后绘制 ImGui 并呈现。
 
 独立前向路径使用 `DepthPass → BasePass → PostPass`，其中相机空间的前后表面深度用于近似 SSS。渲染通道的实现集中在 [RenderPass.cpp](src/renderer/RenderPass.cpp)，调度入口为 [RenderManager.cpp](src/system/RenderManager.cpp)。
 
@@ -154,6 +161,7 @@ flowchart LR
 | PBR 与材质变体 | 底色、法线、金属度、粗糙度、AO；各向异性、清漆层、近似 SSS、细分位移 | 延迟路径支持各向同性 PBR，其余变体走前向路径；SSS 是实时近似 |
 | 延迟与前向渲染 | G-buffer 解耦几何与光照，前向路径处理特殊材质，HDR 合成后色调映射 | 尚未实现自动曝光 |
 | 阴影 | 方向光级联阴影、PCSS 软阴影、点光源立方体阴影 | 通过阴影贴图近似可见性 |
+| TSAA | Halton 投影抖动、深度重投影、海洋运动信息、HDR／YCoCg 历史裁剪与自适应累积 | 仅接入延迟合成路径；其他独立运动物体未提供完整运动向量，快速运动仍可能模糊或拖影 |
 | SSAO | 屏幕空间采样核与噪声纹理，增强接触处的遮蔽 | 不包含屏幕外几何的信息，不等同于 GI |
 | RSM | 太阳方向正交投影；太阳辐照度＋大气天空漫反射 LUT；每纹素反射功率、显式采样 PDF、G-buffer 全屏合成；支持聚光灯回退 | 单个投影仅记录最近表面，天空入射未计算遮蔽；局部一次漫反射反弹，可能漏光、有采样噪声 |
 | 大气与 IBL | Rayleigh、Mie 与臭氧吸收；透射率、多重散射、天空视图和卷积 LUT | 使用大气天空环境，不是完整的场景反射探针系统 |
@@ -185,6 +193,7 @@ flowchart LR
 | `tools/` | 着色器转换及可复现的资源下载脚本 |
 | `samples/`、`img/metal/` | 示例资产与来源清单、本项目生成的截图 |
 | `doc/metal.md`、`doc/rsm.md` | 中文 Metal 迁移说明与太阳／天空 RSM 实现、验证说明 |
+| `docs/tsaa.md` | TSAA 重投影、海洋运动信息、历史处理与截图复现 |
 | `docs/ocean-fft-and-rendering-review.md` | 海洋 FFT、高清波纹、透明与散射的修复和验证记录 |
 
 ## 命令与操作
@@ -222,7 +231,7 @@ MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 ctest --test-dir build --output-on-fai
 ./build/Scene-Renderer --demo --frames 3
 ```
 
-GPU 自检包含 22 项海洋数值测试、5 项水体光学测试和 15 项 RSM 能量与合成测试，并覆盖着色器库加载、计算结果读回、材质、曲面细分、天空、海洋、地形、草、阴影、SSAO/RSM，以及前向 HDR/SSS 深度。画廊测试覆盖连续切换场景，读回 HDR、法线和天空 LUT，检查非空输出与 NaN／Inf；这些是渲染正确性检查，不是与物理参考图像的误差测试。
+GPU 自检包含 25 项 TSAA 测试、22 项海洋数值测试、5 项水体光学测试和 15 项 RSM 能量与合成测试，并覆盖着色器库加载、计算结果读回、材质、曲面细分、天空、海洋、地形、草、阴影、SSAO/RSM，以及前向 HDR/SSS 深度。画廊测试覆盖连续切换场景，读回 HDR、法线和天空 LUT，检查非空输出与 NaN／Inf；这些是渲染正确性检查，不是与物理参考图像的误差测试。
 
 已在 Apple M4 上使用 Metal API 与着色器校验进行验证。当前没有跨 GPU 性能对比；Metal 后端采用单命令队列并等待每帧完成，尚未优化为多帧并行提交。大规模 OBJ 导入仍需较多 CPU 内存与启动时间。
 

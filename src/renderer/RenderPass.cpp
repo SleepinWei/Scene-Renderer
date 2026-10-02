@@ -1,5 +1,6 @@
 #include <glad/glad.h>
 #include "renderer/RenderPass.h"
+#include "renderer/TemporalAA.h"
 #include "buffer/FrameBuffer.h"
 #include "buffer/RenderBuffer.h"
 #include "buffer/ImageTexture.h"
@@ -799,15 +800,12 @@ void DeferredPass::renderAlphaObjects(const std::shared_ptr<RenderScene> &scene)
 
 void DeferredPass::postProcess(const std::shared_ptr<RenderScene> &scene)
 {
+    auto manager=RenderManager::GetInstance();
+    unsigned source=manager->setting.enableRSM?manager->rsmPass->outTexture->id:postTexture->id;
+    if(manager->temporalAA)source=manager->temporalAA->resolve(source,postBuffer->FBO);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	glActiveTexture(GL_TEXTURE0);
-	if (RenderManager::GetInstance()->setting.enableRSM)
-		glBindTexture(GL_TEXTURE_2D, RenderManager::GetInstance()->rsmPass->outTexture->id);
-	else
-		glBindTexture(GL_TEXTURE_2D, postTexture->id);
-
+	glActiveTexture(GL_TEXTURE0);glBindTexture(GL_TEXTURE_2D,source);
 	postProcessShader->use();
 	postProcessShader->setFloat("exposure", scene->main_camera->exposure);
 	postProcessShader->setInt("hdrBuffer", 0);
