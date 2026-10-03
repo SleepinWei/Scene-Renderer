@@ -1,4 +1,7 @@
 #include<glad/glad.h>
+#include "rhi/Device.h"
+#include <cstdlib>
+#include <algorithm>
 #include"renderer/Texture.h"
 #include<libdds/libdds_opengl.h>
 #include<assert.h>
@@ -6,7 +9,7 @@
 // #define STB_IMAGE_IMPLEMENTATION
 
 Texture::Texture() {
-	width = height = channels = 0;
+	width = height = channels = 0;format=internalformat=0;
 	//type = ""; 
 	name = ""; 
 	id = 0;
@@ -16,6 +19,7 @@ Texture::Texture() {
 }
 
 Texture::~Texture() {
+    std::free(data);data=nullptr;
 	if (id) {
 		glDeleteTextures(1, &id);
 	}
@@ -37,23 +41,27 @@ std::shared_ptr<Texture> Texture::loadFromFileAsync(const std::string& filename,
 
 	// ext 
 	auto ext_pos = filename.find_last_of('.');
-	auto ext = filename.substr(ext_pos + 1);
+	auto ext = filename.substr(ext_pos + 1);std::transform(ext.begin(),ext.end(),ext.begin(),[](unsigned char c){return std::tolower(c);});
 	if (ext == "dds") {
 		// dxt format
 		ddsGL_load(filename.c_str(), tex);
 	}
 	else {
 		// ext: png,jpg,bmp,...
-		stbi_set_flip_vertically_on_load(true);
+		stbi_set_flip_vertically_on_load_thread(true);
 		unsigned char* data = stbi_load((filename).c_str(), &tex->width, &tex->height, &tex->channels, desired_channels);
 		if (data)
 		{
+            if(desired_channels)tex->channels=desired_channels;
 			GLenum format;
 			switch (tex->channels)
 			{
 			case 1:
 				format = GL_RED;
 				break;
+			case 2:
+                format=GL_RG;
+                break;
 			case 3:
 				format = GL_RGB;
 				break;
@@ -77,6 +85,7 @@ std::shared_ptr<Texture> Texture::loadFromFileAsync(const std::string& filename,
 }
 
 std::shared_ptr<Texture> Texture::loadFromFile(const std::string& file_path,int desired_channels) {
+    if(rhi::usesNativeRenderer())return loadFromFileAsync(file_path,desired_channels);
 	std::shared_ptr<Texture> tex = std::make_shared<Texture>(); 
 
 	//int index = file_path.find_last_of("/");
@@ -97,14 +106,16 @@ std::shared_ptr<Texture> Texture::loadFromFile(const std::string& file_path,int 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	stbi_set_flip_vertically_on_load(true);
+	stbi_set_flip_vertically_on_load_thread(true);
 	unsigned char* data = stbi_load((file_path).c_str(), &tex->width, &tex->height, &nrChannels, desired_channels);
 	if (data)
 	{
+        if(desired_channels)nrChannels=desired_channels;
 		GLenum format;
 		if (nrChannels == 1) {
 			format = GL_RED;
 		}
+		else if(nrChannels==2){format=GL_RG;}
 		else if (nrChannels == 4) {
 			format = GL_RGBA;
 		}

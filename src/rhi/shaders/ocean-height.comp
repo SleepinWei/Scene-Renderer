@@ -1,0 +1,35 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#include "ocean-parameters.glsl"
+layout(local_size_x=8,local_size_y=8) in;
+layout(rgba32f,set=1,binding=1) readonly uniform image2D GaussianRandomRT;
+layout(rgba32f,set=1,binding=2) writeonly uniform image2D HeightSpectrumRT;
+
+
+
+const float PI=3.14159265359, G=9.81;
+vec2 multiply(vec2 a,vec2 b){return vec2(a.x*b.x-a.y*b.y,a.x*b.y+a.y*b.x);}
+float spectrum(vec2 k) {
+    float k2=dot(k,k),speed=length(WindAndSeed.xy);
+    if(k2<1e-12 || speed<1e-4 || A<=0.0)return 0.0;
+    float L=speed*speed/G;
+    float alignment=dot(normalize(k),WindAndSeed.xy/speed);
+    // Symmetric Phillips spreading avoids angle-wrap singularities.
+    return A*exp(-1.0/(k2*L*L))/(k2*k2)*alignment*alignment*exp(-k2*L*L*1e-6);
+}
+void main() {
+    ivec2 p=ivec2(gl_GlobalInvocationID.xy);
+    if(any(greaterThanEqual(p,ivec2(N))))return;
+    // Centered frequencies in radians/metre; suppress self-aliased Nyquist axes.
+    if(p.x==0 || p.y==0 || all(equal(p,ivec2(N/2)))){imageStore(HeightSpectrumRT,p,vec4(0));return;}
+    float dk=2.0*PI/OceanLength;
+    vec2 k=vec2(p-ivec2(N/2))*dk;
+    ivec2 mirror=(ivec2(N)-p)%N;
+    vec2 h0=imageLoad(GaussianRandomRT,p).xy*sqrt(spectrum(k)*0.5);
+    vec2 hm=imageLoad(GaussianRandomRT,mirror).xy*sqrt(spectrum(-k)*0.5);
+    hm.y=-hm.y;
+    float phase=sqrt(G*length(k))*Time;
+    vec2 wave=multiply(h0,vec2(cos(phase),sin(phase)))+multiply(hm,vec2(cos(phase),-sin(phase)));
+    // Discrete integration dk^2; compensate the normalized inverse transform.
+    imageStore(HeightSpectrumRT,p,vec4(wave*dk*float(N*N),0,0));
+}

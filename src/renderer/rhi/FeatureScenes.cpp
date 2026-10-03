@@ -1,0 +1,114 @@
+#include <glad/glad.h>
+#include <glm/gtc/matrix_transform.hpp>
+#include "renderer/rhi/FeatureScenes.h"
+#include "renderer/RenderScene.h"
+#include "renderer/Material.h"
+#include "renderer/Texture.h"
+#include "renderer/RenderPass.h"
+#include "component/GameObject.h"
+#include "component/transform.h"
+#include "component/Mesh_Filter.h"
+#include "component/Mesh_Renderer.h"
+#include "component/Lights.h"
+#include "component/Atmosphere.h"
+#include "component/TerrainComponent.h"
+#include "component/Grass.h"
+#include "component/Ocean.h"
+#include "buffer/ImageTexture.h"
+#include "object/SkyBox.h"
+#include "object/Terrain.h"
+#include "system/RenderManager.h"
+#include "system/InputManager.h"
+#include "utils/Camera.h"
+#include <cmath>
+#include <iostream>
+#include <cstdlib>
+namespace {
+std::shared_ptr<Texture> solid(glm::vec3 color) {
+    auto texture=std::make_shared<Texture>();texture->width=texture->height=4;texture->channels=3;texture->format=texture->internalformat=GL_RGB;
+    texture->data=(unsigned char*)std::malloc(4*4*3);
+    for(int i=0;i<16;i++)for(int c=0;c<3;c++)texture->data[i*3+c]=static_cast<unsigned char>(255*color[c]);
+    return texture;
+}
+std::shared_ptr<Material> material(glm::vec3 color) {
+    auto m=std::make_shared<Material>();m->addTexture(solid(color),"material.albedo");m->addTexture(solid({.5f,.5f,1.f}),"material.normal");
+    m->addTexture(solid({.5f,.4f,.1f}),"material.roughness");m->addTexture(solid({0.f,0.f,.1f}),"material.metallic");m->addTexture(solid({1.f,1.f,1.f}),"material.ao");m->addTexture(solid({.3f,.3f,.3f}),"material.height");m->addTexture(solid({.7f,.7f,.7f}),"material.anisotropy");m->addTexture(solid({.2f,.2f,.2f}),"material.clearCoatRoughness");return m;
+}
+std::shared_ptr<Mesh> sphere() {
+    std::vector<Vertex> v;std::vector<unsigned> indices;constexpr int columns=32,rows=16;
+    for(int y=0;y<=rows;y++)for(int x=0;x<=columns;x++) {
+        float u=float(x)/columns,w=float(y)/rows,a=u*6.2831853f,b=w*3.14159265f;
+        Vertex vertex{};vertex.Position={std::sin(b)*std::cos(a),std::cos(b),std::sin(b)*std::sin(a)};vertex.Normal=vertex.Position;vertex.TexCoords={u,w};
+        vertex.Tangent={-std::sin(a),0,std::cos(a)};vertex.Bitangent=glm::cross(vertex.Normal,vertex.Tangent);v.push_back(vertex);
+    }
+    for(int y=0;y<rows;y++)for(int x=0;x<columns;x++){unsigned a=y*(columns+1)+x,b=a+columns+1;indices.insert(indices.end(),{a,a+1,b,a+1,b+1,b});}
+    return std::make_shared<Mesh>(v,indices);
+}
+}
+std::shared_ptr<RenderScene> render::makeFeatureScene() {
+    auto result=std::make_shared<RenderScene>();result->main_camera=std::make_shared<Camera>(glm::vec3(0,6,18),glm::vec3(0,1,0),-90,-15);
+    auto manager=RenderManager::GetInstance();
+    ShaderType modes[]={ShaderType::PBR,ShaderType::PBR_CLEARCOAT,ShaderType::PBR_ANISOTROPY,ShaderType::PBR_SSS,ShaderType::PBR_TESS};
+    for(int i=0;i<5;i++) {
+        auto object=std::make_shared<GameObject>();object->name="RHI material "+std::to_string(i);
+        auto trans=std::make_shared<Transform>();trans->position={float(i-2)*2.6f,1.5f,0};object->addComponent(trans);
+        auto filter=std::make_shared<MeshFilter>();auto mesh=sphere();mesh->material=material({.25f+.12f*i,.55f-.06f*i,.7f-.08f*i});filter->addMesh(mesh);object->addComponent(filter);
+        auto renderer=std::make_shared<MeshRenderer>();renderer->shaderType=modes[i];renderer->shader=manager->getShader(modes[i]);if(i==4)renderer->drawMode=GL_PATCHES;
+        object->addComponent(renderer);object->setDeferred(i==0);result->addObject(object);
+    }
+    auto light=std::make_shared<GameObject>();light->name="Sun";light->addComponent(std::make_shared<Transform>());
+    auto sun=std::make_shared<DirectionLight>();sun->data.direction=glm::normalize(glm::vec3(-.3f,-1,-.2f));sun->data.color={3,3,3};light->addComponent(sun);result->addObject(light);
+    auto point=std::make_shared<GameObject>();point->name="Point";auto pt=std::make_shared<Transform>();pt->position={3,5,4};point->addComponent(pt);auto pl=std::make_shared<PointLight>();pl->data.color={20,15,10};point->addComponent(pl);result->addObject(point);
+    auto spot=std::make_shared<GameObject>();spot->name="S0";auto st=std::make_shared<Transform>();st->position={-4,7,6};spot->addComponent(st);auto sl=std::make_shared<SpotLight>();sl->data.direction=glm::normalize(-st->position);sl->data.color={2,2,2};spot->addComponent(sl);result->addObject(spot);
+    auto sky=std::make_shared<Sky>();sky->addComponent(std::make_shared<Atmosphere>());sky->skybox->initDone=false;sky->skybox->addTexture(std::make_shared<Texture>(),"skybox");sky->width=sky->height=4;
+    for(int face=0;face<6;face++){sky->data[face]=(unsigned char*)std::malloc(48);std::fill(sky->data[face],sky->data[face]+48,16);}result->sky=sky;
+    auto terrain=std::make_shared<Terrain>();auto tc=std::make_shared<TerrainComponent>();terrain->addComponent(tc);tc->rez=5;tc->nodeIndex.resize(50);
+    for(unsigned y=0;y<5;y++)for(unsigned x=0;x<5;x++){tc->nodeIndex[2*(y*5+x)]=x;tc->nodeIndex[2*(y*5+x)+1]=y;}
+    tc->yScale=2;tc->yShift=-1;tc->model=glm::translate(glm::mat4(1),glm::vec3(0,-1,0))*glm::scale(glm::mat4(1),glm::vec3(100,2,100));tc->material=material({.35f,.48f,.18f});
+    auto height=std::make_shared<Texture>();height->width=height->height=128;height->internalformat=GL_R32F;height->format=GL_RED;tc->terrainMaterial->addTexture(height,"heightMap");
+    tc->heightData=new float[128*128];for(int y=0;y<128;y++)for(int x=0;x<128;x++)tc->heightData[y*128+x]=.5f+.2f*std::sin(x*.08f)*std::cos(y*.07f);
+    terrain->addComponent(std::make_shared<Grass>());auto ocean=std::make_shared<Ocean>();ocean->FFTPow=9;ocean->fft_size=512;ocean->HeightScale=1;ocean->WindScale=16;ocean->MeshLength=100;ocean->MeshSize=257;terrain->addComponent(ocean);result->terrain=terrain;
+    return result;
+}
+std::shared_ptr<RenderScene> render::makeOceanScene(bool clearWater) {
+    auto result=makeFeatureScene();
+    if(!clearWater)result->objects.clear();
+    else for(size_t i=0;i<result->objects.size();++i) {
+        auto object=result->objects[i];
+        auto renderer=std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
+        if(!renderer)continue;
+        object->setDeferred(true);
+        auto trans=std::static_pointer_cast<Transform>(object->GetComponent("Transform"));
+        trans->position={float(int(i)-2)*2.6f,-2.6f,-5};trans->scale=glm::vec3(1.4f);
+        renderer->shaderType=ShaderType::PBR;renderer->shader=RenderManager::GetInstance()->getShader(ShaderType::PBR);renderer->drawMode=GL_TRIANGLES;
+    }
+    result->pointLights.clear();result->spotLights.clear();
+    result->main_camera=std::make_shared<Camera>(glm::vec3(0,7.5f,30),glm::vec3(0,1,0),-90,-10);result->main_camera->Zoom=58;result->main_camera->exposure=1;
+    if(!result->directionLights.empty())result->directionLights[0]->data.direction={0,-.17364818f,.98480775f};
+    auto ocean=std::make_shared<Ocean>();ocean->FFTPow=10;ocean->fft_size=1024;ocean->MeshSize=513;
+    ocean->MeshLength=256;ocean->seaLevel=0;
+    // A rough deep-water preset: larger swell, steep crests and compression-driven whitecaps.
+    ocean->WindScale=28;ocean->A=.0008f;ocean->HeightScale=1.8f;ocean->Lambda=1.15f;
+    ocean->BubblesThreshold=.92f;ocean->BubblesScale=3;
+    ocean->outer_OceanColorShallow={.2f,.75f,.85f};ocean->outer_OceanColorDeep={.035f,.28f,.35f};
+    if(clearWater) {
+        ocean->WindScale=9;ocean->A=.0005f;ocean->HeightScale=.6f;ocean->Lambda=.5f;ocean->refractionStrength=.35f;
+        ocean->BubblesThreshold=.86f;ocean->BubblesScale=2;
+        ocean->absorption={.08f,.025f,.012f};ocean->scattering={.01f,.02f,.025f};
+        result->main_camera=std::make_shared<Camera>(glm::vec3(0,9,13),glm::vec3(0,1,0),-90,-38);result->main_camera->Zoom=58;
+        result->directionLights[0]->data.direction={0,-.5735764f,.8191520f};
+        std::static_pointer_cast<Atmosphere>(result->sky->GetComponent("Atmosphere"))->sunAngle=35;
+        auto floor=std::make_shared<GameObject>();floor->name="Submerged sand";auto transform=std::make_shared<Transform>();floor->addComponent(transform);
+        std::vector<Vertex> vertices(4);const glm::vec3 positions[]={{-45,-4,40},{45,-4,40},{45,-4,-50},{-45,-4,-50}};
+        for(int i=0;i<4;++i){vertices[i]=Vertex{};vertices[i].Position=positions[i];vertices[i].Normal={0,1,0};vertices[i].TexCoords={float(i==1||i==2),float(i>=2)};}
+        auto mesh=std::make_shared<Mesh>(vertices,std::vector<unsigned>{0,1,2,0,2,3});
+        auto sample=std::static_pointer_cast<MeshFilter>(result->objects[0]->GetComponent("MeshFilter"))->meshes[0]->material;
+        auto mat=std::make_shared<Material>();mat->textures=sample->textures;mat->albedoFactor={2.4f,1.6f,.8f};mesh->material=mat;
+        auto filter=std::make_shared<MeshFilter>();filter->addMesh(mesh);floor->addComponent(filter);
+        auto renderer=std::make_shared<MeshRenderer>();renderer->shader=RenderManager::GetInstance()->getShader(ShaderType::PBR);floor->addComponent(renderer);floor->setDeferred(true);result->addObject(floor);
+    }
+    result->terrain=std::make_shared<Terrain>();result->terrain->addComponent(ocean);
+    auto manager=RenderManager::GetInstance();manager->setting.enableRSM=false;manager->setting.enableSSAO=false;
+    manager->setting.useDefer=true;manager->setting.enableDirectional=true;
+    return result;
+}

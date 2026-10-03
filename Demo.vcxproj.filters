@@ -74,6 +74,22 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\rhi\Device.cpp" />
+    <ClCompile Include="src\rhi\OpenGLDevice.cpp" />
+    <ClCompile Include="src\rhi\Validation.cpp" />
+    <ClCompile Include="src\rhi\GraphicsDevice.cpp" />
+    <ClCompile Include="src\rhi\GraphicsValidation.cpp" />
+    <ClCompile Include="src\rhi\ComputeValidation.cpp" />
+    <ClCompile Include="src\rhi\ShaderAssets.cpp" />
+    <ClCompile Include="src\renderer\rhi\GpuMesh.cpp" />
+    <ClCompile Include="src\renderer\rhi\GpuMaterial.cpp" />
+    <ClCompile Include="src\renderer\rhi\ImageDecoder.cpp" />
+    <ClCompile Include="src\renderer\rhi\ForwardPbrRenderer.cpp" />
+    <ClCompile Include="src\renderer\rhi\GpuOcean.cpp" />
+    <ClCompile Include="src\renderer\rhi\OceanValidation.cpp" />
+    <ClCompile Include="src\renderer\rhi\ForwardValidation.cpp" />
+    <ClCompile Include="src\renderer\rhi\SceneAdapter.cpp" />
+    <ClCompile Include="src\renderer\rhi\ForwardSceneDemo.cpp" />
     <ClCompile Include="src\main.cpp">
       <Filter>src</Filter>
     </ClCompile>
@@ -256,6 +272,16 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\rhi\Device.h" />
+    <ClInclude Include="include\rhi\Validation.h" />
+    <ClInclude Include="include\rhi\GraphicsDevice.h" />
+    <ClInclude Include="include\rhi\ShaderAssets.h" />
+    <ClInclude Include="include\renderer\rhi\Resources.h" />
+    <ClInclude Include="include\renderer\rhi\GpuMesh.h" />
+    <ClInclude Include="include\renderer\rhi\GpuMaterial.h" />
+    <ClInclude Include="include\renderer\rhi\ForwardPbrRenderer.h" />
+    <ClInclude Include="include\renderer\rhi\GpuOcean.h" />
+    <ClInclude Include="include\renderer\rhi\SceneAdapter.h" />
     <ClInclude Include="src\PT\hittable.h">
       <Filter>src\PT\hittable</Filter>
     </ClInclude>
@@ -460,5 +486,40 @@
     <ClInclude Include="include\utils\Reflection.h">
       <Filter>头文件\utils</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\renderer\rhi\GpuAtmosphere.h" />
+    <ClInclude Include="include\renderer\rhi\OceanSurface.h" />
+    <ClInclude Include="include\renderer\rhi\ShadowRenderer.h" />
+    <ClCompile Include="src\renderer\rhi\AtmosphereValidation.cpp" />
+    <ClCompile Include="src\renderer\rhi\GpuAtmosphere.cpp" />
+    <ClCompile Include="src\renderer\rhi\OceanSurface.cpp" />
+    <ClCompile Include="src\renderer\rhi\SceneEffectsValidation.cpp" />
+    <ClCompile Include="src\renderer\rhi\ShadowRenderer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\renderer\SceneImport.cpp" />
+    <ClCompile Include="src\renderer\rhi\ClassicScenes.cpp" />
+    <ClCompile Include="src\renderer\rhi\DdsDecoder.cpp" />
+    <ClCompile Include="src\renderer\rhi\FeatureGallery.cpp" />
+    <ClCompile Include="src\renderer\rhi\FeatureScenes.cpp" />
+    <ClCompile Include="src\renderer\rhi\GpuGrass.cpp" />
+    <ClCompile Include="src\renderer\rhi\GpuSubdivision.cpp" />
+    <ClCompile Include="src\renderer\rhi\GpuTemporal.cpp" />
+    <ClCompile Include="src\renderer\rhi\GpuTerrain.cpp" />
+    <ClCompile Include="src\renderer\rhi\GuiRenderer.cpp" />
+    <ClCompile Include="src\renderer\rhi\SubdivisionValidation.cpp" />
+    <ClCompile Include="src\renderer\rhi\TemporalValidation.cpp" />
+    <ClCompile Include="src\renderer\rhi\TerrainValidation.cpp" />
+    <ClCompile Include="src\rhi\FrameValidation.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\renderer\SceneImport.h" />
+    <ClInclude Include="include\renderer\rhi\FeatureScenes.h" />
+    <ClInclude Include="include\renderer\rhi\GpuGrass.h" />
+    <ClInclude Include="include\renderer\rhi\GpuSubdivision.h" />
+    <ClInclude Include="include\renderer\rhi\GpuTemporal.h" />
+    <ClInclude Include="include\renderer\rhi\GpuTerrain.h" />
+    <ClInclude Include="include\renderer\rhi\GuiRenderer.h" />
   </ItemGroup>
 </Project>

@@ -3,6 +3,9 @@
 #include <mutex>
 #include <vector>
 
+#include "rhi/GraphicsDevice.h"
+#include "renderer/rhi/ForwardPbrRenderer.h"
+namespace render{class SceneAdapter;class ForwardPbrRenderer;}
 class Camera;
 class UniformBuffer;
 class GameObject;
@@ -45,6 +48,9 @@ struct RenderSetting
 	bool enableDirectional;
 	bool enableSSAO;
     bool enableTSAA=true;
+    float timeOverride=-1;
+    float aoRadius=1,aoBias=.025f,aoPower=1.5f;
+    render::RsmSettings rsmSettings;
 };
 
 class RenderManager
@@ -61,6 +67,9 @@ public:
 	}
 
 	void init();
+    bool native()const{return native_;}
+    rhi::TextureHandle output()const;
+    void releaseNative();
 	void render(const std::shared_ptr<RenderScene> &scene);
 
 	// add a tool function to pass the UBO and a cascaded levels from shadow pass to deferred pass.
@@ -69,6 +78,9 @@ public:
 	std::shared_ptr<Shader> getShader(ShaderType type);
 
 private:
+	bool native_=false;
+    std::unique_ptr<render::SceneAdapter> adapter_;
+    std::unique_ptr<render::ForwardPbrRenderer> renderer_;
 	// shader
 	static std::shared_ptr<Shader> generateShader(ShaderType type);
 	// buffer

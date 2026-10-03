@@ -4,6 +4,7 @@
 #include "buffer/FrameBuffer.h"
 #include "buffer/RenderBuffer.h"
 #include "buffer/ImageTexture.h"
+#include "buffer/UniformBuffer.h"
 #include "component/Atmosphere.h"
 #include "component/GameObject.h"
 #include "component/Grass.h"
@@ -144,22 +145,13 @@ ShadowPass::ShadowPass()
 	// for creating multiple depth attachment for a fb is not allowed
 
 	// set UBO
-	glGenBuffers(1, &matrixUBO);
-	glBindBuffer(GL_UNIFORM_BUFFER, matrixUBO);
-
-	glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 10 * cascaded_layers, nullptr, GL_STATIC_DRAW);
+	matrixBuffer = std::make_shared<UniformBuffer>(sizeof(glm::mat4) * 10 * cascaded_layers);
 	// suppose 5 is the cascaded levels, 10 is the max num of directional lights
 	//  this way is kinda undecent ,but convenient.
 
-	// glBindBufferBase(GL_UNIFORM_BUFFER, 5, matrixUBO);  //5 is the binding point
-	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
-ShadowPass::~ShadowPass()
-{
-	if (matrixUBO)
-		glDeleteBuffers(1, &matrixUBO);
-}
+ShadowPass::~ShadowPass() = default;
 
 void ShadowPass::render(const std::shared_ptr<RenderScene> &scene)
 {
@@ -274,13 +266,11 @@ void ShadowPass::directionLightShadow(const std::shared_ptr<RenderScene> &scene)
 		std::vector<glm::mat4> light_matrices = get_stratified_matrices(scene, light);
 
 		// binding an UBO
-		glBindBuffer(GL_UNIFORM_BUFFER, matrixUBO);
 		for (unsigned j = 0; j < light_matrices.size(); j++)
 		{
 			// i-th light j-th level
-			glBufferSubData(GL_UNIFORM_BUFFER, (i * cascaded_layers + j) * sizeof(glm::mat4), sizeof(glm::mat4), &light_matrices[j]);
+			matrixBuffer->write((i * cascaded_layers + j) * sizeof(glm::mat4), sizeof(glm::mat4), &light_matrices[j]);
 		}
-		// glBindBuffer(GL_UNIFORM_BUFFER, 5);  // here we bind the matrices of all dir lights ,of all levels in the 5 binding points of uniform buffers
 		/*******/
 
 		for (unsigned i = 0; i < light_matrices.size(); i++)
@@ -424,9 +414,9 @@ void ShadowPass::init_framebuffers(const std::shared_ptr<RenderScene> &scene)
 	// once we generate these framebuffers, we set dirty as true to avoid repeatedly do these procedures in every pass
 }
 
-unsigned int ShadowPass::get_UBO() const
+std::shared_ptr<UniformBuffer> ShadowPass::getMatrixBuffer() const
 {
-	return this->matrixUBO;
+	return matrixBuffer;
 }
 
 std::vector<float> ShadowPass::get_shadow_limiter() const
@@ -650,10 +640,9 @@ void DeferredPass::render(const std::shared_ptr<RenderScene> &scene)
 {
 	// renderScene
 	// bindings
-	if (cascaded_matrix_UBO)
+	if (cascadedMatrixBuffer)
 	{
-		// assert(cascaded_matrix_UBO != 0);
-		glBindBufferBase(GL_UNIFORM_BUFFER, 5, cascaded_matrix_UBO);
+		cascadedMatrixBuffer->setBinding(5);
 	}
 
 	glCheckError();

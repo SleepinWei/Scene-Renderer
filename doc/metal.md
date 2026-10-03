@@ -1,4 +1,6 @@
-# Metal 迁移说明
+# Metal 迁移说明（历史兼容层记录）
+
+2026-10-03：默认实现已迁入独立 `src/rhi/MetalDevice.mm`，本文记录此前 GL 接口兼容层方案。当前分层、功能与验收见 [RHI 重构计划](../docs/rhi-refactor-plan.md)。`SCENERENDERER_LEGACY_METAL=ON` 才编译本文中的旧桥、ShaderMetal 与旧测试；旧 gallery 入口改为 `--legacy-gallery`，常规 `--render-gallery` 使用新 RHI。
 
 macOS 构建默认启用 `SCENERENDERER_METAL=ON`。程序创建 GLFW `GLFW_NO_API` 窗口，并通过 `CAMetalLayer` 显示画面。GPU 缓冲区、纹理、光栅化、计算、曲面细分、间接命令、界面绘制和画面呈现均由原生 Metal 执行。Metal 构建不创建 OpenGL 上下文，也不链接 OpenGL 框架。
 

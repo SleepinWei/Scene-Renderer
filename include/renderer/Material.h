@@ -3,6 +3,7 @@
 #include<vector>
 #include<string>
 #include<memory>
+#include<optional>
 #include<glm/glm.hpp>
 #include<json/json.hpp>
 using json = nlohmann::json;
@@ -42,6 +43,9 @@ public:
 	float alphaCutoff = 0.0f;
 	bool twoSided = false;
 	glm::vec3 albedoFactor = glm::vec3(1.0f);
+    std::optional<float> metallicFactor, roughnessFactor;
+    float occlusionStrength = 1, normalStrength = 1, opacityFactor = 1;
+    glm::vec3 emissiveFactor{0};
 	std::unordered_map<std::string, std::shared_ptr<Texture>> textures;
 	std::unordered_map<std::string, std::string> texture_path;
 	bool initDone;

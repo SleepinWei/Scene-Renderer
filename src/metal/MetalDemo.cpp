@@ -55,7 +55,7 @@ std::shared_ptr<RenderScene> makeMetalDemoScene() {
         auto object=std::make_shared<GameObject>();object->name="Metal material "+std::to_string(i);
         auto trans=std::make_shared<Transform>();trans->position={float(i-2)*2.6f,1.5f,0};object->addComponent(trans);
         auto filter=std::make_shared<MeshFilter>();auto mesh=sphere();mesh->material=material({.25f+.12f*i,.55f-.06f*i,.7f-.08f*i});filter->addMesh(mesh);object->addComponent(filter);
-        auto renderer=std::make_shared<MeshRenderer>();renderer->shader=manager->getShader(modes[i]);if(i==4)renderer->drawMode=GL_PATCHES;
+        auto renderer=std::make_shared<MeshRenderer>();renderer->shaderType=modes[i];renderer->shader=manager->getShader(modes[i]);if(i==4)renderer->drawMode=GL_PATCHES;
         object->addComponent(renderer);object->setDeferred(i==0);result->addObject(object);
     }
     auto light=std::make_shared<GameObject>();light->name="Sun";light->addComponent(std::make_shared<Transform>());

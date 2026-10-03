@@ -1,0 +1,18 @@
+#version 450
+layout(local_size_x=64) in;
+layout(set=0,binding=0,std140) uniform SubdivisionParameters{uvec4 counts;vec4 settings;};
+layout(set=1,binding=0,std430) readonly buffer SourceVertices{float vertices[];};
+layout(set=1,binding=1,std430) readonly buffer SourceIndices{uint indices[];};
+layout(set=1,binding=2,std430) writeonly buffer SubdividedVertices{float outputVertices[];};
+layout(set=1,binding=3,std430) writeonly buffer SubdividedIndices{uint outputIndices[];};
+layout(set=1,binding=4) uniform sampler2D heightMap;
+struct Vertex{vec3 p,n;vec2 uv;};
+Vertex loadVertex(uint i){uint b=i*8;return Vertex(vec3(vertices[b],vertices[b+1],vertices[b+2]),vec3(vertices[b+3],vertices[b+4],vertices[b+5]),vec2(vertices[b+6],vertices[b+7]));}
+void storeVertex(uint i,Vertex v){uint b=i*8;outputVertices[b]=v.p.x;outputVertices[b+1]=v.p.y;outputVertices[b+2]=v.p.z;outputVertices[b+3]=v.n.x;outputVertices[b+4]=v.n.y;outputVertices[b+5]=v.n.z;outputVertices[b+6]=v.uv.x;outputVertices[b+7]=v.uv.y;outputIndices[i]=i;}
+void main(){
+    uint id=gl_GlobalInvocationID.x,n=counts.y,perPatch=n*n;if(id>=counts.x*perPatch)return;
+    uint sourceTriangle=id/perPatch,k=id%perPatch,row=n-1-uint(floor(sqrt(float(perPatch-1-k)))),start=perPatch-(n-row)*(n-row),column=(k-start)/2;bool down=((k-start)&1)!=0;
+    Vertex a=loadVertex(indices[sourceTriangle*3]),b=loadVertex(indices[sourceTriangle*3+1]),c=loadVertex(indices[sourceTriangle*3+2]);
+    vec2 points[3];points[0]=vec2(column+(down?1:0),row);points[1]=vec2(column+1,row+(down?1:0));points[2]=vec2(column,row+1);
+    for(uint i=0;i<3;i++){vec2 q=points[i]/float(n);vec3 w=vec3(1-q.x-q.y,q);Vertex v;v.p=a.p*w.x+b.p*w.y+c.p*w.z;v.n=normalize(a.n*w.x+b.n*w.y+c.n*w.z);v.uv=a.uv*w.x+b.uv*w.y+c.uv*w.z;v.p+=v.n*textureLod(heightMap,v.uv,0).r*settings.x;storeVertex(id*3+i,v);}
+}

@@ -1,0 +1,18 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#include "ocean-parameters.glsl"
+layout(local_size_x=8,local_size_y=8) in;
+layout(rgba32f,set=1,binding=5) readonly uniform image2D InputRT;
+layout(rgba32f,set=1,binding=6) writeonly uniform image2D OutputRT;
+
+const float PI=3.14159265359;
+void main() {
+    ivec2 p=ivec2(gl_GlobalInvocationID.xy);if(any(greaterThanEqual(p,ivec2(N))))return;
+    int i=p.y;
+    ivec2 a=p;a.y=(i/(2*Ns))*Ns+i%Ns;
+    ivec2 b=a;b.y+=N/2;
+    float phase=2.0*PI*float(i)/float(2*Ns);
+    vec2 w=vec2(cos(phase),sin(phase)),v=imageLoad(InputRT,b).xy;
+    vec2 result=imageLoad(InputRT,a).xy+vec2(w.x*v.x-w.y*v.y,w.x*v.y+w.y*v.x);
+    imageStore(OutputRT,p,vec4(result,0,0));
+}

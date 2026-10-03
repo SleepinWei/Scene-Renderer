@@ -1,0 +1,19 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#include "ocean-parameters.glsl"
+layout(local_size_x=8,local_size_y=8) in;
+layout(rgba32f,set=1,binding=2) readonly uniform image2D HeightSpectrumRT;
+layout(rgba32f,set=1,binding=3) readonly uniform image2D DisplaceXSpectrumRT;
+layout(rgba32f,set=1,binding=4) readonly uniform image2D DisplaceZSpectrumRT;
+layout(rgba32f,set=1,binding=7) writeonly uniform image2D DisplaceRT;
+
+
+void main() {
+    ivec2 p=ivec2(gl_GlobalInvocationID.xy);if(any(greaterThanEqual(p,ivec2(N))))return;
+    float sign=((p.x+p.y)&1)==0?1.0:-1.0;
+    float scale=sign/float(N*N);
+    vec3 displacement=vec3(imageLoad(DisplaceXSpectrumRT,p).x*Lambda,
+                           imageLoad(HeightSpectrumRT,p).x*HeightScale,
+                           imageLoad(DisplaceZSpectrumRT,p).x*Lambda)*scale;
+    imageStore(DisplaceRT,p,vec4(displacement,1));
+}

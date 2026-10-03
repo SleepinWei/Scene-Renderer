@@ -1,9 +1,11 @@
 #pragma once
 #include <imgui/imgui.h>
+#include "renderer/rhi/GuiRenderer.h"
+#include "rhi/ShaderAssets.h"
 #include <imgui/imgui_impl_glfw.h>
-#ifdef SCENERENDERER_METAL
+#ifdef SCENERENDERER_LEGACY_METAL
 #include "metal/MetalBackend.h"
-#else
+#elif !defined(SCENERENDERER_METAL)
 #include <imgui/imgui_impl_opengl3.h>
 #endif
 #include<imgui/imfilebrowser.h>
@@ -29,6 +31,7 @@ using namespace std::filesystem;
 
 class Gui {
 public:
+	std::unique_ptr<render::GuiRenderer> nativeRenderer_;
 	ImGui::FileBrowser fileDialog;
 	const std::string base_path = "./asset/objects";
 public:
@@ -40,37 +43,43 @@ public:
 #endif
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
-#ifdef SCENERENDERER_METAL
+#if defined(SCENERENDERER_METAL) || defined(SCENERENDERER_DEFAULT_VULKAN)
         extern int frameLimit;
         if(frameLimit>0)ImGui::GetIO().IniFilename=nullptr;
 #endif
 		ImGui::StyleColorsLight();
-		#ifdef SCENERENDERER_METAL
+		if(rhi::usesNativeRenderer()){ImGui_ImplGlfw_InitForOther(window,true);nativeRenderer_=std::make_unique<render::GuiRenderer>(rhi::graphicsDevice(),rhi::defaultShaderDirectory());}else {
+		#ifdef SCENERENDERER_LEGACY_METAL
 		ImGui_ImplGlfw_InitForOther(window, true);
 		MetalBackend::guiInitialize();
-#else
+#elif !defined(SCENERENDERER_METAL)
 		ImGui_ImplGlfw_InitForOpenGL(window, true);
 		ImGui_ImplOpenGL3_Init(glsl_version);
 #endif
 
+		}
 		fileDialog.SetTypeFilters({ ".json" });
 		fileDialog.SetPwd(base_path);
 	}
 	void destroy() {
-		#ifdef SCENERENDERER_METAL
+        if(nativeRenderer_)nativeRenderer_.reset();else {
+		#ifdef SCENERENDERER_LEGACY_METAL
         MetalBackend::guiShutdown();
-#else
+#elif !defined(SCENERENDERER_METAL)
         ImGui_ImplOpenGL3_Shutdown();
 #endif
+		}
 		ImGui_ImplGlfw_Shutdown();
 		ImGui::DestroyContext();
 	}
 	void window(std::shared_ptr<RenderScene>& scene) {
-		#ifdef SCENERENDERER_METAL
+        if(!nativeRenderer_){
+		#ifdef SCENERENDERER_LEGACY_METAL
         MetalBackend::guiNewFrame();
-#else
+#elif !defined(SCENERENDERER_METAL)
         ImGui_ImplOpenGL3_NewFrame();
 #endif
+		}
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
@@ -96,7 +105,12 @@ public:
 				setting.enableShadow = enableShadow;
 			}
 			ImGui::Toggle("Enable RSM", &setting.enableRSM);
-            if (setting.enableRSM) {
+            if(setting.enableRSM && nativeRenderer_){
+                auto& rsm=setting.rsmSettings;
+                ImGui::Checkbox("Sun and sky RSM",&rsm.useSunSky);ImGui::Checkbox("Sun bounce",&rsm.sunBounce);ImGui::Checkbox("Sky bounce",&rsm.skyBounce);
+                ImGui::SliderFloat("RSM world radius",&rsm.worldRadius,2,80);ImGui::SliderFloat("RSM intensity",&rsm.intensity,0,4);
+                ImGui::SliderFloat("RSM UV radius",&rsm.sampleRadius,.01f,1);ImGui::SliderInt("RSM samples",&rsm.sampleCount,1,256);ImGui::Checkbox("RSM indirect only",&rsm.indirectOnly);
+            }else if (setting.enableRSM) {
                 auto rsm = RenderManager::GetInstance()->rsmPass;
                 ImGui::Checkbox("Sun and sky RSM", &rsm->useSunSky);
                 ImGui::Checkbox("Sun bounce", &rsm->sunBounce);
@@ -114,7 +128,8 @@ public:
 
 			ImGui::Toggle("Enable SSAO", &setting.enableSSAO);
             ImGui::Toggle("Enable TSAA", &setting.enableTSAA);
-			ImGui::SliderFloat("SSAO radius", &(RenderManager::GetInstance()->ssaoPass->radius),0.0f,0.5f);
+            if(nativeRenderer_){ImGui::Checkbox("Deferred shading",&setting.useDefer);ImGui::Checkbox("HDR tone mapping",&setting.enableHDR);}
+			if(nativeRenderer_)ImGui::SliderFloat("SSAO radius",&setting.aoRadius,0.f,5.f);else ImGui::SliderFloat("SSAO radius", &(RenderManager::GetInstance()->ssaoPass->radius),0.0f,0.5f);
 		}
 
 		ImGui::Separator();
@@ -277,9 +292,10 @@ public:
 	}
 
 	void render() {
-		#ifdef SCENERENDERER_METAL
+        if(nativeRenderer_){nativeRenderer_->render(ImGui::GetDrawData(),RenderManager::GetInstance()->output());return;}
+		#ifdef SCENERENDERER_LEGACY_METAL
         MetalBackend::guiRender(ImGui::GetDrawData());
-#else
+#elif !defined(SCENERENDERER_METAL)
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 #endif
 	}

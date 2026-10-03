@@ -2,7 +2,7 @@
 
 一个用于学习和实验的 C++ 图形渲染项目，起源于同济大学计算机图形学课程小组作业。项目把**实时光栅化渲染、自然场景的 GPU 计算和独立的 CPU 路径追踪**放在同一套代码中，用可运行的场景展示材质、光照、阴影和几何生成之间的关系。
 
-macOS 默认使用原生 **Metal**：资源创建、计算、绘制、曲面细分、ImGui 和呈现都在 Metal 上执行，不创建 OpenGL 上下文。原 OpenGL 后端仍可通过 CMake 选择。延迟路径默认启用 **TSAA 时域超采样抗锯齿**。迁移过程和实现细节见[中文 Metal 迁移说明](doc/metal.md)。
+实时渲染通过统一 **RHI** 支持原生 **Metal** 与 **Vulkan**，macOS 默认 Metal。默认编辑器、特殊材质、阴影、RSM、大气、FFT 海洋、地形/草、计算细分、TSAA 和 ImGui 均走新路径；默认构建不编译旧 Metal GL 兼容桥。OpenGL 保留桌面兼容路径，本机 4.1 以上的计算功能暂缓。实现、验收和剩余平台边界见 [RHI 重构计划](docs/rhi-refactor-plan.md)，历史 Metal 迁移见 [旧迁移说明](doc/metal.md)。
 
 ![本项目在 Metal 上渲染的 Sponza 中庭](img/metal/sponza.png)
 
@@ -17,6 +17,21 @@ cmake --build build -j 8
 ./build/Scene-Renderer --demo
 ```
 
+Vulkan 主后端需要 Vulkan SDK、GLFW 3.4、Assimp、yaml-cpp、glslangValidator 与 spirv-cross。macOS 使用 MoltenVK；可通过 `Vulkan_INCLUDE_DIR` / `Vulkan_LIBRARY` 指定 SDK 位置。
+
+```sh
+cmake -S . -B build/vulkan -DSCENERENDERER_RHI_BACKEND=Vulkan -DCMAKE_BUILD_TYPE=Release
+cmake --build build/vulkan -j 8
+./build/vulkan/Scene-Renderer --demo
+ctest --test-dir build/vulkan --output-on-failure
+
+# 同时编译两种原生后端的 Metal 构建可在启动时选择 Vulkan。
+cmake -S . -B build -DSCENERENDERER_RHI_BACKEND=Metal -DSCENERENDERER_VULKAN_PROTOTYPE=ON
+./build/Scene-Renderer --demo --backend Vulkan
+```
+
+`--forward` 使用完整场景的前向光照；`--frames N` 有界运行，`--time 8` 固定海洋/草时间，`--size 800x450` 与 `--resize 640x360` 用于窗口回归，`--frames-in-flight 1` 可对照默认的 3 个在途提交。`--screenshot path.ppm` 保存包括 UI 的最后一帧。`--render-gallery directory core` 保存无 UI 的经典场景 PNG。Metal 的 API/Shader Validation 和 Vulkan 的 Khronos validation 分别验证各自后端；在 macOS 上对 MoltenVK 开启 MetalTools 的已知阻塞组合由 CTest 单独关闭。
+
 所有运行命令均从**项目根目录**执行。`--demo` 自动生成材质、天空、海洋、地形和草；仓库未包含历史 `asset/` 资源包，配置场景缺失时也会回退到此演示。Cornell 风格场景、Bunny 和 Helmet 可直接运行，Sponza 与 San Miguel 需单独下载；高清海洋和透明浅水场景由程序生成，可直接运行。
 
 ```sh
@@ -29,7 +44,7 @@ python3 tools/fetch_gi_assets.py
 
 ## 场景与效果
 
-下面的图片均由本项目在 Apple M4 上以 **960 × 720** 离屏渲染输出，使用真实导入的模型与纹理。GI 场景使用统一的 PBR 材质近似，以太阳方向光和大气天空作为直接光照及 RSM 反弹的来源；曝光、相机及光源配置见 [MetalClassicScenes.cpp](src/metal/MetalClassicScenes.cpp)。
+下面的图片均由本项目在 Apple M4 上以 **960 × 720** 离屏渲染输出，使用真实导入的模型与纹理。以下图片为旧 Metal 路径的历史输出；新 RHI 验收图保存在各构建目录 `rhi/gallery-*`。GI 场景使用统一的 PBR 材质近似，以太阳方向光和大气天空作为直接光照及 RSM 反弹的来源；当前曝光、相机及光源配置见 [ClassicScenes.cpp](src/renderer/rhi/ClassicScenes.cpp)。
 
 ### Sponza：中庭与多层拱廊
 
@@ -190,7 +205,9 @@ flowchart LR
 | `src/system/` | 渲染、输入、资源与界面管理 |
 | `src/buffer/` | 顶点、索引、统一与图像缓冲区接口 |
 | `src/metal/` | 原生 Metal 后端、着色器加载、自检、经典场景与 OBJ 导入 |
-| `src/shader/` | PBR、阴影、RSM、SSAO、大气、海洋和地形等效果源码 |
+| `src/rhi/shaders/` | 统一 PBR、阴影、RSM、SSAO、大气、海洋、地形及 TSAA shader |
+| `src/renderer/rhi/`、`src/rhi/` | 效果调度、GPU 资源、原生后端与验证入口 |
+| `src/shader/` | 旧 OpenGL / Metal 兼容路径效果源码 |
 | `src/PT/` | CPU 路径追踪与实时场景转换 |
 | `tools/` | 着色器转换及可复现的资源下载脚本 |
 | `samples/`、`img/metal/` | 示例资产与来源清单、本项目生成的截图 |
@@ -208,10 +225,10 @@ flowchart LR
 | `--render-gallery <目录> core` | 离屏生成三个随仓库提供的基础示例 |
 | `--render-gallery <目录> gi` | 生成两个 GI 场景、RSM 开关对照及纯间接光／太阳／天空贡献图 |
 | `--render-gallery <目录> <场景名>` | 仅生成指定场景 |
-| `--render-gallery <目录>` | 生成基础示例；两个 GI 模型均已下载时也生成 GI 示例 |
-| `--metal-self-test` | Metal GPU 正确性自检 |
+| `--render-gallery <目录>` | 默认生成三个基础示例 |
+| `--rhi-self-test` | 所选 RHI 后端的 GPU 正确性自检 |
 
-`W/A/S/D` 移动，`E/Q` 上下移动，按住 `Shift` 加速；按住鼠标右键调整视角。ImGui 用于修改渲染选项和场景参数。上述经典场景、离屏画廊与 GPU 自检命令用于 Metal 构建。
+`W/A/S/D` 移动，`E/Q` 上下移动，按住 `Shift` 加速；按住鼠标右键调整视角。ImGui 用于修改渲染选项和场景参数。经典场景和离屏画廊支持 Metal/Vulkan；同时编译两后端时加 `--backend Vulkan`。`--rhi-self-test` 同时支持 OpenGL 基础路径。历史 `--metal-self-test` 仅在显式启用 `SCENERENDERER_LEGACY_METAL` 时提供。
 
 重新生成 README 中的 GI 截图：
 
@@ -221,21 +238,19 @@ MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 ./build/Scene-Renderer --render-galler
 
 ## 构建、验证与限制
 
-基础测试无需大型 GI 模型；下载完成后可启用额外的 GI 场景测试：
+基础 CTest 无需大型 GI 模型。下载模型后可另外运行新 RHI 画廊：
 
 ```sh
 MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 ctest --test-dir build --output-on-failure
-
-cmake -S . -B build -DSCENERENDERER_METAL=ON -DSCENERENDERER_GI_TESTS=ON
-cmake --build build -j 8
-MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 ctest --test-dir build --output-on-failure
-
+ctest --test-dir build/vulkan --output-on-failure
+./build/Scene-Renderer --render-gallery build/rhi/gallery-metal gi
+./build/Scene-Renderer --render-gallery build/rhi/gallery-vulkan gi --backend Vulkan
 ./build/Scene-Renderer --demo --frames 3
 ```
 
-GPU 自检包含 25 项 TSAA 测试、22 项海洋数值测试、5 项水体光学测试和 15 项 RSM 能量与合成测试，并覆盖着色器库加载、计算结果读回、材质、曲面细分、天空、海洋、地形、草、阴影、SSAO/RSM，以及前向 HDR/SSS 深度。画廊测试覆盖连续切换场景，读回 HDR、法线和天空 LUT，检查非空输出与 NaN／Inf；这些是渲染正确性检查，不是与物理参考图像的误差测试。
+GPU 验证覆盖上传/异步读回、延迟释放、MRT、前向/延迟 PBR、SSS 深度、透明排序、三类阴影、SSAO、太阳/天空 RSM、大气 LUT、完整海洋 IFFT、地形/草、计算细分及 TSAA。CPU 数值参考和限定的像素比较用于检查结果；编辑器测试同时覆盖真实 resize、UI 与窗口呈现。画廊提供实际模型和贴图的视觉回归，不以历史截图作为物理参考图像。
 
-已在 Apple M4 上使用 Metal API 与着色器校验进行验证。当前没有跨 GPU 性能对比；Metal 后端采用单命令队列并等待每帧完成，尚未优化为多帧并行提交。大规模 OBJ 导入仍需较多 CPU 内存与启动时间。
+本轮 Apple M4/macOS 验收：Metal 9/9、Vulkan/MoltenVK 9/9、OpenGL 4.1 7/7。Metal 开启 API/Shader Validation；本机没有 Khronos validation layer，Windows/Linux 与 OpenGL 4.3+ 尚未实机验收。Metal/Vulkan 使用单队列、最多三帧并行提交；单次吞吐测量和算法边界见 [RHI 重构计划](docs/rhi-refactor-plan.md)。大规模 OBJ 导入仍需较多 CPU 内存与启动时间。
 
 `Cloud` 当前只有声明，没有体积云实现。自动曝光、GPU 路径追踪和完整的实时场景到 CPU PBR 转换尚未实现；历史资产缺失也限制了原场景的视觉回归。Sponza 和 San Miguel 展示当前渲染器的能力，不代表已经实现完整 GI。
 

@@ -1,0 +1,72 @@
+#include "renderer/rhi/ForwardPbrRenderer.h"
+#include "renderer/rhi/ShadowRenderer.h"
+#include <glm/gtc/matrix_transform.hpp>
+#include <iostream>
+#include <cmath>
+#include <algorithm>
+namespace render {
+namespace {void check(bool v,const char* text){if(!v)throw std::runtime_error(text);}}
+void validateSceneEffects(std::shared_ptr<rhi::GraphicsDevice> device,const std::string& directory){
+    auto quad=[&](float radius){std::vector<MeshVertex> v{{{-radius,-radius,0},{0,0,1},{0,1}},{{radius,-radius,0},{0,0,1},{1,1}},{{radius,radius,0},{0,0,1},{1,0}},{{-radius,radius,0},{0,0,1},{0,0}}};return std::make_shared<GpuMesh>(device,v,std::vector<uint32_t>{0,1,2,0,2,3});};
+    MaterialDesc m;m.parameters.factors={0,.8f,1,0};auto material=std::make_shared<GpuMaterial>(device,m);
+    auto plane=quad(2),blocker=quad(.3f);glm::mat4 model(1);model[3]={-.45f,0,.7f,1};
+    std::vector<DrawPacket> draws{{plane,material,glm::mat4(1)},{blocker,material,model}};
+    FrameData f;f.view=glm::lookAt(glm::vec3(0,0,3),glm::vec3(0),glm::vec3(0,1,0));f.nearPlane=.1f;f.farPlane=20;
+    glm::mat4 correction(1);correction[2][2]=.5f;correction[3][2]=.5f;f.viewProjection=correction*glm::perspective(glm::radians(70.f),1.f,f.nearPlane,f.farPlane)*f.view;
+    f.lights={{{0,0,0,0},{3,3,3,0},{.6f,0,-1,0}}};
+    ForwardPbrRenderer renderer(device,directory,96,96,PbrPath::Scene);renderer.render(f,draws);const auto lit=renderer.readHDR();
+    f.forwardShading=true;renderer.render(f,draws);const auto forward=renderer.readHDR();float maxDifference=0;for(size_t i=0;i<lit.size();++i)maxDifference=std::max(maxDifference,std::abs(lit[i]-forward[i]));check(maxDifference<.025f,"Scene forward/deferred PBR disagreement");f.forwardShading=false;
+    f.inverseSquareLocalLights=true;f.lights={{{0,0,2,1},{3,3,3,0},{0,0,0,0}}};renderer.render(f,{{plane,material,glm::mat4(1)}});auto closeLight=renderer.readHDR();f.lights[0].positionType.z=4;renderer.render(f,{{plane,material,glm::mat4(1)}});auto farLight=renderer.readHDR();const size_t sample=(48*96+48)*4;float ambient=f.ambient;check(std::abs((closeLight[sample]-ambient)/(farLight[sample]-ambient)-4)<.08f,"Local light did not retain inverse-square attenuation");f.inverseSquareLocalLights=false;f.lights={{{0,0,0,0},{3,3,3,0},{.6f,0,-1,0}}};
+    f.shadows=true;renderer.render(f,draws);const auto shadowed=renderer.readHDR(),positions=renderer.readGBuffer(0),depth=renderer.readShadowDepth();
+    size_t darker=0,unchanged=0;for(size_t i=0;i<lit.size();i+=4){check(std::isfinite(shadowed[i]),"Shadow output nonfinite");if(positions[i+3]==1 && std::abs(positions[i+2])<.01f){if(lit[i]-shadowed[i]>.15f)++darker;if(std::abs(lit[i]-shadowed[i])<.002f)++unchanged;}}
+    check(darker>8 && unchanged>100,"Directional shadow visibility did not separate blocker and lit receiver");
+    size_t written=0;for(float d:depth){check(std::isfinite(d)&&d>=0&&d<=1,"Shadow depth outside 0..1");if(d<1)++written;}check(written>100,"Shadow atlas was not populated");
+    // Alpha cutoff must remove the caster from both depth and RSM.
+    m.parameters.factors.w=.5f;m.images[0]={1,1,{255,255,255,0}};auto hole=std::make_shared<GpuMaterial>(device,m);
+    renderer.render(f,{{plane,material,glm::mat4(1)},{blocker,hole,model}});const auto noCaster=renderer.readHDR();size_t restored=0;
+    for(size_t i=0;i<lit.size();i+=4)if(lit[i]-shadowed[i]>.15f && positions[i+3]==1 && std::abs(positions[i+2])<.01f && noCaster[i]>shadowed[i]+.1f)++restored;
+    check(restored>8,"Alpha cutoff did not remove shadow caster");
+    auto sunLights=f.lights;
+    for(const auto& local:std::vector<LightData>{{{.6f,0,3,1},{3,3,3,0},{0,0,0,0}},{{0,0,3,2},{3,3,3,.95f},{0,0,-1,.75f}}}){
+        f.lights={local};f.shadows=false;renderer.render(f,draws);auto noShadow=renderer.readHDR();f.shadows=true;renderer.render(f,draws);auto withShadow=renderer.readHDR();size_t blocked=0;for(size_t i=0;i<withShadow.size();i+=4)if(positions[i+3]==1 && std::abs(positions[i+2])<.01f && noShadow[i]-withShadow[i]>.15f)++blocked;check(blocked>8,"Point/spot shadow visibility did not block the receiver");
+    }f.lights=sunLights;
+    f.ssao=true;renderer.render(f,draws);const auto ao=renderer.readSSAO();size_t occluded=0;
+    for(size_t i=0;i<ao.size();i+=4){check(std::isfinite(ao[i])&&ao[i]>=0&&ao[i]<=1,"SSAO range invalid");if(ao[i]<.99f)++occluded;}check(occluded>8,"SSAO did not detect blocker contact");
+    f.rsm=true;renderer.render(f,draws);for(float v:renderer.readHDR())check(std::isfinite(v),"RSM lighting nonfinite");
+    // Six independent point faces and one spot tile, including read-only D32 sampling.
+    ShadowRenderer atlas(device,directory,32);f.lights={{{0,0,2,1},{2,2,2,0},{0,0,0,0}},{{0,0,3,2},{2,2,2,.95f},{0,0,-1,.75f}}};atlas.render(f,draws);
+    check(atlas.data().lights[0].y==6 && atlas.data().lights[1].x==6 && atlas.data().lights[1].y==1,"Point/spot shadow atlas allocation invalid");
+    const auto flux=atlas.readRsm(0),rsmP=atlas.readRsm(1),rsmN=atlas.readRsm(2);size_t vpl=0;
+    for(size_t i=0;i<flux.size();i+=4){check(std::isfinite(flux[i])&&std::isfinite(rsmP[i])&&std::isfinite(rsmN[i]),"RSM atlas nonfinite");if(rsmP[i+3]==1){++vpl;const float norm=rsmN[i]*rsmN[i]+rsmN[i+1]*rsmN[i+1]+rsmN[i+2]*rsmN[i+2];check(std::abs(norm-1)<.005f && flux[i]>=0,"RSM position/normal/flux packing invalid");}}check(vpl>20,"Point/spot RSM capture missing");
+    // A dedicated source capture must store reflected power (area and irradiance),
+    // and disabling sun bounce must remove that contribution independently of direct light.
+    f.lights={{{0,0,0,0},{3,3,3,0},{0,0,-1,0}}};f.rsmSettings.useSunSky=true;f.rsmSettings.sunBounce=true;atlas.render(f,draws);
+    auto sourceFlux=atlas.readRsmSource(0);double sunlight=0;const uint32_t tileX=0,tileY=0;
+    for(uint32_t y=tileY;y<tileY+atlas.rsmExtent();++y)for(uint32_t x=tileX;x<tileX+atlas.rsmExtent();++x)sunlight+=sourceFlux[(size_t(y)*atlas.rsmExtent()+x)*4];check(sunlight>0,"Sun RSM source capture is empty");
+    f.rsmSettings.sunBounce=false;atlas.render(f,draws);sourceFlux=atlas.readRsmSource(0);double disabled=0;for(uint32_t y=tileY;y<tileY+atlas.rsmExtent();++y)for(uint32_t x=tileX;x<tileX+atlas.rsmExtent();++x)disabled+=sourceFlux[(size_t(y)*atlas.rsmExtent()+x)*4];check(disabled<sunlight*.001,"Sun bounce toggle did not remove flux");f.rsmSettings.sunBounce=true;
+    if(device->supportsWireframe()){renderer.render(f,{{plane,material,glm::mat4(1),0,true}});auto wire=renderer.readGBuffer(0);size_t covered=0;for(size_t i=3;i<wire.size();i+=4)covered+=wire[i]>.5f;check(covered>10 && covered<3000,"Wireframe pipeline did not rasterize triangle edges");}
+    f.shadows=f.ssao=f.rsm=false;f.lights={{{0,0,0,0},{3,3,3,0},{-.4f,.2f,-1,0}}};
+    renderer.render(f,{{plane,material,glm::mat4(1)}});auto plain=renderer.readHDR();
+    auto changed=[&](MaterialExtension extension,const char* message){material->updateExtension(extension);renderer.render(f,{{plane,material,glm::mat4(1)}});auto result=renderer.readHDR();size_t count=0;for(size_t i=0;i<result.size();i+=4){check(std::isfinite(result[i]),"Extended material produced nonfinite color");if(std::abs(result[i]-plain[i])>.002f)++count;}check(count>10,message);};
+    f.lights={{{0,0,0,0},{3,3,3,0},{.5f,0,1,0}}};renderer.render(f,{{plane,material,glm::mat4(1)}});auto oneSided=renderer.readHDR();MaterialExtension doubleSided;doubleSided.settings.w=1;material->updateExtension(doubleSided);renderer.render(f,{{plane,material,glm::mat4(1)}});auto twoSided=renderer.readHDR();check(twoSided[(48*96+48)*4]>oneSided[(48*96+48)*4]+.2f,"Two-sided foliage did not receive back lighting");material->updateExtension({});f.lights={{{0,0,0,0},{3,3,3,0},{-.4f,.2f,-1,0}}};
+    MaterialExtension extra;extra.lobes={1,.2f,0,0};changed(extra,"Clearcoat lobe did not affect HDR");extra.lobes={0,.5f,.8f,0};changed(extra,"Anisotropic lobe did not affect HDR");
+    extra.lobes={0,.5f,0,1};changed(extra,"SSS lobe did not affect HDR");material->updateExtension({});
+    // CullFront must select the rear surface consistently after each backend's Y conversion.
+    std::vector<MeshVertex> shellVertices;for(float z:{.3f,-.3f})for(auto v:std::vector<MeshVertex>{{{-1,-1,z},{0,0,1},{0,1}},{{1,-1,z},{0,0,1},{1,1}},{{1,1,z},{0,0,1},{1,0}},{{-1,1,z},{0,0,1},{0,0}}})shellVertices.push_back(v);
+    auto shell=std::make_shared<GpuMesh>(device,shellVertices,std::vector<uint32_t>{0,1,2,0,2,3,4,6,5,4,7,6});extra.lobes={0,.5f,0,1};material->updateExtension(extra);renderer.render(f,{{shell,material,glm::mat4(1)}});auto backDepth=renderer.readBackDepth();auto clip=f.viewProjection*glm::vec4(0,0,-.3f,1);check(std::abs(backDepth[(48*96+48)*4]-clip.z/clip.w)<1e-5f,"SSS back-face culling selected the front surface");material->updateExtension({});
+    // Two transparent layers must sort by camera distance, preserve opaque depth,
+    // overwrite reactive motion independently from alpha blending and compose in HDR.
+    MaterialDesc red;red.parameters.albedoAlpha={1,0,0,.5f};red.parameters.emissiveNormal.w=0;red.extension.settings.z=1;
+    auto redMaterial=std::make_shared<GpuMaterial>(device,red);red.parameters.albedoAlpha={0,1,0,.5f};auto greenMaterial=std::make_shared<GpuMaterial>(device,red);
+    auto far=glm::translate(glm::mat4(1),glm::vec3(0,0,.1f)),near=glm::translate(glm::mat4(1),glm::vec3(0,0,.4f));
+    renderer.render(f,{{plane,greenMaterial,near},{plane,redMaterial,far}});auto alpha=renderer.readHDR();const size_t center=(48*96+48)*4;
+    check(std::abs(alpha[center]-.25f)<.003f && std::abs(alpha[center+1]-.5f)<.003f,"Transparent layers composed in wrong order");
+    renderer.render(f,{{plane,redMaterial,far},{plane,greenMaterial,near}});auto reordered=renderer.readHDR();check(alpha==reordered,"Transparent output depends on input order");
+    red.parameters.albedoAlpha={0,0,1,1};auto blueMaterial=std::make_shared<GpuMaterial>(device,red);auto front=glm::translate(glm::mat4(1),glm::vec3(0,0,.8f));
+    renderer.render(f,{{plane,redMaterial,far},{plane,blueMaterial,front},{plane,greenMaterial,near}});auto hidden=renderer.readHDR();check(hidden[center]<.002f && hidden[center+1]<.002f && std::abs(hidden[center+2]-1)<.003f,"Transparent pass did not honor opaque depth");
+    if(device->computeLimits().maxStorageImages){f.taa=true;f.historyKey=71;renderer.render(f,{{plane,greenMaterial,near},{plane,redMaterial,far}});renderer.render(f,{{plane,greenMaterial,near},{plane,redMaterial,far}});alpha=renderer.readHDR();check(std::abs(alpha[center]-.25f)<.003f && std::abs(alpha[center+1]-.5f)<.003f,"Transparent reactive motion corrupted TAA");f.taa=false;}
+    std::cout<<"RHI clearcoat, anisotropy, SSS, unlit, sorted transparent HDR, depth and independent reactive blending passed\n";
+    renderer.resize(64,48);renderer.render(f,draws);check(renderer.readSSAO().size()==64*48*4,"Scene effects resize failed");
+    std::cout<<"RHI cascaded/point/spot shadows, depth atlas, alpha casters, SSAO, RSM MRT and resize passed; shadow pixels "<<darker<<", AO pixels "<<occluded<<"\n";
+}
+}

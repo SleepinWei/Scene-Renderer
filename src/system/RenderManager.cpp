@@ -16,8 +16,14 @@
 #include"component/Atmosphere.h"
 
 #include<glm/gtc/type_ptr.hpp>
+#include "renderer/rhi/SceneAdapter.h"
+#include "rhi/ShaderAssets.h"
+#include "system/InputManager.h"
 
 RenderManager::RenderManager() {
+    native_=rhi::usesNativeRenderer();
+    setting={true,true,true,false,true,true,true};
+    if(native_)return;
 	int ShaderTypeNum = static_cast<int>(ShaderType::KIND_COUNT);
 	m_shader = std::vector<std::shared_ptr<Shader>>(ShaderTypeNum,nullptr);
 	// init Shaders
@@ -38,6 +44,7 @@ RenderManager::RenderManager() {
 }
 
 void RenderManager::init() {
+    if(native_){adapter_=std::make_unique<render::SceneAdapter>(rhi::graphicsDevice());return;}
 	// UBOs
 	initVPbuffer();
 	initPointLightBuffer();
@@ -113,11 +120,10 @@ void RenderManager::prepareVPData(const std::shared_ptr<RenderScene>& renderScen
 
 	// update every frame
 	if (uniformVPBuffer) {
-		uniformVPBuffer->bindBuffer();
-		GLuint UBO = uniformVPBuffer->UBO;
-		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(projection));
-		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4),sizeof(glm::mat4), glm::value_ptr(view));
-		glBufferSubData(GL_UNIFORM_BUFFER, 128, sizeof(glm::vec3), glm::value_ptr(pos));
+
+		uniformVPBuffer->write(0, sizeof(glm::mat4), glm::value_ptr(projection));
+		uniformVPBuffer->write(sizeof(glm::mat4),sizeof(glm::mat4), glm::value_ptr(view));
+		uniformVPBuffer->write(128, sizeof(glm::vec3), glm::value_ptr(pos));
 	}
 
 	// update every frame: skybox view
@@ -155,8 +161,7 @@ void RenderManager::preparePointLightData(const std::shared_ptr<RenderScene>& sc
 	//		}
 	//	}
 	//}
-	uniformPointLightBuffer->bindBuffer();
-	unsigned int UBO = uniformPointLightBuffer->UBO;
+
 	int lightNum = scene->pointLights.size();
 	int dataSize = 32; // data size for a single light (under std140 layout)
 	int index = 0;
@@ -170,10 +175,10 @@ void RenderManager::preparePointLightData(const std::shared_ptr<RenderScene>& sc
 			std::shared_ptr<Transform>&& transform = std::static_pointer_cast<Transform>(
 				light->gameObject->GetComponent("Transform"));
 			if (transform) {
-				glBufferSubData(GL_UNIFORM_BUFFER,
+				uniformPointLightBuffer->write(
 					0 + index * dataSize,
 					sizeof(glm::vec3), glm::value_ptr(data.color)); //color
-				glBufferSubData(GL_UNIFORM_BUFFER,
+				uniformPointLightBuffer->write(
 					16 + index * dataSize,
 					sizeof(glm::vec3), glm::value_ptr(transform->position)); //position
 			}
@@ -182,10 +187,9 @@ void RenderManager::preparePointLightData(const std::shared_ptr<RenderScene>& sc
 		}
 	}
 	// add the number of lights to UBO
-	glBufferSubData(GL_UNIFORM_BUFFER,
+	uniformPointLightBuffer->write(
 		dataSize * 10, sizeof(int), &lightNum);
 
-	//uniformPointLightBuffer->bindBuffer();
 }
 
 void RenderManager::prepareDirectionLightData(const std::shared_ptr<RenderScene>& scene) {
@@ -201,13 +205,12 @@ void RenderManager::prepareDirectionLightData(const std::shared_ptr<RenderScene>
 	int dataSize = 48; // data size for a single light (under std140 layout)
 	if(!setting.enableDirectional){
 		int zero = 0;
-		uniformDirectionLightBuffer->bindBuffer();
-		glBufferSubData(GL_UNIFORM_BUFFER, 10 * dataSize,
+
+		uniformDirectionLightBuffer->write(10 * dataSize,
 			sizeof(int), &zero);
 		return;
 	}
-	uniformDirectionLightBuffer->bindBuffer();
-	unsigned int UBO = uniformDirectionLightBuffer->UBO;
+
 	int lightNum = scene->directionLights.size();
 	int index = 0;
 	for(auto& light : scene->directionLights){
@@ -219,23 +222,23 @@ void RenderManager::prepareDirectionLightData(const std::shared_ptr<RenderScene>
 				continue;
 			}
 			DirectionLightData& data = light->data;
-			glBufferSubData(GL_UNIFORM_BUFFER,
+			uniformDirectionLightBuffer->write(
 				0 + index * dataSize,
 				sizeof(glm::vec3), glm::value_ptr(data.color)); // ambient
-			glBufferSubData(GL_UNIFORM_BUFFER,
+			uniformDirectionLightBuffer->write(
 				16 + index * dataSize,
 				sizeof(glm::vec3), glm::value_ptr(transform->position)); //
-			glBufferSubData(GL_UNIFORM_BUFFER,
+			uniformDirectionLightBuffer->write(
 				32 + index * dataSize,
 				sizeof(glm::vec3), glm::value_ptr(data.direction));
-			//glBufferSubData(GL_UNIFORM_BUFFER,
+			//uniformDirectionLightBuffer->write(
 				//48 + i * dataSize,
 				//sizeof(glm::vec3), glm::value_ptr(data.direction));
 			++index;
 			light->setDirtyFlag(false);
 		}
 	}
-	glBufferSubData(GL_UNIFORM_BUFFER, 10 * dataSize,
+	uniformDirectionLightBuffer->write(10 * dataSize,
 		sizeof(int), &lightNum);
 }
 
@@ -249,8 +252,7 @@ void RenderManager::prepareSpotLightData(const std::shared_ptr<RenderScene>& sce
 	//		}
 	//	}
 	//}
-	uniformSpotLightBuffer->bindBuffer();
-	unsigned int UBO = uniformSpotLightBuffer->UBO;
+
 	int lightNum = scene->spotLights.size();
 	int dataSize = 48; // data size for a single light (under std140 layout)
 	for (int i = 0; i < lightNum; i++) {
@@ -263,25 +265,25 @@ void RenderManager::prepareSpotLightData(const std::shared_ptr<RenderScene>& sce
 				continue;
 			}
 			SpotLightData& data = light->data;
-			glBufferSubData(GL_UNIFORM_BUFFER,
+			uniformSpotLightBuffer->write(
 				0 + i * dataSize,
 				sizeof(glm::vec3), glm::value_ptr(data.color)); // ambient
-			glBufferSubData(GL_UNIFORM_BUFFER,
+			uniformSpotLightBuffer->write(
 				12 + i * dataSize,
 				sizeof(float), &data.cutOff);
-			glBufferSubData(GL_UNIFORM_BUFFER,
+			uniformSpotLightBuffer->write(
 				16 + i * dataSize,
 				sizeof(glm::vec3), glm::value_ptr(transform->position)); //
-			glBufferSubData(GL_UNIFORM_BUFFER,
+			uniformSpotLightBuffer->write(
 				28 + i * dataSize,
 				sizeof(float), &data.outerCutOff);
 			light->setDirtyFlag(false);
-			glBufferSubData(GL_UNIFORM_BUFFER,
+			uniformSpotLightBuffer->write(
 				32 + i * dataSize,
 				sizeof(glm::vec3), glm::value_ptr(data.direction));
 		}
 	}
-	glBufferSubData(GL_UNIFORM_BUFFER, 10 * dataSize,
+	uniformSpotLightBuffer->write(10 * dataSize,
 		sizeof(int), &lightNum);
 }
 
@@ -296,7 +298,17 @@ void RenderManager::prepareCompData(const std::shared_ptr<RenderScene>& scene) {
 	}
 }
 
+rhi::TextureHandle RenderManager::output()const{return renderer_?renderer_->output():rhi::TextureHandle{};}
+void RenderManager::releaseNative(){renderer_.reset();adapter_.reset();}
 void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
+    if(native_){
+        const auto input=InputManager::GetInstance();if(input->width<=0 || input->height<=0)return;
+        if(!renderer_)renderer_=std::make_unique<render::ForwardPbrRenderer>(rhi::graphicsDevice(),rhi::defaultShaderDirectory(),input->width,input->height,render::PbrPath::Scene);
+        renderer_->resize(input->width,input->height);if(scene->main_camera)scene->main_camera->aspect_ratio=float(input->width)/input->height;
+        auto frame=adapter_->collect(scene,setting.timeOverride);frame.frame.shadows=setting.enableShadow;frame.frame.ssao=setting.enableSSAO;frame.frame.rsm=setting.enableRSM;frame.frame.taa=setting.enableTSAA;frame.frame.aoRadius=setting.aoRadius;frame.frame.aoBias=setting.aoBias;frame.frame.aoPower=setting.aoPower;frame.frame.toneMapping=setting.enableHDR;frame.frame.rsmSettings=setting.rsmSettings;frame.frame.directionalEnabled=setting.enableDirectional;frame.frame.forwardShading=!setting.useDefer;
+        if(!setting.enableDirectional)for(auto& light:frame.frame.lights)if(light.positionType.w==0)light.colorInner=glm::vec4(0);
+        renderer_->render(frame.frame,frame.packets,frame.exposure);return;
+    }
 	// Outdoor RSM uses the sun/sky; indoor scenes can fall back to a spotlight.
 	if (scene->spotLights.empty() && scene->directionLights.empty() && !scene->sky) setting.enableRSM = false;
     temporalAA->begin(scene,setting.enableTSAA && setting.useDefer);
@@ -366,6 +378,7 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 }
 
 std::shared_ptr<Shader> RenderManager::getShader(ShaderType type) {
+    if(native_)return nullptr;
 	int index = static_cast<int>(type);
 	//if(!m_shader[index]){
 	//	//if not initialized
@@ -458,6 +471,6 @@ std::shared_ptr<Shader> RenderManager::generateShader(ShaderType type) {
 
 void RenderManager::pass_data()
 {
-	this->deferredPass->cascaded_matrix_UBO = this->shadowPass->get_UBO();
+	this->deferredPass->cascadedMatrixBuffer = this->shadowPass->getMatrixBuffer();
 	this->deferredPass->shadow_limiter = this->shadowPass->get_shadow_limiter();
 }

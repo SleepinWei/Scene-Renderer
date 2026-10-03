@@ -1,0 +1,12 @@
+#version 450
+layout(local_size_x=1) in;
+layout(set=0,binding=0,std430) readonly buffer Seeds { uint values[64]; } seeds;
+layout(set=0,binding=1,std430) writeonly buffer Vertices { vec4 values[3]; } vertices;
+layout(set=0,binding=2,std430) writeonly buffer Arguments { uint values[4]; } arguments;
+void main() {
+    vertices.values[0]=vec4(-.75,-.75,0,1);
+    vertices.values[1]=vec4(.75,-.75,1,1);
+    vertices.values[2]=vec4(0,.75,.5,0);
+    arguments.values[0]=seeds.values[0]+2;
+    arguments.values[1]=1;arguments.values[2]=0;arguments.values[3]=0;
+}

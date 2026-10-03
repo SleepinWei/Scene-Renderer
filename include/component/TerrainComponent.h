@@ -45,7 +45,8 @@ public:
 	glm::mat4 model;
 	std::shared_ptr<Material> material;
 	std::shared_ptr<Material> terrainMaterial; 
-	float* heightData;
+	float* heightData=nullptr;
+    std::string heightSourcePath;uint32_t heightWidth=0,heightHeight=0;
 
 	std::shared_ptr<Shader> shader;
 	std::shared_ptr<Shader> terrainGBuffer; 

@@ -1,7 +1,9 @@
 #include<glad/glad.h>
 #include<glfw/glfw3.h>
 #include"utils/Utils.h"
-#ifdef SCENERENDERER_METAL
+#include "rhi/Device.h"
+#include "rhi/GraphicsDevice.h"
+#ifdef SCENERENDERER_LEGACY_METAL
 #include "metal/MetalBackend.h"
 #endif
 #include"system/InputManager.h"
@@ -28,6 +30,7 @@ GLenum glCheckError_(const char* file, int line)
     return errorCode;
 }
 int gladInit() {
+    if(rhi::requestedBackend()==rhi::Backend::Vulkan)return 0;
 #ifdef SCENERENDERER_METAL
     return 0;
 #else
@@ -36,6 +39,7 @@ int gladInit() {
         std::cout << "Failed to initialize" << std::endl;
         return -1;
     }
+    rhi::installDevice(rhi::makeOpenGLDevice(glfwGetCurrentContext()));
     return 0;
 #endif
 }
@@ -45,6 +49,9 @@ int createWindow(GLFWwindow*& window,
     int height,
     std::string title) {
     //create a glfw window
+#ifdef SCENERENDERER_HAS_VULKAN
+    if(rhi::requestedBackend()==rhi::Backend::Vulkan)glfwWindowHint(GLFW_CLIENT_API,GLFW_NO_API);else
+#endif
 #ifdef SCENERENDERER_METAL
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 #elif defined(__APPLE__)
@@ -67,8 +74,14 @@ int createWindow(GLFWwindow*& window,
         glfwTerminate();
         return -1;
     }
+#ifdef SCENERENDERER_HAS_VULKAN
+    if(rhi::requestedBackend()==rhi::Backend::Vulkan)rhi::installDevice(rhi::makeVulkanDevice(window));else
+#endif
 #ifdef SCENERENDERER_METAL
-    MetalBackend::initialize(window,width,height);
+#ifdef SCENERENDERER_LEGACY_METAL
+    if(rhi::legacyRendererRequested())MetalBackend::initialize(window,width,height);else
+#endif
+    rhi::installDevice(rhi::makeMetalDevice(window));
 #else
     glfwMakeContextCurrent(window);
 #endif

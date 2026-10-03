@@ -114,7 +114,7 @@ std::shared_ptr<TerrainComponent> TerrainComponent::loadHeightmap(const std::str
 	this->terrainMaterial->addTexture(heightTex, "heightMap");
 
 	// load from txt
-	std::string heightPath = path + "heightMap.txt";
+	std::string heightPath = path + "heightMap.txt";heightSourcePath=heightPath;heightWidth=uint32_t(heightTex->width);heightHeight=uint32_t(heightTex->height);
 	heightData = new float[heightTex->width * heightTex->height];
 	std::ifstream fin(heightPath,std::ios::binary);
 	//for (int i = 0; i < heightTex->width * heightTex->height; ++i) {
@@ -165,8 +165,9 @@ void TerrainComponent::initVertexObject() {
 }
 
 TerrainComponent::~TerrainComponent() {
-	glDeleteBuffers(1,&VBO);
-	glDeleteVertexArrays(1,&VAO);
+    delete[] heightData;heightData=nullptr;
+	if(VBO)glDeleteBuffers(1,&VBO);
+	if(VAO)glDeleteVertexArrays(1,&VAO);
 }
 
 //std::shared_ptr<Terrain> Terrain::addShader(ShaderType st){
@@ -339,7 +340,7 @@ void TerrainComponent::prepareData() {
 				glBindTexture(GL_TEXTURE_2D, 0);
 
 				// free data
-				delete[] heightData;
+				delete[] heightData;heightData=nullptr;
 				//stbi_image_free(tex->data);
 				tex->data = nullptr;
 			}

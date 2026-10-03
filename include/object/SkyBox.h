@@ -44,8 +44,8 @@ public:
 public:
 	//std::shared_ptr<Atmosphere> atmosphere;
 	std::shared_ptr<Material> skybox;
-	unsigned char* data[6];
-	int width, height;
+	unsigned char* data[6]{};
+	int width=0, height=0;
 private:
 	void initSkyBoxTexture();
 };

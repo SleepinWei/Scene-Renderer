@@ -35,6 +35,9 @@ public:
 	std::shared_ptr<RenderScene> addSky(std::shared_ptr<Sky>skybox);
 	void loadFromJson(json& data);
 	void destroy();
+    uint64_t revision()const{return revision_;}
+private:
+    uint64_t revision_=0;
 public:
 	std::mutex mtx;
 	std::mutex lightMtx;

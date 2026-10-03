@@ -1,4 +1,5 @@
 #include<glad/glad.h>
+#include "rhi/Device.h"
 #include<stb/stb_image.h>
 #include"object/SkyBox.h"
 #include"renderer/Texture.h"
@@ -24,6 +25,7 @@ SkyBox::SkyBox() {
 }
 
 void SkyBox::init(){
+    if(rhi::usesNativeRenderer())return;
 	float skyboxVertices[] = {
 		// positions          
 		-1.0f,  1.0f, -1.0f,
@@ -78,8 +80,8 @@ void SkyBox::init(){
 }
 
 SkyBox::~SkyBox() {
-	glDeleteBuffers(1, &VBO);
-	glDeleteVertexArrays(1, &VAO);
+	if(VBO)glDeleteBuffers(1, &VBO);
+	if(VAO)glDeleteVertexArrays(1, &VAO);
 }
 
 void SkyBox::render()const {
@@ -101,7 +103,7 @@ Sky::Sky() {
 }
 
 Sky::~Sky() {
-
+    for(auto pixels:data)stbi_image_free(pixels);
 }
 
 void Sky::initSkyBoxTexture() {
@@ -119,7 +121,7 @@ void Sky::initSkyBoxTexture() {
 			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
 				0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data[i]
 			);
-			stbi_image_free(data[i]);
+			stbi_image_free(data[i]);data[i]=nullptr;
 		}
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -161,8 +163,9 @@ void Sky::loadSkyBox(const std::string& folder_path) {
 	{
 		// load as 3 channel
 		//stbi_set_flip_vertically_on_load(true);
-		this->data[i] = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 3);
-		if (data)
+		stbi_image_free(this->data[i]);
+        this->data[i] = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 3);
+		if (data[i])
 		{
 			//glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
 				//0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
@@ -172,7 +175,7 @@ void Sky::loadSkyBox(const std::string& folder_path) {
 		else
 		{
 			std::cout << "Cubemap tex failed to load at path: " << faces[i] << std::endl;
-			stbi_image_free(data[i]);
+			stbi_image_free(data[i]);data[i]=nullptr;
 		}
 	}
 	//glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);

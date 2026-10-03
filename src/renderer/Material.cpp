@@ -1,4 +1,5 @@
 #include<glad/glad.h>
+#include "rhi/Device.h"
 #include<memory>
 #include<assert.h>
 //#include<utility>
@@ -59,6 +60,7 @@ std::shared_ptr<Material> Material::addTexture(std::string tex_path, std::string
 }
 
 std::shared_ptr<Material> Material::loadCubeMap(const std::string& folder_path) {
+    if(rhi::usesNativeRenderer()){auto material=std::make_shared<Material>();material->texture_path["skybox"]=folder_path;return material;}
 	std:: vector<std::string> faces
 	{
 		folder_path + "right.jpg",
@@ -148,6 +150,16 @@ std::shared_ptr<Material> Material::loadCustomModel(const std::string& folder)
 }
 
 void Material::loadFromJson(json& data) {
+    if (data.contains("metallicFactor")) metallicFactor = data["metallicFactor"].get<float>();
+    if (data.contains("roughnessFactor")) roughnessFactor = data["roughnessFactor"].get<float>();
+    if (data.contains("occlusionStrength")) occlusionStrength = data["occlusionStrength"].get<float>();
+    if (data.contains("normalStrength")) normalStrength = data["normalStrength"].get<float>();
+    if (data.contains("opacityFactor")) opacityFactor = data["opacityFactor"].get<float>();
+    if (data.contains("alphaCutoff")) alphaCutoff = data["alphaCutoff"].get<float>();
+    for (int i = 0; i < 3; ++i) {
+        if (data.contains("albedoFactor")) albedoFactor[i] = data["albedoFactor"].at(i).get<float>();
+        if (data.contains("emissiveFactor")) emissiveFactor[i] = data["emissiveFactor"].at(i).get<float>();
+    }
 	if (data.find("textures") != data.end()) {
 		auto& mat = data["textures"];
 		for (auto iter = mat.begin(); iter != mat.end(); ++iter) {
@@ -211,13 +223,13 @@ void Material::genTexture() {
 
 						offset += mipSize;
 					}
-					free(tex->data);
+					free(tex->data);tex->data=nullptr;
 				}
 				else {
 					// normal texture
 					glTexImage2D(GL_TEXTURE_2D, 0, tex->internalformat, tex->width, tex->height, 0, tex->format, GL_UNSIGNED_BYTE, tex->data);
 					glGenerateMipmap(GL_TEXTURE_2D);
-					stbi_image_free(tex->data);
+					stbi_image_free(tex->data);tex->data=nullptr;
 					tex->data = nullptr;
 				}
 				glBindTexture(GL_TEXTURE_2D, 0);
@@ -262,7 +274,7 @@ void Material::genTextureFloat() {
 
 				// free data
 				delete[] float_data;
-				stbi_image_free(tex->data);
+				stbi_image_free(tex->data);tex->data=nullptr;
 				tex->data = nullptr;
 			}
 		}

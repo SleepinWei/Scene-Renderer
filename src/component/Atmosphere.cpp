@@ -80,27 +80,26 @@ void Atmosphere::prepareAtmosphere() {
 		atmBuffer->setDirtyFlag(false);
 
 		AtmosphereParameters& data = this->atmosphere;
-		atmBuffer->bindBuffer();
-		glBufferSubData(GL_UNIFORM_BUFFER, 0, 4, &data.solar_irradiance);
-		glBufferSubData(GL_UNIFORM_BUFFER, 4, 4, &data.sun_angular_radius);
-		glBufferSubData(GL_UNIFORM_BUFFER, 8, 4, &data.top_radius);
-		glBufferSubData(GL_UNIFORM_BUFFER, 12, 4, &data.bottom_radius);
+		atmBuffer->write(0, 4, &data.solar_irradiance);
+		atmBuffer->write(4, 4, &data.sun_angular_radius);
+		atmBuffer->write(8, 4, &data.top_radius);
+		atmBuffer->write(12, 4, &data.bottom_radius);
 
-		glBufferSubData(GL_UNIFORM_BUFFER, 16, 4, &data.HDensityRayleigh);
-		glBufferSubData(GL_UNIFORM_BUFFER, 20, 4, &data.HDensityMie);
-		glBufferSubData(GL_UNIFORM_BUFFER, 24, 4, &data.OzoneCenter);
-		glBufferSubData(GL_UNIFORM_BUFFER, 28, 4, &data.mie_g);
+		atmBuffer->write(16, 4, &data.HDensityRayleigh);
+		atmBuffer->write(20, 4, &data.HDensityMie);
+		atmBuffer->write(24, 4, &data.OzoneCenter);
+		atmBuffer->write(28, 4, &data.mie_g);
 
-		glBufferSubData(GL_UNIFORM_BUFFER, 32, 16, glm::value_ptr(data.rayleigh_scattering));
-		glBufferSubData(GL_UNIFORM_BUFFER, 48, 16, glm::value_ptr(data.mie_scattering));
-		glBufferSubData(GL_UNIFORM_BUFFER, 64, 16, glm::value_ptr(data.mie_extinction));
-		glBufferSubData(GL_UNIFORM_BUFFER, 80, 16, glm::value_ptr(data.absorption_extinction));
+		atmBuffer->write(32, sizeof(glm::vec3), glm::value_ptr(data.rayleigh_scattering));
+		atmBuffer->write(48, sizeof(glm::vec3), glm::value_ptr(data.mie_scattering));
+		atmBuffer->write(64, sizeof(glm::vec3), glm::value_ptr(data.mie_extinction));
+		atmBuffer->write(80, sizeof(glm::vec3), glm::value_ptr(data.absorption_extinction));
 
 		//ozone width 
-		glBufferSubData(GL_UNIFORM_BUFFER, 92, 4, &data.OzoneWidth);
+		atmBuffer->write(92, 4, &data.OzoneWidth);
 
 		////debug
-		//atmBuffer->bindBuffer();
+
 		//float* content = (float*)glMapBuffer(GL_UNIFORM_BUFFER, GL_READ_ONLY);
 		//for (int i = 0; i < 30; i++) {
 		//	std::cout << content[i] << '\n';
@@ -191,7 +190,6 @@ void Atmosphere::renderDrawCall(const std::shared_ptr<Shader>& outShader) {
 	glCullFace(GL_BACK);
 	glDepthFunc(GL_LESS);
 }
-
 
 void Atmosphere::render(const std::shared_ptr<Shader>& shader) {
 	if (initDone) {

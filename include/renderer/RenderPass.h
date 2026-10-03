@@ -9,6 +9,7 @@ class FrameBuffer;
 class Texture;
 class RenderBuffer;
 class DirectionLight;
+class UniformBuffer;
 class SpotLight;
 class PointLight;
 typedef unsigned int GLuint; 
@@ -75,7 +76,7 @@ public:
 	~ShadowPass();
 
 	void render(const std::shared_ptr<RenderScene>& scene);
-	unsigned int get_UBO()const;
+	std::shared_ptr<UniformBuffer> getMatrixBuffer() const;
 	std::vector<float> get_shadow_limiter() const;  // only 4 elements ,so we pass the value directly
 
 public:
@@ -99,7 +100,7 @@ private:
 	// float far_for_pointlight = 0.0;  // the perspective parameter in generating shadow cube map
 	bool dirty = true;
 	std::vector<float> shadow_limiter= { 0,0,0,0 };
-	unsigned int  matrixUBO;
+	std::shared_ptr<UniformBuffer> matrixBuffer;
 
 
 };
@@ -133,7 +134,7 @@ public:
 	shared_ptr<Texture> postTexture;
 	//shared_ptr<Texture> gPBR;
 
-	unsigned int cascaded_matrix_UBO=0;  // we will pass this 2 values from the shadow pass 
+	std::shared_ptr<UniformBuffer> cascadedMatrixBuffer;
 	std::vector<float> shadow_limiter ={ 0,0,0,0 };
 private:
 	void initShader();

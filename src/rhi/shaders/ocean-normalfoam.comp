@@ -1,0 +1,22 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#include "ocean-parameters.glsl"
+layout(local_size_x=8,local_size_y=8) in;
+layout(rgba32f,set=1,binding=7) readonly uniform image2D DisplaceRT;
+layout(rgba32f,set=1,binding=5) writeonly uniform image2D NormalRT;
+layout(rgba32f,set=1,binding=6) writeonly uniform image2D BubblesRT;
+
+
+void main() {
+    ivec2 p=ivec2(gl_GlobalInvocationID.xy);if(any(greaterThanEqual(p,ivec2(N))))return;
+    vec3 dx=(imageLoad(DisplaceRT,ivec2((p.x+1)%N,p.y)).xyz-
+             imageLoad(DisplaceRT,ivec2((p.x+N-1)%N,p.y)).xyz)/(2.0*OceanLength/float(N));
+    vec3 dz=(imageLoad(DisplaceRT,ivec2(p.x,(p.y+1)%N)).xyz-
+             imageLoad(DisplaceRT,ivec2(p.x,(p.y+N-1)%N)).xyz)/(2.0*OceanLength/float(N));
+    vec3 tangentX=vec3(1,0,0)+dx,tangentZ=vec3(0,0,1)+dz;
+    vec3 n=cross(tangentZ,tangentX);float n2=dot(n,n);
+    n=n2>1e-12?n*inversesqrt(n2):vec3(0,1,0);
+    float J=(1.0+dx.x)*(1.0+dz.z)-dx.z*dz.x;
+    float foam=clamp((BubblesThreshold-J)*BubblesScale,0.0,1.0);
+    imageStore(NormalRT,p,vec4(n,1));imageStore(BubblesRT,p,vec4(vec3(foam),J));
+}

@@ -1,22 +1,23 @@
 #pragma once
-#include"buffer.h"
-#include<iostream>
+#include "rhi/Device.h"
 
-class UniformBuffer:public Buffer {
+// Transitional renderer wrapper; bindings migrate to BindingSet next.
+class UniformBuffer {
 public:
-	unsigned int UBO;
 	int size; 
 	int binding;
 	bool dirty; // dirty flag, reset shader's ubo bindings if dirty
 	//this flag only indicates when to reset UBO bindings in shaders, not UBO data.
 
 public:
-	UniformBuffer(int size);
+	explicit UniformBuffer(int size);
 	~UniformBuffer();
-
-	virtual void bindBuffer();
-	virtual void unbindBuffer();
-	virtual void setBinding(int binding);
-	void setDirtyFlag(bool flag);
+	UniformBuffer(const UniformBuffer&) = delete;
+	UniformBuffer& operator=(const UniformBuffer&) = delete;
+	void write(size_t offset, size_t bytes, const void* data);
+	void setBinding(int binding);
+	void setDirtyFlag(bool flag) { dirty = flag; }
+private:
+	std::shared_ptr<rhi::Device> owner_;
+	rhi::BufferHandle handle_;
 };
-

@@ -1,42 +1,18 @@
-#include"buffer/UniformBuffer.h"
-#include<glad/glad.h>
-#include<glfw/glfw3.h>
+#include "buffer/UniformBuffer.h"
+#include <stdexcept>
 
-UniformBuffer::UniformBuffer(int size) {
-	this->size = size;
-	glGenBuffers(1, &UBO);
-	glBindBuffer(GL_UNIFORM_BUFFER, UBO);
-	glBufferData(GL_UNIFORM_BUFFER, size, NULL, GL_STATIC_DRAW);
-	this->binding = -1; 
-	this->dirty = true;
+UniformBuffer::UniformBuffer(int bytes) : size(bytes), binding(-1), dirty(true), owner_(rhi::device()) {
+    if (bytes <= 0) throw std::invalid_argument("UniformBuffer: size must be positive");
+    handle_ = owner_->createBuffer({size_t(bytes),
+        rhi::BufferUsage::Uniform | rhi::BufferUsage::CopyDestination,
+        "Renderer uniform buffer"});
 }
-
-void UniformBuffer::setDirtyFlag(bool flag) {
-	this->dirty = flag;
+UniformBuffer::~UniformBuffer() { owner_->destroyBuffer(handle_); }
+void UniformBuffer::write(size_t offset, size_t bytes, const void* data) {
+    owner_->writeBuffer(handle_, offset, bytes, data);
 }
-
-
-UniformBuffer::~UniformBuffer() {
-	if (UBO) {
-		glDeleteBuffers(1,&UBO);
-	}
-}
-
-void UniformBuffer::bindBuffer() {
-	glBindBuffer(GL_UNIFORM_BUFFER, UBO);
-}
-
-void UniformBuffer::unbindBuffer() {
-	glBindBuffer(GL_UNIFORM_BUFFER, 0);
-}
-
-void UniformBuffer::setBinding(int binding) {
-	if(UBO){
-		this->binding = binding;
-		//glBindBufferRange(GL_UNIFORM_BUFFER, binding, UBO, 0, size);
-		glBindBufferBase(GL_UNIFORM_BUFFER, binding, UBO);
-	}
-	else {
-		std::cout << "In UniformBuffer:setBinding, no UBO created" << '\n';
-	}
+void UniformBuffer::setBinding(int slot) {
+    if (slot < 0) throw std::invalid_argument("UniformBuffer: negative binding slot");
+    owner_->bindUniformBuffer(uint32_t(slot), handle_);
+    binding = slot;
 }

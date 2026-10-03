@@ -70,11 +70,13 @@ void RenderScene::loadFromJson(json& data) {
 }
 
 void RenderScene::destroy() {
+    ++revision_;
 	//
 	terrain = nullptr;
 	std::vector<shared_ptr<GameObject>>().swap(objects);
 	std::vector<shared_ptr<DirectionLight>>().swap(directionLights);
 	std::vector<shared_ptr<PointLight>>().swap(pointLights);
+	std::vector<shared_ptr<SpotLight>>().swap(spotLights);
 	sky = nullptr;
 	//main_camera = nullptr;
 }

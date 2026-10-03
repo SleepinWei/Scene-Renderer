@@ -1,0 +1,27 @@
+#pragma once
+#include "renderer/rhi/GpuOcean.h"
+namespace render {
+struct FrameData;
+struct OceanSurfaceSettings {
+    uint64_t id=1;OceanSettings spectrum;uint32_t meshSize=129;
+    float seaLevel=-5,timeScale=1,detailStrength=1,refractionStrength=1,deepWaterDistance=40,subsurfaceStrength=1,anisotropy=.65f,fresnel=.02f,gloss=256;
+    bool detailWaves=true,refraction=true,animate=true;
+    glm::vec3 absorption{.12f,.04f,.02f},scattering{.025f,.05f,.07f};
+    glm::vec3 shallow=glm::pow(glm::vec3(.30713776f,.4703595f,.5471698f),glm::vec3(2.2f));
+    glm::vec3 deep=glm::pow(glm::vec3(.0499288f,.1436479f,.20754719f),glm::vec3(2.2f));
+    glm::vec3 foamColor{1},specular=glm::pow(glm::vec3(.3962264f,.3943574f,.3943574f),glm::vec3(2.2f)),ambient{0};
+};
+class OceanSurface {
+public:
+    OceanSurface(std::shared_ptr<rhi::GraphicsDevice>,const std::string&,const OceanSurfaceSettings&);
+    ~OceanSurface();
+    bool compatible(const OceanSurfaceSettings&)const;
+    void simulate(float seconds,const OceanSurfaceSettings&);
+    void record(Resources& frame,rhi::CommandList&,const FrameData&,const OceanSurfaceSettings&,rhi::TextureViewHandle sky,rhi::TextureViewHandle opaque,rhi::TextureViewHandle position,rhi::TextureViewHandle normal);
+private:
+    struct Simulation;std::unique_ptr<Simulation> simulation_;
+    Resources resources_;OceanSurfaceSettings initial_;rhi::PipelineHandle pipeline_;rhi::BufferHandle vertices_,indices_;uint32_t indexCount_;
+    rhi::SamplerHandle repeat_,clamp_;std::array<rhi::TextureHandle,2> previous_;std::array<rhi::TextureViewHandle,2> previousViews_;
+    glm::mat4 previousVP_{1},previousView_{1},previousModel_{1};bool history_=false;
+};
+}

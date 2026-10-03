@@ -31,6 +31,7 @@ public:
 
 public:
 
+	ShaderType shaderType=ShaderType::PBR;
 	GLenum drawMode;
 	GLenum polyMode;
 
