@@ -1198,6 +1198,20 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
         object->addComponent(std::make_shared<Grass>());
         auto withGrass = adapter.collect(scene, 0);
         check(withGrass.packets.size() == 2, "Adding grass did not rebuild terrain cache");
+        auto terrainMesh=withGrass.packets[0].mesh,grassMesh=withGrass.packets[1].mesh;
+        auto vegetation=object->getComponent<Grass>();
+        vegetation->updateSettings([](auto& settings){settings.density=0;settings.distance=40;settings.fadeStart=25;});
+        auto editedGrass=adapter.collect(scene,1);
+        check(editedGrass.packets[0].mesh==terrainMesh && editedGrass.packets[1].mesh==grassMesh,
+              "Vegetation scalar change rebuilt terrain or grass resources");
+        rhi::DrawIndexedIndirectArguments grassArgs;
+        device->readBuffer(grassMesh->indirectBuffer(),0,sizeof(grassArgs),&grassArgs);
+        check(grassArgs.instanceCount==0,"Snapshot did not publish zero vegetation density");
+        vegetation->updateSettings([](auto& settings){settings.capacity=4096;});
+        auto resizedGrass=adapter.collect(scene,1);
+        check(resizedGrass.packets[1].mesh->instanceCapacity()==4096,
+              "Vegetation capacity change did not recreate bounded instance storage");
+        editedGrass.packets.clear();resizedGrass.packets.clear();terrainMesh.reset();grassMesh.reset();
         withGrass.packets.clear();
         object->removeComponent<Grass>();
         check(adapter.collect(scene, 0).packets.size() == 1, "Removing grass did not rebuild terrain cache");

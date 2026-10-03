@@ -46,10 +46,37 @@ void validateTerrainRhi(std::shared_ptr<rhi::GraphicsDevice> d,const std::string
     auto vertices=terrain.readVertices(args.indexCount/6*4);auto indices=terrain.readIndices(args.indexCount);for(const auto& v:vertices){check(std::isfinite(v.position.x)&&std::isfinite(v.normal.y),"Terrain generated vertex nonfinite");check(v.position.x>=-1.001f && v.position.x<=1.001f && v.position.z>=-1.001f && v.position.z<=1.001f,"Terrain stitched vertex outside domain");const float height=.2f+.1f*(v.position.x*.5f+.5f)-.07f*(v.position.z*.5f+.5f);check(std::abs(v.position.y-height)<.0001f,"Terrain bilinear height/stitching failed");check(std::abs(glm::length(v.normal)-1)<.0001f,"Terrain normal not normalized");check(glm::length(v.normal-glm::normalize(glm::vec3(-.05f,1,.035f)))<.0001f,"Terrain boundary derivative halves plane slope");}for(auto i:indices)check(i<vertices.size(),"Terrain generated index overflow");
     MaterialDesc desc;desc.images[0]={128,128,std::vector<uint8_t>(128*128*4)};for(size_t i=0;i<desc.images[0].pixels.size();i+=4){desc.images[0].pixels[i]=51;desc.images[0].pixels[i+1]=102;desc.images[0].pixels[i+2]=153;desc.images[0].pixels[i+3]=255;}desc.parameters.albedoAlpha={.3f,.5f,.15f,1};desc.parameters.factors={0,.8f,1,0};auto virtualMaterial=std::make_shared<GpuVirtualTexture>(d,materialVirtualSource(desc.images));auto material=std::make_shared<GpuMaterial>(d,desc,virtualMaterial);f.lights={{{0,0,0,0},{4,4,4,0},{0,-1,-.1f,0}}};ForwardPbrRenderer renderer(d,directory,64,64,PbrPath::Deferred);renderer.render(f,{{terrain.mesh(),material,model}});size_t valid=0;auto positions=renderer.readGBuffer(0);for(size_t i=3;i<positions.size();i+=4)if(positions[i]==1)++valid;check(valid>100,"Terrain compute -> indexed indirect drawing produced no surface");auto colors=renderer.readGBuffer(2);for(size_t i=0;i<positions.size();i+=4)if(positions[i+3]==1){glm::vec3 expected=glm::pow(glm::vec3(.3f*.2f,.5f*.4f,.15f*.6f),glm::vec3(2.2f));check(glm::length(glm::vec3(colors[i],colors[i+1],colors[i+2])-expected)<.001f,"Terrain virtual albedo / material factors / G-buffer mismatch");}
     GpuGrass grass(d,directory,terrainOwner,model,4096);grass.update(model,0);auto grassArgs=grass.readArguments();uint32_t expectedGrass=0;for(size_t i=0;i<nodes.size();i+=4)if(nodes[i+2]<=1)expectedGrass+=256;
-    check(grassArgs.indexCount==3 && (grassArgs.instanceCount<=std::min(expectedGrass,4096u)) && grassArgs.instanceCount>0 && !grassArgs.firstInstance,"Grass indirect pose capacity/count invalid");
+    check(grassArgs.indexCount==60 && (grassArgs.instanceCount<=std::min(expectedGrass,4096u)) && grassArgs.instanceCount>0 && !grassArgs.firstInstance,"Grass indirect pose capacity/count invalid");
     auto poses=grass.readPoses(grassArgs.instanceCount);for(const auto& p:poses){for(int c=0;c<4;c++)for(int r=0;r<4;r++)check(std::isfinite(p[c][r]),"Grass pose nonfinite");check(std::abs(p[3].x)<=8.01f && std::abs(p[3].z)<=8.01f,"Grass pose outside terrain");const float y=3*(.2f+.1f*(p[3].x/16+.5f)-.07f*(p[3].z/16+.5f));check(std::abs(p[3].y-y)<.0001f,"Grass stem detached from height field");}
     renderer.render(f,{{grass.mesh(),material,glm::mat4(1)}});auto grassPixels=renderer.readGBuffer(0);size_t blades=0;for(size_t i=3;i<grassPixels.size();i+=4)if(grassPixels[i]==1)++blades;check(blades>5,"Grass storage vertex -> indexed instanced indirect draw missing");
     grass.update(model,1);auto wind=grass.readPoses(grass.readArguments().instanceCount);bool bending=false;for(const auto& p:wind)if(std::abs(p[1].x)>.001f)bending=true;check(bending,"Grass wind did not bend blades");
+    auto excluded=[&](VegetationSettings settings,std::shared_ptr<const ImageRGBA8> mask,const char* message){
+        GpuGrass filtered(d,directory,terrainOwner,model,4096,settings,mask);
+        filtered.update(model,0);check(filtered.readArguments().instanceCount==0,message);
+    };
+    VegetationSettings settings;settings.waterLevel=10;
+    excluded(settings,{},"Submerged terrain generated vegetation");settings.waterLevel=-100000;
+    excluded(settings,std::make_shared<const ImageRGBA8>(ImageRGBA8{1,1,{255,255,255,255}}),"Water mask failed to exclude vegetation");
+    settings.distance=1;settings.fadeStart=.5f;excluded(settings,{},"Distant vegetation was not culled");
+    settings.distance=100;settings.fadeStart=70;settings.minimumNormalY=1;
+    excluded(settings,{},"Steep terrain generated vegetation");
+    settings.minimumNormalY=.65f;settings.density=0;excluded(settings,{},"Zero density generated vegetation");
+    settings.density=1;settings.frustumCull=true;
+    auto behind=glm::translate(glm::mat4(1),glm::vec3(0,0,40))*model;
+    GpuGrass hiddenGrass(d,directory,terrainOwner,behind,4096,settings);
+    hiddenGrass.update(behind,0);check(hiddenGrass.readArguments().instanceCount==0,"Behind-camera vegetation survived frustum culling");
+    settings.frustumCull=false;GpuGrass uncull(d,directory,terrainOwner,behind,4096,settings);
+    uncull.update(behind,0);check(uncull.readArguments().instanceCount>0,"Frustum test has no eligible control population");
+    settings.frustumCull=true;settings.samplesPerCell=4;
+    auto asymmetric=std::make_shared<const ImageRGBA8>(ImageRGBA8{1,2,{255,255,255,255,0,0,0,255}});
+    GpuGrass shore(d,directory,terrainOwner,model,4096,settings,asymmetric);shore.update(model,0);
+    auto shoreArgs=shore.readArguments();check(shoreArgs.instanceCount>0,"Asymmetric shore mask rejected all vegetation");
+    for(auto& p:shore.readPoses(shoreArgs.instanceCount))check(p[3].z<-.1f,"Vegetation mask V orientation is reversed");
+    // Hashing and roots must be independent of time even when draw order changes.
+    auto roots=[](const std::vector<glm::mat4>& values){std::vector<glm::vec3> result;for(auto& p:values)result.emplace_back(p[3]);
+        std::sort(result.begin(),result.end(),[](auto a,auto b){return a.x!=b.x?a.x<b.x:a.z<b.z;});return result;};
+    auto roots0=roots(poses),roots1=roots(wind);check(roots0.size()==roots1.size(),"Wind changed vegetation population");
+    for(size_t i=0;i<roots0.size();++i)check(glm::length(roots0[i]-roots1[i])<1e-5f,"Wind moved vegetation roots");
     std::cout<<"RHI grass GPU poses, height attachment, bounded indirect instance generation, vertex storage sampling and wind passed; instances "<<grassArgs.instanceCount<<", pixels "<<blades<<"\n";
     f.cameraPosition={0,70,100};f.view=glm::lookAt(f.cameraPosition,glm::vec3(0),glm::vec3(0,1,0));terrain.update(f,model);check(terrain.readNodes().size()/4<=fineLeaves,"Terrain distant view increased refinement");
     // Force the mesh budget to exhaust with uneven LOD, then verify a closed

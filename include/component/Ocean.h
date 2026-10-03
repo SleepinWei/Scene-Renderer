@@ -11,6 +11,7 @@ class FrameBuffer;
 struct OceanConfiguration {
     int FFTPow=10, fft_size=1024, MeshSize=513;
     float MeshLength=512, TimeScale=1;
+    float SpectrumLength=0; // Zero follows MeshLength; otherwise tile this FFT domain across the grid.
     glm::vec4 WindAndSeed={1,1,0,0}; // xy wind direction; zw retained for source compatibility.
     int seed=1337;
     bool animate=true, detailWaves=true;
@@ -18,6 +19,7 @@ struct OceanConfiguration {
     float A=0.0005f, Lambda=0.8f, HeightScale=1;
     float BubblesScale=2, BubblesThreshold=0.86f, WindScale=30;
     float seaLevel=-5;
+    std::string waterMaskPath; // White water / black land, terrain material UV orientation.
     bool refraction=true;
     float refractionStrength=1, deepWaterDistance=40, subsurfaceStrength=1;
     glm::vec3 absorption={.12f,.04f,.02f}; // RGB absorption coefficient, 1/metre.

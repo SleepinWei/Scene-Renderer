@@ -148,7 +148,56 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
     // Shadow attachments belong to the lights in each scene.
 
 
-    if (name == "terrain") {
+    if (name == "mountain-lake" || name == "mountain-lake-ground") {
+        std::ifstream input("samples/assets/terrain/mountain-lake/scene.json");
+        if (!input) throw std::runtime_error("Mountain Lake is missing; download the official archives and run python3 tools/prepare_mountain_lake.py (see docs/mountain-lake.md)");
+        nlohmann::json config; input >> config;
+        auto terrain = std::make_shared<Terrain>();
+        auto component = std::make_shared<TerrainComponent>();
+        component->loadFromJson(config);
+        const auto scale = config.at("modelScale").get<std::array<float,3>>();
+        auto material = pbr(glm::vec3(1));
+        material->setMetallicFactor(0);
+        material->setRoughnessFactor(.9f);
+        component->updateSettings([&](auto& value) {
+            value.model = glm::scale(glm::mat4(1),glm::vec3(scale[0],scale[1],scale[2]));
+            value.material = material;
+        });
+        terrain->addComponent(component);
+        auto lake = std::make_shared<Ocean>();
+        lake->updateSettings([&](auto& value) {
+            value.FFTPow = 9; value.fft_size = 512; value.MeshSize = 1025;
+            value.SpectrumLength = 512;
+            value.MeshLength = scale[0]*2;
+            value.seaLevel = config.at("seaLevel").get<float>();
+            value.waterMaskPath = "samples/assets/masks/mountain-lake-water-mask.png";
+            value.WindScale = 8; value.A = .0001f; value.HeightScale = .15f;
+            value.Lambda = .15f; value.detailStrength = .5f;
+            value.BubblesScale = 0;
+            value.refractionStrength = .35f; value.deepWaterDistance = 40;
+            value.absorption = {.08f,.025f,.012f};
+            value.scattering = {.01f,.02f,.025f};
+            value.outer_OceanColorShallow = {.18f,.65f,.7f};
+            value.outer_OceanColorDeep = {.025f,.15f,.25f};
+        });
+        terrain->addComponent(lake);
+        auto grass = std::make_shared<Grass>();
+        grass->updateSettings([&](auto& value){
+            value.capacity=65536;value.maxLod=3;value.samplesPerCell=8;value.distance=180;value.fadeStart=120;
+            value.density=.9f;value.heightScale=2.8f;value.widthScale=2.5f;
+            value.minimumNormalY=.8f;value.waterLevel=lake->settings().seaLevel;value.shoreMargin=1.5f;
+            value.maximumAltitude=1200;value.waterMaskPath=lake->settings().waterMaskPath;
+        });
+        terrain->addComponent(grass); target->addTerrain(terrain);
+        target->setCamera(std::make_shared<Camera>(glm::vec3(-2600,800,2600),glm::vec3(0,1,0),-45,3));
+        if(name=="mountain-lake-ground")
+            target->setCamera(std::make_shared<Camera>(glm::vec3(-1050,464,2000),glm::vec3(0,1,0),-45,-4));
+        target->mainCamera()->setClipPlanes(.1f,16000);
+        target->mainCamera()->setMovementSpeed(150);
+        target->mainCamera()->setZoom(62); target->mainCamera()->setExposure(1.4f);
+        atmosphere(target); sun(target,glm::vec3(3),{-.5f,-1,-.4f});
+        manager->setting.enableSSAO = true;
+    } else if (name == "terrain") {
         target->setCamera(std::make_shared<Camera>(glm::vec3(0,10,32),glm::vec3(0,1,0),-90,-12));
         target->mainCamera()->setZoom(60);target->mainCamera()->setExposure(1);
         auto terrain=std::make_shared<Terrain>();auto component=std::make_shared<TerrainComponent>();std::vector<float> heights(1024*1024);
@@ -232,6 +281,6 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
         target->mainCamera()->setZoom(58); target->mainCamera()->setExposure(1.1f);
         atmosphere(target);sun(target,{2.8f,2.6f,2.3f},{-.35f,-1,-.2f});
         manager->setting.enableRSM = true;
-    } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose terrain, sky, bunny, helmet, cornell, sponza, san-miguel, ocean or ocean-clear");
+    } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose terrain, mountain-lake, sky, bunny, helmet, cornell, sponza, san-miguel, ocean or ocean-clear");
     return target;
 }

@@ -171,6 +171,25 @@ GUI 可修改太阳仰角、方位、角半径、多次散射强度、地面反�
 
 ## 虚拟纹理地形
 
+### Mountain Lake：山地与湖泊
+
+导入 [ill_drakon 的 Mountain Lake](https://sketchfab.com/3d-models/mountain-lake-3043ead27ac74144950e634197a1490b)（CC BY 4.0），从原始规则网格重建 **1025×1025 高度场**，结合作者同分辨率的地表颜色图，接入高度／材质 VT。按米制解释原始坐标，演示范围为 **8×8 km**；湖面使用源水位、独立 512 m 频谱周期的 FFT、折射及近似体散射；生图水域 mask 限定岸线，GPU 草丛按距离、坡度、水位与 mask 过滤。VT 的 2048 存储尺寸来自重采样，不增加原始细节；当前水面反射只包含天空。下载、署名、转换和限制见 [山湖场景说明](docs/mountain-lake.md)。
+
+![新 RHI／Metal Mountain Lake 山湖场景](img/metal/mountain-lake.png)
+
+```sh
+python3 tools/prepare_mountain_lake.py # 先按说明下载两个官方归档
+./build/Scene-Renderer --classic mountain-lake
+./build/Scene-Renderer --classic mountain-lake-ground # 湖岸植被近景
+./build/Scene-Renderer --render-gallery img/metal mountain-lake
+```
+
+草丛采用四片弯叶、360° 随机朝向、距离淡出及有上限的 GPU 间接实例。密集草块共享地形角点，减少 VT 采样；水面省去完全干燥区域的网格单元。修复与验收见 [植被与 FFT 湖面](docs/vegetation-and-lake-water.md)。
+
+![Metal 湖岸草丛近景](img/metal/mountain-lake-ground.png)
+
+### 程序生成地形与草
+
 地形高度图和五层 PBR 材质使用软件 **Virtual Texture**：固定物理 tile 缓存、mip 页表、祖先回退、边框过滤和区域上传。高度生成与草共用页采样；旧 float32 高度文件可直接按页读取，大场景可使用离线 pack，使高度和材质均无需在运行时完整解码。
 
 GPU 四叉树按分块高度界、FOV、分辨率和距离估计屏幕误差，叶节点预算耗尽时保留父节点。公共整数网格与高度 morph 保持不同 LOD 的接缝一致，草附着于同一变形后的三角形表面，边界法线按实际差分跨度计算。默认网格从约 237.5 MiB 降至 19 MiB；8192² 虚拟尺寸下，网格与两套默认 VT 资源合计约 30.16 MiB，不包含草、阴影和其他渲染目标。

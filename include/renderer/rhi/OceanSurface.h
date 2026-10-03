@@ -2,10 +2,14 @@
 #include "renderer/rhi/GpuOcean.h"
 namespace render {
 struct FrameData;
+struct ImageRGBA8;
+class GpuImage;
+class GpuImageCache;
 struct OceanSurfaceSettings {
-    uint64_t id=1;OceanSettings spectrum;uint32_t meshSize=129;
+    uint64_t id=1;OceanSettings spectrum;uint32_t meshSize=129;float surfaceLength=0;
     float seaLevel=-5,timeScale=1,detailStrength=1,refractionStrength=1,deepWaterDistance=40,subsurfaceStrength=1,anisotropy=.65f,fresnel=.02f,gloss=256;
     bool detailWaves=true,refraction=true,animate=true;
+    std::shared_ptr<const ImageRGBA8> waterMask;
     glm::vec3 absorption{.12f,.04f,.02f},scattering{.025f,.05f,.07f};
     glm::vec3 shallow=glm::pow(glm::vec3(.30713776f,.4703595f,.5471698f),glm::vec3(2.2f));
     glm::vec3 deep=glm::pow(glm::vec3(.0499288f,.1436479f,.20754719f),glm::vec3(2.2f));
@@ -23,5 +27,7 @@ private:
     Resources resources_;OceanSurfaceSettings initial_;rhi::PipelineHandle pipeline_;rhi::BufferHandle vertices_,indices_;uint32_t indexCount_;
     rhi::SamplerHandle repeat_,clamp_;std::array<rhi::TextureHandle,2> previous_;std::array<rhi::TextureViewHandle,2> previousViews_;
     glm::mat4 previousVP_{1},previousView_{1},previousModel_{1};bool history_=false;
+    std::shared_ptr<GpuImageCache> imageCache_;
+    std::shared_ptr<GpuImage> mask_;
 };
 }

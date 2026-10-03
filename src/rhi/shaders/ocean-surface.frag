@@ -26,6 +26,7 @@ struct DirLight {vec3 direction;vec3 diffuse;vec3 specular;};
 #define enableRefraction int(flags.z)
 #define temporalActive int(flags.w)
 layout(location=0) in vec3 FragPos;layout(location=1) in vec2 FragTexCoord;layout(location=5) in vec2 DetailTexCoord;
+layout(location=2) in vec2 WaterMaskCoord;
 layout(location=6) in vec4 PreviousClip;layout(location=7) in float PreviousDepth;
 layout(location=0) out vec4 FragColor;layout(location=1) out vec4 TemporalMotion;
 layout(set=1,binding=0) uniform sampler2D NormalRT;
@@ -36,6 +37,7 @@ layout(set=1,binding=4) uniform sampler2D detailFoam;
 layout(set=1,binding=5) uniform sampler2D opaqueScene;
 layout(set=1,binding=6) uniform sampler2D scenePosition;
 layout(set=1,binding=7) uniform sampler2D sceneNormal;
+layout(set=2,binding=0) uniform sampler2D waterMask;
 vec3 skyRadiance(vec3 direction) {
     if(hasSky==0)return vec3(0);
     return sampleSkyLut(skyview,direction);
@@ -103,6 +105,8 @@ vec3 transmittedWater(vec3 N,vec3 V,vec3 L) {
     return background*T+scatter+outer_ambient;
 }
 void main() {
+    // Mask follows material UVs, whose V axis is opposite the water grid.
+    if(texture(waterMask,vec2(WaterMaskCoord.x,1.-WaterMaskCoord.y)).r<.5)discard;
     vec3 N=normalize(texture(NormalRT,FragTexCoord).xyz),V=normalize(viewPos-FragPos);
     if(enableDetail!=0) {
         vec3 detail=normalize(texture(detailNormal,DetailTexCoord).xyz);

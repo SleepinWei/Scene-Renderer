@@ -1,0 +1,25 @@
+OpenAI imagegen water coverage mask, 2026-10-04.
+Output: mountain-lake-water-mask.png, 1254 x 1254, opaque grayscale.
+Source terrain: Mountain Lake by ill_drakon, CC BY 4.0.
+https://sketchfab.com/3d-models/mountain-lake-3043ead27ac74144950e634197a1490b
+See samples/licenses/mountain-lake.txt for attribution.
+
+References: a binary coverage field derived from the source terrain below
+432.236877, plus a grayscale elevation reference. Both follow terrain material
+UVs: U=(source X+4000)/8000, V=(source Y+4000)/8000; image row 0 is V=0.
+The reference was computed from source geometry, not terrain color.
+Generated pixels were copied without image postprocessing. Measured binary
+IoU against a nearest-resampled geometric reference: 0.988794.
+The mask is an artistic shoreline constraint, not authoritative bathymetry.
+
+Prompt:
+Edit the first reference into a production water coverage mask for a terrain
+renderer. Preserve its exact top-down lake footprint, orientation, location,
+shoreline and canvas framing. White (255) means water and pure black (0) means
+dry terrain. The second reference is the elevation field, used only to confirm
+the existing basin. Do not invent additional water, islands, terrain,
+reflections, lettering, borders, or decorative details. Keep the large white
+lake region at the upper left touching the same canvas edges. Clean isolated
+one-pixel noise while retaining real narrow shoreline inlets. Add only a very
+narrow 1-2 pixel grayscale antialias feather at the existing shoreline. This is
+a technical grayscale texture mask, not an illustration. Return only the mask.

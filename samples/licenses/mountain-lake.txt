@@ -1,0 +1,15 @@
+Model Information:
+* title:	Mountain Lake
+* source:	https://sketchfab.com/3d-models/mountain-lake-3043ead27ac74144950e634197a1490b
+* author:	ill_drakon (https://sketchfab.com/ill_drakon)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Mountain Lake" (https://sketchfab.com/3d-models/mountain-lake-3043ead27ac74144950e634197a1490b) by ill_drakon (https://sketchfab.com/ill_drakon) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+
+Project conversion: reconstruct regular-grid heights from glTF; convert Z-up to Y-up; vertically flip the original color texture to match glTF UVs; bake height and material virtual textures. Replace the original water box with a calmer FFT water surface. No source geometry detail is added by VT resampling.
+
+Water coverage mask: generated with OpenAI imagegen from source elevation and waterline references; shoreline cleaned and feathered. Prompt and method: samples/assets/masks/mountain-lake-water-mask.prompt.txt. Source terrain attribution and CC BY 4.0 apply to this derivative.

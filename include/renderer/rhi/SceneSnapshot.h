@@ -2,6 +2,7 @@
 #include "renderer/rhi/ForwardPbrRenderer.h"
 #include "renderer/rhi/GpuVirtualTexture.h"
 #include <optional>
+#include "component/VegetationSettings.h"
 class RenderScene;
 namespace render {
 struct MeshPayload {
@@ -30,8 +31,11 @@ struct TerrainPayload {
     uint32_t capacity = 2048,virtualColumns=8;
     VirtualTextureSource height, material;
     bool grass = false;
+    VegetationSettings vegetation;
+    std::shared_ptr<const ImageRGBA8> waterMask;
 };
 struct SnapshotTerrain {
+    std::optional<VegetationSettings> vegetation;
     std::shared_ptr<const TerrainPayload> source;
     glm::mat4 model{1};
     MaterialParameters parameters;

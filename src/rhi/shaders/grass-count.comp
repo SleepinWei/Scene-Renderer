@@ -1,5 +1,7 @@
 #version 450
-layout(local_size_x=64,local_size_y=1,local_size_z=1)in;
-layout(set=1,binding=0,std140) readonly buffer FinalNodeList {uint finalNodeCnt;uint one;uint one_;uvec3 finalNode[];};
+#extension GL_GOOGLE_include_directive : require
+layout(local_size_x=16,local_size_y=16,local_size_z=1)in;
+#include "grass-placement.glsl"
 layout(set=1,binding=3,std430) buffer GrassCandidates {uint candidateCount;};
-void main(){uint leaf=gl_GlobalInvocationID.x;if(leaf<finalNodeCnt && finalNode[leaf].z<=1)atomicAdd(candidateCount,256);}
+void main(){if(!leafEligible())return;preparePatch();uint blocks=uint(controls.z)/2u;
+    for(uint i=0;i<blocks*blocks;i++){vec3 position;uint seed;float growth;if(candidate(i,position,seed,growth))atomicAdd(candidateCount,1);}}

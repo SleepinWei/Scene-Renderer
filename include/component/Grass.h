@@ -1,6 +1,7 @@
 #pragma once
 #include<memory>
 #include"Component.h"
+#include "component/VegetationSettings.h"
 
 class Shader;
 class SSBO;
@@ -15,6 +16,11 @@ public:
 	void prepareData();
 
 	void render(const std::shared_ptr<Shader>& shader);
+	VegetationSettings settings() const {checkLogicThread();return settings_;}
+	void setSettings(VegetationSettings value) {checkLogicThread();value.validate();settings_=std::move(value);invalidate();}
+	template<class F> void updateSettings(F&& edit) {auto value=settings();edit(value);setSettings(std::move(value));}
+private:
+	VegetationSettings settings_;
 public:
 	std::shared_ptr<Shader> shader; //shader for deferred pipeline
 	std::shared_ptr<Shader> shadowShader; // shader for shadows 

@@ -70,6 +70,15 @@ void validateAtmosphereRhi(std::shared_ptr<rhi::GraphicsDevice> d,const std::str
     {ShadowRenderer source(d,directory,32,atmosphere.irradiance());f.rsm=true;f.rsmSettings.sunBounce=false;f.rsmSettings.skyBounce=true;source.render(f,draws);auto flux=source.readRsmSource(0);double skyEnergy=0;for(size_t i=0;i<flux.size();i+=4)skyEnergy+=flux[i];check(skyEnergy>1e-6,"Sky RSM source did not capture irradiance");f.rsmSettings.skyBounce=false;source.render(f,draws);flux=source.readRsmSource(0);double zero=0;for(size_t i=0;i<flux.size();i+=4)zero+=flux[i];check(zero<skyEnergy*.001,"Sky bounce toggle left indirect source energy");f.rsm=false;f.rsmSettings={};}
     OceanSurfaceSettings ocean;ocean.spectrum.size=16;ocean.spectrum.length=8;ocean.spectrum.amplitude=0;ocean.meshSize=33;ocean.seaLevel=0;f.oceans={ocean};renderer.render(f,draws);auto water=renderer.readHDR();size_t surface=0;
     for(size_t i=0;i<water.size();i+=4){for(int c=0;c<4;++c)check(std::isfinite(water[i+c]),"Water surface output nonfinite");if(std::abs(water[i]-dry[i])>.03f)++surface;}check(surface>100,"Water compute -> vertex sampling -> HDR surface missing");
+    f.oceans[0].waterMask=std::make_shared<const ImageRGBA8>(ImageRGBA8{1,1,{0,0,0,255}});
+    renderer.render(f,draws);auto masked=renderer.readHDR();
+    for(size_t i=0;i<dry.size();++i)check(std::abs(masked[i]-dry[i])<.005f,"Black water mask did not restore dry scene");
+    f.oceans[0].waterMask=std::make_shared<const ImageRGBA8>(ImageRGBA8{1,1,{255,255,255,255}});
+    renderer.render(f,draws);auto unmasked=renderer.readHDR();
+    for(size_t i=0;i<water.size();++i)check(std::abs(unmasked[i]-water[i])<.005f,"White water mask changed unmasked water");
+    OceanSurfaceSettings tiled=ocean;tiled.surfaceLength=16;
+    OceanSurface tileSurface(d,directory,tiled);
+    check(!tileSurface.compatible(ocean),"Ocean display domain change retained incompatible grid");
     f.timeSeconds=.2f;renderer.render(f,draws);auto stationary=renderer.readHDR();for(size_t i=0;i<water.size();++i)check(std::abs(stationary[i]-water[i])<.005f,"Flat water changed across previous displacement copy");
     f.oceans[0].refraction=false;renderer.render(f,draws);auto opaque=renderer.readHDR();bool refraction=false;for(size_t i=0;i<water.size();++i)if(std::abs(opaque[i]-water[i])>.01f)refraction=true;check(refraction,"Water refraction toggle ignored opaque scene snapshot");
     renderer.resize(48,32);renderer.render(f,draws);check(renderer.readOutput().size()==48*32*4,"Water surface resize failed");

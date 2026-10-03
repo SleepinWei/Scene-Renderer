@@ -153,6 +153,7 @@ struct SceneSnapshotBuilder::State {
     std::unordered_map<uint64_t, PendingPayload<MeshPayload>> meshes;
     std::unordered_map<uint64_t, PendingPayload<MaterialPayload>> materials;
     PendingPayload<TerrainPayload> terrain;
+    std::unordered_map<uint64_t, PendingPayload<ImageRGBA8>> waterMasks;
     uint64_t terrainKey = 0;
     std::weak_ptr<Atmosphere> sunAtmosphere;
     float lastSunAngle = 0, lastSunAzimuth = 0;
@@ -163,6 +164,7 @@ void SceneSnapshotBuilder::invalidateAssets() {
     state_->meshes.clear();
     state_->materials.clear();
     state_->terrain = {};
+    state_->waterMasks.clear();
     ++state_->epoch;
 }
 std::shared_ptr<const RenderWorldSnapshot>
@@ -299,11 +301,13 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
     result.sequence = ++state_->sequence;
     result.frame.historyKey ^= state_->epoch * 0xd1b54a32d192ed03ull;
     bool ready = true;
-    std::unordered_set<uint64_t> usedMeshes, usedMaterials;
+    std::unordered_set<uint64_t> usedMeshes, usedMaterials, usedMasks;
     if (scene->terrain()) {
         auto component = scene->terrain()->getComponent<TerrainComponent>();
         if (component) {
-            bool grass = bool(scene->terrain()->getComponent<Grass>());
+            auto grassComponent = scene->terrain()->getComponent<Grass>();
+            bool grass = bool(grassComponent);
+            const auto vegetation = grass ? grassComponent->settings() : VegetationSettings{};
             uint64_t key = component->assetId;
             uint64_t revision = 0xcbf29ce484222325ull;
             auto mix = [&](uint64_t value) {
@@ -312,6 +316,10 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
             mix(component->getSourceRevision());
             mix(component->settings().maxLeaves);
             mix(grass);
+            if (grass) {
+                mix(vegetation.capacity);
+                mix(std::hash<std::string>{}(vegetation.waterMaskPath));
+            }
             // Paths are part of source identity; scalars and model are per-frame values.
             for (const auto &path : {component->settings().heightSourcePath, component->settings().heightVirtualTexture,
                                      component->settings().materialVirtualTexture})
@@ -354,13 +362,16 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
             }
             auto source = requestPayload(
                 state_->terrain, revision,
-                [key, revision, grass, heightPath, heightVT, materialVT, w, h, capacity,
+                [key, revision, grass, vegetation, heightPath, heightVT, materialVT, w, h, capacity,
                  heights = std::move(heights), material] {
                     auto payload = std::make_shared<TerrainPayload>();
                     payload->id = key;
                     payload->revision = revision;
                     payload->capacity = capacity;
                     payload->grass = grass;
+                    payload->vegetation = vegetation;
+                    if (!vegetation.waterMaskPath.empty())
+                        payload->waterMask = ImageRGBA8::loadShared(vegetation.waterMaskPath);
                     if (!heightVT.empty())
                         payload->height = packedVirtualSource(heightVT);
                     else if (!heightPath.empty())
@@ -388,6 +399,7 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
                 },
                 wait);
             SnapshotTerrain terrain;
+            terrain.vegetation = vegetation;
             terrain.source = source;
             terrain.model = component->settings().model;
             terrain.wireframe = component->settings().polyMode == GL_LINE;
@@ -414,38 +426,48 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
         if (object) {
             auto ocean = object->getComponent<Ocean>();
             if (ocean) {
+                const auto configuration = ocean->settings();
                 OceanSurfaceSettings s;
                 s.id = object->assetId;
-                s.spectrum = {uint32_t(ocean->settings().fft_size),
-                              ocean->settings().MeshLength,
-                              ocean->settings().A,
-                              ocean->settings().WindScale,
-                              ocean->settings().Lambda,
-                              ocean->settings().HeightScale,
-                              ocean->settings().BubblesScale,
-                              ocean->settings().BubblesThreshold,
-                              glm::vec2(ocean->settings().WindAndSeed),
-                              ocean->settings().seed};
-                s.meshSize = uint32_t(ocean->settings().MeshSize);
-                s.seaLevel = ocean->settings().seaLevel;
-                s.timeScale = ocean->settings().TimeScale;
-                s.animate = ocean->settings().animate;
-                s.detailWaves = ocean->settings().detailWaves;
-                s.detailStrength = ocean->settings().detailStrength;
-                s.refraction = ocean->settings().refraction;
-                s.refractionStrength = ocean->settings().refractionStrength;
-                s.deepWaterDistance = ocean->settings().deepWaterDistance;
-                s.subsurfaceStrength = ocean->settings().subsurfaceStrength;
-                s.anisotropy = ocean->settings().scatteringAnisotropy;
-                s.absorption = ocean->settings().absorption;
-                s.scattering = ocean->settings().scattering;
-                s.fresnel = ocean->settings().outer_FresnelScale;
-                s.gloss = float(ocean->settings().outer_Gloss);
-                s.shallow = ocean->settings().outer_OceanColorShallow;
-                s.deep = ocean->settings().outer_OceanColorDeep;
-                s.foamColor = ocean->settings().outer_BubblesColor;
-                s.specular = ocean->settings().outer_Specular;
-                s.ambient = ocean->settings().outer_ambient;
+                s.spectrum = {uint32_t(configuration.fft_size),
+                              configuration.SpectrumLength>0 ? configuration.SpectrumLength : configuration.MeshLength,
+                              configuration.A,
+                              configuration.WindScale,
+                              configuration.Lambda,
+                              configuration.HeightScale,
+                              configuration.BubblesScale,
+                              configuration.BubblesThreshold,
+                              glm::vec2(configuration.WindAndSeed),
+                              configuration.seed};
+                s.meshSize = uint32_t(configuration.MeshSize);
+                s.surfaceLength = configuration.MeshLength;
+                s.seaLevel = configuration.seaLevel;
+                s.timeScale = configuration.TimeScale;
+                s.animate = configuration.animate;
+                s.detailWaves = configuration.detailWaves;
+                s.detailStrength = configuration.detailStrength;
+                s.refraction = configuration.refraction;
+                s.refractionStrength = configuration.refractionStrength;
+                s.deepWaterDistance = configuration.deepWaterDistance;
+                s.subsurfaceStrength = configuration.subsurfaceStrength;
+                s.anisotropy = configuration.scatteringAnisotropy;
+                s.absorption = configuration.absorption;
+                s.scattering = configuration.scattering;
+                s.fresnel = configuration.outer_FresnelScale;
+                s.gloss = float(configuration.outer_Gloss);
+                s.shallow = configuration.outer_OceanColorShallow;
+                s.deep = configuration.outer_OceanColorDeep;
+                s.foamColor = configuration.outer_BubblesColor;
+                s.specular = configuration.outer_Specular;
+                s.ambient = configuration.outer_ambient;
+                const auto maskPath = configuration.waterMaskPath;
+                if (!maskPath.empty()) {
+                    usedMasks.insert(object->assetId);
+                    s.waterMask = requestPayload(state_->waterMasks[object->assetId],
+                        std::hash<std::string>{}(maskPath),
+                        [maskPath] { return ImageRGBA8::loadShared(maskPath); }, wait);
+                    ready = ready && bool(s.waterMask);
+                }
                 result.frame.oceans.push_back(s);
             }
 
@@ -550,6 +572,9 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
             it = state_->materials.erase(it);
         else
             ++it;
+    for (auto it = state_->waterMasks.begin(); it != state_->waterMasks.end();)
+        if (!usedMasks.count(it->first)) it = state_->waterMasks.erase(it);
+        else ++it;
     ImageRGBA8::releaseUnused();
     if (!ready)
         return {};

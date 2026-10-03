@@ -1,0 +1,18 @@
+{
+  "name": "Mountain Lake",
+  "source": "https://sketchfab.com/3d-models/mountain-lake-3043ead27ac74144950e634197a1490b",
+  "author": "ill_drakon",
+  "authorURL": "https://sketchfab.com/ill_drakon",
+  "license": "CC-BY-4.0",
+  "licenseURL": "https://creativecommons.org/licenses/by/4.0/",
+  "archives": {
+    "original": {
+      "path": "samples/downloads/mountain-lake/original.zip",
+      "sha256": "c6f3541d2730bc3c8e9e948abbe65a6563719d7128fbd8619262d08df9afb8cb"
+    },
+    "gltf": {
+      "path": "samples/downloads/mountain-lake/gltf.zip",
+      "sha256": "d2edcee50a7d9587f564dd2279bd741f7802b8fff827b691663e3927aa0f09a0"
+    }
+  }
+}

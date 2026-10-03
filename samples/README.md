@@ -42,6 +42,15 @@
 
 ## 大型场景的获取与复现
 
+### Mountain Lake：山地与湖泊
+
+- 作者：[ill_drakon](https://sketchfab.com/ill_drakon)，来源：[Mountain Lake](https://sketchfab.com/3d-models/mountain-lake-3043ead27ac74144950e634197a1490b)，采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。完整署名见 [licenses/mountain-lake.txt](licenses/mountain-lake.txt)。
+- 从官方页面登录下载原始 FBX 和转换 glTF 归档，放入 `samples/downloads/mountain-lake/` 后执行 `python3 tools/prepare_mountain_lake.py`。文件名、校验值和操作见 [山湖地形说明](../docs/mountain-lake.md) 与 [资源清单](mountain-lake.json)。
+- 保留原生 1025×1025 高度和地表色图，转换坐标、UV，并烘焙高度／材质 VT。内置 `--classic mountain-lake` 使用源水位和低风速 FFT 湖面。原始坐标范围按米制解释为 8×8 km，属于演示尺度。
+- 下载与转换输出不随仓库提交；截图、清单和转换工具随仓库提供。转换结果与作者原始模型的修改点见上面的许可文件和说明。
+
+### Sponza 与 San Miguel
+
 ```sh
 python3 tools/fetch_gi_assets.py                  # 两个场景
 python3 tools/fetch_gi_assets.py --scene sponza   # 仅 Sponza

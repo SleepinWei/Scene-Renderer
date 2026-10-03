@@ -9,10 +9,12 @@ layout(set=0,binding=3) uniform sampler2D detailDisplace;
 layout(set=0,binding=4) uniform sampler2D previousDisplace;
 layout(set=0,binding=5) uniform sampler2D previousDetailDisplace;
 layout(location=0) out vec3 FragPos;layout(location=1) out vec2 FragTexCoord;
+layout(location=2) out vec2 WaterMaskCoord;
 layout(location=5) out vec2 DetailTexCoord;layout(location=6) out vec4 PreviousClip;layout(location=7) out float PreviousDepth;
 void main() {
     // A periodic grid stores sample 0 at texel centre, not at the texture edge.
-    FragTexCoord=aTexCoord+0.5/vec2(textureSize(DisplaceRT,0));
+    WaterMaskCoord=aTexCoord;
+    FragTexCoord=aPos.xz/max(vertexSettings.y,.01)+.5+0.5/vec2(textureSize(DisplaceRT,0));
     DetailTexCoord=aPos.xz/max(detailLength,.01)+.5+.5/vec2(textureSize(detailDisplace,0));
     vec3 displacement=textureLod(DisplaceRT,FragTexCoord,0).xyz;
     if(enableDetail!=0)displacement+=textureLod(detailDisplace,DetailTexCoord,0).xyz;

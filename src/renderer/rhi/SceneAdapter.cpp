@@ -159,7 +159,9 @@ SceneFrame SceneAdapter::resolveCandidate(const RenderWorldSnapshot &snapshot) {
         if (!device_->computeLimits().maxStorageImages)
             throw std::invalid_argument("Terrain requires storage compute");
         if (!cache_->terrain || cache_->terrain->source != source) {
-            admit(size_t(source->capacity) * 64 * (4 * sizeof(MeshVertex) + 6 * 4) + 12 * 1024 * 1024);
+            admit(size_t(source->capacity) * 64 * (4 * sizeof(MeshVertex) + 6 * 4) + 12 * 1024 * 1024 +
+                  (source->grass ? size_t(source->vegetation.capacity)*64 : 0) +
+                  (source->waterMask ? source->waterMask->pixels.size() : 0));
             auto record = std::make_unique<Cache::TerrainRecord>();
             record->source = source;
             record->epoch = ++cache_->terrainEpoch;
@@ -177,7 +179,7 @@ SceneFrame SceneAdapter::resolveCandidate(const RenderWorldSnapshot &snapshot) {
             record->parameters = terrain.parameters;
             if (source->grass) {
                 record->grass = std::make_shared<GpuGrass>(device_, rhi::defaultShaderDirectory(),
-                                                           record->gpu, terrain.model);
+                                                           record->gpu, terrain.model, source->vegetation.capacity, source->vegetation, source->waterMask);
                 MaterialDesc grass;
                 grass.parameters.factors = {0, 1, 1, 0};
                 grass.parameters.emissiveNormal.w = 0;
@@ -202,7 +204,7 @@ SceneFrame SceneAdapter::resolveCandidate(const RenderWorldSnapshot &snapshot) {
                                    record.virtualMaterial->version() ^ (record.epoch * 0xd1b54a32d192ed03ull);
         result.packets.push_back({record.gpu->mesh(), record.material, terrain.model, record.epoch*0xd1b54a32d192ed03ull, terrain.wireframe,record.gpu->geometryStable()});
         if (record.grass) {
-            record.grass->update(terrain.model, result.frame.timeSeconds);
+            record.grass->update(terrain.model, result.frame.timeSeconds, terrain.vegetation.value_or(source->vegetation));
             result.packets.push_back({record.grass->mesh(), record.grassMaterial, glm::mat4(1)});
         }
     } else

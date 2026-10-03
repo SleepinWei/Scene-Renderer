@@ -74,6 +74,7 @@ imgui.ini
 /packages/
 /samples/downloads/
 /samples/assets/gi/
+/samples/assets/terrain/
 *.zip
 *.rar
 *.nupkg

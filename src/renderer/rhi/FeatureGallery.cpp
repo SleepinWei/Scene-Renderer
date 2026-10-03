@@ -29,7 +29,7 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
     std::vector<std::string> names;
     if(selection.empty() || selection=="core")names={"bunny","helmet","cornell"};
     else if(selection=="gi")names={"sponza","san-miguel"};else names={selection};
-    const bool water=selection=="ocean" || selection=="ocean-clear";int width=water?1920:960,height=water?1080:720;
+    const bool water=selection=="ocean" || selection=="ocean-clear" || selection=="mountain-lake" || selection=="mountain-lake-ground";int width=water?1920:960,height=water?1080:720;
 #ifdef __APPLE__
     glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER,GLFW_FALSE);
 #endif
