@@ -1,8 +1,10 @@
 # CPU Path Tracing：物体与大型场景
 
-## 本轮结果（2026-10-03）
+后续采样与 GPU 路径见 [CPU 采样优化与 Metal/Vulkan GPU Path Tracing](path-tracing-gpu.md)。当前默认 Sobol/VNDF 和自适应采样；下方首次 CPU 图像与耗时属于原 PCG/NDF 固定采样记录。
 
-Sponza 和 San Miguel 已完成真实网格、纹理与灯光转换，并输出 320×240 / 8 spp 预览及 640×480 / 256 spp 静态图。积分在 CPU 上执行；天空由实时 RHI 大气烘焙成线性 HDR 环境贴图，保存后可完全在 CPU 上复用。完整生成文件位于忽略的 `build/path-tracing/`；两张最终 PNG 同步到 `img/path-tracing/`，用于 README 展示。
+## 首次 CPU 结果（2026-10-03）
+
+Sponza 和 San Miguel 首次已完成真实网格、纹理与灯光转换，并输出 320×240 / 8 spp 预览及 640×480 / 256 spp 静态图。积分在 CPU 上执行；天空由实时 RHI 大气烘焙成线性 HDR 环境贴图，保存后可完全在 CPU 上复用。完整生成文件位于忽略的 `build/path-tracing/`；两张最终 PNG 同步到 `img/path-tracing/`，用于 README 展示。
 
 | 场景 | mesh | 输入三角形 | 有效三角形 | BVH 节点 | 几何/BVH 驻留估算 |
 | --- | --- | --- | --- | --- | --- |
@@ -13,19 +15,19 @@ Sponza 和 San Miguel 已完成真实网格、纹理与灯光转换，并输出 
 
 ## 入口与复现
 
-需要先准备 GI 模型：`python3 tools/fetch_gi_assets.py`。编译沿用项目 CMake 配置，本轮使用独立 Metal 构建目录，以避免与编辑器构建争用。
+下方命令保留首次运行的参数，显式选择 PCG 和固定 spp；当前版本仍使用新的 VNDF 与深度边界修复，结果可能与首次图像不同。需要先准备 GI 模型：`python3 tools/fetch_gi_assets.py`。编译沿用项目 CMake 配置，本轮使用独立 Metal 构建目录，以避免与编辑器构建争用。
 
 ```sh
 cmake -S . -B build/pt -DCMAKE_BUILD_TYPE=Release -DSCENERENDERER_RHI_BACKEND=Metal
 cmake --build build/pt -j 8
 
 # 初次烘焙实时天空，输出 8 spp 预览。
-./build/pt/Scene-Renderer --path-trace sponza --pt-size 320x240 --pt-samples 8 --pt-bounces 6 --pt-threads 6 --pt-output build/path-tracing/sponza-preview
-./build/pt/Scene-Renderer --path-trace san-miguel --pt-size 320x240 --pt-samples 8 --pt-bounces 6 --pt-threads 6 --pt-output build/path-tracing/san-miguel-preview
+./build/pt/Scene-Renderer --path-trace sponza --pt-size 320x240 --pt-samples 8 --pt-bounces 6 --pt-threads 6 --pt-sampler pcg --pt-fixed --pt-output build/path-tracing/sponza-preview
+./build/pt/Scene-Renderer --path-trace san-miguel --pt-size 320x240 --pt-samples 8 --pt-bounces 6 --pt-threads 6 --pt-sampler pcg --pt-fixed --pt-output build/path-tracing/san-miguel-preview
 
 # 复用 HDR 天空和太阳 sidecar；此步骤不创建 GPU/context。
-./build/pt/Scene-Renderer --path-trace sponza --pt-environment build/path-tracing/sponza-preview-environment.hdr --pt-size 640x480 --pt-samples 256 --pt-bounces 8 --pt-threads 8 --pt-exposure 3 --pt-output build/path-tracing/sponza
-./build/pt/Scene-Renderer --path-trace san-miguel --pt-environment build/path-tracing/san-miguel-preview-environment.hdr --pt-size 640x480 --pt-samples 256 --pt-bounces 8 --pt-threads 8 --pt-exposure 3 --pt-output build/path-tracing/san-miguel
+./build/pt/Scene-Renderer --path-trace sponza --pt-environment build/path-tracing/sponza-preview-environment.hdr --pt-size 640x480 --pt-samples 256 --pt-bounces 8 --pt-threads 8 --pt-exposure 3 --pt-sampler pcg --pt-fixed --pt-output build/path-tracing/sponza
+./build/pt/Scene-Renderer --path-trace san-miguel --pt-environment build/path-tracing/san-miguel-preview-environment.hdr --pt-size 640x480 --pt-samples 256 --pt-bounces 8 --pt-threads 8 --pt-exposure 3 --pt-sampler pcg --pt-fixed --pt-output build/path-tracing/san-miguel
 
 # 物体/灯光入口无需 GPU，便于检查小场景。
 ./build/pt/Scene-Renderer --path-trace cornell --pt-no-sky --pt-size 128x128 --pt-samples 16 --pt-bounces 6
@@ -49,7 +51,7 @@ ctest --test-dir build/pt -R '^pt-' --output-on-failure
 
 编辑器 `R` 键使用同一 CPU 核心，冻结当前快照，以窗口一半尺寸输出 `build/path-tracing/editor.*`。这是阻塞的静态渲染，未实现交互式渐进显示。双线程编辑器的天空请求进入 RenderRuntime 队列，在设备拥有线程执行，再把纯 CPU 数据交回逻辑线程；CPU worker 不访问 Camera、Material、Texture 或 GPU handle。
 
-## 实现与数学边界
+## 首次实现与数学边界
 
 `CpuPathTracer` 复用 SceneSnapshotBuilder 的冻结 mesh/material 数据，保留对象变换、相机、共享贴图、材质因子及启用的灯光。移除了原 Connector 对少于三个 mesh 物体的跳过条件，以及一律白色 Lambertian 的材质替换。
 
@@ -63,7 +65,7 @@ BRDF 为 Lambert 漫反射加 GGX/Smith/Schlick 微表面。漫反射与 GGX NDF
 
 天空 LUT 使用实时 shader 的经纬度编码，转换到标准 equirectangular 图；重要性 CDF 按 luminance × texel 精确立体角构建，并加入小权重保证双线性相邻亮度的完整支持。每个 texel 内均匀采样 cos(theta)，sample/evaluate PDF 使用同一分布。天空只有烘焙视点的 RGB 辐亮度，CPU 不追踪参与介质或逐点大气变化。
 
-线程按 16×16 tile 动态分配；PCG 状态由 seed/pixel/sample 决定，逐像素累加顺序固定。不同线程数结果相同，不使用旧的共享 `rand()`，没有每个像素的全局写锁。任何非有限路径贡献使渲染报错，不把 NaN/Inf 静默写成黑色。
+线程按 16×16 tile 动态分配；首次版本的 PCG 状态由 seed/pixel/sample 决定，逐像素累加顺序固定。不同线程数结果相同，不使用旧的共享 `rand()`，没有每个像素的全局写锁。任何非有限路径贡献使渲染报错，不把 NaN/Inf 静默写成黑色。
 
 ## 验证与图像
 
@@ -90,6 +92,6 @@ GPU 桥测试覆盖 RenderRuntime 设备线程上的真实 HDR 烘焙、有限�
 
 ## 暂未支持
 
-此次支持静态 mesh 物体与目标大型场景。程序化地形/草、FFT 海面、计算细分/位移后的网格未进入 CPU 求交；快照含这些效果时打印提示，不把实时效果静默当作已追踪。clearcoat/anisotropy/SSS 特殊 lobe、玻璃体积折射、体积云、运动模糊、景深、GPU tracing、denoiser、跨进程 resume 及 BVH 实例共享仍待后续。
+此次支持静态 mesh 物体与目标大型场景。程序化地形/草、FFT 海面、计算细分/位移后的网格未进入 CPU 求交；快照含这些效果时打印提示，不把实时效果静默当作已追踪。clearcoat/anisotropy/SSS 特殊 lobe、玻璃体内吸收/介质栈、体积云、运动模糊、景深、跨进程 resume 及 BVH 实例共享仍待后续。后续已加入 [平滑玻璃与 CPU BDPT 焦散](path-tracing-convergence.md)、[Metal/Vulkan GPU PT](path-tracing-gpu.md) 和 [OIDN 降噪](path-tracing-denoising.md)。
 
 保留旧 PT 球/矩形/介质等实验类及历史 Cornell 路径；新场景转换和大型场景入口使用新的连续内存积分核心，不把旧实验类的所有材质模型宣称为已合并。

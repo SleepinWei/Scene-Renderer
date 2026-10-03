@@ -219,7 +219,7 @@ int main(int argc, char** argv) {
 #else
     if(rhi::requestedBackend()==rhi::Backend::Metal)throw std::invalid_argument("Use a Metal CMake build on macOS");
 #endif
-    if (argc > 1 && std::string(argv[1]) == "--path-trace") return pt::runCommandLine(argc,argv);
+    if (argc > 1 && (std::string(argv[1]) == "--path-trace" || std::string(argv[1]) == "--path-trace-gpu")) return pt::runCommandLine(argc,argv);
     if (argc > 1 && (std::string(argv[1]) == "--rhi-forward" || std::string(argv[1]) == "--rhi-deferred" || std::string(argv[1]) == "--rhi-scene")) { render::runForwardScene(argc,argv);return 0; }
     if (argc > 1 && std::string(argv[1]) == "--pt-self-test") {
         if(rhi::requestedBackend()==rhi::Backend::OpenGL)throw std::invalid_argument("PT sky bridge test requires Metal or Vulkan; CPU tests run separately");

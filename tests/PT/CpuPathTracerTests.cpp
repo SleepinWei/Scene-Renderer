@@ -1,4 +1,5 @@
 #include "PT/CpuPathTracer.h"
+#include "PT/ValidationScenes.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <cmath>
 #include <filesystem>
@@ -15,6 +16,11 @@ render::SnapshotDraw triangle(glm::vec3 a,glm::vec3 b,glm::vec3 c,glm::vec3 colo
     mesh->vertices={{a,n,{.25f,.25f}},{b,n,{.25f,.25f}},{c,n,{.25f,.25f}}};mesh->indices={0,1,2};draw.mesh=mesh;draw.parameters.factors={0,.8f,1,0};draw.parameters.albedoAlpha=glm::vec4(color,1);return draw;
 }
 render::RenderWorldSnapshot snapshot(){render::RenderWorldSnapshot s;s.frame.cameraPosition={0,0,2};glm::mat4 conversion(1);conversion[2][2]=.5f;conversion[3][2]=.5f;s.frame.viewProjection=conversion*glm::perspective(glm::radians(50.f),1.f,.1f,100.f)*glm::lookAt(s.frame.cameraPosition,glm::vec3(0),glm::vec3(0,1,0));return s;}
+void samplers() {
+    for(uint32_t dimension:{0u,1u,10u,511u,32767u}){std::vector<int> bins(1024,0);for(uint32_t i=0;i<1024;++i){float value=pt::sobolSample(738,i,dimension);check(value>=0 && value<1,"Sobol sample out of range");++bins[uint32_t(value*1024)];}for(auto count:bins)check(count==1,"Sobol lost one-dimensional stratification");}
+    std::vector<int> cells(1024,0);for(uint32_t i=0;i<1024;++i){uint32_t x=uint32_t(pt::sobolSample(79,i,0)*32),y=uint32_t(pt::sobolSample(79,i,1)*32);++cells[y*32+x];}for(auto count:cells)check(count==1,"Sobol 2D net missed a stratum");
+    auto a=pt::Random::forPixel(31,19,5,true),b=pt::Random::forPixel(31,19,5,true);a.dimension(259);b.dimension(259);check(a.uniform()==b.uniform(),"Sobol random access differs across clones");
+}
 void geometry() {
     auto s=snapshot();s.draws.push_back(triangle({-1,-1,0},{1,-1,0},{0,1,0},{.5f,.2f,.1f}));pt::CpuScene scene(s);pt::Surface hit;
     check(scene.meshCount()==1 && scene.triangles()==1,"Single-mesh objects must be imported");
@@ -53,6 +59,9 @@ void bsdf() {
         for(int i=0;i<100000;++i){auto sample=pt::sampleBsdf(s,{0,0,1},rng);if(sample.pdf>0){check(std::abs(sample.pdf-pt::bsdfPdf(s,{0,0,1},sample.direction))<1e-5f,"BSDF sample PDF mismatch");estimate+=sample.value*(std::max(0.f,sample.direction.z)/sample.pdf);}const float z=rng.uniform(),phi=2*pi*rng.uniform(),r=std::sqrt(1-z*z);glm::vec3 d{r*std::cos(phi),r*std::sin(phi),z};integral+=pt::evaluateBsdf(s,{0,0,1},d)*(z*2*pi);}
         estimate/=100000.f;integral/=100000.f;check(near(estimate,integral,.015f),"GGX/diffuse sample estimator does not match independent hemispherical integration");check(glm::all(glm::lessThanEqual(estimate,glm::vec3(1.02f))),"White furnace produces energy gain");
     }
+    s.metallic=1;s.roughness=.55f;glm::vec3 view=glm::normalize(glm::vec3(1,0,.12f)),estimate(0),integral(0);
+    for(int i=0;i<150000;++i){auto sample=pt::sampleBsdf(s,view,rng);if(sample.pdf>0){check(std::abs(sample.pdf-pt::bsdfPdf(s,view,sample.direction))<1e-5f,"Grazing VNDF PDF mismatch");estimate+=sample.value*(std::max(0.f,sample.direction.z)/sample.pdf);}float z=rng.uniform(),phi=2*pi*rng.uniform(),q=std::sqrt(1-z*z);integral+=pt::evaluateBsdf(s,view,{q*std::cos(phi),q*std::sin(phi),z})*(z*2*pi);}
+    check(near(estimate/150000.f,integral/150000.f,.015f),"Grazing VNDF estimator loses energy");
     check(near(pt::evaluateBsdf(s,{0,0,1},{0,0,-1}),{0,0,0}),"BSDF leaks below the geometric surface");
 }
 void transport() {
@@ -60,7 +69,7 @@ void transport() {
     scene.environment=std::make_shared<pt::Environment>(16,8,std::vector<glm::vec3>(128,glm::vec3(1)));
     pt::Random r(58);glm::vec3 result(0),reference(0);uint64_t rays=0;
     pt::Surface surface;check(scene.intersect({0,0,2},{0,0,-1},1e-4f,10,surface),"Transport fixture missed");
-    for(int i=0;i<50000;++i){result+=scene.trace({0,0,2},{0,0,-1},r,2,rays);const float z=r.uniform(),phi=2*pi*r.uniform(),q=std::sqrt(1-z*z);reference+=pt::evaluateBsdf(surface,{0,0,1},{q*std::cos(phi),q*std::sin(phi),z})*(z*2*pi);}
+    for(int i=0;i<50000;++i){result+=scene.trace({0,0,2},{0,0,-1},r,1,rays);const float z=r.uniform(),phi=2*pi*r.uniform(),q=std::sqrt(1-z*z);reference+=pt::evaluateBsdf(surface,{0,0,1},{q*std::cos(phi),q*std::sin(phi),z})*(z*2*pi);}
     check(near(result/50000.f,reference/50000.f,.007f),"Environment NEE + BSDF MIS double counts or loses energy");
     s.frame.lights.push_back({{0,0,0,0},{2,2,2,0},{0,0,-1,0}});pt::CpuScene visible(s);glm::vec3 lit=visible.trace({0,0,2},{0,0,-1},r,1,rays);
     s.draws.push_back(triangle({-.5f,-.5f,1},{.5f,-.5f,1},{0,.5f,1}));pt::CpuScene blocked(s);auto dark=blocked.trace({0,0,.5f},{0,0,-1},r,1,rays);check(lit.r>.05f && dark.r<1e-6f,"Direct-light visibility failed");
@@ -74,9 +83,29 @@ void rendering() {
     check(first.nonFiniteSamples==0 && first.radiance[0].r>first.radiance[0].g*2,"Material colors lost during transport");
     pt::writeImage(first,1,"build/path-tracing/tests/fixture");pt::writeReport(first,scene,options,"build/path-tracing/tests/fixture","fixture");check(std::filesystem::file_size("build/path-tracing/tests/fixture.pfm")==size_t(32*24*12+14),"PFM float layout/header mismatch");
     bool rejected=false;options.samples=0;try{pt::render(scene,options);}catch(const std::invalid_argument &){rejected=true;}check(rejected,"Zero samples were accepted");
+    options.samples=256;options.width=16;options.height=16;options.minimumSamples=32;options.adaptive=true;options.threads=1;
+    pt::CpuScene empty(snapshot());empty.environment=std::make_shared<pt::Environment>(8,4,std::vector<glm::vec3>(32,glm::vec3(.5f)));auto adaptive=pt::render(empty,options);options.threads=3;auto again=pt::render(empty,options);
+    check(adaptive.convergedPixels==256 && adaptive.totalSamples<uint64_t(256)*256,"Adaptive pixels did not stop on constant radiance");check(adaptive.sampleCounts==again.sampleCounts && adaptive.radiance==again.radiance,"Adaptive stopping depends on thread count");for(auto value:adaptive.radiance)check(near(value,glm::vec3(.5f),1e-6f),"Adaptive mean changed constant environment");
+    options.adaptive=false;auto fixed=pt::render(empty,options);check(fixed.totalSamples==uint64_t(256)*256 && fixed.radiance==adaptive.radiance,"Fixed spp reference lost samples");
     // An emissive triangle must illuminate a receiving surface through explicit light sampling.
     s.frame.lights.clear();auto emitter=triangle({-.5f,-.5f,1},{0,.5f,1},{.5f,-.5f,1});emitter.parameters.emissiveNormal={10,10,10,0};s.draws.push_back(emitter);pt::CpuScene area(s);pt::Random r(33);glm::vec3 energy(0);uint64_t rays=0;
     for(int i=0;i<1000;++i)energy+=area.trace({.8f,0,.5f},{0,0,-1},r,1,rays);check(energy.r/1000>.02f,"Emissive triangle NEE produced no illumination");
 }
+void dielectricAndBdpt() {
+    check(std::abs(pt::dielectricFresnel(1,1,1.5f)-.04f)<1e-6f,"Glass normal-incidence Fresnel is not 4%");
+    check(pt::dielectricFresnel(.3f,1.5f,1)==1,"Glass total internal reflection failed");
+    pt::Surface glass;glass.ior=1.5f;glass.normal=glass.geometricNormal={0,0,1};glass.albedo=glm::vec3(1);pt::Random random(418);glm::vec3 radiance(0),importance(0);int reflections=0;
+    for(int i=0;i<25000;++i){auto a=pt::sampleBsdf(glass,{0,0,1},random),b=pt::sampleBsdf(glass,{0,0,1},random,pt::TransportMode::Importance);check(a.delta&&a.pdf>0,"Glass event must use discrete delta PDF");radiance+=a.value*(std::abs(a.direction.z)/a.pdf);importance+=b.value*(std::abs(b.direction.z)/b.pdf);reflections+=a.direction.z>0;}
+    check(std::abs(float(reflections)/25000-.04f)<.006f,"Fresnel branch frequencies changed");check(near(importance/25000.f,glm::vec3(1),.001f),"Importance glass gained/lost energy");check(near(radiance/25000.f,glm::vec3(.04f+.96f/2.25f),.007f),"Radiance glass omitted eta squared");
+    auto s=snapshot();s.draws.push_back(triangle({-20,-20,0},{20,-20,0},{0,20,0},{.7f,.7f,.7f}));auto emitter=triangle({-.3f,-.3f,1},{0,.3f,1},{.3f,-.3f,1});emitter.parameters.albedoAlpha={0,0,0,1};emitter.parameters.emissiveNormal={6,6,6,0};s.draws.push_back(emitter);pt::CpuScene scene(s);
+    for(int y=0;y<10;++y)for(int x=0;x<10;++x){glm::vec3 o,d;float u=(x+.5f)/10,v=(y+.5f)/10;scene.cameraRay(u,v,o,d);glm::vec2 uv;float pdf;check(scene.project(o+d*2.f,uv,pdf)&&glm::length(uv-glm::vec2(u,v))<1e-5f&&pdf>0,"BDPT camera projection/directional PDF failed");}
+    pt::Options options;options.width=16;options.height=16;options.samples=512;options.maxDepth=2;options.threads=2;options.adaptive=false;auto reference=pt::render(scene,options);options.bdpt=true;auto bidirectional=pt::render(scene,options);double a=0,b=0;
+    for(size_t i=0;i<reference.radiance.size();++i){a+=reference.radiance[i].x;b+=bidirectional.radiance[i].x;}std::cout<<"BDPT/PT area-light energy ratio: "<<b/a<<"\n";check(std::abs(b/a-1)<.04,"BDPT connections/splats double count or lose area-light energy");
+    bool rejected=false;scene.environment=std::make_shared<pt::Environment>(2,1,std::vector<glm::vec3>(2,glm::vec3(1)));try{pt::render(scene,options);}catch(const std::invalid_argument &){rejected=true;}check(rejected,"BDPT must reject unsupported HDR endpoint instead of losing energy");
+    auto validation=pt::makeCausticsScene(32,24);pt::CpuScene caustics(validation.snapshot,validation.dielectrics);options.width=32;options.height=24;options.samples=64;options.maxDepth=6;auto image=pt::render(caustics,options);check(image.nonFiniteSamples==0,"BDPT caustics produced non-finite pixels");float maximum=0;for(auto value:image.radiance)maximum=std::max(maximum,value.x);check(maximum>.1f,"BDPT refractive caustic scene has no energy");
+    double causticEnergy=0;for(size_t i=0;i<image.caustics.size();++i){causticEnergy+=image.caustics[i].x;check(glm::all(glm::lessThanEqual(image.caustics[i],image.radiance[i]+glm::vec3(1e-5f))),"Caustic AOV exceeds complete transport");}check(causticEnergy>.1,"BDPT did not construct specular-to-diffuse caustic paths");
+    auto noGlass=pt::makeCausticsScene(32,24,false);pt::CpuScene control(noGlass.snapshot);auto clean=pt::render(control,options);for(auto value:clean.caustics)check(near(value,glm::vec3(0)),"No-glass control contains false caustic paths");
 }
-int main(){try{geometry();environment();bsdf();transport();rendering();std::cout<<"CPU path tracing geometry, HDR PDF, GGX, MIS/render scheduling and output tests passed\n";return 0;}catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}}
+
+}
+int main(){try{samplers();geometry();environment();bsdf();transport();rendering();dielectricAndBdpt();std::cout<<"CPU path tracing geometry, HDR PDF, GGX, MIS/render scheduling and output tests passed\n";return 0;}catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}}

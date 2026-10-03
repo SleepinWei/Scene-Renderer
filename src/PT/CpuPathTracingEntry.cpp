@@ -1,4 +1,7 @@
 #include "PT/CpuPathTracer.h"
+#include "PT/GpuPathTracer.h"
+#include "PT/ValidationScenes.h"
+#include "PT/Denoiser.h"
 #include "renderer/rhi/AtmosphereBake.h"
 #include "renderer/rhi/FeatureScenes.h"
 #include "renderer/RenderScene.h"
@@ -21,9 +24,29 @@ namespace {
 uint32_t number(const std::string &s,const char *name,uint32_t maximum) {
     size_t end=0;const auto value=std::stoull(s,&end);if(s.empty() || s[0]=='-' || end!=s.size() || !value || value>maximum)throw std::invalid_argument(std::string("PT: invalid ")+name);return uint32_t(value);
 }
+class DeviceContext {
+  public:
+    ~DeviceContext(){close();}
+    void open(){
+#ifdef SCENERENDERER_HAS_VULKAN
+        if(rhi::requestedBackend()==rhi::Backend::Vulkan)rhi::configureVulkanWindowing();
+#endif
+        if(!glfwInit())throw std::runtime_error("PT: GLFW initialization failed");initialized_=true;
+        try {glfwWindowHint(GLFW_VISIBLE,GLFW_FALSE);if(createWindow(window_,64,64)!=0 || gladInit()!=0)throw std::runtime_error("PT: device initialization failed");}
+        catch(...){close();throw;}
+    }
+    void close() noexcept {if(!initialized_)return;try{rhi::shutdown();}catch(...){}if(window_)glfwDestroyWindow(window_);window_=nullptr;glfwTerminate();initialized_=false;}
+  private:
+    GLFWwindow *window_=nullptr;bool initialized_=false;
+};
+float realNumber(const std::string &s,const char *name,bool zero=false) {size_t end=0;float value=std::stof(s,&end);if(end!=s.size()||!std::isfinite(value)||(zero?value<0:value<=0))throw std::invalid_argument(std::string("PT: invalid ")+name);return value;}
+
 }
 int runCommandLine(int argc,char **argv) {
-    Options options;std::string name="sponza",prefix,environmentPath;bool sky=true;int argument=2;
+    const bool gpu=argc>1 && std::string(argv[1])=="--path-trace-gpu";
+    if(gpu && rhi::requestedBackend()==rhi::Backend::OpenGL)throw std::invalid_argument("GPU PT requires Metal or Vulkan");
+    Options options;DenoiseOptions denoiseOptions;std::string denoiseInput;
+    std::string name="sponza",prefix,environmentPath;bool sky=true,glass=true,filter=false;int argument=2;
     if(argument<argc && std::string(argv[argument]).rfind("--",0)!=0)name=argv[argument++];
     for(int i=argument;i<argc;++i) {
         const std::string flag=argv[i];auto value=[&](){if(++i>=argc)throw std::invalid_argument("PT: missing argument for "+flag);return std::string(argv[i]);};
@@ -33,32 +56,54 @@ int runCommandLine(int argc,char **argv) {
         else if(flag=="--pt-threads")options.threads=number(value(),"threads",256);
         else if(flag=="--pt-seed")options.seed=number(value(),"seed",UINT32_MAX);
         else if(flag=="--pt-exposure"){const auto s=value();size_t end;options.exposure=std::stof(s,&end);if(end!=s.size() || !std::isfinite(options.exposure) || options.exposure<=0)throw std::invalid_argument("PT: invalid exposure");}
+        else if(flag=="--pt-sampler"){auto sampler=value();if(sampler!="sobol" && sampler!="pcg")throw std::invalid_argument("PT: sampler must be sobol or pcg");options.sobol=sampler=="sobol";}
+        else if(flag=="--pt-guiding")options.guiding=true;
+        else if(flag=="--pt-cache")options.radianceCache=true;
+        else if(flag=="--pt-bdpt"){options.bdpt=true;options.adaptive=false;}
+        else if(flag=="--pt-no-glass")glass=false;
+        else if(flag=="--pt-denoise")filter=true;
+        else if(flag=="--pt-denoise-device"){denoiseOptions.device=value();filter=true;}
+        else if(flag=="--pt-denoise-color-only"){denoiseOptions.auxiliary=false;filter=true;}
+        else if(flag=="--pt-denoise-input"){denoiseInput=value();filter=true;}
+        else if(flag=="--pt-training-samples")options.trainingSamples=number(value(),"training samples",512);
+        else if(flag=="--pt-guide-cell")options.guideCellSize=realNumber(value(),"guide cell size");
+        else if(flag=="--pt-cache-min")options.cacheMinimum=number(value(),"cache minimum",8192);
+        else if(flag=="--pt-cache-depth")options.cacheDepth=number(value(),"cache depth",128);
+        else if(flag=="--pt-fixed")options.adaptive=false;
+        else if(flag=="--pt-adaptive")options.adaptive=true;
+        else if(flag=="--pt-min-samples")options.minimumSamples=number(value(),"minimum samples",1048576);
+        else if(flag=="--pt-error")options.relativeError=realNumber(value(),"relative error");
+        else if(flag=="--pt-absolute-error")options.absoluteError=realNumber(value(),"absolute error",true);
         else if(flag=="--pt-output")prefix=value();
         else if(flag=="--pt-environment")environmentPath=value();
         else if(flag=="--pt-no-sky")sky=false;
         else if(flag=="--backend")value();
         else throw std::invalid_argument("PT: unknown argument "+flag);
     }
+    if(filter&&!denoiserAvailable())throw std::runtime_error("Open Image Denoise is not enabled in this build; see docs/path-tracing-denoising.md");
+    if(denoiseOptions.device!="auto"&&denoiseOptions.device!="cpu"&&denoiseOptions.device!="metal")throw std::invalid_argument("PT: denoise device must be auto, cpu or metal");
+    if(!denoiseInput.empty()){
+        auto result=readPfm(denoiseInput);const auto inputPrefix=std::filesystem::path(denoiseInput).replace_extension().string();
+        if(denoiseOptions.auxiliary)for(auto feature:{std::pair<const char*,std::vector<glm::vec3>*>{"-albedo.pfm",&result.albedo},{"-normal.pfm",&result.normal}}){const auto path=inputPrefix+feature.first;if(std::filesystem::exists(path)){auto auxiliary=readPfm(path);if(auxiliary.width!=result.width||auxiliary.height!=result.height)throw std::invalid_argument("PT: auxiliary PFM dimensions do not match beauty");*feature.second=std::move(auxiliary.radiance);}}
+        if(prefix.empty())prefix=inputPrefix+"-filtered";
+        denoise(result,denoiseOptions);writeImage(result,options.exposure,prefix);
+        std::ofstream report(prefix+".json");report<<nlohmann::json{{"input",denoiseInput},{"width",result.width},{"height",result.height},{"exposure",options.exposure},{"denoiser",result.denoiser},{"denoise_device",result.denoiseDevice},{"denoise_seconds",result.denoiseSeconds},{"denoise_auxiliary",result.denoiseAuxiliary}}.dump(2)<<'\n';if(!report)throw std::runtime_error("PT: cannot save denoise report");
+        return 0;
+    }
+    if(!gpu && (options.guiding || options.radianceCache))throw std::invalid_argument("Guiding/cache currently require --path-trace-gpu");
+    if(gpu && options.bdpt)throw std::invalid_argument("BDPT is a CPU reference: use --path-trace --pt-bdpt");
     if(prefix.empty())prefix="build/path-tracing/"+name;
     const auto parent=std::filesystem::path(prefix).parent_path();if(!parent.empty())std::filesystem::create_directories(parent);
-    auto scene=render::makeClassicScene(name);scene->mainCamera()->setAspect(float(options.width)/options.height);
+    std::shared_ptr<RenderScene> scene;std::vector<DielectricMaterial> dielectrics;
     std::shared_ptr<const render::RenderWorldSnapshot> snapshot;
-    {render::SceneSnapshotBuilder builder;snapshot=builder.capture(scene,8,options.width,options.height);}
+    if(name=="caustics"){auto validation=makeCausticsScene(options.width,options.height,glass);snapshot=std::make_shared<render::RenderWorldSnapshot>(std::move(validation.snapshot));dielectrics=std::move(validation.dielectrics);}
+    else {scene=render::makeClassicScene(name);scene->mainCamera()->setAspect(float(options.width)/options.height);render::SceneSnapshotBuilder builder;snapshot=builder.capture(scene,8,options.width,options.height);}
     render::BakedAtmosphere baked;
-    if(sky && environmentPath.empty() && snapshot->frame.sky) {
-#ifdef SCENERENDERER_HAS_VULKAN
-        if(rhi::requestedBackend()==rhi::Backend::Vulkan)rhi::configureVulkanWindowing();
-#endif
-        if(!glfwInit())throw std::runtime_error("PT: sky bake GLFW initialization failed");
-        GLFWwindow *window=nullptr;
-        try{
-            glfwWindowHint(GLFW_VISIBLE,GLFW_FALSE);
-            if(createWindow(window,64,64)!=0 || gladInit()!=0)throw std::runtime_error("PT: sky bake device initialization failed");
-            baked=render::bakeAtmosphere(rhi::graphicsDevice(),snapshot->frame);
-            rhi::shutdown();glfwDestroyWindow(window);window=nullptr;glfwTerminate();
-        }catch(...){try{rhi::shutdown();}catch(...){}if(window)glfwDestroyWindow(window);glfwTerminate();throw;}
-    }
-    CpuScene cpu(*snapshot);
+    DeviceContext context;
+    if(gpu || (sky && environmentPath.empty() && snapshot->frame.sky))context.open();
+    if(sky && environmentPath.empty() && snapshot->frame.sky)baked=render::bakeAtmosphere(rhi::graphicsDevice(),snapshot->frame);
+    if(!gpu)context.close();
+    CpuScene cpu(*snapshot,dielectrics);
     // Apply the same exposure by default, while retaining an explicit CLI override.
     bool explicitExposure=false;for(int i=2;i<argc;++i)explicitExposure|=std::string(argv[i])=="--pt-exposure";
     if(!explicitExposure)options.exposure=snapshot->exposure;
@@ -79,9 +124,11 @@ int runCommandLine(int argc,char **argv) {
         if(!stbi_write_hdr(skyPath.c_str(),int(cpu.environment->width()),int(cpu.environment->height()),3,pixels.data()))throw std::runtime_error("PT: cannot save baked sky HDR");
         if(cpu.sunRadius>0){std::ofstream sidecar(skyPath+".json");sidecar<<nlohmann::json{{"sun_direction",{cpu.sunDirection.x,cpu.sunDirection.y,cpu.sunDirection.z}},{"sun_irradiance",{cpu.sunIrradiance.x,cpu.sunIrradiance.y,cpu.sunIrradiance.z}},{"sun_radius",cpu.sunRadius}}.dump(2)<<'\n';if(!sidecar)throw std::runtime_error("PT: cannot save solar environment metadata");}
     }
-    snapshot.reset();scene->destroy();scene.reset();
-    auto result=render(cpu,options,[&](const Image &image){const auto progressPrefix=prefix+"-"+std::to_string(image.samples)+"spp";writeImage(image,options.exposure,progressPrefix);writeReport(image,cpu,options,progressPrefix,name);});
+    snapshot.reset();if(scene){scene->destroy();scene.reset();}
+    auto save=[&](const Image &image){const auto progressPrefix=prefix+"-"+std::to_string(image.samples)+"spp";writeImage(image,options.exposure,progressPrefix);writeReport(image,cpu,options,progressPrefix,name);};
+    auto result=gpu?renderGpu(cpu,options,rhi::graphicsDevice(),save):render(cpu,options,save);
+    if(filter)denoise(result,denoiseOptions);
     writeImage(result,options.exposure,prefix);writeReport(result,cpu,options,prefix,name);
-    std::cout<<"CPU PT output: "<<prefix<<".png / .pfm / .json\n";return 0;
+    std::cout<<result.execution<<" PT output: "<<prefix<<".png / .pfm / .json\n";return 0;
 }
 } // namespace pt

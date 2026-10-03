@@ -1,4 +1,5 @@
 #include "PT/CpuPathTracer.h"
+#include "PT/GpuPathTracer.h"
 #include "engine/RenderRuntime.h"
 #include <cmath>
 #include <iostream>
@@ -13,6 +14,7 @@ void validatePathTracingBridge(std::shared_ptr<rhi::GraphicsDevice> device) {
     if(energy<=0)throw std::runtime_error("PT: baked sky has no energy");
     Environment environment(baked.width,baked.height,std::move(baked.radiance));Random random(7);
     for(int i=0;i<1000;++i){auto sample=environment.sample(random);if(sample.pdf<=0 || !std::isfinite(sample.pdf))throw std::runtime_error("PT: baked environment sampling PDF is invalid");}
+    validateGpuPathTracing(device);
     std::cout<<"CPU PT render-thread HDR sky bake and importance sampling passed\n";
 }
 } // namespace pt

@@ -1,14 +1,14 @@
 # Scene Renderer
 
-一个用于学习和实验的 C++17 图形渲染项目，起源于同济大学计算机图形学课程小组作业。项目把**实时光栅化渲染、自然场景的 GPU 计算和独立的 CPU 路径追踪**放在同一套代码中，用可运行的场景展示材质、光照、阴影和几何生成之间的关系。
+一个用于学习和实验的 C++17 图形渲染项目，起源于同济大学计算机图形学课程小组作业。项目把**实时光栅化渲染、自然场景的 GPU 计算和独立的 CPU/GPU 路径追踪**放在同一套代码中，用可运行的场景展示材质、光照、阴影和几何生成之间的关系。
 
 实时渲染通过统一 **RHI** 支持原生 **Metal** 与 **Vulkan**，macOS 默认 Metal。默认编辑器、特殊材质、阴影、RSM、大气、FFT 海洋、地形/草、计算细分、TSAA 和 ImGui 均走新路径；默认构建不编译旧 Metal GL 兼容桥。OpenGL 保留桌面兼容路径；macOS OpenGL 4.1 不支持这些计算效果，OpenGL 4.3+ 的计算路径尚未迁移。实现、验收和剩余平台边界见 [RHI 重构计划](docs/rhi-refactor-plan.md)，历史 Metal 迁移见 [旧迁移说明](docs/metal.md)。
 
 ![本项目在 Metal 上渲染的 Sponza 中庭](img/metal/sponza.png)
 
-[快速运行](#快速运行) · [经典场景](#场景与效果) · [天空与太阳](#大气天空与太阳) · [海洋与水体](#高清海洋与透明水体) · [虚拟纹理地形](#虚拟纹理地形) · [CPU 路径追踪](#cpu-路径追踪) · [系统设计](#整体系统设计) · [技术与限制](#渲染技术) · [验证](#构建验证与限制)
+[快速运行](#快速运行) · [经典场景](#场景与效果) · [天空与太阳](#大气天空与太阳) · [海洋与水体](#高清海洋与透明水体) · [虚拟纹理地形](#虚拟纹理地形) · [CPU/GPU 路径追踪](#cpu-路径追踪) · [系统设计](#整体系统设计) · [技术与限制](#渲染技术) · [验证](#构建验证与限制)
 
-项目的主要实验内容包括 PBR 材质及特殊材质、太阳／天空驱动的 RSM 间接光照、大气散射、高清 FFT 海洋与透明水体、高度与材质 Virtual Texture 地形／草和 TSAA。编辑器可实时调整相机、灯光及效果参数；离屏画廊提供固定时间、固定视角的真实渲染图和开关对照。CPU 路径追踪用于独立的离线实验。
+项目的主要实验内容包括 PBR 材质及特殊材质、太阳／天空驱动的 RSM 间接光照、大气散射、高清 FFT 海洋与透明水体、高度与材质 Virtual Texture 地形／草和 TSAA。编辑器可实时调整相机、灯光及效果参数；离屏画廊提供固定时间、固定视角的真实渲染图和开关对照。CPU 与 Metal/Vulkan GPU 路径追踪提供离线渲染入口。
 
 ## 快速运行
 
@@ -288,13 +288,13 @@ flowchart LR
 | FFT 海洋与水体 | 共轭 Phillips 频谱、归一化二维 IFFT、主波与短波叠加、法线与 Jacobian 泡沫；深度折射、RGB 消光、近似单次散射与 HDR 光照 | 周期有限海面；折射限于屏幕空间，散射厚度是近似；不是流体求解器 |
 | 地形与草 | 高度／五层材质 VT、深度 feedback／多视图预测、有预算屏幕误差 LOD、拼接与高度 morph、附着草 | feedback 可能带入包围范围内其他几何；页／LOD 变化时 reactive，尚无逐顶点前帧变形历史 |
 | 模型导入 | Assimp、glTF；GI 示例增加 OBJ/MTL 材质、透明遮罩与高度图转法线 | OBJ 的传统材质参数近似转换为 PBR，玻璃／水不做真实折射 |
-| CPU 路径追踪 | 冻结物体快照、纹理 PBR、alpha/法线图、扁平 SAH BVH、天空/太阳/发光面 NEE + MIS、确定性多线程；Sponza/San Miguel 256 spp 输出 | 静态 mesh 路径；程序化地形/海洋及特殊材质 lobe 未进入 CPU 求交，尚无 GPU tracing/denoiser |
+| CPU/GPU 路径追踪 | 冻结场景、纹理 PBR、SAH BVH、天空/太阳/发光面 NEE + MIS；scrambled Sobol、GGX VNDF、自适应采样；Metal/Vulkan compute 路径 | 静态 mesh 与基础 PBR；GPU 使用软件 BVH；OIDN 为可选依赖，程序化地形/海洋及特殊 lobe 未接入 |
 
 ### CPU 路径追踪
 
 `src/PT/` 通过不可变场景快照保留物体变换、纹理、法线图、金属度／粗糙度、透明裁剪和灯光。CPU 使用扁平 SAH BVH 加速求交，以 Lambert + GGX 材质追踪多次反弹；天空、有限角半径太阳和发光面使用重要性采样与 MIS。天空先由 **Metal 或 Vulkan 的实时大气**烘焙为 HDR 环境贴图，保存后可以完全在 CPU 上复用。
 
-下面是本项目在 Apple M4 上生成的 **640×480、256 spp、最大 8 次反弹**结果，曝光为 3。阴影区仍有采样噪声，尚未加入降噪器；这些图不是收敛参考解。
+下面保留首次 PCG/NDF 固定采样的 CPU 图：本项目在 Apple M4 上生成的 **640×480、256 spp、最大 8 次反弹**结果，曝光为 3。当前默认采样已更新为 Sobol/VNDF 与自适应模式，见下方 GPU 与采样优化说明。阴影区仍有采样噪声，尚未加入降噪器；这些图不是收敛参考解。
 
 | Sponza | San Miguel |
 | --- | --- |
@@ -341,6 +341,78 @@ CPU 路径支持静态 mesh 和基础 PBR；程序化地形／草、FFT 海面�
 
 </details>
 
+### GPU 路径追踪与采样优化
+
+新增 `--path-trace-gpu`，通过共享 RHI compute shader 在 **Metal/Vulkan** 上执行软件 BVH 遍历、材质求值、多次反弹及累积。CPU 构建 BVH 并上传冻结场景，天空由实时大气烘焙为 HDR；CPU/GPU 共用 scrambled Sobol、GGX VNDF 和自适应采样规则，CPU 另保留 PCG 对照。
+
+| GPU Sponza | GPU San Miguel |
+| --- | --- |
+| ![Metal GPU Path Tracing：Sponza](img/path-tracing/gpu-sponza.png) | ![Metal GPU Path Tracing：San Miguel](img/path-tracing/gpu-san-miguel.png) |
+
+上图为 **640×480、256 spp 预算、16 次反弹**，实际平均采样约 245 / 220 spp；追踪耗时约 21.03 / 32.68 秒，非有限样本均为 0。阴影仍有噪声，未增加艺术提亮或降噪。
+
+同一 Apple M4，320×240、固定 256 spp、16 次反弹、CPU 8 workers 的串行对照：
+
+| 场景 | CPU | Metal GPU | Vulkan GPU | Metal 追踪加速 |
+| --- | --- | --- | --- | --- |
+| Sponza | 34.44 秒 | 5.42 秒 | 5.58 秒 | 6.35× |
+| San Miguel | 52.03 秒 | 9.34 秒 | 9.47 秒 | 5.57× |
+
+计时包括追踪期间 checkpoint 保存，排除模型导入、CPU BVH 构建及 GPU 准备；完整命令耗时和测量边界见 [GPU Path Tracing 与采样优化](docs/path-tracing-gpu.md)。自适应模式默认最少 64 spp，连续两次满足 RGB 方差阈值后停止；这是有偏的启发式预算分配，`--pt-fixed` 可保留完整采样。Sobol 的阴影误差在此次对照中降低，但全图误差并未优于 PCG，文档保留了具体结果。
+
+```sh
+./build/Scene-Renderer --path-trace-gpu sponza --pt-size 640x480 \
+    --pt-samples 256 --pt-bounces 16 --pt-exposure 3 \
+    --pt-output build/path-tracing/gpu/sponza
+./build/Scene-Renderer --path-trace-gpu san-miguel --pt-size 640x480 \
+    --pt-samples 256 --pt-bounces 16 --pt-exposure 3 \
+    --pt-output build/path-tracing/gpu/san-miguel
+# 固定 spp / CPU PCG 对照
+./build/Scene-Renderer --path-trace sponza --pt-sampler pcg --pt-fixed --pt-samples 256
+```
+
+JSON 新增执行后端、实际平均 spp、总样本数及 GPU buffer 负载；`*-samples.png` 展示采样分配。GPU 通过命令行运行，编辑器 `R` 键继续使用 CPU 静态渲染。
+
+### 收敛优化与 BDPT 焦散
+
+GPU PT 新增显式的 `--pt-guiding` 和 `--pt-cache`。Guiding 冻结训练得到的 BSDF/可见天空方向分布，以完整混合 PDF 更新 NEE/MIS；Cache 复用粗糙漫反射的深层延续贡献，是有偏的预览近似。训练时间、命中率及同耗时误差记录见 [收敛优化与焦散说明](docs/path-tracing-convergence.md)。当前默认仍是普通 PT，不能仅凭采样数或平滑程度判断更快收敛。
+
+新增 **CPU BDPT** 面积光参考：相机/光源子路径、连接策略 MIS、针孔相机投影和 film splat，并支持平滑玻璃 Fresnel 反射、折射及全内反射。下图是程序生成的玻璃球聚光，另有 `*-caustics.png/.pfm` 输出真实 specular-to-diffuse 路径贡献，并以无玻璃图做对照。
+
+| BDPT 原始渲染 | OIDN 降噪 |
+| --- | --- |
+| ![BDPT 玻璃焦散原始图](img/path-tracing/bdpt-caustics.png) | ![OIDN 降噪后的 BDPT 玻璃焦散](img/path-tracing/oidn-bdpt-caustics.png) |
+
+两图来自同一份 **640×480、512 spp、8 次反弹**的 BDPT 结果；右图对原始线性 PFM 做 color-only 降噪。
+
+<details>
+<summary>查看未经降噪的独立焦散路径贡献</summary>
+
+![BDPT 独立焦散路径贡献](img/path-tracing/bdpt-caustics-only.png)
+
+</details>
+
+```sh
+./build/pt/Scene-Renderer --path-trace caustics --pt-bdpt --pt-size 640x480 --pt-samples 512 --pt-bounces 8 --pt-threads 8 --pt-exposure 2 --pt-output build/path-tracing/caustics
+```
+
+BDPT 首版为 CPU 数学参考，支持有限面积光源、针孔相机、基础 PBR 和平滑玻璃；HDR/太阳及点光端点尚未接入，会明确报错。Metal/Vulkan 的 GPU 单向 PT 也支持这种 PT 专用玻璃覆盖；GPU BDPT 尚未实现。
+
+### OIDN 降噪
+
+CPU、Metal/Vulkan PT 和 CPU BDPT 可以加 `--pt-denoise` 使用 **Open Image Denoise**，在线性 HDR 上结合 albedo/normal AOV 降噪。原始 PNG/PFM 保留，降噪另存为 `*-denoised.png/.pfm`；还支持 `--pt-denoise-input FILE.pfm` 离线处理。构建方式、设备选择和焦散细节边界见 [降噪说明](docs/path-tracing-denoising.md)。
+
+```sh
+./build/pt/Scene-Renderer --path-trace-gpu sponza --pt-size 640x480 --pt-samples 64 --pt-bounces 16 --pt-fixed --pt-denoise --pt-output build/path-tracing/denoise/sponza
+```
+
+| 场景 | 原始 64 spp | OIDN 降噪 |
+| --- | --- | --- |
+| Sponza | ![Sponza 64 spp 原始渲染](img/path-tracing/oidn-sponza-raw.png) | ![Sponza 64 spp OIDN 降噪](img/path-tracing/oidn-sponza.png) |
+| San Miguel | ![San Miguel 64 spp 原始渲染](img/path-tracing/oidn-san-miguel-raw.png) | ![San Miguel 64 spp OIDN 降噪](img/path-tracing/oidn-san-miguel.png) |
+
+上图为 **320×240、固定 64 spp、16 次反弹**的 Metal GPU PT，降噪使用 albedo/normal AOV；左右采用相同曝光。BDPT 焦散的原始／降噪对照见上一节。
+
 ## 目录与模块
 
 完整目录约定与依赖管理见 [仓库结构说明](docs/repository-layout.md)，技术文档见 [文档索引](docs/README.md)，测试入口见 [测试说明](tests/README.md)。
@@ -357,7 +429,7 @@ CPU 路径支持静态 mesh 和基础 PBR；程序化地形／草、FFT 海面�
 | `src/renderer/rhi/`、`src/rhi/` | 效果调度、GPU 资源、原生后端与验证入口 |
 | `src/shader/` | 旧 OpenGL / Metal 兼容路径效果源码 |
 | `src/engine/`、`include/engine/` | 有界任务与帧队列、资源 cache、资产 ID、render graph 与渲染线程 |
-| `src/PT/` | CPU 路径追踪与实时场景转换 |
+| `src/PT/` | CPU/GPU 路径追踪、冻结场景转换、Sobol/VNDF 与采样预算 |
 | `tools/` | 着色器转换及可复现的资源下载脚本 |
 | `tests/`、`tests/legacy/` | 当前 CMake／Python 回归与历史反射实验源码 |
 | `external/`、`lib/` | 随仓库保留的第三方源码／头文件与 Windows CMake 构建所需 `.lib` |
@@ -371,6 +443,9 @@ CPU 路径支持静态 mesh 和基础 PBR；程序化地形／草、FFT 海面�
 | `docs/engine-data-boundaries.md` | 核心数据私有化、资产移交、自动版本失效、参数校验与剩余边界 |
 | `docs/engine-gpu-publication.md` | 内存压力回收、候选 GPU 缓存事务、失败画面保留与恢复、成本与验收 |
 | `docs/engine-streaming-and-pipeline-cache.md` | 静态网格跨帧上传、字节／用时预算、管线独立句柄与共享 native、LRU 与验收 |
+| `docs/path-tracing-denoising.md` | OIDN 构建、HDR/AOV 降噪与离线处理 |
+| `docs/path-tracing-convergence.md` | GPU Guiding、Radiance Cache、BDPT 与玻璃焦散验证 |
+| `docs/path-tracing-gpu.md` | Sobol/VNDF、自适应采样、Metal/Vulkan compute PT、性能与误差对照 |
 | `docs/path-tracing-cpu.md` | CPU 物体渲染、HDR 天空桥、两个大型场景输出与复现、数值验证及限制 |
 | `docs/tsaa.md` | TSAA 重投影、海洋运动信息、历史处理与截图复现 |
 | `docs/ocean-fft-and-rendering-review.md` | 海洋 FFT、高清波纹、透明与散射的修复和验证记录 |
@@ -392,8 +467,13 @@ CPU 路径支持静态 mesh 和基础 PBR；程序化地形／草、FFT 海面�
 | `--single-thread` | 原生编辑器同步对照；默认 Metal／Vulkan 使用独立渲染线程 |
 | `--rhi-self-test` | 所选 RHI 后端的 GPU 正确性自检 |
 | `--path-trace <场景名>` | CPU 路径追踪，默认 Sponza；使用 `--pt-size`、`--pt-samples`、`--pt-bounces` 等设置输出 |
+| `--pt-guiding` / `--pt-cache` | GPU 方向训练与可选有偏的漫反射延续缓存 |
+| `--pt-denoise` / `--pt-denoise-device` / `--pt-denoise-input` | OIDN 最终图降噪、设备选择与已有 PFM 离线处理 |
+| `--pt-bdpt` / `--pt-no-glass` | CPU BDPT 面积光参考与 `caustics` 无玻璃对照 |
+| `--path-trace-gpu <场景名>` | Metal/Vulkan GPU 路径追踪，共用 `--pt-*` 输出参数 |
+| `--pt-sampler sobol/pcg` / `--pt-fixed` | CPU 采样器对照与完整固定 spp；GPU 使用 Sobol |
 | `--pt-environment <HDR>` / `--pt-no-sky` | 复用环境贴图及太阳 sidecar，或跳过实时天空烘焙 |
-| `--pt-self-test` | Metal／Vulkan 设备线程上的天空烘焙与 CPU 环境采样自检 |
+| `--pt-self-test` | Metal／Vulkan 天空桥和 GPU PT 求交、采样与积分自检 |
 
 `W/A/S/D` 移动，`E/Q` 上下移动，按住 `Shift` 加速；按住鼠标右键调整视角。ImGui 用于修改渲染选项和场景参数。经典场景和离屏画廊支持 Metal/Vulkan；同时编译两后端时加 `--backend Vulkan`。`--rhi-self-test` 同时支持 OpenGL 基础路径。历史 `--metal-self-test` 仅在显式启用 `SCENERENDERER_LEGACY_METAL` 时提供。
 
@@ -431,7 +511,7 @@ GPU 验证覆盖上传/异步读回、延迟释放、MRT、前向/延迟 PBR、S
 
 2026-10-03 天空修复在 Apple M4/macOS 验收：Metal **8/8**、Vulkan/MoltenVK **9/9**，包含太阳角半径／能量、地平线及几何遮挡、控制同步、观察高度与极限参数。OpenGL 4.1 的历史 RHI 验收为 7/7，本轮未重复运行。Metal 开启 API/Shader Validation；本机没有 Khronos validation layer，Windows/Linux 与 OpenGL 4.3+ 尚未实机验收。Metal/Vulkan 使用单队列、最多三帧并行提交；单次吞吐测量和算法边界见 [RHI 重构计划](docs/rhi-refactor-plan.md)。大规模 OBJ 导入仍需较多 CPU 内存与启动时间。
 
-`Cloud` 当前只有声明，没有体积云实现。自动曝光与 GPU 路径追踪尚未实现，CPU 转换当前覆盖静态物体及基础 PBR；历史资产缺失也限制了原场景的视觉回归。Sponza 和 San Miguel 的实时图采用 RSM 一次反弹近似，CPU 路径追踪图采用有最大深度限制的多次反弹；两条路径的近似与尚未支持的效果见各自说明。
+`Cloud` 当前只有声明，没有体积云实现。自动曝光尚未实现；CPU/GPU 路径追踪当前覆盖静态物体及基础 PBR；历史资产缺失也限制了原场景的视觉回归。Sponza 和 San Miguel 的实时图采用 RSM 一次反弹近似，CPU 路径追踪图采用有最大深度限制的多次反弹；两条路径的近似与尚未支持的效果见各自说明。
 
 旧 OpenGL 后端可使用独立目录构建：
 

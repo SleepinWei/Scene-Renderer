@@ -14,6 +14,8 @@
 #include <numeric>
 #include <stdexcept>
 #include <thread>
+#include <unordered_map>
+#include <cstring>
 
 namespace pt {
 namespace {
@@ -80,13 +82,6 @@ double solidAngle(uint32_t row,uint32_t w,uint32_t h) {
     return 2*dpi/w*(std::cos(dpi*row/h)-std::cos(dpi*(row+1)/h));
 }
 }
-Random::Random(uint64_t seed):state(seed+0x9e3779b97f4a7c15ull) { bits(); }
-uint32_t Random::bits() {
-    const uint64_t previous=state;state=previous*6364136223846793005ull+1442695040888963407ull;
-    const uint32_t x=uint32_t(((previous>>18)^previous)>>27),rotation=uint32_t(previous>>59);
-    return (x>>rotation)|(x<<((0-rotation)&31));
-}
-float Random::uniform() { return float(bits()>>8)*0x1p-24f; }
 Environment::Environment(uint32_t w,uint32_t h,std::vector<glm::vec3> pixels)
     :width_(w),height_(h),pixels_(std::move(pixels)) {
     if(!w || !h || pixels_.size()!=size_t(w)*h)throw std::invalid_argument("PT: invalid environment extent");
@@ -115,12 +110,14 @@ float Environment::pdf(glm::vec3 d) const {
 EnvironmentSample Environment::sample(Random &r) const {
     const auto it=std::upper_bound(cdf_.begin(),cdf_.end(),double(r.uniform())*total_);
     const size_t i=std::min(size_t(it-cdf_.begin()),cdf_.size()-1);const uint32_t x=uint32_t(i%width_),y=uint32_t(i/width_);
-    const float phi=(x+r.uniform())/width_*2*pi;
-    const float cosine=glm::mix(std::cos(pi*y/height_),std::cos(pi*(y+1)/height_),r.uniform());
+    const auto uv=r.uniform2();
+    const float phi=(x+uv[0])/width_*2*pi;
+    const float cosine=glm::mix(std::cos(pi*y/height_),std::cos(pi*(y+1)/height_),uv[1]);
     const float sine=std::sqrt(std::max(0.f,1-cosine*cosine));glm::vec3 d{sine*std::sin(phi),cosine,-sine*std::cos(phi)};
     return {d,evaluate(d),float((cdf_[i]-(i?cdf_[i-1]:0))/(total_*solidAngle(y,width_,height_)))};
 }
 glm::vec3 evaluateBsdf(const Surface &s,glm::vec3 v,glm::vec3 l) {
+    if(s.ior>0)return glm::vec3(0);
     const float nv=glm::dot(s.normal,v),nl=glm::dot(s.normal,l);
     if(nv<=0 || nl<=0 || glm::dot(s.geometricNormal,v)<=0 || glm::dot(s.geometricNormal,l)<=0)return glm::vec3(0);
     auto h=unit(v+l,s.normal);float nh=std::max(0.f,glm::dot(s.normal,h)),vh=std::max(0.f,glm::dot(v,h));
@@ -128,33 +125,53 @@ glm::vec3 evaluateBsdf(const Surface &s,glm::vec3 v,glm::vec3 l) {
     return (1.f-f)*s.albedo*(1-s.metallic)/pi+f*(distribution(nh,s.roughness)*smith(nv,s.roughness)*smith(nl,s.roughness)/(4*nv*nl));
 }
 float bsdfPdf(const Surface &s,glm::vec3 v,glm::vec3 l) {
+    if(s.ior>0)return 0;
     const float nl=glm::dot(s.normal,l);if(nl<=0 || glm::dot(s.normal,v)<=0)return 0;
     auto h=unit(v+l,s.normal);const float vh=glm::dot(v,h);if(vh<=0)return 0;
     const float p=specularChance(s);
-    return (1-p)*nl/pi+p*distribution(std::max(0.f,glm::dot(s.normal,h)),s.roughness)*std::max(0.f,glm::dot(s.normal,h))/(4*vh);
+    return (1-p)*nl/pi+p*distribution(std::max(0.f,glm::dot(s.normal,h)),s.roughness)*smith(glm::dot(s.normal,v),s.roughness)/(4*glm::dot(s.normal,v));
 }
-BsdfSample sampleBsdf(const Surface &s,glm::vec3 v,Random &r) {
+float dielectricFresnel(float cosine,float etaI,float etaT) {
+    cosine=glm::clamp(std::abs(cosine),0.f,1.f);const float sineT=etaI/etaT*std::sqrt(std::max(0.f,1-cosine*cosine));
+    if(sineT>=1)return 1;const float cosineT=std::sqrt(std::max(0.f,1-sineT*sineT));
+    const float parallel=(etaT*cosine-etaI*cosineT)/(etaT*cosine+etaI*cosineT),perpendicular=(etaI*cosine-etaT*cosineT)/(etaI*cosine+etaT*cosineT);
+    return (parallel*parallel+perpendicular*perpendicular)*.5f;
+}
+BsdfSample sampleBsdf(const Surface &s,glm::vec3 v,Random &r,TransportMode mode) {
+    if(s.ior>0){const float etaI=s.frontFace?1:s.ior,etaT=s.frontFace?s.ior:1,eta=etaI/etaT;const float f=dielectricFresnel(glm::dot(s.normal,v),etaI,etaT);
+        if(r.uniform()<f){auto l=glm::reflect(-v,s.normal);return {l,glm::vec3(f/std::max(1e-8f,std::abs(glm::dot(s.normal,l)))),f,true};}
+        auto l=glm::refract(-v,s.normal,eta);if(glm::dot(l,l)<1e-12f)return {};
+        const float scale=mode==TransportMode::Radiance?eta*eta:1;return {l,s.albedo*((1-f)*scale/std::max(1e-8f,std::abs(glm::dot(s.normal,l)))),1-f,true};
+    }
     glm::vec3 l;
-    if(r.uniform()<specularChance(s)) {
-        const float a=s.roughness*s.roughness,q=r.uniform();
-        const float cosine=std::sqrt((1-q)/(1+(a*a-1)*q)),sine=std::sqrt(std::max(0.f,1-cosine*cosine)),phi=2*pi*r.uniform();
-        const auto half=local({sine*std::cos(phi),sine*std::sin(phi),cosine},s.normal);l=glm::reflect(-v,half);
-        // Rejected NDF samples contribute zero; retrying would bias the PDF.
+    const float selection=r.uniform();const auto uv=r.uniform2();
+    if(selection<specularChance(s)) {
+        const float a=s.roughness*s.roughness;
+        const auto tangent=unit(glm::cross(std::abs(s.normal.y)<.99f?glm::vec3(0,1,0):glm::vec3(1,0,0),s.normal));
+        const auto bitangent=glm::cross(s.normal,tangent);
+        auto vh=unit(glm::vec3(a*glm::dot(v,tangent),a*glm::dot(v,bitangent),glm::dot(v,s.normal)),{0,0,1});
+        const float length=vh.x*vh.x+vh.y*vh.y;
+        auto t1=length>0?glm::vec3(-vh.y,vh.x,0)/std::sqrt(length):glm::vec3(1,0,0),t2=glm::cross(vh,t1);
+        const float radius=std::sqrt(uv[0]),phi=2*pi*uv[1],x=radius*std::cos(phi),blend=.5f*(1+vh.z);
+        const float y=glm::mix(std::sqrt(std::max(0.f,1-x*x)),radius*std::sin(phi),blend);
+        auto nh=t1*x+t2*y+vh*std::sqrt(std::max(0.f,1-x*x-y*y));
+        auto ne=unit(glm::vec3(a*nh.x,a*nh.y,std::max(0.f,nh.z)),{0,0,1});
+        const auto half=tangent*ne.x+bitangent*ne.y+s.normal*ne.z;l=glm::reflect(-v,half);
         if(glm::dot(v,half)<=0 || glm::dot(l,s.normal)<=0)return {};
     }else {
-        const float q=r.uniform(),phi=2*pi*r.uniform();l=local({std::sqrt(q)*std::cos(phi),std::sqrt(q)*std::sin(phi),std::sqrt(1-q)},s.normal);
+        const float q=uv[0],phi=2*pi*uv[1];l=local({std::sqrt(q)*std::cos(phi),std::sqrt(q)*std::sin(phi),std::sqrt(1-q)},s.normal);
     }
     return {l,evaluateBsdf(s,v,l),bsdfPdf(s,v,l)};
 }
 struct CpuScene::State {
-    struct Mesh {std::vector<render::MeshVertex> vertices;std::vector<uint32_t> indices;std::shared_ptr<const render::MaterialPayload> material;render::MaterialParameters parameters;render::MaterialExtension extension;};
+    struct Mesh {std::vector<render::MeshVertex> vertices;std::vector<uint32_t> indices;std::shared_ptr<const render::MaterialPayload> material;render::MaterialParameters parameters;render::MaterialExtension extension;float ior=0;};
     struct Primitive {uint32_t mesh,offset;};
     struct Node {glm::vec3 low;uint32_t first;glm::vec3 high;uint32_t count;};
     struct AreaLight {uint32_t primitive;float area;double cumulative;glm::vec3 normal;};
     std::vector<Mesh> meshes;std::vector<Primitive> primitives;std::vector<uint32_t> order;std::vector<Node> nodes;
     std::vector<AreaLight> emitters;std::vector<int32_t> emitterIndex;double emitterWeight=0;
     std::vector<render::LightData> lights;glm::mat4 inverseProjection;glm::vec3 camera;
-    bool inverseSquare=true;
+    bool inverseSquare=true;glm::vec3 cameraForward{0,0,-1};float filmArea=1;glm::mat4 projection{1};
     uint32_t build(uint32_t node,uint32_t start,uint32_t end,std::vector<Bounds> &bounds,
                    std::vector<glm::vec3> &centers,uint32_t depth) {
         Bounds total,centroid;for(uint32_t i=start;i<end;++i){total.add(bounds[order[i]]);centroid.add(centers[order[i]]);}
@@ -198,7 +215,7 @@ struct CpuScene::State {
     }
     void surface(uint32_t id,glm::vec2 bary,float t,glm::vec3 o,glm::vec3 d,Surface &out) const {
         auto v=vertices(id);const auto &m=meshes[primitives[id].mesh];auto image=[&](size_t i){return m.material?m.material->images[i]:std::shared_ptr<const render::ImageRGBA8>{};};
-        out=Surface{};out.distance=t;out.primitive=id;out.position=o+d*t;
+        out=Surface{};out.ior=m.ior;out.twoSided=m.extension.settings.w>0;out.distance=t;out.primitive=id;out.position=o+d*t;
         out.uv=v[0]->uv*(1-bary.x-bary.y)+v[1]->uv*bary.x+v[2]->uv*bary.y;
         const auto e1=v[1]->position-v[0]->position,e2=v[2]->position-v[0]->position;
         auto n=unit(v[0]->normal*(1-bary.x-bary.y)+v[1]->normal*bary.x+v[2]->normal*bary.y);
@@ -224,8 +241,10 @@ struct CpuScene::State {
         if(m.extension.settings.z>0 && luminance(out.emission)==0)out.emission=out.albedo;
     }
 };
-CpuScene::CpuScene(const render::RenderWorldSnapshot &snapshot):state_(std::make_unique<State>()) {
-    auto &s=*state_;s.camera=snapshot.frame.cameraPosition;s.inverseProjection=glm::inverse(snapshot.frame.viewProjection);s.lights=snapshot.frame.lights;s.inverseSquare=snapshot.frame.inverseSquareLocalLights;
+CpuScene::CpuScene(const render::RenderWorldSnapshot &snapshot,const std::vector<DielectricMaterial> &dielectrics):state_(std::make_unique<State>()) {
+    auto &s=*state_;s.camera=snapshot.frame.cameraPosition;s.inverseProjection=glm::inverse(snapshot.frame.viewProjection);s.lights=snapshot.frame.lights;s.inverseSquare=snapshot.frame.inverseSquareLocalLights;s.projection=snapshot.frame.viewProjection;
+    auto ray=[&](float x,float y){auto p=s.inverseProjection*glm::vec4(2*x-1,1-2*y,1,1);return glm::normalize(glm::vec3(p)/p.w-s.camera);};
+    s.cameraForward=ray(.5f,.5f);auto a=ray(0,0),b=ray(1,0),c=ray(0,1);a/=glm::dot(a,s.cameraForward);b/=glm::dot(b,s.cameraForward);c/=glm::dot(c,s.cameraForward);s.filmArea=glm::length(glm::cross(b-a,c-a));
     if(!snapshot.frame.directionalEnabled)for(auto &light:s.lights)if(light.positionType.w==0)light.colorInner=glm::vec4(0);
     if(snapshot.terrain || !snapshot.frame.oceans.empty())std::cerr<<"CPU PT traces mesh objects; procedural terrain/ocean are excluded from this capture\n";
     size_t count=0;for(const auto &draw:snapshot.draws)if(draw.mesh)count+=draw.mesh->indices.size()/3;
@@ -236,6 +255,7 @@ CpuScene::CpuScene(const render::RenderWorldSnapshot &snapshot):state_(std::make
         const float determinant=glm::determinant(glm::mat3(draw.model));if(!std::isfinite(determinant) || std::abs(determinant)<1e-15f)throw std::invalid_argument("PT: singular mesh transform");
         if(draw.material)for(const auto &image:draw.material->images)if(image && !image->pixels.empty() && (!image->width || !image->height || image->width>INT32_MAX || image->height>INT32_MAX || uint64_t(image->width)*image->height*4!=image->pixels.size()))throw std::invalid_argument("PT: invalid material image extent");
         State::Mesh mesh;mesh.vertices=draw.mesh->vertices;mesh.indices=draw.mesh->indices;mesh.material=draw.material;mesh.parameters=draw.parameters;mesh.extension=draw.extension;
+        for(const auto &material:dielectrics)if(material.objectId==draw.objectId){if(!std::isfinite(material.ior)||material.ior<=1||material.ior>4)throw std::invalid_argument("PT: invalid dielectric IOR");mesh.ior=material.ior;}
         const auto normal=glm::transpose(glm::inverse(glm::mat3(draw.model)));
         for(auto &v:mesh.vertices){v.position=glm::vec3(draw.model*glm::vec4(v.position,1));v.normal=unit(normal*v.normal);if(!finite(v.position) || !std::isfinite(v.uv.x) || !std::isfinite(v.uv.y))throw std::invalid_argument("PT: invalid mesh vertex");}
         for(auto index:mesh.indices)if(index>=mesh.vertices.size())throw std::invalid_argument("PT: invalid mesh index");
@@ -257,10 +277,54 @@ CpuScene::CpuScene(const render::RenderWorldSnapshot &snapshot):state_(std::make
 CpuScene::~CpuScene()=default;
 size_t CpuScene::triangles() const{return state_->primitives.size();}
 size_t CpuScene::meshCount() const{return state_->meshes.size();}
+size_t CpuScene::dielectricCount() const{return std::count_if(state_->meshes.begin(),state_->meshes.end(),[](const auto &mesh){return mesh.ior>0;});}
 size_t CpuScene::nodeCount() const{return state_->nodes.size();}
 size_t CpuScene::memoryBytes() const {const auto &s=*state_;size_t n=s.nodes.capacity()*sizeof(State::Node)+s.order.capacity()*4+s.primitives.capacity()*sizeof(State::Primitive)+s.emitterIndex.capacity()*4;for(auto &m:s.meshes)n+=m.vertices.capacity()*sizeof(render::MeshVertex)+m.indices.capacity()*4;return n;}
+SceneData CpuScene::exportData() const {
+    const auto &s=*state_;SceneData data;data.inverseProjection=s.inverseProjection;data.camera=s.camera;data.lights=s.lights;data.inverseSquare=s.inverseSquare;data.emitterWeight=s.emitterWeight;
+    static_assert(sizeof(PackedVertex)==32 && sizeof(PackedNode)==32 && sizeof(PackedMaterial)==96 && sizeof(PackedEmitter)==32,"GPU scene ABI");
+    auto bits=[](uint32_t n){float f;std::memcpy(&f,&n,4);return f;};
+    data.nodes.reserve(s.nodes.size());for(const auto &node:s.nodes)data.nodes.push_back({glm::vec4(node.low,bits(node.first)),glm::vec4(node.high,bits(node.count))});
+    std::unordered_map<const render::ImageRGBA8*,uint32_t> imageIds;
+    auto image=[&](const std::shared_ptr<const render::ImageRGBA8> &value){
+        if(!value || value->pixels.empty())return UINT32_MAX;
+        auto it=imageIds.find(value.get());if(it!=imageIds.end())return it->second;
+        if(data.texels.size()+value->pixels.size()/4>=UINT32_MAX)throw std::length_error("PT: GPU texel addressing overflow");
+        const uint32_t id=uint32_t(data.images.size());imageIds[value.get()]=id;data.images.push_back({uint32_t(data.texels.size()),value->width,value->height,0});
+        for(size_t i=0;i<value->pixels.size();i+=4)data.texels.push_back(uint32_t(value->pixels[i])|(uint32_t(value->pixels[i+1])<<8)|(uint32_t(value->pixels[i+2])<<16)|(uint32_t(value->pixels[i+3])<<24));return id;
+    };
+    std::vector<uint32_t> offsets;offsets.reserve(s.meshes.size());
+    for(const auto &mesh:s.meshes){
+        if(data.vertices.size()+mesh.vertices.size()>=UINT32_MAX)throw std::length_error("PT: GPU vertex addressing overflow");
+        offsets.push_back(uint32_t(data.vertices.size()));for(const auto &v:mesh.vertices)data.vertices.push_back({glm::vec4(v.position,v.uv.x),glm::vec4(v.normal,v.uv.y)});
+        PackedMaterial material{mesh.parameters.albedoAlpha,mesh.parameters.emissiveNormal,mesh.parameters.factors,glm::vec4(mesh.ior,0,0,0),glm::uvec4(UINT32_MAX),glm::uvec4(UINT32_MAX,mesh.extension.settings.w>0?1:0,mesh.extension.settings.z>0?1:0,0)};
+        if(mesh.material){for(int i=0;i<4;++i)material.textures[i]=image(mesh.material->images[i]);material.extra.x=image(mesh.material->images[4]);}data.materials.push_back(material);
+    }
+    std::vector<uint32_t> remap(s.primitives.size());data.triangles.reserve(s.primitives.size());
+    for(uint32_t i=0;i<s.order.size();++i){const uint32_t id=s.order[i];remap[id]=i;const auto &p=s.primitives[id];const auto &m=s.meshes[p.mesh];const auto offset=offsets[p.mesh];data.triangles.push_back({offset+m.indices[p.offset],offset+m.indices[p.offset+1],offset+m.indices[p.offset+2],p.mesh});}
+    for(const auto &light:s.emitters)data.emitters.push_back({{bits(remap[light.primitive]),light.area,float(light.cumulative/s.emitterWeight),0},glm::vec4(light.normal,0)});
+    return data;
+}
 void CpuScene::cameraRay(float u,float v,glm::vec3 &o,glm::vec3 &d) const {
     auto far=state_->inverseProjection*glm::vec4(u*2-1,1-v*2,1,1);o=state_->camera;d=unit(glm::vec3(far)/far.w-o,{0,0,-1});
+}
+EmitterSample CpuScene::sampleEmitter(Random &rng) const {
+    const auto &s=*state_;if(s.emitters.empty())return {};
+    double selected=rng.uniform()*s.emitterWeight;auto it=std::upper_bound(s.emitters.begin(),s.emitters.end(),selected,[](double value,const auto &light){return value<light.cumulative;});size_t index=std::min(size_t(it-s.emitters.begin()),s.emitters.size()-1);const auto &light=s.emitters[index];
+    auto uv=rng.uniform2();float a=std::sqrt(uv[0]);glm::vec2 bary{a*(1-uv[1]),a*uv[1]};auto v=s.vertices(light.primitive);auto p=v[0]->position*(1-a)+v[1]->position*bary.x+v[2]->position*bary.y;Surface hit;s.surface(light.primitive,bary,0,p,-light.normal,hit);hit.normal=hit.geometricNormal;return {hit,emitterPdfArea(light.primitive)};
+}
+float CpuScene::emitterPdfArea(uint32_t primitive) const {
+    const auto &s=*state_;if(primitive>=s.emitterIndex.size())return 0;auto index=s.emitterIndex[primitive];if(index<0)return 0;const auto &light=s.emitters[index];double weight=light.cumulative-(index?s.emitters[index-1].cumulative:0);return float(weight/s.emitterWeight/light.area);
+}
+float CpuScene::cameraPdf(glm::vec3 direction) const {const auto &s=*state_;float cosine=glm::dot(s.cameraForward,direction);return cosine>0?1/(s.filmArea*cosine*cosine*cosine):0;}
+bool CpuScene::project(glm::vec3 point,glm::vec2 &uv,float &pdf) const {
+    const auto &s=*state_;auto clip=s.projection*glm::vec4(point,1);if(clip.w<=0)return false;auto ndc=glm::vec3(clip)/clip.w;uv={ndc.x*.5f+.5f,.5f-ndc.y*.5f};pdf=cameraPdf(glm::normalize(point-s.camera));return uv.x>=0&&uv.x<1&&uv.y>=0&&uv.y<1;
+}
+void CpuScene::validateBidirectional() const {
+    const auto &s=*state_;if(environment||sunRadius>0)throw std::invalid_argument("BDPT reference currently supports finite area lights; HDR/sun require a separate endpoint implementation");
+    for(const auto &light:s.lights)if(luminance(glm::vec3(light.colorInner))>0)throw std::invalid_argument("BDPT reference requires area emitters instead of local/directional lights");
+    if(s.emitters.empty())throw std::invalid_argument("BDPT requires an area emitter");
+    for(const auto &mesh:s.meshes){if(mesh.parameters.albedoAlpha.a<1&&mesh.parameters.factors.w==0)throw std::invalid_argument("BDPT does not support blended coverage");if(mesh.material&&mesh.parameters.factors.w==0&&mesh.material->images[0]){const auto &pixels=mesh.material->images[0]->pixels;for(size_t i=3;i<pixels.size();i+=4)if(pixels[i]<255)throw std::invalid_argument("BDPT does not support blended texture coverage");}}
 }
 bool CpuScene::intersect(glm::vec3 o,glm::vec3 d,float minimum,float maximum,Surface &out,bool brute) const {
     const auto &s=*state_;uint32_t id=UINT32_MAX;glm::vec2 bestBary;float closest=maximum;
@@ -287,13 +351,15 @@ glm::vec3 CpuScene::trace(glm::vec3 origin,glm::vec3 direction,Random &rng,uint3
         for(int skip=0;skip<128;++skip){++rays;if(!intersect(o,d,epsilon,maximum,hit))return transmission;transmission*=1-hit.opacity;if(transmission<1e-5f)return 0.f;if(std::isfinite(maximum)){maximum-=hit.distance+epsilon;if(maximum<=epsilon)return transmission;}o=hit.position+d*epsilon;}
         return 0.f;
     };
-    for(uint32_t bounce=0,transparent=0;bounce<depth;) {
+    for(uint32_t bounce=0,transparent=0;;) {
+        const uint32_t dimension=2+bounce*256;
         Surface hit;++rays;
         if(!intersect(origin,direction,epsilon,std::numeric_limits<float>::infinity(),hit)) {
             if(environment){auto e=environment->evaluate(direction);const float weight=previousPdf>0?power(previousPdf,environment->pdf(direction)):1;radiance+=throughput*e*weight;}
             if(sunRadius>0 && glm::dot(direction,sunDirection)>=sunCos){const float weight=previousPdf>0?power(previousPdf,sunPdf):1;radiance+=throughput*sunIrradiance/(pi*std::sin(sunRadius)*std::sin(sunRadius))*weight;}
             break;
         }
+        rng.dimension(dimension+20+transparent);
         if(hit.opacity<1 && rng.uniform()>=hit.opacity){if(++transparent>128)break;origin=hit.position+direction*epsilon;continue;}
         float emissionWeight=1;
         const int32_t emitter=s.emitterIndex[hit.primitive];
@@ -304,14 +370,18 @@ glm::vec3 CpuScene::trace(glm::vec3 origin,glm::vec3 direction,Random &rng,uint3
             emissionWeight=power(previousPdf,lightPdf);
         }
         radiance+=throughput*hit.emission*emissionWeight;
+        if(bounce>=depth)break;
         const auto view=-direction;
+        if(hit.ior>0){rng.dimension(dimension+12);auto sample=sampleBsdf(hit,view,rng);if(sample.pdf<=0)break;throughput*=sample.value*(std::abs(glm::dot(hit.normal,sample.direction))/sample.pdf);previousPdf=0;previousPoint=hit.position;origin=offset(hit,sample.direction);direction=sample.direction;++bounce;continue;}
         auto direct=[&](glm::vec3 l,glm::vec3 energy,float pdf,float distance,bool delta){
             if(pdf<=0)return;const float cosine=std::max(0.f,glm::dot(hit.normal,l));if(cosine==0)return;
             const auto f=evaluateBsdf(hit,view,l);if(luminance(f)<=0)return;
             const float transmission=visibility(offset(hit,l),l,distance);
             const float weight=delta?1:power(pdf,bsdfPdf(hit,view,l));radiance+=throughput*f*energy*(cosine*transmission*weight/pdf);
         };
+        rng.dimension(dimension);
         if(environment){auto e=environment->sample(rng);direct(e.direction,e.radiance,e.pdf,std::numeric_limits<float>::infinity(),false);}
+        rng.dimension(dimension+4);
         bool atmosphericSun=false;
         for(const auto &light:s.lights) {
             glm::vec3 color(light.colorInner);const int type=int(light.positionType.w);
@@ -326,26 +396,37 @@ glm::vec3 CpuScene::trace(glm::vec3 origin,glm::vec3 direction,Random &rng,uint3
             }
         }
         if(sunRadius>0 && !atmosphericSun){float cosine=glm::mix(1.f,sunCos,rng.uniform()),sine=std::sqrt(std::max(0.f,1-cosine*cosine)),phi=2*pi*rng.uniform();direct(local({sine*std::cos(phi),sine*std::sin(phi),cosine},sunDirection),sunIrradiance/(pi*std::sin(sunRadius)*std::sin(sunRadius)),sunPdf,std::numeric_limits<float>::infinity(),false);}
+        rng.dimension(dimension+8);
         if(!s.emitters.empty()) {
             const double selected=double(rng.uniform())*s.emitterWeight;const auto it=std::upper_bound(s.emitters.begin(),s.emitters.end(),selected,[](double value,const auto &light){return value<light.cumulative;});const size_t index=std::min(size_t(it-s.emitters.begin()),s.emitters.size()-1);const auto &light=s.emitters[index];
-            auto vertices=s.vertices(light.primitive);const float a=std::sqrt(rng.uniform()),b=rng.uniform();const glm::vec2 bary{a*(1-b),a*b};auto p=vertices[0]->position*(1-a)+vertices[1]->position*bary.x+vertices[2]->position*bary.y;
+            auto vertices=s.vertices(light.primitive);const auto uv=rng.uniform2();const float a=std::sqrt(uv[0]),b=uv[1];const glm::vec2 bary{a*(1-b),a*b};auto p=vertices[0]->position*(1-a)+vertices[1]->position*bary.x+vertices[2]->position*bary.y;
             auto to=p-hit.position;float distance=glm::length(to);auto l=unit(to);
             Surface emitterSurface;s.surface(light.primitive,bary,distance,hit.position,l,emitterSurface);
             const float cosine=std::abs(glm::dot(light.normal,-l));if(cosine>1e-8f && distance>2*epsilon){const double mass=light.cumulative-(index?s.emitters[index-1].cumulative:0);direct(l,emitterSurface.emission*emitterSurface.opacity,float(mass/s.emitterWeight)*distance*distance/(light.area*cosine),distance-2*epsilon,false);}
         }
+        rng.dimension(dimension+12);
         auto sample=sampleBsdf(hit,view,rng);if(sample.pdf<=1e-20f || luminance(sample.value)<=0)break;
         throughput*=sample.value*(std::max(0.f,glm::dot(hit.normal,sample.direction))/sample.pdf);
         if(!finite(throughput))return glm::vec3(std::numeric_limits<float>::quiet_NaN());
         previousPdf=sample.pdf;previousPoint=hit.position;origin=offset(hit,sample.direction);direction=sample.direction;++bounce;
+        rng.dimension(dimension+16);
         if(bounce>=3){const float survive=glm::clamp(std::max({throughput.r,throughput.g,throughput.b}),.05f,.95f);if(rng.uniform()>=survive)break;throughput/=survive;}
     }
     return radiance;
 }
+void validateOptions(const Options &options) {
+    if(!options.width || !options.height || options.width>16384 || options.height>16384 || !options.samples || options.samples>1048576 || !options.maxDepth || options.maxDepth>128 || options.threads>256 || !std::isfinite(options.exposure) || options.exposure<=0 || !options.minimumSamples || !std::isfinite(options.relativeError) || options.relativeError<=0 || !std::isfinite(options.absoluteError) || options.absoluteError<0)throw std::invalid_argument("PT: invalid render options");
+    if(!options.trainingSamples || options.trainingSamples>512 || !options.cacheMinimum || options.cacheMinimum>8192 || !options.cacheDepth || options.cacheDepth>128 || !std::isfinite(options.guideCellSize) || options.guideCellSize<0)throw std::invalid_argument("PT: invalid learning options");
+    if(options.bdpt&&(options.adaptive||options.guiding||options.radianceCache||options.maxDepth>32))throw std::invalid_argument("BDPT requires fixed spp, depth <=32, without guiding/cache");
+    if((options.guiding||options.radianceCache)&&uint64_t(options.width)*options.height*options.trainingSamples>268435456)throw std::invalid_argument("PT: training path budget exceeds atomic counter limit");
+    if(uint64_t(options.width)*options.height>67108864)throw std::invalid_argument("PT: image exceeds CPU allocation limit");
+}
 Image render(const CpuScene &scene,const Options &options,const std::function<void(const Image &)> &progress) {
-    if(!options.width || !options.height || options.width>16384 || options.height>16384 || !options.samples || options.samples>1048576 || !options.maxDepth || options.maxDepth>128 || options.threads>256 || !std::isfinite(options.exposure) || options.exposure<=0)throw std::invalid_argument("PT: invalid render options");
-    const uint64_t pixels=uint64_t(options.width)*options.height;if(pixels>67108864)throw std::invalid_argument("PT: image exceeds CPU allocation limit");
-    Image image;image.width=options.width;image.height=options.height;image.radiance.resize(pixels,glm::vec3(0));image.albedo.resize(pixels,glm::vec3(0));image.normal.resize(pixels,glm::vec3(0));
-    std::vector<glm::vec3> accumulation(pixels,glm::vec3(0));
+    if(options.bdpt)return renderBdpt(scene,options,progress);
+    if(options.guiding||options.radianceCache)throw std::invalid_argument("Guiding/cache require GPU PT");
+    validateOptions(options);const size_t pixels=size_t(options.width)*options.height;
+    Image image;image.width=options.width;image.height=options.height;image.radiance.resize(pixels,glm::vec3(0));image.albedo.resize(pixels,glm::vec3(0));image.normal.resize(pixels,glm::vec3(0));image.sampleCounts.resize(pixels,0);
+    std::vector<glm::vec3> m2(pixels,glm::vec3(0));std::vector<uint8_t> stable(pixels,0);
     const uint32_t tilesX=(options.width+15)/16,tilesY=(options.height+15)/16;
     const uint32_t workers=std::min(tilesX*tilesY,options.threads?options.threads:std::max(1u,std::thread::hardware_concurrency()>1?std::thread::hardware_concurrency()-1:1));
     const auto started=std::chrono::steady_clock::now();
@@ -355,21 +436,25 @@ Image render(const CpuScene &scene,const Options &options,const std::function<vo
         auto job=[&]{try {uint64_t localRays=0,localInvalid=0;
             while(true){const uint32_t tile=next.fetch_add(1);if(tile>=tilesX*tilesY)break;const uint32_t x0=tile%tilesX*16,y0=tile/tilesX*16;
                 for(uint32_t y=y0;y<std::min(y0+16,options.height);++y)for(uint32_t x=x0;x<std::min(x0+16,options.width);++x){const size_t pixel=size_t(y)*options.width+x;
+                    if(stable[pixel]>=2)continue;
                     if(first==0){glm::vec3 o,d;scene.cameraRay((x+.5f)/options.width,(y+.5f)/options.height,o,d);Surface h;++localRays;if(scene.intersect(o,d,1e-4f,std::numeric_limits<float>::infinity(),h)){image.albedo[pixel]=h.albedo;image.normal[pixel]=h.normal;}}
-                    for(uint32_t sample=first;sample<end;++sample){Random random(options.seed^(uint64_t(pixel)*0xd1b54a32d192ed03ull)^(uint64_t(sample)*0x94d049bb133111ebull));glm::vec3 o,d;const float u=(x+random.uniform())/options.width,v=(y+random.uniform())/options.height;scene.cameraRay(u,v,o,d);auto value=scene.trace(o,d,random,options.maxDepth,localRays);if(!finite(value)){++localInvalid;continue;}accumulation[pixel]+=value;}
-                    image.radiance[pixel]=accumulation[pixel]/float(end);
+                    for(uint32_t sample=first;sample<end;++sample){auto random=Random::forPixel(options.seed,uint32_t(pixel),sample,options.sobol);glm::vec3 o,d;const float u=(x+random.uniform())/options.width,v=(y+random.uniform())/options.height;scene.cameraRay(u,v,o,d);auto value=scene.trace(o,d,random,options.maxDepth,localRays);if(!finite(value)){++localInvalid;continue;}const uint32_t n=++image.sampleCounts[pixel];auto delta=value-image.radiance[pixel];image.radiance[pixel]+=delta/float(n);m2[pixel]+=delta*(value-image.radiance[pixel]);}
+                    const uint32_t n=image.sampleCounts[pixel];
+                    if(options.adaptive && n>=std::min(options.minimumSamples,options.samples) && n>1){auto error=glm::sqrt(glm::max(m2[pixel],glm::vec3(0))/float(n-1)/float(n))*1.96f;auto threshold=glm::vec3(options.absoluteError)+glm::abs(image.radiance[pixel])*options.relativeError;stable[pixel]=glm::all(glm::lessThanEqual(error,threshold))?uint8_t(stable[pixel]+1):0;}
                 }
             }rays+=localRays;invalid+=localInvalid;
         }catch(...){std::lock_guard<std::mutex> lock(failureMutex);if(!failure)failure=std::current_exception();next=tilesX*tilesY;}};
         try{for(uint32_t i=0;i<workers;++i)threads.emplace_back(job);}catch(...){next=tilesX*tilesY;for(auto &thread:threads)thread.join();throw;}
         for(auto &thread:threads)thread.join();if(failure)std::rethrow_exception(failure);
         image.rays+=rays.load();image.nonFiniteSamples+=invalid.load();image.samples=end;image.seconds=std::chrono::duration<double>(std::chrono::steady_clock::now()-started).count();
+        image.totalSamples=std::accumulate(image.sampleCounts.begin(),image.sampleCounts.end(),uint64_t(0));image.convergedPixels=uint32_t(std::count_if(stable.begin(),stable.end(),[](auto n){return n>=2;}));
         if(image.nonFiniteSamples)throw std::runtime_error("PT: non-finite path contribution");
-        std::cout<<"CPU PT "<<end<<" spp, "<<image.seconds<<" s, "<<image.rays<<" rays, "<<workers<<" workers\n"<<std::flush;
-        if(progress)progress(image);first=end;
+        std::cout<<"CPU PT "<<end<<" spp budget, "<<double(image.totalSamples)/pixels<<" average spp, "<<image.seconds<<" s, "<<image.rays<<" rays, "<<workers<<" workers\n"<<std::flush;
+        if(progress)progress(image);first=end;if(image.convergedPixels==pixels)break;
     }
     return image;
 }
+
 namespace {
 void png(const std::vector<glm::vec3> &pixels,uint32_t width,uint32_t height,float exposure,const std::string &path,bool tone,bool normal=false) {
     std::vector<uint8_t> rgb(size_t(width)*height*3);
@@ -384,15 +469,31 @@ void png(const std::vector<glm::vec3> &pixels,uint32_t width,uint32_t height,flo
 void writeImage(const Image &image,float exposure,const std::string &prefix) {
     const auto parent=std::filesystem::path(prefix).parent_path();if(!parent.empty())std::filesystem::create_directories(parent);
     png(image.radiance,image.width,image.height,exposure,prefix+".png",true);
-    png(image.albedo,image.width,image.height,exposure,prefix+"-albedo.png",false);
-    png(image.normal,image.width,image.height,exposure,prefix+"-normal.png",false,true);
-    std::ofstream pfm(prefix+".pfm",std::ios::binary);const uint16_t endian=1;const bool little=*reinterpret_cast<const uint8_t*>(&endian)==1;
+    if(!image.caustics.empty())png(image.caustics,image.width,image.height,exposure,prefix+"-caustics.png",true);
+    if(!image.albedo.empty())png(image.albedo,image.width,image.height,exposure,prefix+"-albedo.png",false);
+    if(!image.sampleCounts.empty()){std::vector<glm::vec3> counts;counts.reserve(image.sampleCounts.size());for(auto n:image.sampleCounts)counts.emplace_back(float(n)/std::max(1u,image.samples));png(counts,image.width,image.height,1,prefix+"-samples.png",false);}
+    if(!image.normal.empty())png(image.normal,image.width,image.height,exposure,prefix+"-normal.png",false,true);
+    if(!image.denoised.empty())png(image.denoised,image.width,image.height,exposure,prefix+"-denoised.png",true);
+    auto writePfm=[&](const std::vector<glm::vec3> &pixels,const std::string &path){
+    std::ofstream pfm(path,std::ios::binary);const uint16_t endian=1;const bool little=*reinterpret_cast<const uint8_t*>(&endian)==1;
     pfm<<"PF\n"<<image.width<<" "<<image.height<<"\n"<<(little?"-1.0":"1.0")<<"\n";
-    for(uint32_t y=image.height;y>0;--y)for(uint32_t x=0;x<image.width;++x){const auto value=image.radiance[size_t(y-1)*image.width+x];const float rgb[3]={value.r,value.g,value.b};pfm.write(reinterpret_cast<const char*>(rgb),sizeof(rgb));}
-    if(!pfm)throw std::runtime_error("PT: cannot write linear HDR PFM");
+    for(uint32_t y=image.height;y>0;--y)for(uint32_t x=0;x<image.width;++x){const auto value=pixels[size_t(y-1)*image.width+x];const float rgb[3]={value.r,value.g,value.b};pfm.write(reinterpret_cast<const char*>(rgb),sizeof(rgb));}
+    if(!pfm)throw std::runtime_error("PT: cannot write linear HDR PFM");};
+    writePfm(image.radiance,prefix+".pfm");if(!image.caustics.empty())writePfm(image.caustics,prefix+"-caustics.pfm");
+    if(!image.albedo.empty())writePfm(image.albedo,prefix+"-albedo.pfm");
+    if(!image.normal.empty())writePfm(image.normal,prefix+"-normal.pfm");
+    if(!image.denoised.empty())writePfm(image.denoised,prefix+"-denoised.pfm");
 }
 void writeReport(const Image &image,const CpuScene &scene,const Options &options,const std::string &prefix,const std::string &name) {
-    nlohmann::json data={{"scene",name},{"width",image.width},{"height",image.height},{"samples",image.samples},{"max_depth",options.maxDepth},{"seed",options.seed},{"requested_threads",options.threads},{"exposure",options.exposure},{"triangles",scene.triangles()},{"meshes",scene.meshCount()},{"bvh_nodes",scene.nodeCount()},{"geometry_bvh_bytes",scene.memoryBytes()},{"render_seconds",image.seconds},{"rays",image.rays},{"non_finite_samples",image.nonFiniteSamples},{"integrator","Lambert + GGX, environment/sun/emitter NEE, power MIS, Russian roulette"},{"terrain_ocean","not captured"}};
+    nlohmann::json data={{"scene",name},{"width",image.width},{"height",image.height},{"samples",image.samples},{"max_depth",options.maxDepth},{"seed",options.seed},{"requested_threads",options.threads},{"exposure",options.exposure},{"triangles",scene.triangles()},{"meshes",scene.meshCount()},{"bvh_nodes",scene.nodeCount()},{"geometry_bvh_bytes",scene.memoryBytes()},{"render_seconds",image.seconds},{"rays",image.rays},{"non_finite_samples",image.nonFiniteSamples},{"integrator","Lambert + GGX VNDF, environment/sun/emitter NEE, power MIS, Russian roulette"},{"terrain_ocean","not captured"}};
+    if(options.bdpt)data["integrator"]="BDPT: finite area endpoints, pinhole camera, connection MIS, camera splats, smooth dielectric radiance/importance";
+    data["dielectric_meshes"]=scene.dielectricCount();
+    data["guiding"]=options.guiding;data["radiance_cache"]=options.radianceCache;data["bdpt"]=options.bdpt;data["training_spp"]=options.guiding||options.radianceCache?options.trainingSamples:0;data["training_seconds"]=image.trainingSeconds;data["training_rays"]=image.trainingRays;data["guide_hits"]=image.guideHits;data["cache_hits"]=image.cacheHits;data["trained_cells"]=image.trainedCells;data["guide_cell_size"]=image.guideCellSize;data["trace_and_training_seconds"]=image.seconds+image.trainingSeconds;data["cache_minimum"]=options.cacheMinimum;data["cache_depth"]=options.cacheDepth;
+    data["setup_seconds"]=image.setupSeconds;data["gpu_buffer_bytes"]=image.gpuBufferBytes;
+    data["denoiser"]=image.denoiser;data["denoise_device"]=image.denoiseDevice;data["denoise_seconds"]=image.denoiseSeconds;data["denoise_auxiliary"]=image.denoiseAuxiliary;
+    data["trace_training_denoise_seconds"]=image.seconds+image.trainingSeconds+image.denoiseSeconds;
+    if(!image.caustics.empty()){double caustic=0,total=0;for(auto value:image.caustics)caustic+=luminance(value);for(auto value:image.radiance)total+=luminance(value);data["caustic_mean_luminance"]=caustic/image.caustics.size();data["caustic_energy_fraction"]=total>0?caustic/total:0;}
+    data["execution"]=image.execution;data["sampler"]=options.sobol?"digitally scrambled padded 2D Sobol":"PCG";data["adaptive"]=options.adaptive;data["sample_budget"]=options.samples;data["total_samples"]=image.totalSamples;data["average_spp"]=image.sampleCounts.empty()?double(image.samples):double(image.totalSamples)/image.sampleCounts.size();data["converged_pixels"]=image.convergedPixels;data["minimum_samples"]=options.minimumSamples;data["relative_error"]=options.relativeError;data["absolute_error"]=options.absoluteError;
     if(scene.environment)data["environment"]={{"width",scene.environment->width()},{"height",scene.environment->height()},{"type","linear HDR equirectangular, importance sampled"}};
     std::ofstream file(prefix+".json");file<<data.dump(2)<<'\n';if(!file)throw std::runtime_error("PT: cannot write render report");
 }
