@@ -152,6 +152,7 @@ int main(int argc, char** argv) {
             rhi::validateBufferTransfers(*rhi::device(),rhi::device()->backend()==rhi::Backend::OpenGL);
             rhi::validateTexturedRendering(*rhi::graphicsDevice());
             render::validateForwardRendering(rhi::graphicsDevice(), rhi::defaultShaderDirectory());
+            render::validateEngineBasics(rhi::graphicsDevice());
             render::validateSceneSolarControls(rhi::graphicsDevice());
             render::validateSceneEffects(rhi::graphicsDevice(),rhi::defaultShaderDirectory());
         render::validateAtmosphereRhi(rhi::graphicsDevice(),rhi::defaultShaderDirectory());

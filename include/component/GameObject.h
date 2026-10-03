@@ -1,5 +1,6 @@
 #pragma once
 #include<vector>
+#include<stdexcept>
 #include<glm/glm.hpp>
 #include<memory>
 #include"../utils/Shader.h"
@@ -22,15 +23,13 @@ public:
 	template<class T>
 	std::shared_ptr<T> addComponent() {
 		std::shared_ptr<T> component = std::make_shared<T>();
-		//rttr::type t = rttr::type::get(*component);
-		std::string component_type_name = component->name; 
-		component->Component::setGameObject(shared_from_this());
-		if (component_type_instance_map.find(component_type_name) == component_type_instance_map.end()) {
-			component_type_instance_map[component_type_name] = component;
-		}
-		else {
-			std::cout << "Componet: " << component_type_name << " has already existed\n";
-		}
+        const auto found=component_type_instance_map.find(component->name);
+        if(found!=component_type_instance_map.end()){
+            auto existing=std::dynamic_pointer_cast<T>(found->second);
+            if(!existing)throw std::logic_error("Component name registered to another type");
+            return existing;
+        }
+        addComponent(component);
 		return component;
 	}
 

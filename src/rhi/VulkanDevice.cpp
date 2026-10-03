@@ -371,17 +371,18 @@ protected:
         vkCmdPipelineBarrier(command, image.layout == VK_IMAGE_LAYOUT_UNDEFINED ? VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT : VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
             VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);image.layout = layout;
     }
-    void writeTextureImpl(NativeObject id, const TextureDesc& desc, const void* pixels, size_t bytes) override {
+    void writeTextureRegionImpl(NativeObject id, const TextureDesc& desc, TextureRegion r, const void* pixels, size_t bytes) override {
         auto staging = allocateBuffer(bytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
         try {
             transfer(staging, 0, bytes, const_cast<void*>(pixels), true);
             execute([&](VkCommandBuffer command) {
                 auto& image = images_.at(id);transition(command, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-                VkBufferImageCopy copy{};copy.imageSubresource = {image.aspect, 0, 0, 1};copy.imageExtent = {desc.width, desc.height, 1};
+                VkBufferImageCopy copy{};copy.imageSubresource = {image.aspect, 0, 0, 1};copy.imageOffset = {int32_t(r.x),int32_t(r.y),0};copy.imageExtent = {r.width, r.height, 1};
                 vkCmdCopyBufferToImage(command, staging.gpu, image.gpu, image.layout, 1, &copy);
             },frameActive(),[this,staging]{freeBuffer(staging);});
         } catch (...) { freeBuffer(staging);throw; }
     }
+    void writeTextureImpl(NativeObject id,const TextureDesc& desc,const void* pixels,size_t bytes) override {writeTextureRegionImpl(id,desc,{0,0,desc.width,desc.height},pixels,bytes);}
     std::vector<uint8_t> readPixels(NativeObject id, const TextureDesc& desc, size_t pixelBytes) {
         std::vector<uint8_t> result(size_t(desc.width) * desc.height * pixelBytes);auto staging = allocateBuffer(result.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT);
         try {

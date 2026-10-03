@@ -213,7 +213,7 @@ void ShadowPass::pointLightShadow(const std::shared_ptr<RenderScene> &scene)
 		/// </summary>
 		/// <param name="scene"></param>
 		glm::vec3 lightPos = glm::vec3(0.0, 0.0, 0.0);
-		auto trans = std::static_pointer_cast<Transform>(light->gameObject->GetComponent("Transform"));
+		auto trans = std::static_pointer_cast<Transform>(light->owner()->GetComponent("Transform"));
 		lightPos = trans->position;
 		shadowShader_point->setFloat("far_plane", far_plane);
 		shadowShader_point->setVec3("lightPos", lightPos);
@@ -923,7 +923,7 @@ void RSMPass::renderGbuffer(const std::shared_ptr<RenderScene> &scene)
         glBindTexture(GL_TEXTURE_2D,sky ? atmosphere->convolutionTexture->tex->id : 0);
         RSMShader->setInt("skyIrradiance",19);
     } else {
-        auto trans = std::static_pointer_cast<Transform>(light->gameObject->GetComponent("Transform"));
+        auto trans = std::static_pointer_cast<Transform>(light->owner()->GetComponent("Transform"));
         const auto direction = glm::normalize(light->data.direction);
         const auto up = std::abs(direction.y) > .99f ? glm::vec3(0,0,1) : glm::vec3(0,1,0);
         lightSpaceMatrix = glm::perspective(2*std::acos(glm::clamp(light->data.outerCutOff,-.999f,.999f)),

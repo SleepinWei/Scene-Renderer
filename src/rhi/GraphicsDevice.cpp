@@ -174,6 +174,14 @@ void GraphicsDevice::destroySampler(SamplerHandle h) {
         require(b.sampler.value != h.value, "RHI: sampler still has live binding sets");
     waitForResourceRelease();destroySamplerImpl(it->second.native);samplers_.erase(it);
 }
+void GraphicsDevice::writeTextureRegion(TextureHandle h, TextureRegion r, const void* data, size_t bytes) {
+    const auto& t=texture(h);const uint32_t bpp=t.desc.format==Format::RGBA8UNorm?4:t.desc.format==Format::RGBA32Float?16:0;
+    require(bpp && hasUsage(t.desc.usage,TextureUsage::CopyDestination) && data && r.width && r.height &&
+        uint64_t(r.x)+r.width<=t.desc.width && uint64_t(r.y)+r.height<=t.desc.height &&
+        uint64_t(r.width)*r.height*bpp==bytes,"RHI: invalid texture region upload");
+    writeTextureRegionImpl(t.native,t.desc,r,data,bytes);
+}
+void GraphicsDevice::writeTextureRegionImpl(NativeObject,const TextureDesc&,TextureRegion,const void*,size_t){throw std::invalid_argument("RHI: texture region upload unsupported");}
 void GraphicsDevice::writeTexture(TextureHandle h, const void* rgba, size_t bytes) {
     const auto& t = texture(h);
     require(t.desc.format == Format::RGBA8UNorm && hasUsage(t.desc.usage, TextureUsage::CopyDestination) && rgba &&

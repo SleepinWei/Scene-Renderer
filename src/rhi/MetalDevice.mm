@@ -112,16 +112,17 @@ protected:
     void destroyTextureViewImpl(NativeObject id) noexcept override {rhiViews_.erase(id);}
     void destroySamplerImpl(NativeObject id) noexcept override {rhiSamplers_.erase(id);}
     void destroyPipelineImpl(NativeObject id) noexcept override {rhiPipelines_.erase(id);}
-    void uploadPixels(NativeObject id,const rhi::TextureDesc& desc,const void* pixels,size_t pixelBytes) {
-        const size_t row=(size_t(desc.width)*pixelBytes+255)&~size_t(255);
-        auto buffer=[state_.device newBufferWithLength:row*desc.height options:MTLResourceStorageModeShared];require(buffer!=nil,"RHI texture staging failed");
-        for(size_t y=0;y<desc.height;++y)memcpy(static_cast<uint8_t*>(buffer.contents)+y*row,static_cast<const uint8_t*>(pixels)+y*desc.width*pixelBytes,desc.width*pixelBytes);
+    void writeTextureRegionImpl(NativeObject id,const rhi::TextureDesc& desc,rhi::TextureRegion r,const void* pixels,size_t) override {
+        const size_t pixelBytes=desc.format==rhi::Format::RGBA8UNorm?4:16;
+        const size_t row=(size_t(r.width)*pixelBytes+255)&~size_t(255);
+        auto buffer=[state_.device newBufferWithLength:row*r.height options:MTLResourceStorageModeShared];require(buffer!=nil,"RHI texture staging failed");
+        for(size_t y=0;y<r.height;++y)memcpy(static_cast<uint8_t*>(buffer.contents)+y*row,static_cast<const uint8_t*>(pixels)+y*r.width*pixelBytes,r.width*pixelBytes);
         endEncoders();command();auto e=[state_.command blitCommandEncoder];
-        [e copyFromBuffer:buffer sourceOffset:0 sourceBytesPerRow:row sourceBytesPerImage:row*desc.height sourceSize:MTLSizeMake(desc.width,desc.height,1)
-               toTexture:rhiTextures_.at(id) destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0,0,0)];[e endEncoding];
+        [e copyFromBuffer:buffer sourceOffset:0 sourceBytesPerRow:row sourceBytesPerImage:row*r.height sourceSize:MTLSizeMake(r.width,r.height,1)
+               toTexture:rhiTextures_.at(id) destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(r.x,r.y,0)];[e endEncoding];
     }
-    void writeTextureImpl(NativeObject id,const rhi::TextureDesc& desc,const void* pixels,size_t) override {uploadPixels(id,desc,pixels,4);}
-    void writeTextureFloatImpl(NativeObject id,const rhi::TextureDesc& desc,const float* pixels,size_t) override {uploadPixels(id,desc,pixels,16);}
+    void writeTextureImpl(NativeObject id,const rhi::TextureDesc& desc,const void* pixels,size_t bytes) override {writeTextureRegionImpl(id,desc,{0,0,desc.width,desc.height},pixels,bytes);}
+    void writeTextureFloatImpl(NativeObject id,const rhi::TextureDesc& desc,const float* pixels,size_t bytes) override {writeTextureRegionImpl(id,desc,{0,0,desc.width,desc.height},pixels,bytes);}
     std::vector<uint8_t> readPixels(NativeObject id,const rhi::TextureDesc& desc,size_t pixelBytes) {
         const size_t row=(size_t(desc.width)*pixelBytes+255)&~size_t(255);
         auto buffer=[state_.device newBufferWithLength:row*desc.height options:MTLResourceStorageModeShared];require(buffer!=nil,"RHI texture readback allocation failed");

@@ -42,3 +42,6 @@ lib/*
 # Large GI datasets are reproducibly downloaded, not committed.
 samples/downloads/
 samples/assets/gi/
+
+# Python shader/terrain tooling bytecode.
+__pycache__/

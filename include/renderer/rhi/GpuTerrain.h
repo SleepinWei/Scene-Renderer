@@ -1,15 +1,18 @@
 #pragma once
 #include "renderer/rhi/GpuMesh.h"
+#include "renderer/rhi/GpuVirtualTexture.h"
 #include <map>
 namespace render {
 struct FrameData;
 class GpuTerrain {
 public:
-    GpuTerrain(std::shared_ptr<rhi::GraphicsDevice>,const std::string&,uint32_t width,uint32_t height,const std::vector<float>& heightData);
+    GpuTerrain(std::shared_ptr<rhi::GraphicsDevice>,const std::string&,uint32_t width,uint32_t height,const std::vector<float>& heightData,uint32_t maxLeaves=2048);
+    GpuTerrain(std::shared_ptr<rhi::GraphicsDevice>,const std::string&,VirtualTextureSource,uint32_t maxLeaves=2048);
     ~GpuTerrain();void update(const FrameData&,const glm::mat4& model);
     std::shared_ptr<GpuMesh> mesh()const{return mesh_;}
     rhi::BufferHandle leafQueue()const{return finalNodes_;}
-    rhi::BufferHandle heightBuffer()const{return heights_;}
+    std::shared_ptr<GpuVirtualTexture> heightTexture()const{return heightTexture_;}
+    uint32_t leafCapacity()const{return capacity_;}
     uint32_t width()const{return width_;}uint32_t height()const{return height_;}
     std::vector<uint32_t> readNodes();
     rhi::DrawIndexedIndirectArguments readArguments();
@@ -18,7 +21,8 @@ public:
 private:
     struct Kernel{rhi::ComputePipelineHandle pipeline;std::vector<rhi::BindingLayout> layouts;};
     std::shared_ptr<GpuMesh> mesh_;Resources resources_;std::map<std::string,Kernel> kernels_;
-    rhi::BufferHandle heights_,descriptors_,finalNodes_;rhi::TextureHandle lod_;rhi::TextureViewHandle lodView_;uint32_t width_,height_;
+    std::shared_ptr<GpuVirtualTexture> heightTexture_;uint32_t capacity_;
+    rhi::BufferHandle descriptors_,finalNodes_;rhi::TextureHandle lod_;rhi::TextureViewHandle lodView_;uint32_t width_,height_;
 };
 void validateTerrainRhi(std::shared_ptr<rhi::GraphicsDevice>,const std::string&);
 }

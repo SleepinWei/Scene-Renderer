@@ -173,7 +173,7 @@ void RenderManager::preparePointLightData(const std::shared_ptr<RenderScene>& sc
 			}
 			PointLightData& data = light->data;
 			std::shared_ptr<Transform>&& transform = std::static_pointer_cast<Transform>(
-				light->gameObject->GetComponent("Transform"));
+				light->owner()->GetComponent("Transform"));
 			if (transform) {
 				uniformPointLightBuffer->write(
 					0 + index * dataSize,
@@ -216,7 +216,7 @@ void RenderManager::prepareDirectionLightData(const std::shared_ptr<RenderScene>
 	for(auto& light : scene->directionLights){
 		if (light) {
 			std::shared_ptr<Transform>&& transform = std::static_pointer_cast<Transform>(
-				light->gameObject->GetComponent("Transform"));
+				light->owner()->GetComponent("Transform"));
 
 			if (!light->dirty) {
 				continue;
@@ -259,7 +259,7 @@ void RenderManager::prepareSpotLightData(const std::shared_ptr<RenderScene>& sce
 		auto& light = scene->spotLights[i];
 		if (light) {
 			std::shared_ptr<Transform>&& transform = std::static_pointer_cast<Transform>(
-				light->gameObject->GetComponent("Transform"));
+				light->owner()->GetComponent("Transform"));
 
 			if (!light->dirty) {
 				continue;
@@ -465,7 +465,7 @@ std::shared_ptr<Shader> RenderManager::generateShader(ShaderType type) {
 			std::cerr << "No such shader type" << '\n';
 			break;
 	}
-	//return std::make_shared<Shader>(nullptr, nullptr, nullptr, nullptr, nullptr);
+	throw std::invalid_argument("Unsupported shader type");
 }
 
 void RenderManager::pass_data()

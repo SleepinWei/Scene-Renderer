@@ -45,6 +45,7 @@ struct TextureDesc {
     TextureUsage usage = TextureUsage::None;
     std::string label;
 };
+struct TextureRegion { uint32_t x=0, y=0, width=0, height=0; };
 struct TextureViewDesc { TextureHandle texture; };
 struct SamplerDesc { Filter filter = Filter::Linear; AddressMode address = AddressMode::ClampToEdge; };
 struct BindingLayoutEntry {
@@ -203,6 +204,7 @@ public:
     void destroySampler(SamplerHandle);
     void destroyPipeline(PipelineHandle);
     void destroyBindingSet(BindingSetHandle);
+    void writeTextureRegion(TextureHandle, TextureRegion, const void*, size_t bytes);
     void writeTexture(TextureHandle, const void* rgba, size_t bytes);
     // RGBA8 readback, tightly packed, row zero is the top of the render target.
     ReadbackTicket requestTextureReadback(TextureHandle); // Tightly packed rows; format matches TextureDesc.
@@ -246,6 +248,7 @@ protected:
     virtual void destroySamplerImpl(NativeObject) noexcept = 0;
     virtual void destroyPipelineImpl(NativeObject) noexcept = 0;
     virtual std::function<void()> queueTextureReadbackImpl(NativeObject,const TextureDesc&,std::shared_ptr<std::vector<uint8_t>>);
+    virtual void writeTextureRegionImpl(NativeObject, const TextureDesc&, TextureRegion, const void*, size_t);
     virtual void writeTextureImpl(NativeObject, const TextureDesc&, const void*, size_t) = 0;
     virtual std::vector<uint8_t> readTextureImpl(NativeObject, const TextureDesc&) = 0;
     virtual void writeTextureFloatImpl(NativeObject, const TextureDesc&, const float*, size_t);

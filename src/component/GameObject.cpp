@@ -15,7 +15,7 @@ GameObject::GameObject() {
 }
 
 GameObject::GameObject(std::string name) {
-	name = name;
+	this->name = std::move(name);
 	this->m_isDeferred = true;
 }
 
@@ -39,7 +39,8 @@ GameObject::~GameObject() {
 //	else if (component_type_name == "MeshRenderer") {
 //		component = std::make_shared<MeshRenderer>(); 
 //	}
-//	component->setGameObject(shared_from_this());
+//    if(!component)throw std::invalid_argument("Cannot attach null component");
+//    if(auto owner=component->gameObject.lock();owner && owner.get()!=this)throw std::invalid_argument("Component already belongs to another object");
 //
 //	if (component_type_instance_map.find(component_type_name) == component_type_instance_map.end()) {
 //		std::vector<std::shared_ptr<Component>> component_vec;
@@ -89,11 +90,13 @@ void GameObject::loadFromJson(json& data) {
 
 std::shared_ptr<GameObject> GameObject::addComponent(const std::shared_ptr<Component>& component)
 {
-	component->setGameObject(shared_from_this());
+    if(!component)throw std::invalid_argument("Cannot attach null component");
+    if(auto owner=component->gameObject.lock();owner && owner.get()!=this)throw std::invalid_argument("Component already belongs to another object");
 	std::string component_type_name = component->name;
 	if (component_type_instance_map.find(component_type_name) == component_type_instance_map.end()) {
 		//std::vector<std::shared_ptr<Component>> component_vec;
 		//component_vec.push_back(component);
+        component->setGameObject(shared_from_this());
 		component_type_instance_map[component_type_name] = component;
 	}
 	else {

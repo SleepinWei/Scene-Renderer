@@ -13,6 +13,7 @@ layout(set=1,binding=3) uniform sampler2D metallicMap;
 layout(set=1,binding=2) uniform sampler2D normalMap;
 layout(set=0,binding=4) uniform sampler2D skyIrradiance;
 #include "sky-mapping.glsl"
+#include "material-sampling.glsl"
 vec3 mappedNormal() {
     vec3 N = normalize(worldNormal);
     vec3 q1 = dFdx(worldPosition), q2 = dFdy(worldPosition);
@@ -25,14 +26,14 @@ vec3 mappedNormal() {
     T -= N * dot(T,N);B -= N * dot(B,N);
     if (dot(T,T) < 1e-10 || dot(B,B) < 1e-10) return N;
     T = normalize(T);B = normalize(B);
-    vec3 sampleNormal = texture(normalMap, uv).xyz * 2 - 1;
+    vec3 sampleNormal = sampleMaterial(normalMap, uv).xyz * 2 - 1;
     sampleNormal.xy *= emissiveNormal.w;
     vec3 mapped = mat3(T,B,N) * sampleNormal;
     return dot(mapped,mapped) < 1e-10 ? N : normalize(mapped);
 }
 
 void main(){
-    vec4 base=texture(albedoMap,uv)*albedoAlpha;if(base.a<factors.w)discard;
+    vec4 base=sampleMaterial(albedoMap,uv)*albedoAlpha;if(base.a<factors.w)discard;
     vec3 N=mappedNormal(), delta=lightPositionType.w<.5?-lightDirectionOuter.xyz:lightPositionType.xyz-worldPosition;
     vec3 L=length(delta)>1e-6?normalize(delta):N;
     float cone=lightPositionType.w>1.5?clamp((dot(L,-normalize(lightDirectionOuter.xyz))-lightDirectionOuter.w)/max(lightColorInner.w-lightDirectionOuter.w,1e-5),0,1):1;
@@ -40,7 +41,7 @@ void main(){
     if(captureSettings.y>0. && lightPositionType.w>.5)incident/=max(dot(delta,delta),1e-6);
     if(captureSettings.x>0.)incident+=3.14159265*sampleSkyLut(skyIrradiance,N);
     float area=captureSettings.y>0.?length(cross(dFdx(worldPosition),dFdy(worldPosition))):1.;
-    float metallic=clamp(texture(metallicMap,uv).b*factors.x,0.,1.);
+    float metallic=clamp(sampleMaterial(metallicMap,uv).b*factors.x,0.,1.);
     flux=vec4(pow(max(base.rgb,vec3(0)),vec3(2.2))*incident*(1.-metallic)*area,1);
     position=vec4(worldPosition,1);normal=vec4(N,1);
 }

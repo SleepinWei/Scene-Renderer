@@ -167,7 +167,7 @@ void Atmosphere::renderDrawCall(const std::shared_ptr<Shader>& outShader) {
 		shader->use();
 		shader->setInt("skyViewLut", 8);
 		// load skybox 
-		auto& skybox = std::static_pointer_cast<Sky>(Component::gameObject)->skybox;
+		auto& skybox = std::static_pointer_cast<Sky>(Component::owner())->skybox;
 		if (skybox) {
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_CUBE_MAP,skybox->textures["skybox"]->id);

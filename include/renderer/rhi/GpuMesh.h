@@ -15,6 +15,7 @@ public:
     rhi::BufferHandle indirectBuffer() const{return indirect_;}
     void draw(rhi::CommandList&) const;
     const rhi::GraphicsDevice* owner() const { return resources_.device.get(); }
+    void setBounds(glm::vec3 minimum,glm::vec3 maximum);
     glm::vec3 boundsMin() const { return boundsMin_; }
     glm::vec3 boundsMax() const { return boundsMax_; }
     uint32_t indexCount() const { return count_; }

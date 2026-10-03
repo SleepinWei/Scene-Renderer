@@ -67,7 +67,7 @@ tuple<glm::mat4,glm::mat4> PointLight::getLightTransform(int face) {
 	};
 
 	glm::vec3 lightPos = std::static_pointer_cast<Transform>(
-		gameObject->GetComponent("Transform"))->position;
+		owner()->GetComponent("Transform"))->position;
 
 	//if (Light:: dirty) {
 	glm::mat4 proj = glm::perspective(glm::radians(fov), aspect, near, far);
@@ -125,7 +125,7 @@ tuple<glm::mat4,glm::mat4> DirectionLight::getLightTransform() {
 	//if (Light::dirty) {
 		//glm::vec3 lightPos = data.position;
 		glm::vec3 lightPos = std::static_pointer_cast<Transform>(
-			gameObject->GetComponent("Transform")
+			owner()->GetComponent("Transform")
 			)->position;
 		glm::mat4 proj = glm::ortho(-ortho_width, ortho_width, -ortho_width, ortho_width, near, far);
 		glm::mat4 view = glm::lookAt(lightPos, lightPos + data.direction, glm::vec3(0.0f, 1.0f, 0.0f));
@@ -192,7 +192,7 @@ SpotLight::~SpotLight()
 
 tuple<glm::mat4, glm::mat4> SpotLight::getLightTransform() {
 		glm::vec3 lightPos = std::static_pointer_cast<Transform>(
-			gameObject->GetComponent("Transform")
+			owner()->GetComponent("Transform")
 			)->position;
 		glm::mat4 proj = glm::perspective(glm::radians(fov), (float)Light::SHADOW_WIDTH / (float)Light::SHADOW_HEIGHT, near, far);
 		glm::mat4 view = glm::lookAt(lightPos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));

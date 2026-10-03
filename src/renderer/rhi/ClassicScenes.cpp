@@ -10,6 +10,8 @@
 #include "component/Lights.h"
 #include "component/Atmosphere.h"
 #include "component/Ocean.h"
+#include "component/TerrainComponent.h"
+#include "component/Grass.h"
 #include "object/Terrain.h"
 #include "renderer/RenderScene.h"
 #include "renderer/Material.h"
@@ -148,7 +150,18 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
     // Shadow attachments belong to the lights in each scene.
 
 
-    if (name == "sky") {
+    if (name == "terrain") {
+        target->main_camera=std::make_shared<Camera>(glm::vec3(0,10,32),glm::vec3(0,1,0),-90,-12);
+        target->main_camera->Zoom=60;target->main_camera->exposure=1;
+        auto terrain=std::make_shared<Terrain>();auto component=std::make_shared<TerrainComponent>();component->heightWidth=component->heightHeight=1024;component->heightData=new float[1024*1024];
+        auto elevation=[](float x,float z){float h=.28f*std::exp(-((x+.35f)*(x+.35f)*5+(z+.25f)*(z+.25f)*3))+.5f*std::exp(-((x-.45f)*(x-.45f)*9+(z+.4f)*(z+.4f)*4));return h+.035f*std::sin(x*18+z*13)*std::cos(z*16)*h;};
+        for(uint32_t y=0;y<1024;y++)for(uint32_t x=0;x<1024;x++)component->heightData[y*1024+x]=elevation(x/1023.f*2-1,y/1023.f*2-1);
+        component->model=glm::scale(glm::mat4(1),glm::vec3(30,22,30));component->maxLeaves=4096;
+        component->material=pbr(glm::vec3(1),.85f);auto texture=std::make_shared<Texture>();texture->width=texture->height=1024;texture->channels=4;texture->format=GL_RGBA;texture->data=static_cast<unsigned char*>(std::malloc(1024*1024*4));
+        for(uint32_t y=0;y<1024;y++)for(uint32_t x=0;x<1024;x++){float xx=x/1023.f*2-1,zz=y/1023.f*2-1,h=elevation(xx,zz),noise=.5f+.5f*std::sin(xx*140)*std::cos(zz*153);glm::vec3 color=glm::mix(glm::vec3(.20f,.31f,.11f),glm::vec3(.40f,.36f,.27f),glm::smoothstep(.15f,.38f,h));color*=.85f+.15f*noise;auto at=(y*1024+x)*4;texture->data[at]=uint8_t(color.r*255);texture->data[at+1]=uint8_t(color.g*255);texture->data[at+2]=uint8_t(color.b*255);texture->data[at+3]=255;}
+        component->material->textures["material.albedo"]=texture;terrain->addComponent(component);terrain->addComponent(std::make_shared<Grass>());target->terrain=terrain;
+        atmosphere(target);sun(target,glm::vec3(3),{-.5f,-1,-.4f});manager->setting.enableSSAO=true;
+    } else if (name == "sky") {
         target->main_camera=std::make_shared<Camera>(glm::vec3(0,2,0),glm::vec3(0,1,0),-90,10);
         target->main_camera->Zoom=50;target->main_camera->exposure=1;
         atmosphere(target);sun(target,glm::vec3(3),{0,-std::sin(glm::radians(10.f)),std::cos(glm::radians(10.f))});
@@ -220,6 +233,6 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
         target->main_camera->Zoom = 58; target->main_camera->exposure = 1.1f;
         atmosphere(target);sun(target,{2.8f,2.6f,2.3f},{-.35f,-1,-.2f});
         manager->setting.enableRSM = true;
-    } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose bunny, helmet, cornell, sponza, san-miguel, ocean or ocean-clear");
+    } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose terrain, sky, bunny, helmet, cornell, sponza, san-miguel, ocean or ocean-clear");
     return target;
 }

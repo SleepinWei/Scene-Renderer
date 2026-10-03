@@ -20,6 +20,7 @@
 #include "renderer/rhi/GpuSubdivision.h"
 #include <fstream>
 #include "utils/Camera.h"
+#include "system/InputManager.h"
 #include <glm/gtx/euler_angles.hpp>
 #include <filesystem>
 #include <unordered_set>
@@ -69,8 +70,8 @@ struct SceneAdapter::Cache {
     std::unordered_map<const Mesh*,MeshRecord> meshes;
     using MaterialKey=std::pair<const Material*,ShaderType>;
     std::map<MaterialKey,MaterialRecord> materials;
-    struct TerrainRecord{std::weak_ptr<TerrainComponent> source;std::shared_ptr<GpuTerrain> gpu;std::shared_ptr<GpuGrass> grass;std::shared_ptr<GpuMaterial> material,grassMaterial;};
-    std::unique_ptr<TerrainRecord> terrain;
+    struct TerrainRecord{uint64_t revision=0,epoch=0;uint32_t capacity=0,width=0,height=0;std::string heightPath,heightVT,materialVT;const float* data=nullptr;std::weak_ptr<Material> materialSource;bool hasGrass=false;std::shared_ptr<GpuVirtualTexture> virtualMaterial;std::weak_ptr<TerrainComponent> source;std::shared_ptr<GpuTerrain> gpu;std::shared_ptr<GpuGrass> grass;std::shared_ptr<GpuMaterial> material,grassMaterial;};
+    std::unique_ptr<TerrainRecord> terrain;uint64_t terrainEpoch=0;
     struct SubdivisionRecord{std::weak_ptr<Mesh> source;std::shared_ptr<GpuSubdivision> gpu;};
     std::map<std::pair<const GameObject*,const Mesh*>,SubdivisionRecord> subdivisions;
     std::shared_ptr<GpuMaterial> fallback;
@@ -87,6 +88,7 @@ SceneFrame SceneAdapter::collect(const std::shared_ptr<RenderScene>& scene,float
     const auto& camera = *scene->main_camera;SceneFrame result;
     glm::mat4 depthConversion(1);depthConversion[2][2] = .5f;depthConversion[3][2] = .5f;
     result.frame.viewProjection = depthConversion * camera.GetPerspective() * camera.GetViewMatrix();result.frame.cameraPosition = camera.Position;result.frame.view=camera.GetViewMatrix();result.frame.nearPlane=camera.zNear;result.frame.farPlane=camera.zFar;result.exposure = camera.exposure;
+    result.frame.viewportWidth=uint32_t(std::max(1,InputManager::GetInstance()->width));result.frame.viewportHeight=uint32_t(std::max(1,InputManager::GetInstance()->height));
     std::vector<std::shared_ptr<GameObject>> objects;
     std::vector<std::shared_ptr<DirectionLight>> directional;std::vector<std::shared_ptr<PointLight>> points;std::vector<std::shared_ptr<SpotLight>> spots;
     { std::scoped_lock guard(scene->mtx,scene->lightMtx);objects = scene->objects;directional = scene->directionLights;points = scene->pointLights;spots = scene->spotLights; }
@@ -108,11 +110,11 @@ SceneFrame SceneAdapter::collect(const std::shared_ptr<RenderScene>& scene,float
     }
     for (const auto& l : directional) if (l && l->enabled) result.frame.lights.push_back({{0,0,0,0},glm::vec4(l->data.color,0),glm::vec4(l->data.direction,0)});
     for (const auto& l : points) if (l && l->enabled) {
-        auto t = std::static_pointer_cast<Transform>(l->gameObject->GetComponent("Transform"));if (!t) throw std::invalid_argument("Renderer: light needs transform");
+        auto t = std::static_pointer_cast<Transform>(l->owner()->GetComponent("Transform"));if (!t) throw std::invalid_argument("Renderer: light needs transform");
         result.frame.lights.push_back({glm::vec4(t->position,1),glm::vec4(l->data.color,0),{0,0,0,0}});
     }
     for (const auto& l : spots) if (l && l->enabled) {
-        auto t = std::static_pointer_cast<Transform>(l->gameObject->GetComponent("Transform"));if (!t) throw std::invalid_argument("Renderer: light needs transform");
+        auto t = std::static_pointer_cast<Transform>(l->owner()->GetComponent("Transform"));if (!t) throw std::invalid_argument("Renderer: light needs transform");
         result.frame.lights.push_back({glm::vec4(t->position,2),glm::vec4(l->data.color,l->data.cutOff),glm::vec4(l->data.direction,l->data.outerCutOff)});
     }
     result.frame.shadows=result.frame.ssao=result.frame.rsm=true;result.frame.inverseSquareLocalLights=true;
@@ -120,15 +122,19 @@ SceneFrame SceneAdapter::collect(const std::shared_ptr<RenderScene>& scene,float
     if(scene->sky){auto atmo=std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));if(atmo){result.frame.sky=true;result.frame.sunAngle=atmo->sunAngle;result.frame.sunAzimuth=atmo->sunAzimuth;result.frame.seaLevelMeters=atmo->seaLevelMeters;result.frame.multipleScattering=atmo->multipleScattering;result.frame.groundAlbedo=atmo->groundAlbedo;const auto& a=atmo->atmosphere;auto& p=result.frame.atmosphere;p.radii={a.solar_irradiance,a.sun_angular_radius,a.top_radius,a.bottom_radius};p.densities={a.HDensityRayleigh,a.HDensityMie,a.OzoneCenter,a.mie_g};p.rayleigh=glm::vec4(a.rayleigh_scattering,0);p.mie=glm::vec4(a.mie_scattering,0);p.extinction=glm::vec4(a.mie_extinction,0);p.absorption=glm::vec4(a.absorption_extinction,a.OzoneWidth);}}
     if(scene->terrain){auto terrain=std::static_pointer_cast<TerrainComponent>(scene->terrain->GetComponent("TerrainComponent"));if(terrain){
         if(!device_->computeLimits().maxStorageImages)throw std::invalid_argument("Terrain requires storage compute on this backend; OpenGL 4.1 migration is deferred");
-        if(!cache_->terrain || cache_->terrain->source.lock()!=terrain){
-            auto record=std::make_unique<Cache::TerrainRecord>();record->source=terrain;uint32_t width=terrain->heightWidth,height=terrain->heightHeight;
+        auto grass=scene->terrain->GetComponent("Grass");
+        if(!cache_->terrain || cache_->terrain->source.lock()!=terrain || cache_->terrain->revision!=terrain->sourceRevision || cache_->terrain->capacity!=terrain->maxLeaves || cache_->terrain->heightPath!=terrain->heightSourcePath || cache_->terrain->heightVT!=terrain->heightVirtualTexture || cache_->terrain->materialVT!=terrain->materialVirtualTexture || cache_->terrain->width!=terrain->heightWidth || cache_->terrain->height!=terrain->heightHeight || cache_->terrain->data!=terrain->heightData || cache_->terrain->materialSource.lock()!=terrain->material || cache_->terrain->hasGrass!=bool(grass)){
+            auto record=std::make_unique<Cache::TerrainRecord>();record->source=terrain;record->epoch=++cache_->terrainEpoch;record->revision=terrain->sourceRevision;record->capacity=terrain->maxLeaves;record->heightPath=terrain->heightSourcePath;record->heightVT=terrain->heightVirtualTexture;record->materialVT=terrain->materialVirtualTexture;record->width=terrain->heightWidth;record->height=terrain->heightHeight;record->data=terrain->heightData;record->materialSource=terrain->material;record->hasGrass=bool(grass);uint32_t width=terrain->heightWidth,height=terrain->heightHeight;
             if(!width || !height){auto tex=terrain->terrainMaterial?terrain->terrainMaterial->textures.find("heightMap"):decltype(terrain->terrainMaterial->textures.find("heightMap")){};if(!terrain->terrainMaterial || tex==terrain->terrainMaterial->textures.end())throw std::invalid_argument("Terrain lacks height field metadata");width=tex->second->width;height=tex->second->height;}
-            std::vector<float> data(size_t(width)*height);if(!terrain->heightSourcePath.empty()){std::ifstream input(terrain->heightSourcePath,std::ios::binary);input.read(reinterpret_cast<char*>(data.data()),data.size()*4);if(!input)throw std::invalid_argument("Cannot read terrain height field: "+terrain->heightSourcePath);}else if(terrain->heightData && !terrain->initDone)std::copy_n(terrain->heightData,data.size(),data.begin());else throw std::invalid_argument("Terrain needs retained CPU height field or source path");
-            record->gpu=std::make_shared<GpuTerrain>(device_,rhi::defaultShaderDirectory(),width,height,data);MaterialDesc material;material.parameters.factors={0,.85f,1,0};material.parameters.albedoAlpha={.3f,.45f,.2f,1};if(terrain->material){material.parameters=parameters(*terrain->material);for(uint32_t i=0;i<5;++i)material.images[i]=decode(*terrain->material,names[i]);}record->material=std::make_shared<GpuMaterial>(device_,material);
-            auto grass=scene->terrain->GetComponent("Grass");if(grass){record->grass=std::make_shared<GpuGrass>(device_,rhi::defaultShaderDirectory(),record->gpu,terrain->model);MaterialDesc grassMaterial;grassMaterial.parameters.factors={0,1,1,0};grassMaterial.parameters.emissiveNormal.w=0;grassMaterial.extension.settings.w=1;grassMaterial.images[0]={1,2,{90,123,65,255,16,43,23,255}};record->grassMaterial=std::make_shared<GpuMaterial>(device_,grassMaterial);}
+            if(!terrain->heightVirtualTexture.empty())record->gpu=std::make_shared<GpuTerrain>(device_,rhi::defaultShaderDirectory(),packedVirtualSource(terrain->heightVirtualTexture),terrain->maxLeaves);
+            else if(!terrain->heightSourcePath.empty())record->gpu=std::make_shared<GpuTerrain>(device_,rhi::defaultShaderDirectory(),rawHeightVirtualSource(terrain->heightSourcePath,width,height),terrain->maxLeaves);
+            else {if(width<2 || height<2 || width>16384 || height>16384 || !terrain->heightData)throw std::invalid_argument("Terrain needs valid CPU height dimensions and data");std::vector<float> data(terrain->heightData,terrain->heightData+size_t(width)*height);record->gpu=std::make_shared<GpuTerrain>(device_,rhi::defaultShaderDirectory(),width,height,data,terrain->maxLeaves);}
+
+            MaterialDesc material;material.parameters.factors={0,.85f,1,0};material.parameters.albedoAlpha={.3f,.45f,.2f,1};if(terrain->material){material.parameters=parameters(*terrain->material);if(terrain->materialVirtualTexture.empty())for(uint32_t i=0;i<5;++i)material.images[i]=decode(*terrain->material,names[i]);}auto source=terrain->materialVirtualTexture.empty()?materialVirtualSource(material.images):packedVirtualSource(terrain->materialVirtualTexture);source.minimum=record->gpu->heightTexture()->minimum();source.maximum=record->gpu->heightTexture()->maximum();record->virtualMaterial=std::make_shared<GpuVirtualTexture>(device_,std::move(source));record->material=std::make_shared<GpuMaterial>(device_,material,record->virtualMaterial);
+            if(grass){record->grass=std::make_shared<GpuGrass>(device_,rhi::defaultShaderDirectory(),record->gpu,terrain->model);MaterialDesc grassMaterial;grassMaterial.parameters.factors={0,1,1,0};grassMaterial.parameters.emissiveNormal.w=0;grassMaterial.extension.settings.w=1;grassMaterial.images[0]={1,2,{90,123,65,255,16,43,23,255}};record->grassMaterial=std::make_shared<GpuMaterial>(device_,grassMaterial);}
             cache_->terrain=std::move(record);
         }
-        auto& record=*cache_->terrain;record.gpu->update(result.frame,terrain->model);result.packets.push_back({record.gpu->mesh(),record.material,terrain->model,0,terrain->polyMode==GL_LINE});if(record.grass){record.grass->update(terrain->model,result.frame.timeSeconds);result.packets.push_back({record.grass->mesh(),record.grassMaterial,glm::mat4(1)});}
+        auto& record=*cache_->terrain;record.gpu->update(result.frame,terrain->model);record.virtualMaterial->prepare(result.frame.viewProjection,terrain->model,result.frame.viewportWidth,result.frame.viewportHeight,true);if(terrain->material){auto p=parameters(*terrain->material);if(!terrain->materialVirtualTexture.empty()){p.emissiveNormal.w=terrain->material->normalStrength;p.factors.x=terrain->material->metallicFactor.value_or(1.f);p.factors.y=terrain->material->roughnessFactor.value_or(1.f);}record.material->update(p);}result.frame.historyKey^=record.gpu->heightTexture()->version()*0x9e3779b97f4a7c15ull^record.virtualMaterial->version()^(record.epoch*0xd1b54a32d192ed03ull);result.packets.push_back({record.gpu->mesh(),record.material,terrain->model,0,terrain->polyMode==GL_LINE});if(record.grass){record.grass->update(terrain->model,result.frame.timeSeconds);result.packets.push_back({record.grass->mesh(),record.grassMaterial,glm::mat4(1)});}
     }}else cache_->terrain.reset();
     std::unordered_set<const Mesh*> usedMeshes;std::unordered_set<const Material*> usedMaterials;
     for (const auto& object : objects) if (object) {

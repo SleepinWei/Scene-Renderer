@@ -97,7 +97,7 @@ MeshRenderer::MeshRenderer():drawMode(GL_TRIANGLES),polyMode(GL_FILL) {
 /// <param name="useShader"></param>
 void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 	glCheckError();
-	const std::shared_ptr<Transform>& transform = std::static_pointer_cast<Transform>(gameObject->GetComponent("Transform"));
+	const std::shared_ptr<Transform>& transform = std::static_pointer_cast<Transform>(owner()->GetComponent("Transform"));
 
 	if (!transform) {
 		return;
@@ -110,7 +110,7 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 	glm::mat4 model = trans * scale * eulerAngleYXZ;
 	//glm::mat4 mvp = projection * view * model;
 
-	auto component_mesh_filter = gameObject->GetComponent("MeshFilter");
+	auto component_mesh_filter = owner()->GetComponent("MeshFilter");
 	auto mesh_filter = std::static_pointer_cast<MeshFilter>(component_mesh_filter);
 	if (!mesh_filter) {
 		return;

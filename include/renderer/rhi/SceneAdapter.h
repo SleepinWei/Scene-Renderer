@@ -14,6 +14,7 @@ private:
     std::shared_ptr<rhi::GraphicsDevice> device_;
     std::unique_ptr<Cache> cache_;
 };
+void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice>);
 void validateSceneSolarControls(std::shared_ptr<rhi::GraphicsDevice>);
 std::shared_ptr<RenderScene> makeForwardDemoScene();
 void runForwardScene(int argc, char** argv);

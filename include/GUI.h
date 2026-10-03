@@ -141,7 +141,7 @@ public:
 				ImGui::Text(title);
 				//auto& light = lights[0]; 
 				auto&& lightTrans = std::static_pointer_cast<Transform>(
-					lights[i]->gameObject->GetComponent("Transform"));
+					lights[i]->owner()->GetComponent("Transform"));
 				if (ImGui::SliderFloat3("Position", (float*)&lightTrans->position, -10.0f, 10.0f))
 					lights[i]->setDirtyFlag(true);
 				//ImGui::Text("Light Position: (%f,%f,%f)", lightTrans->position.x, lightTrans->position.y, lightTrans->position.z);
@@ -155,7 +155,7 @@ public:
 				ImGui::Text(title);
 				//auto& light = lights[0]; 
 				auto&& lightTrans = std::static_pointer_cast<Transform>(
-					dlights[i]->gameObject->GetComponent("Transform"));
+					dlights[i]->owner()->GetComponent("Transform"));
 				auto& lightData = dlights[i]->data;
 				//bool change1 = ImGui::SliderFloat3("Position", (float*)&lightTrans->position, -10.0f, 1.0f);
 				bool change1 = false; 
@@ -176,7 +176,7 @@ public:
 				ImGui::Text(title);
 				//auto& light = lights[0]; 
 				auto&& lightTrans = std::static_pointer_cast<Transform>(
-					slights[i]->gameObject->GetComponent("Transform"));
+					slights[i]->owner()->GetComponent("Transform"));
 				auto&& lightData = slights[i]->data;
 				//bool change1 = ImGui::SliderFloat3("Position", (float*)&lightTrans->position, -10.0f, 1.0f);
 				//bool change2 = ImGui::SliderFloat3("Direction", (float*)&lightData.direction, -1.0f, 1.0f);

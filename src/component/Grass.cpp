@@ -67,7 +67,7 @@ void Grass::constructCall() {
 
 	computeShader->use();
 	// get terrainModel
-	auto&& terrainComp = std::static_pointer_cast<TerrainComponent>(this->gameObject->GetComponent("TerrainComponent"));
+	auto&& terrainComp = std::static_pointer_cast<TerrainComponent>(this->owner()->GetComponent("TerrainComponent"));
 	auto& terrainModel = terrainComp->model;
 	computeShader->setMat4("terrainModel", terrainModel);
 

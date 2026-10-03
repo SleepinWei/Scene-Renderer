@@ -69,6 +69,12 @@ int main() {
         rejects([&] { d->destroyTexture(target); });
         rejects([&] { d->readTexture(sampled); });
         uint8_t pixel[4]{};rejects([&] { d->writeTexture(sampled, pixel, 4); });
+        rejects([&] {d->writeTextureRegion(target,{0,0,1,1},pixel,4);});
+        rejects([&] {d->writeTextureRegion(sampled,{0,0,0,1},pixel,0);});
+        rejects([&] {d->writeTextureRegion(sampled,{31,0,2,1},pixel,8);});
+        rejects([&] {d->writeTextureRegion(sampled,{std::numeric_limits<uint32_t>::max(),0,2,1},pixel,8);});
+        rejects([&] {d->writeTextureRegion(sampled,{0,0,1,1},nullptr,4);});
+        rejects([&] {d->writeTextureRegion(sampled,{0,0,1,1},pixel,3);});
         BindingLayout layout{1, {{1, BindingType::SampledTexture, ShaderStage::Fragment, "albedo", 0}}};
         auto set = d->createBindingSet({layout, {{1, {}, 0, 0, sampledView, sampler}}});
         rejects([&] { d->destroyTextureView(sampledView); });rejects([&] { d->destroySampler(sampler); });

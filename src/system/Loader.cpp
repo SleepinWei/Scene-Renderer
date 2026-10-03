@@ -6,10 +6,16 @@
 #include<utility>
 
 Loader::Loader() {
-	maxThread = std::max(1u,std::thread::hardware_concurrency() - 2);
+	const unsigned cores=std::thread::hardware_concurrency();maxThread=cores>2?int(std::min(cores-2,32u)):1;
 }
 
-Loader::~Loader() {
+Loader::~Loader() {for(auto& thread:threadpool)if(thread.joinable())thread.join();}
+void Loader::launch(std::function<void()> task){
+    threadpool.emplace_back([this,task=std::move(task)]{try{task();}catch(...){std::lock_guard<std::mutex> lock(errorMutex_);if(!workerError_)workerError_=std::current_exception();}});
+}
+void Loader::finish(){
+    for(auto& thread:threadpool)if(thread.joinable())thread.join();threadpool.clear();
+    std::exception_ptr error;{std::lock_guard<std::mutex> lock(errorMutex_);error=std::exchange(workerError_,{});}if(error)std::rethrow_exception(error);
 }
 
 void Loader::loadObjectAsync(std::shared_ptr<RenderScene> scene, json data, std::vector<std::string> objectname, int threadid) {
@@ -44,62 +50,24 @@ void Loader::loadObject(std::shared_ptr<RenderScene>& scene, const std::string& 
 	scene->addObject(object);
 }
 
-void Loader::loadSceneAsync(std::shared_ptr<RenderScene>& scene, const std::string& filename) {
-	//clear scene 
-	// wait for all threads to end
-	//for (auto& t : threadpool) {
-	//	if(t.joinable())
-	//		t.join();
-	//}
-	scene->destroy(); // destroy scene
-
-	std::ifstream f(filename);
-	if (!f) {
-		std::cout << "In Loader::loadSceneAsync: Failed to open file: " << filename << '\n';
-		return;
-	}
-	json data = json::parse(f);
-	if (data.find("objects") != data.end()) {
-		auto objectData = data["objects"];
-
-		std::vector<std::string> objectname;
-		for (auto iter = objectData.begin(); iter != objectData.end(); ++iter) {
-			objectname.emplace_back(iter.key());
-		}
-		int num_thread = std::min(maxThread, (int)objectData.size());
-		for (int i = 0; i < num_thread; ++i) {
-			std::thread loadThread = std::thread(&Loader::loadObjectAsync, this, scene, objectData,objectname, i);
-			threadpool.push_back(std::move(loadThread));
-		}
-	}
-	//if (data.find("objects") != data.end()) {
-	//	auto objects = data["objects"];
-	//	for (auto iter = objects.begin(); iter != objects.end(); ++iter) {
-	//		std::string path = iter.value().get<std::string>();
-	//			// wait for one thread to end
-	//		this->loadObjectAsync(scene, path);
-	//	}
-	//}
-	if (data.find("sky") != data.end()) {
-		std::string path = data["sky"].get<std::string>();
-		this->loadSkyAsync(scene, path);
-	}
-	if (data.find("terrain") != data.end()) {
-		std::string path = data["terrain"].get<std::string>();
-		this->loadTerrainAsync(scene, path);
-		//this->loadTerrain(scene, path);
-	}
-
-	// wait for all threads to end
-	for (auto& t : threadpool) {
-		t.join();
-	}
-
+void Loader::loadSceneAsync(std::shared_ptr<RenderScene>& scene,const std::string& filename){
+    finish();if(!scene || maxThread<1)throw std::invalid_argument("Loader needs a scene and positive worker count");
+    std::ifstream input(filename);if(!input)throw std::invalid_argument("Cannot open scene: "+filename);json data=json::parse(input);
+    // Parse before clearing the current scene; malformed JSON leaves it intact.
+    scene->destroy();
+    try{
+        if(data.contains("objects")){
+            auto objectData=data.at("objects");std::vector<std::string> names;for(auto it=objectData.begin();it!=objectData.end();++it)names.push_back(it.key());
+            for(int i=0;i<std::min(maxThread,int(objectData.size()));i++)launch([this,scene,objectData,names,i]{loadObjectAsync(scene,objectData,names,i);});
+        }
+        if(data.contains("sky"))loadSkyAsync(scene,data.at("sky").get<std::string>());
+        if(data.contains("terrain"))loadTerrainAsync(scene,data.at("terrain").get<std::string>());
+        finish();
+    }catch(...){auto error=std::current_exception();try{finish();}catch(...){}std::rethrow_exception(error);}
 }
 
 void Loader::loadSkyAsync(std::shared_ptr<RenderScene>& scene, const std::string& filename) {
-	std::thread loadThread = std::thread(&Loader::loadSky, this, scene, filename);
-	threadpool.push_back(std::move(loadThread));
+    launch([this,scene,filename]{loadSky(scene,filename);});
 	//threadQueue.push(std::move(loadThread));
 }
 
@@ -118,8 +86,7 @@ void Loader::loadSky(std::shared_ptr<RenderScene> scene, const std::string filen
 }
 
 void Loader::loadTerrainAsync(std::shared_ptr<RenderScene>& scene, const std::string& filename) {
-	std::thread loadThread = std::thread(&Loader::loadTerrain, this, scene, filename);
-	threadpool.push_back(std::move(loadThread));
+    launch([this,scene,filename]{loadTerrain(scene,filename);});
 	//threadQueue.push(std::move(loadThread));
 }
 

@@ -160,10 +160,12 @@ protected:
         const auto it = pipelines_.find(GLuint(native));if (it != pipelines_.end()) { glDeleteVertexArrays(1, &it->second);pipelines_.erase(it); }
         glDeleteProgram(GLuint(native));
     }
-    void writeTextureImpl(NativeObject native, const TextureDesc& desc, const void* pixels, size_t) override {
+    void writeTextureRegionImpl(NativeObject native,const TextureDesc& desc,TextureRegion r,const void* pixels,size_t) override {
         ScopedTextureBinding binding{GLuint(native)};
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, desc.width, desc.height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+        glTexSubImage2D(GL_TEXTURE_2D,0,r.x,r.y,r.width,r.height,GL_RGBA,desc.format==Format::RGBA8UNorm?GL_UNSIGNED_BYTE:GL_FLOAT,pixels);
     }
+    void writeTextureImpl(NativeObject id,const TextureDesc& desc,const void* pixels,size_t bytes) override {writeTextureRegionImpl(id,desc,{0,0,desc.width,desc.height},pixels,bytes);}
+    void writeTextureFloatImpl(NativeObject id,const TextureDesc& desc,const float* pixels,size_t bytes) override {writeTextureImpl(id,desc,pixels,bytes);}
     std::vector<uint8_t> readTextureImpl(NativeObject native, const TextureDesc& desc) override {
         std::vector<uint8_t> result(size_t(desc.width) * desc.height * 4);ScopedTextureBinding binding{GLuint(native)};
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, result.data());return result;

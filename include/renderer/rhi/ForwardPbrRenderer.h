@@ -23,6 +23,7 @@ struct FrameData {
     float ambient = .03f;
     bool shadows=false,ssao=false,rsm=false,sky=false,taa=false;
     uint64_t historyKey=0;
+    uint32_t viewportWidth=1280,viewportHeight=720;
     float aoRadius=1,aoBias=.025f,aoPower=1.5f;
     bool toneMapping=true,forwardShading=false;
     RsmSettings rsmSettings;

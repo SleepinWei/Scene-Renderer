@@ -6,13 +6,13 @@
 
 ![本项目在 Metal 上渲染的 Sponza 中庭](img/metal/sponza.png)
 
-[快速运行](#快速运行) · [经典场景](#场景与效果) · [天空与太阳](#大气天空与太阳) · [海洋与水体](#高清海洋与透明水体) · [系统设计](#整体系统设计) · [技术与限制](#渲染技术) · [验证](#构建验证与限制)
+[快速运行](#快速运行) · [经典场景](#场景与效果) · [天空与太阳](#大气天空与太阳) · [海洋与水体](#高清海洋与透明水体) · [虚拟纹理地形](#虚拟纹理地形) · [系统设计](#整体系统设计) · [技术与限制](#渲染技术) · [验证](#构建验证与限制)
 
-项目的主要实验内容包括 PBR 材质及特殊材质、太阳／天空驱动的 RSM 间接光照、大气散射、高清 FFT 海洋与透明水体、GPU 地形／草和 TSAA。编辑器可实时调整相机、灯光及效果参数；离屏画廊提供固定时间、固定视角的真实渲染图和开关对照。CPU 路径追踪用于独立的离线实验。
+项目的主要实验内容包括 PBR 材质及特殊材质、太阳／天空驱动的 RSM 间接光照、大气散射、高清 FFT 海洋与透明水体、高度与材质 Virtual Texture 地形／草和 TSAA。编辑器可实时调整相机、灯光及效果参数；离屏画廊提供固定时间、固定视角的真实渲染图和开关对照。CPU 路径追踪用于独立的离线实验。
 
 ## 快速运行
 
-以下命令从**仓库根目录**执行。首次运行可直接使用程序生成的 `--demo`、`--classic sky` 或 `--classic ocean`，无需下载大型场景。
+以下命令从**仓库根目录**执行。首次运行可直接使用程序生成的 `--demo`、`--classic sky`、`--classic ocean` 或 `--classic terrain`，无需下载大型场景。
 
 ### macOS：原生 Metal
 
@@ -169,11 +169,33 @@ GUI 可修改太阳仰角、方位、角半径、多次散射强度、地面反�
 
 </details>
 
+## 虚拟纹理地形
+
+地形高度图和五层 PBR 材质使用软件 **Virtual Texture**：固定物理 tile 缓存、mip 页表、祖先回退、边框过滤和区域上传。高度生成与草共用页采样；旧 float32 高度文件可直接按页读取，大场景可使用离线 pack，使高度和材质均无需在运行时完整解码。
+
+GPU 四叉树有固定叶节点预算，耗尽时保留父节点。公共整数网格处理不同 LOD 的接缝，边界法线按实际差分跨度计算。默认网格从约 237.5 MiB 降至 19 MiB；8192² 虚拟尺寸下，网格与两套默认 VT 资源合计约 30.16 MiB，不包含草、阴影和其他渲染目标。
+
+![Metal 虚拟纹理地形与草](img/metal/terrain.png)
+
+```bash
+./build/Scene-Renderer --classic terrain
+./build/Scene-Renderer --render-gallery img/metal terrain
+```
+
+示例由程序生成 1024² 高度与底色，无需额外下载；默认请求由 CPU 保守视锥预测，每帧限制页读取／上传数量。当前尚未加入后台 IO、GPU 屏幕反馈或高度 morph，快速移动时可暂时回退到粗 mip。离线分页命令、配置、修复记录与验证见 [地形 Virtual Texture 说明](docs/terrain-virtual-texture.md)。
+
+<details>
+<summary>查看同一视角的 LOD 网格</summary>
+
+![Metal 地形 LOD 网格](img/metal/terrain-wireframe.png)
+
+</details>
+
 ## TSAA 时域超采样抗锯齿
 
 新 RHI 的完整场景渲染默认启用 TSAA，前向／延迟着色共用后处理。它使用 16 点 Halton 子像素抖动，在 HDR 色调映射前重投影并累积历史颜色。线性深度检查、YCoCg 邻域裁剪和自适应权重减少残影；海面使用前后两帧 FFT 位移生成运动信息，处理波浪自身运动。
 
-GUI 的 `Enable TSAA` 可关闭此效果。场景切换、窗口尺寸、明显相机跳变以及太阳／大气参数变化会重置历史。当前 Metal 效果图均已重新生成，每张图累积 16 帧，各开关对照单独清空历史；历史图片仍保留历史标记。具体设计、测试与边界见 [TSAA 实现说明](docs/tsaa.md)。
+GUI 的 `Enable TSAA` 可关闭此效果。场景切换、窗口尺寸、明显相机跳变以及太阳／大气参数变化会重置历史。当前 Metal 效果图均已重新生成，每张图运行 16 帧，静态表面累积 TSAA，各开关对照单独清空历史；当前动态地形／草使用 reactive 标记，不累积相关像素的历史；历史图片仍保留历史标记。具体设计、测试与边界见 [TSAA 实现说明](docs/tsaa.md)。
 
 ## 整体系统设计
 
@@ -187,6 +209,9 @@ flowchart TD
     C --> D[SceneAdapter：网格 / 材质 / FrameData]
     D --> E[ForwardPbrRenderer：前向 / 延迟 / HDR / TSAA]
     D --> F[GpuAtmosphere / GpuOcean / GpuTerrain / GpuGrass]
+    D --> T[GpuVirtualTexture：页预测 / 驻留 / 上传]
+    T --> F
+    T --> E
     E --> G[RHI：GraphicsDevice / CommandList / 显式资源与绑定]
     F --> G
     G --> H[MetalDevice / CAMetalLayer]
@@ -206,6 +231,8 @@ flowchart TD
 4. 不透明对象写入 G-buffer，计算 SSAO；全屏合成 PBR、天空与 RSM；前向模式改用共享材质公式绘制场景。前后表面深度用于近似 SSS。
 5. 拷贝不透明 HDR 场景，绘制排序透明材质与折射／吸收／散射水面，并生成物体和海面的运动信息。
 6. TSAA 在 HDR 中检查深度、重投影与裁剪历史，然后统一曝光、色调映射，绘制 ImGui 并呈现。
+
+组件通过 weak owner 避免对象引用环；场景 Loader 已处理重复 join、worker 异常及线程数边界。资源 cache 并发、加载事务、稳定渲染 snapshot、异步 VT IO 与 render graph 仍需进一步完善，具体问题、影响和实施顺序见 [Engine 设计审查](docs/engine-design-review.md)。
 
 `--forward` 在同一场景调度中改用前向材质光照，保留阴影、环境光、水体和后处理。核心实现见 [ForwardPbrRenderer.cpp](src/renderer/rhi/ForwardPbrRenderer.cpp)、[SceneAdapter.cpp](src/renderer/rhi/SceneAdapter.cpp) 与 [RenderManager.cpp](src/system/RenderManager.cpp)。
 
@@ -235,7 +262,7 @@ flowchart LR
 | RSM | 太阳方向正交投影；太阳辐照度＋大气天空漫反射 LUT；每纹素反射功率、显式采样 PDF、G-buffer 全屏合成；支持聚光灯回退 | 单个投影仅记录最近表面，天空入射未计算遮蔽；局部一次漫反射反弹，可能漏光、有采样噪声 |
 | 大气与 IBL | 共享太阳状态、相机海拔、解析太阳盘；Rayleigh／Mie／臭氧、透射率、高阶散射近似、天空与 E/π 卷积 LUT | RGB 模型；太阳盘 HDR 上限 65000；未实现完整场景反射探针或环境遮挡 |
 | FFT 海洋与水体 | 共轭 Phillips 频谱、归一化二维 IFFT、主波与短波叠加、法线与 Jacobian 泡沫；深度折射、RGB 消光、近似单次散射与 HDR 光照 | 周期有限海面；折射限于屏幕空间，散射厚度是近似；不是流体求解器 |
-| 地形与草 | GPU 四叉树 LOD、队列、间接调度与绘制；GPU 草分布和实例化 | 当前验证使用程序生成资源 |
+| 地形与草 | 高度／五层材质 VT、固定页缓存与祖先 mip 回退、有预算 GPU 四叉树、跨 LOD 拼接、间接实例草 | CPU 预测请求与同步有界 IO；无 GPU feedback／高度 morph；动态地形仍使用 reactive 时域路径 |
 | 模型导入 | Assimp、glTF；GI 示例增加 OBJ/MTL 材质、透明遮罩与高度图转法线 | OBJ 的传统材质参数近似转换为 PBR，玻璃／水不做真实折射 |
 | CPU 路径追踪 | 球、三角形、矩形、基础漫反射／金属／介质材质、BVH、重要性采样和多线程 | 实时场景转换仍不完整，网格材质转换为白色 Lambertian，不能作为实时 PBR 的完整参考解 |
 
@@ -273,7 +300,7 @@ flowchart LR
 | 命令 | 用途 |
 | --- | --- |
 | `--demo` | 自动生成的功能演示，无需历史资产包 |
-| `--classic <name>` | 选择 `cornell`、`bunny`、`helmet`、`sponza`、`san-miguel`、`sky`、`ocean` 或 `ocean-clear` |
+| `--classic <name>` | 选择 `cornell`、`bunny`、`helmet`、`sponza`、`san-miguel`、`sky`、`ocean` 、`ocean-clear` 或 `terrain` |
 | `--frames <N>` | 窗口渲染 N 帧后退出 |
 | `--render-gallery <目录> core` | 离屏生成三个随仓库提供的基础示例 |
 | `--render-gallery <目录> gi` | 生成两个 GI 场景、RSM 开关对照及纯间接光／太阳／天空贡献图 |
@@ -289,7 +316,7 @@ flowchart LR
 
 ```sh
 python3 tools/fetch_gi_assets.py
-for scene in core gi sky ocean ocean-clear; do
+for scene in core gi sky ocean ocean-clear terrain; do
     MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 \
         ./build/Scene-Renderer --render-gallery img/metal "$scene"
 done
@@ -309,7 +336,7 @@ ctest --test-dir build/vulkan --output-on-failure
 ./build/Scene-Renderer --demo --frames 3
 ```
 
-GPU 验证覆盖上传/异步读回、延迟释放、MRT、前向/延迟 PBR、SSS 深度、透明排序、三类阴影、SSAO、太阳/天空 RSM、大气 LUT、完整海洋 IFFT、地形/草、计算细分及 TSAA。CPU 数值参考和限定的像素比较用于检查结果；编辑器测试同时覆盖真实 resize、UI 与窗口呈现。画廊提供实际模型和贴图的视觉回归，不以历史截图作为物理参考图像。
+GPU 验证覆盖上传/异步读回、延迟释放、MRT、前向/延迟 PBR、SSS 深度、透明排序、三类阴影、SSAO、太阳/天空 RSM、大气 LUT、完整海洋 IFFT、地形/草的 VT 区域上传、页淘汰与回退、流式高度、网格预算和闭合接缝、计算细分及 TSAA。CPU 数值参考和限定的像素比较用于检查结果；编辑器测试同时覆盖真实 resize、UI 与窗口呈现。画廊提供实际模型和贴图的视觉回归，不以历史截图作为物理参考图像。
 
 2026-10-03 天空修复在 Apple M4/macOS 验收：Metal **8/8**、Vulkan/MoltenVK **9/9**，包含太阳角半径／能量、地平线及几何遮挡、控制同步、观察高度与极限参数。OpenGL 4.1 的历史 RHI 验收为 7/7，本轮未重复运行。Metal 开启 API/Shader Validation；本机没有 Khronos validation layer，Windows/Linux 与 OpenGL 4.3+ 尚未实机验收。Metal/Vulkan 使用单队列、最多三帧并行提交；单次吞吐测量和算法边界见 [RHI 重构计划](docs/rhi-refactor-plan.md)。大规模 OBJ 导入仍需较多 CPU 内存与启动时间。
 

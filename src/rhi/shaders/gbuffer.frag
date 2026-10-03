@@ -9,10 +9,10 @@ layout(location=2) out vec4 albedoMetallic;
 layout(location=3) out vec4 emissiveAO;
 #include "pbr-material.glsl"
 void main() {
-    vec4 base = texture(albedoMap, uv) * albedoAlpha;
+    vec4 base = sampleMaterial(albedoMap, uv) * albedoAlpha;
     if (base.a < factors.w) discard;
     positionValid = vec4(worldPosition,1);
-    normalRoughness = vec4(mappedNormal(),clamp(texture(roughnessMap,uv).g*factors.y,.045,1));
-    albedoMetallic = vec4(pow(max(base.rgb,vec3(0)),vec3(2.2)),clamp(texture(metallicMap,uv).b*factors.x,0,1));
-    emissiveAO = vec4(emissiveNormal.rgb,mix(1.0,texture(aoMap,uv).r,factors.z));
+    normalRoughness = vec4(mappedNormal(),clamp(sampleMaterial(roughnessMap,uv).g*factors.y,.045,1));
+    albedoMetallic = vec4(pow(max(base.rgb,vec3(0)),vec3(2.2)),clamp(sampleMaterial(metallicMap,uv).b*factors.x,0,1));
+    emissiveAO = vec4(emissiveNormal.rgb,mix(1.0,sampleMaterial(aoMap,uv).r,factors.z));
 }

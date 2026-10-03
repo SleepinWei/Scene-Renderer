@@ -37,16 +37,18 @@ public:
 	std::vector<float> vertices;
 	std::vector<unsigned int> nodeIndex; // used in compute shader
 	std::vector<float> texCoords;
-	float yScale;
-	float yShift;
-	unsigned int polyMode;
+	float yScale=70;
+	float yShift=-20;
+	unsigned int polyMode=0x1B02; // GL_FILL, CPU default independent of GL init
 	bool initDone;
 
-	glm::mat4 model;
+	glm::mat4 model{1};
 	std::shared_ptr<Material> material;
 	std::shared_ptr<Material> terrainMaterial; 
 	float* heightData=nullptr;
-    std::string heightSourcePath;uint32_t heightWidth=0,heightHeight=0;
+    std::string heightSourcePath,heightVirtualTexture,materialVirtualTexture;uint32_t heightWidth=0,heightHeight=0;
+    uint32_t maxLeaves=2048;uint64_t sourceRevision=0;
+    void invalidateHeight(){++sourceRevision;}
 
 	std::shared_ptr<Shader> shader;
 	std::shared_ptr<Shader> terrainGBuffer; 

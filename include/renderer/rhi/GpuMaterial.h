@@ -13,7 +13,8 @@ struct alignas(16) MaterialParameters {
     glm::vec4 factors{1, 1, 1, 0}; // metallic, roughness, AO strength, alpha cutoff.
     glm::vec4 emissiveNormal{0, 0, 0, 1}; // emissive RGB, normal strength.
 };
-struct alignas(16) MaterialExtension {glm::vec4 lobes{0,.5f,0,0};glm::vec4 settings{.1f,.05f,0,0};};
+enum class MaterialFeature : int { VirtualTexture=1 };
+struct alignas(16) MaterialExtension {glm::vec4 lobes{0,.5f,0,0};glm::vec4 settings{.1f,.05f,0,0};glm::ivec4 features{0};};
 struct MaterialDesc {
     MaterialParameters parameters;
     // albedo (encoded RGB), normal (linear), metallic.b, roughness.g, AO.r.
@@ -21,9 +22,10 @@ struct MaterialDesc {
     MaterialExtension extension;ImageRGBA8 special;bool transparent=false;
     rhi::Filter filter = rhi::Filter::Linear;
 };
+class GpuVirtualTexture;
 class GpuMaterial {
 public:
-    GpuMaterial(std::shared_ptr<rhi::GraphicsDevice>, const MaterialDesc&);
+    GpuMaterial(std::shared_ptr<rhi::GraphicsDevice>, const MaterialDesc&, std::shared_ptr<GpuVirtualTexture> virtualTexture = {});
     void update(const MaterialParameters&);
     void updateExtension(const MaterialExtension&);
     const MaterialExtension& extension()const{return extensionData_;}
@@ -36,6 +38,7 @@ public:
     const rhi::GraphicsDevice* owner() const { return resources_.device.get(); }
     static rhi::BindingLayout layout();
 private:
+    std::shared_ptr<GpuVirtualTexture> virtualTexture_;
     Resources resources_;
     rhi::BufferHandle parameters_,extension_;
     MaterialParameters parameterData_;MaterialExtension extensionData_;bool transparent_=false;

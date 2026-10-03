@@ -1,3 +1,8 @@
+
+#include "rhi/Device.h"
+#include <filesystem>
+#include <cmath>
+#include <stdexcept>
 #include<glad/glad.h>
 #include<stb/stb_image.h>
 #include<glm/gtc/matrix_transform.hpp>
@@ -114,16 +119,18 @@ std::shared_ptr<TerrainComponent> TerrainComponent::loadHeightmap(const std::str
 	this->terrainMaterial->addTexture(heightTex, "heightMap");
 
 	// load from txt
-	std::string heightPath = path + "heightMap.txt";heightSourcePath=heightPath;heightWidth=uint32_t(heightTex->width);heightHeight=uint32_t(heightTex->height);
-	heightData = new float[heightTex->width * heightTex->height];
-	std::ifstream fin(heightPath,std::ios::binary);
-	//for (int i = 0; i < heightTex->width * heightTex->height; ++i) {
-		//if (fin.peek() == EOF)
-			//break;
-		//fin >> heightData[i];
-	//}
-	fin.read((char*)heightData, heightTex->width * heightTex->height * sizeof(float));
-	
+	std::string heightPath = (std::filesystem::path(path)/"heightMap.txt").string();
+    std::ifstream fin(heightPath,std::ios::binary|std::ios::ate);
+    const size_t count=size_t(heightTex->width)*heightTex->height;
+    if(!fin || fin.tellg()!=std::streamoff(count*sizeof(float)))throw std::invalid_argument("Height field must contain exactly 8192 x 8192 float32 samples: "+heightPath);
+    std::unique_ptr<float[]> loaded;
+    if(!rhi::usesNativeRenderer()){
+        loaded.reset(new float[count]);fin.seekg(0);fin.read(reinterpret_cast<char*>(loaded.get()),count*sizeof(float));
+        if(!fin)throw std::invalid_argument("Cannot read height field: "+heightPath);
+        for(size_t i=0;i<count;i++)if(!std::isfinite(loaded[i]))throw std::invalid_argument("Nonfinite height field: "+heightPath);
+    }
+    delete[] heightData;heightData=loaded.release();heightSourcePath=heightPath;heightWidth=uint32_t(heightTex->width);heightHeight=uint32_t(heightTex->height);heightVirtualTexture.clear();++sourceRevision;
+
 	width = heightTex->width;
 	height = heightTex->height;
 	nrChannels = 1;
@@ -177,7 +184,7 @@ TerrainComponent::~TerrainComponent() {
 
 std::shared_ptr<TerrainComponent>TerrainComponent::addMaterial(std::shared_ptr<Material> mat) {
 	// push back materials
-	this->material = mat;
+	this->material = mat;++sourceRevision;
 	return  std::static_pointer_cast<TerrainComponent>(shared_from_this());
 }
 
@@ -470,7 +477,7 @@ void TerrainComponent::compGeneratePatchCall() {
 	lodMapTexture->setBinding(5);
 	indirectDrawSSBO->setBinding(5);
 	// grass patches binding
-	auto&& grassComponent = std::static_pointer_cast<Grass>(this->gameObject->GetComponent("Grass"));
+	auto&& grassComponent = std::static_pointer_cast<Grass>(this->owner()->GetComponent("Grass"));
 	if (grassComponent) {
 		grassComponent->grassPatchesBuffer->setBinding(1);
 	}
@@ -580,7 +587,15 @@ void TerrainComponent::setPolyMode(unsigned int polyMode_) {
 
 void TerrainComponent::loadFromJson(json& data) {
 	// load terrain data from json file
-	if (data.find("heightMap") != data.end()) {
+    if(data.contains("heightVT")){
+        heightVirtualTexture=data.at("heightVT").get<std::string>();
+        std::ifstream manifest(heightVirtualTexture);if(!manifest)throw std::invalid_argument("Cannot read height VT metadata");json info;manifest>>info;
+        heightWidth=heightHeight=info.at("extent").get<uint32_t>();delete[] heightData;heightData=nullptr;heightSourcePath.clear();++sourceRevision;
+        model=glm::scale(glm::translate(glm::mat4(1),glm::vec3(0,yShift,0)),glm::vec3(200,yScale,200));
+    }
+    if(data.contains("materialVT"))materialVirtualTexture=data.at("materialVT").get<std::string>();
+    maxLeaves=data.value("maxLeaves",2048u);if(maxLeaves<25 || maxLeaves>25600)throw std::invalid_argument("Terrain maxLeaves outside 25..25600");
+	if (!data.contains("heightVT") && data.find("heightMap") != data.end()) {
 		std::string heightmap_path = data["heightMap"].get < std::string>();
 		this->loadHeightmap(heightmap_path);
 	}
@@ -589,7 +604,7 @@ void TerrainComponent::loadFromJson(json& data) {
 		for (auto iter = mat.begin(); iter != mat.end(); ++iter) {
 			std::string mat_type = iter.key();
 			std::string mat_path = iter.value().get < std::string>();
-			this->material->addTextureAsync(mat_path, mat_type);
+			if(materialVirtualTexture.empty())this->material->addTextureAsync(mat_path, mat_type);else this->material->texture_path[mat_type]=mat_path;
 		}
 	}
 }

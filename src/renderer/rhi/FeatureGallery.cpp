@@ -8,10 +8,12 @@
 #include "utils/Camera.h"
 #include "component/Atmosphere.h"
 #include "component/Ocean.h"
+#include "component/TerrainComponent.h"
 #include "component/Lights.h"
 #include "object/SkyBox.h"
 #include "object/Terrain.h"
 #include <cmath>
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <stb/stb_image_write.h>
 #include <filesystem>
@@ -47,6 +49,10 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
                     auto pixels=renderer.readOutput();const auto path=(std::filesystem::path(directory)/(name+suffix+".png")).string();if(!stbi_write_png(path.c_str(),width,height,4,pixels.data(),width*4))throw std::runtime_error("Cannot save "+path);std::cout<<"Rendered "<<path<<'\n';
                 };
                 const bool gi=manager->setting.enableRSM;if(gi)capture("-direct",false,false,true,true);capture("",gi,false,true,true);
+                if(name=="terrain"){
+                    auto terrain=std::static_pointer_cast<TerrainComponent>(scene->terrain->GetComponent("TerrainComponent"));
+                    terrain->setPolyMode(GL_LINE);capture("-wireframe",false,false,true,true);terrain->setPolyMode(GL_FILL);
+                }
                 if(name=="ocean" || name=="ocean-clear") {
                     auto ocean=std::static_pointer_cast<Ocean>(scene->terrain->GetComponent("Ocean"));
                     if(name=="ocean") {

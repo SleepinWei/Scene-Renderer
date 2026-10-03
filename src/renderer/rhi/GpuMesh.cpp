@@ -4,6 +4,8 @@
 #include <stdexcept>
 #include <type_traits>
 namespace render {
+void GpuMesh::setBounds(glm::vec3 minimum,glm::vec3 maximum){for(int i=0;i<3;i++)if(!std::isfinite(minimum[i]) || !std::isfinite(maximum[i]) || minimum[i]>maximum[i])throw std::invalid_argument("Mesh invalid bounds");boundsMin_=minimum;boundsMax_=maximum;}
+
 static_assert(std::is_standard_layout<MeshVertex>::value && sizeof(MeshVertex) == 32, "GPU vertex ABI changed");
 static_assert(offsetof(MeshVertex, normal) == 12 && offsetof(MeshVertex, uv) == 24, "GPU attribute offsets changed");
 std::vector<rhi::VertexAttribute> GpuMesh::attributes() { return {{0, rhi::VertexFormat::Float3, 0}, {1, rhi::VertexFormat::Float3, 12}, {2, rhi::VertexFormat::Float2, 24}}; }

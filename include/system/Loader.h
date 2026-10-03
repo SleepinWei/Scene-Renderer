@@ -4,6 +4,9 @@
 #include<fstream>
 #include<json/json.hpp>
 #include<thread>
+#include<functional>
+#include<mutex>
+#include<exception>
 //#include<vector>
 #include<queue>
 
@@ -17,6 +20,9 @@ class Loader{
 private: 
 	Loader();
 	~Loader();
+    void launch(std::function<void()>);
+    void finish();
+    std::mutex errorMutex_;std::exception_ptr workerError_;
 public:
 	void loadSceneAsync(std::shared_ptr<RenderScene>& scene,const std::string& filename);
 
