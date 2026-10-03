@@ -25,8 +25,11 @@ Device::Device(BufferLimits limits) : identity_(nextHandle.fetch_add(1)),limits_
         throw std::invalid_argument("RHI: invalid buffer limits");
 }
 void Device::requireOpen() const {
+    checkThread();
     if (!open_) throw std::logic_error("RHI: device is closed");
 }
+void Device::checkThread() const {if(ownerThread_!=std::this_thread::get_id())throw std::logic_error("RHI accessed outside its owning render thread");}
+size_t Device::allocatedBufferBytes() const {checkThread();size_t bytes=0;for(const auto& entry:buffers_)bytes+=entry.second.desc.size;return bytes;}
 const Device::Record& Device::buffer(BufferHandle handle) const {
     requireOpen();
     auto found = buffers_.find(handle.value);
@@ -48,6 +51,7 @@ BufferHandle Device::createBuffer(const BufferDesc& desc, const void* initialDat
     return handle;
 }
 void Device::destroyBuffer(BufferHandle handle) noexcept {
+    try{checkThread();}catch(...){return;}
     const auto found = buffers_.find(handle.value);
     if (found == buffers_.end()) return;
     try{waitForResourceRelease();}catch(...){return;}

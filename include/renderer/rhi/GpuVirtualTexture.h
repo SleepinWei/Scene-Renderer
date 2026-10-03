@@ -4,6 +4,8 @@
 #include <functional>
 #include <map>
 #include <tuple>
+#include <future>
+#include <mutex>
 namespace render {
 // Pages are tightly packed, including a two-texel apron. Sources may be memory,
 // procedural, or disk backed; only the disk source avoids full CPU residency.
@@ -14,6 +16,8 @@ struct VirtualTextureSource {
     std::vector<rhi::Format> formats;
     using Page = std::vector<std::vector<uint8_t>>;
     std::function<Page(uint32_t mip, uint32_t x, uint32_t y)> readPage;
+    Page rootPage; // CPU-prepared bootstrap page; avoids disk IO on GPU creation.
+    std::shared_ptr<std::mutex> ioMutex=std::make_shared<std::mutex>();
 };
 VirtualTextureSource heightVirtualSource(uint32_t width, uint32_t height, std::vector<float>);
 VirtualTextureSource rawHeightVirtualSource(const std::string &, uint32_t width, uint32_t height);
@@ -32,6 +36,8 @@ class GpuVirtualTexture {
     void prepare(const glm::mat4 &viewProjection, const glm::mat4 &model, uint32_t viewportWidth,
                  uint32_t viewportHeight, bool flipV = false, uint32_t uploads = 8);
     void update(const std::vector<PageId> &requested, uint32_t uploads = 8);
+    void enableAsync() { asynchronous_=true; }
+    uint32_t pendingPages() const { return uint32_t(pending_.size()); }
     rhi::TextureViewHandle atlas(uint32_t layer = 0) const { return atlasViews_.at(layer); }
     rhi::TextureViewHandle pageTable() const { return tableView_; }
     rhi::SamplerHandle sampler() const { return sampler_; }
@@ -56,6 +62,8 @@ class GpuVirtualTexture {
     Resources resources_;
     uint32_t columns_, maxMip_, tableWidth_, tableRows_;
     uint64_t clock_ = 0, version_ = 0;
+    bool asynchronous_=false;
+    std::map<PageId,std::future<VirtualTextureSource::Page>> pending_;
     struct Resident {
         uint32_t slot;
         uint64_t touched;

@@ -7,6 +7,8 @@ struct ImageRGBA8 {
     uint32_t width = 0, height = 0;
     std::vector<uint8_t> pixels; // row zero at top, linear data or encoded albedo.
     static ImageRGBA8 load(const std::string& path);
+    static std::shared_ptr<const ImageRGBA8> loadShared(const std::string& path);
+    static size_t releaseUnused();
 };
 struct alignas(16) MaterialParameters {
     glm::vec4 albedoAlpha{1};

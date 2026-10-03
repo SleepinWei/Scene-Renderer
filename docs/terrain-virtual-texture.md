@@ -112,8 +112,8 @@ python3 tests/test_bake_terrain_vt.py
 
 ## 当前边界与下一步
 
-当前是 **CPU 可见性预测 + 有预算的同步页读取／上传**，没有 GPU feedback buffer、后台 IO job 或硬件 sampler feedback。页表正确性、显存上限与缺页回退已实现，但快速移动相机时可能出现短暂的粗 mip／高度变化；远处高频高度需要预滤波 pack，几何没有跨 mip 的形变过渡。
+地形初次实现使用 CPU 可见性预测和同步页读取。随后 [Engine 多线程重构](engine-multithreading.md) 为原生编辑器接入有界后台 IO：根页在 CPU 准备，非根页 future 完成后由渲染线程上传并发布，每个 VT 最多 16 个待完成页。同步路径保留给画廊和数值验证。目前仍没有 GPU feedback buffer 或硬件 sampler feedback。页表正确性、显存上限与缺页回退已实现，但快速移动相机时可能出现短暂的粗 mip／高度变化；远处高频高度需要预滤波 pack，几何没有跨 mip 的形变过渡。
 
-建议后续优先实现异步 IO 与上传队列，再加入屏幕反馈、阴影／反射视角请求、保守的每块 min/max 高度与屏幕误差 LOD。当前 LOD 仍用固定 5–50 场景单位距离和原子预算分配，预算耗尽时分配顺序由 GPU 执行次序决定；本次测试验证的是容量及闭合几何，不承诺最优的细节分配或帧间相同叶集合。
+异步 IO 与基本上传预算已经接入；建议后续完善分段上传和时间预算，再加入屏幕反馈、阴影／反射视角请求、保守的每块 min/max 高度与屏幕误差 LOD。当前 LOD 仍用固定 5–50 场景单位距离和原子预算分配，预算耗尽时分配顺序由 GPU 执行次序决定；本次测试验证的是容量及闭合几何，不承诺最优的细节分配或帧间相同叶集合。
 
 参考：[GPU Gems 2：Tile-Based Texture Mapping](https://developer.nvidia.com/gpugems/gpugems2/part-ii-shading-lighting-and-shadows/chapter-12-tile-based-texture-mapping)。

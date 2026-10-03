@@ -1,0 +1,84 @@
+# Engine 多线程与主逻辑／渲染分离
+
+## 线程与所有权
+
+原生 Metal／Vulkan 编辑器默认使用独立渲染线程。GLFW 初始化、窗口、事件、输入、相机 tick、ImGui context、场景编辑和设置保留在主线程；RHI 创建、更新、提交、读回、呈现和 GPU 资源释放归渲染线程。窗口与字体 atlas 的初始化在启动阶段完成，`waitIdle` 后移交设备，退出时先排空消息、join，再把设备归还主线程并销毁窗口。
+
+```mermaid
+flowchart LR
+    M[主线程：GLFW / 输入 / ImGui / 主逻辑] --> S[SceneSnapshotBuilder]
+    S --> Q[有界帧队列：2 个待处理包]
+    Q --> R[渲染线程：SceneAdapter.resolve]
+    R --> G[RenderGraph / CommandList / RHI]
+    G --> P[Metal / Vulkan / Present]
+    M --> L[Loader 协调线程：最多 4 个等待请求]
+    L --> W[CPU 解码池：最多 8 workers / 128 jobs]
+    W --> B[完整 staging scene 与已验证 CPU payload]
+    B --> M
+    S --> I[共享 IO 池：2 workers / 64 jobs]
+    R --> I
+    I --> V[完成的 VT tile / CPU 资产]
+    V --> R
+```
+
+CPU 队列与 GPU 在途帧分别限制：最多 2 个等待的帧包，GPU 默认最多 3 帧。队列满时主线程受背压，避免无限堆积输入到画面的延迟；已经接收的帧按 FIFO 执行，不悄悄丢帧。逻辑线程与渲染线程可以重叠处理相邻帧，但这不是无等待的固定频率模拟器。
+
+`Device::checkThread()` 检查设备归属。设备移交只能发生在启动／join 的静止边界，`adoptCurrentThread()` 不是并发锁。`RenderScene` 的修改接口和 snapshot capture 检查逻辑线程；历史公开容器仍用于兼容编辑器，**不得从后台线程直接修改**。后台工作只构建未发布对象或不可变 payload，完成结果由主线程应用。
+
+## 不可变快照与资产版本
+
+`RenderWorldSnapshot` 包含相机、光源、环境、海洋参数、绘制变换和 const CPU payload，没有 GameObject、Component、Camera、Material 或 GPU handle。网格数组和内存纹理先脱离可变场景，再交给 CPU job；模型矩阵、材质标量、相机等每帧复制。渲染线程只调用 `SceneAdapter::resolve(snapshot)`，不会回写太阳组件或读取输入单例。
+
+`GuiFrame` 深拷贝 ImGui 顶点、索引和命令。渲染器不访问下一帧 ImGui 的内部缓冲区，也不在析构中访问 UI context。当前支持字体与已登记纹理；自定义 ImGui draw callback 不允许跨线程，必须先转成独立渲染消息。字体及原生 GUI pipeline 在启动阶段建立。
+
+对象、组件、Mesh 和 Material 使用单调递增 ID，地址不再作为这些 cache 的身份；复制活资产会分配新 ID。`Mesh::invalidate()` 与 `Material::invalidate()` 更新内容版本，修改 CPU 几何／图片后必须调用；变换与材质标量本身不需要重建图片。地形继续使用 `invalidateHeight()`，并检查组件身份、路径、尺寸、预算、材质版本和草状态。`getComponent<T>()` 使用检查过的动态转换；旧字符串接口保留给历史 JSON／反射。
+
+原生图片解码缓存按规范化路径、mtime 和文件长度合并请求，payload 共享 const 图片。普通 Texture cache 封装容器并合并同路径进行中的 future；锁只保护索引，解码不占用索引锁。失败不会永久污染 key，未被外部使用的条目可以释放。共享图片 cache 在快照收集时回收无引用条目，Texture cache 在编辑器周期／退出时回收。
+
+## 场景加载事务与取消
+
+`Loader::buildScene(path)` 返回 `SceneLoadRequest`，包含 future、取消标记和进度。独立协调线程分发解码任务，按 JSON 对象键的确定顺序收集结果，避免 worker 完成先后改变场景顺序。子 JSON、网格、材质图片及 VT bootstrap 验证成功后才返回 staging；准备的 const CPU payload 在主线程第一次 capture 时被接管，避免重复准备。
+
+GUI 轮询 future，在主线程调用 `RenderScene::replaceWith` 一次发布，保留已有相机。解析失败、缺少子文件、解码失败或取消都保留原场景。事务保证 CPU 侧构建与资产准备；GPU 分配、设备能力及 GPU 专用参数校验失败仍由渲染线程上报，尚未实现 GPU 阶段的回滚。重新选择文件先取消旧请求，旧结果不会覆盖新选择。取消在任务边界和发布前检查，不强制中断正在进行的文件读取／Assimp 导入。满载的协调队列返回明确失败，不阻塞 UI 等待空位。
+
+旧 `loadSceneAsync(scene,path)` 保留为阻塞兼容包装，内部也执行完整事务。OpenGL 兼容路径由该包装在 GL context 线程同步构建，后台 `buildScene` 明确拒绝此后端，避免历史组件在无 context 的 worker 中创建 GL 对象。Loader 不再公开 threadpool/maxThread。退出先等待所有已取消／过期请求结束，再关闭设备，避免任务访问已经销毁的运行环境。
+
+## VT 与 GPU 上传预算
+
+非根页采用 request → IO → ready → upload → publish：渲染线程使用 `tryEnqueue` 调度读取，不等待磁盘；源文件句柄通过源级 mutex 串行访问。每个 VT 最多 16 个待完成页，每帧最多发出 8 个请求、上传 8 页。只有所有 plane 上传完成才发布映射；缺页期间使用固定的粗根页。
+
+根页在 CPU payload 准备时读取。替换资产时，旧任务只持有 CPU 源和 promise，不捕获 GPU VT 对象；旧 future 接收容器销毁后，结果不能写入新页表。离开视野的已完成页被丢弃。磁盘／页数据错误仍明确传给主线程，不能用不完整映射继续绘制。
+
+普通网格／材质在渲染线程按当前 snapshot 逐步创建：每帧最多接纳 2 个新资产，累计上传目标为 32 MiB。超过单帧目标的单个资源允许独占一次上传，避免大资源永远无法加载；这是接纳预算，不是硬性的帧时间保证。尚未就绪的对象暂时不进入 DrawPacket，上传完成会使 TSAA 历史失效。地形、细分、海洋和 pipeline 初始化仍有不可分割的分配／构建；后续应增加大 buffer 分段上传和 pipeline cache。
+
+运行日志输出帧数、最近一帧渲染线程 CPU 用时、RHI buffer／texture 峰值字节估算。该估算包含仍在 RHI 注册的资源，**不包含** driver heap 对齐、隐式 staging、交换链、pipeline 或所有已延迟释放的 native allocation，不能当作系统显存峰值。
+
+## Render graph 与呈现
+
+`ForwardPbrRenderer` 通过有序 `RenderGraph` 记录 geometry、SSAO、back depth、lighting、forward、motion、ocean、transparent、temporal、tone map。执行前验证未初始化读取和模糊的读写声明；读写同一 attachment 必须声明 ReadWrite。实际 binding／pass 反馈环和 native barrier 继续由 RHI 验证及实现。大气、海洋模拟、阴影仍由效果对象在图前调度。
+
+这版 graph 保留已有命令顺序，不负责 transient texture alias、自动拓扑排序、跨队列或并行录制。这些功能需要完整资源描述及子资源生命周期，不能仅靠添加线程获得。
+
+主线程把 framebuffer 尺寸放入帧包，并通过原子 mailbox 通知最新表面尺寸。最小化后，已经接收的旧帧仍完成离屏 GPU 工作，跳过无效表面呈现；恢复后继续正常呈现，退出不会因渲染线程等待窗口恢复而死锁。渲染 worker 使用显式 `setPresentationExtent`，不调用 GLFW 窗口查询。窗口缩放时已有旧尺寸帧可能仍在队列中；Metal／Vulkan 将它缩放到实际获得的 drawable／swapchain，后续帧重建目标并清空 TSAA 历史。Apple 渲染线程有每帧 autorelease pool，防止长时间运行积累临时 Objective-C 对象。
+
+## 运行与验证
+
+```bash
+./build/Scene-Renderer --demo
+./build/Scene-Renderer --classic terrain --hidden --size 640x360 --frames 40 --time 8 --resize 480x270
+./build/Scene-Renderer --classic cornell --single-thread --hidden --frames 8 --time 8
+ctest --test-dir build --output-on-failure
+clang++ -std=c++17 -pthread -fsanitize=thread -g -Iinclude \
+  tests/engine/ConcurrencyTests.cpp src/engine/JobSystem.cpp -o /tmp/engine-concurrency-tsan
+/tmp/engine-concurrency-tsan
+```
+
+`--single-thread` 保留原生单线程对照；OpenGL 兼容编辑器维持单线程。无 UI 画廊和独立 GPU 自检使用同步收集路径，方便固定输入验证。
+
+CPU 并发测试覆盖同 key 合并、不同 key、失败重试、释放、队列容量、worker 异常、嵌套阻塞拒绝、排空退出与背压；该测试已在 ThreadSanitizer 下执行。应用 GPU 自检覆盖失败保留场景、缺少子文件、异步构建／显式发布、快照在场景删除后仍可消费、几何版本失效、设备／场景线程检查、GUI 数据隔离、渲染 worker 错误传播，以及 VT 未完成页不发布。窗口测试包含原生前向、缩放、异步 VT 地形和单线程对照。
+
+完整图形应用与第三方 AppKit／GLFW 没有在 ThreadSanitizer 下验收；不能将 CPU 基础设施测试当作所有第三方调用的线程安全证明。
+
+参考：[GLFW 线程约束](https://www.glfw.org/docs/latest/intro.html#thread_safety)、[Apple CAMetalLayer](https://developer.apple.com/documentation/quartzcore/cametallayer)。
+
+2026-10-03 在 Apple M4/macOS 上完成：Metal CTest **11/11**、Vulkan/MoltenVK CTest **12/12**；CPU 并发／graph 测试在 ThreadSanitizer 下通过。Metal 启用 API／Shader Validation，Vulkan 关闭本机已知会阻塞的 MetalTools 组合。

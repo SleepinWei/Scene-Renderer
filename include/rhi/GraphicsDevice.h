@@ -215,12 +215,18 @@ public:
     // Caller owns beginFrame/present. Offscreen devices reject this operation.
     void copyToBackbuffer(TextureHandle);
     virtual std::array<uint32_t,2> presentationExtent()const{return {0,0};}
+    // Logic sends dimensions in each frame packet. Native backends use these
+    // instead of calling GLFW window queries from the render worker.
+    void setPresentationExtent(uint32_t width,uint32_t height){checkThread();configuredExtent_={width,height};hasConfiguredExtent_=true;}
+    size_t allocatedTextureBytes() const;
     virtual bool supportsPresentation() const { return false; }
     CommandList createCommandList();
     void submit(CommandList&);
     const GraphicsLimits& graphicsLimits() const { return graphicsLimits_; }
     virtual bool supportsTexture(Format, TextureUsage) const = 0;
 protected:
+    bool hasConfiguredExtent_=false;
+    std::array<uint32_t,2> configuredExtent_{};
     using NativeObject = uint64_t;
     GraphicsDevice(BufferLimits, GraphicsLimits);
     struct NativeBinding {

@@ -1,30 +1,19 @@
 #pragma once
-
-#include <optional>
-#include<vector>
-#include<string>
-#include<unordered_map>
-#include<memory>
-#include<string> 
-
-class Texture; 
-
+#include "engine/AssetCache.h"
+class Texture;
 class ResourceManager {
-	ResourceManager();
-	~ResourceManager();
-public:
-	static ResourceManager *GetInstance() { 
-		static ResourceManager resourceManager;
-		return &resourceManager;
-	}
-	std::shared_ptr<Texture> find(std::string tex_name);
-	std::shared_ptr<Texture> getResource(const std::string& file_path);
-	std::shared_ptr<Texture> getResourceAsync(const std::string& filename);
+  public:
+    static ResourceManager *GetInstance() {
+        static ResourceManager manager;
+        return &manager;
+    }
+    std::shared_ptr<Texture> find(std::string path);
+    std::shared_ptr<Texture> getResource(const std::string &path);
+    // Compatibility name: CPU decode on caller; Loader::buildScene is asynchronous.
+    std::shared_ptr<Texture> getResourceAsync(const std::string &path);
+    size_t releaseUnused() { return cpu_.releaseUnused() + legacyGpu_.releaseUnused(); }
 
-public:
-	//const int maxlen = 10;
-	//std::unordered_map<std::string, std::string> guidMap;
-	std::vector <std::shared_ptr<Texture>> resource;
-	std::unordered_map<std::string, std::shared_ptr<Texture>> resourceMap; 
+  private:
+    ResourceManager() = default;
+    engine::AssetCache<Texture> cpu_, legacyGpu_;
 };
-

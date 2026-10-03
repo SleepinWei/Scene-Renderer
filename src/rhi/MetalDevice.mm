@@ -31,7 +31,7 @@ public:
         auto size=state_.device.maxThreadsPerThreadgroup;
         return {true,{65535,65535,65535},{uint32_t(size.width),uint32_t(size.height),uint32_t(size.depth)},1024,16,size_t(state_.device.maxBufferLength),16,16,16,16};
     }
-    std::array<uint32_t,2> presentationExtent()const override{int w=0,h=0;if(state_.window)glfwGetFramebufferSize(state_.window,&w,&h);return {uint32_t(w),uint32_t(h)};}
+    std::array<uint32_t,2> presentationExtent()const override{if(hasConfiguredExtent_)return configuredExtent_;int w=0,h=0;if(state_.window)glfwGetFramebufferSize(state_.window,&w,&h);return {uint32_t(w),uint32_t(h)};}
     bool supportsPresentation() const override {return state_.window!=nullptr;}
     rhi::Backend backend() const override { return rhi::Backend::Metal; }
     bool supportsTexture(rhi::Format format,rhi::TextureUsage usage) const override {
@@ -143,8 +143,9 @@ protected:
         auto bytes=readPixels(id,desc,desc.format==rhi::Format::Depth32Float?4:16);std::vector<float> values(bytes.size()/4);memcpy(values.data(),bytes.data(),bytes.size());return values;
     }
     void copyToBackbufferImpl(NativeObject id,const rhi::TextureDesc& desc) override {
-        require(state_.drawable!=nil&&state_.screen!=nil,"RHI: beginFrame is required before backbuffer copy");
-        require(desc.width==state_.screen.width&&desc.height==state_.screen.height,"RHI: backbuffer copy size differs");
+        require(frameActive() || state_.drawable!=nil,"RHI: beginFrame is required before backbuffer copy");
+        if(state_.drawable==nil || state_.screen==nil)return; // Minimized/unavailable surface; frame still completes offscreen.
+        (void)desc;
         if(!rhiPresentPipeline_) {
             const char* source=R"MSL(
 #include <metal_stdlib>
@@ -152,7 +153,7 @@ using namespace metal;
 vertex float4 rhiPresentVertex(uint id [[vertex_id]]) {
     const float2 p[3]={float2(-1,-1),float2(3,-1),float2(-1,3)};return float4(p[id],0,1);
 }
-fragment float4 rhiPresentFragment(float4 position [[position]],texture2d<float> source [[texture(0)]]) {return source.read(uint2(position.xy));}
+fragment float4 rhiPresentFragment(float4 position [[position]],texture2d<float> source [[texture(0)]],constant float2& targetSize [[buffer(0)]]) {uint2 size=uint2(source.get_width(),source.get_height());return source.read(min(uint2(position.xy*float2(size)/targetSize),size-1));}
 )MSL";
             NSError* error=nil;auto library=[state_.device newLibraryWithSource:[NSString stringWithUTF8String:source] options:nil error:&error];require(library!=nil,"RHI presentation library: "+errorText(error));
             auto d=[MTLRenderPipelineDescriptor new];d.vertexFunction=[library newFunctionWithName:@"rhiPresentVertex"];d.fragmentFunction=[library newFunctionWithName:@"rhiPresentFragment"];
@@ -161,7 +162,7 @@ fragment float4 rhiPresentFragment(float4 position [[position]],texture2d<float>
         endEncoders();command();auto pass=[MTLRenderPassDescriptor renderPassDescriptor];pass.colorAttachments[0].texture=state_.screen;
         pass.colorAttachments[0].loadAction=MTLLoadActionDontCare;pass.colorAttachments[0].storeAction=MTLStoreActionStore;
         auto e=[state_.command renderCommandEncoderWithDescriptor:pass];require(e!=nil,"RHI presentation encoder failed");
-        [e setRenderPipelineState:rhiPresentPipeline_];[e setFragmentTexture:rhiTextures_.at(id) atIndex:0];[e drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];[e endEncoding];
+        [e setRenderPipelineState:rhiPresentPipeline_];[e setFragmentTexture:rhiTextures_.at(id) atIndex:0];const float targetSize[2]={float(state_.screen.width),float(state_.screen.height)};[e setFragmentBytes:targetSize length:sizeof(targetSize) atIndex:0];[e drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];[e endEncoding];
     }
     void submitGraphicsImpl(const std::vector<rhi::RecordedPass>& passes) override {
         endEncoders();command();
@@ -256,7 +257,7 @@ fragment float4 rhiPresentFragment(float4 position [[position]],texture2d<float>
         throw std::logic_error("Native Metal uses explicit BindingSet; legacy uniform binding is unavailable");
     }
     void beginFrameImpl() override {
-        if(state_.window){int w,h;glfwGetFramebufferSize(state_.window,&w,&h);state_.layer.drawableSize=CGSizeMake(w,h);state_.drawable=[state_.layer nextDrawable];require(state_.drawable!=nil,"Metal drawable unavailable");state_.screen=state_.drawable.texture;}command();
+        if(state_.window){auto size=presentationExtent();state_.drawable=nil;state_.screen=nil;if(size[0] && size[1]){state_.layer.drawableSize=CGSizeMake(size[0],size[1]);state_.drawable=[state_.layer nextDrawable];if(state_.drawable)state_.screen=state_.drawable.texture;}}command();
     }
     void presentImpl() override {
         if(!frameActive()){endEncoders();command();if(state_.drawable)[state_.command presentDrawable:state_.drawable];finish();state_.drawable=nil;return;}

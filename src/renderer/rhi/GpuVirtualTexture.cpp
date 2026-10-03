@@ -1,4 +1,6 @@
 #include "renderer/rhi/GpuVirtualTexture.h"
+#include "engine/JobSystem.h"
+#include <chrono>
 #include <json/json.hpp>
 #include <algorithm>
 #include <cmath>
@@ -301,7 +303,7 @@ VirtualTextureSource packedVirtualSource(const std::string &manifest) {
 GpuVirtualTexture::GpuVirtualTexture(std::shared_ptr<rhi::GraphicsDevice> d, VirtualTextureSource source,
                                      uint32_t columns)
     : source_(std::move(source)), resources_(d), columns_(columns) {
-    if (extentFor(source_.extent) != source_.extent || columns < 2 || columns > 16 || !source_.readPage ||
+    if (extentFor(source_.extent) != source_.extent || columns < 2 || columns > 16 || !source_.readPage || !source_.ioMutex ||
         source_.formats.empty() || source_.formats.size() > 5 || !std::isfinite(source_.minimum) ||
         !std::isfinite(source_.maximum) || source_.minimum > source_.maximum)
         throw std::invalid_argument("Invalid VT configuration");
@@ -334,7 +336,7 @@ GpuVirtualTexture::GpuVirtualTexture(std::shared_ptr<rhi::GraphicsDevice> d, Vir
     meta += tableWidth_ * 4;
     meta[0] = float(maxMip_);
     meta[1] = float(source_.heightField);
-    install({maxMip_, 0, 0}, 0);
+    install({maxMip_, 0, 0}, 0, std::move(source_.rootPage));
     resident_[{maxMip_, 0, 0}] = {0, ++clock_};
     uploadTable();
 }
@@ -351,8 +353,10 @@ size_t GpuVirtualTexture::physicalBytes() const {
     return bytes;
 }
 void GpuVirtualTexture::install(PageId id, uint32_t slot, VirtualTextureSource::Page pages) {
-    if (pages.empty())
+    if (pages.empty()) {
+        std::lock_guard<std::mutex> lock(*source_.ioMutex);
         pages = source_.readPage(id.mip, id.x, id.y);
+    }
     if (pages.size() != atlases_.size())
         throw std::invalid_argument("VT source returned wrong plane count");
     for (size_t l = 0; l < pages.size(); l++) {
@@ -395,43 +399,49 @@ void GpuVirtualTexture::update(const std::vector<PageId> &requests, uint32_t upl
         if (it != resident_.end())
             it->second.touched = clock_;
     }
+    // Each instance owns its futures; replacement destroys the receiving map,
+    // so old jobs can never publish into a new page table. Callbacks capture only
+    // CPU source state and serialize shared file streams through ioMutex.
+    for(auto it=pending_.begin();it!=pending_.end();) {
+        if(!requested.count(it->first) && it->second.wait_for(std::chrono::seconds(0))==std::future_status::ready)it=pending_.erase(it);else ++it;
+    }
+    uint32_t issued=0;
     for (auto id : requests) {
-        if (!uploads)
-            break;
-        if (resident_.count(id))
-            continue;
-        uint32_t slot = 0;
-        if (resident_.size() < capacity()) {
-            std::set<uint32_t> used;
-            for (const auto &p : resident_)
-                used.insert(p.second.slot);
-            while (used.count(slot))
-                ++slot;
-        } else {
-            auto victim = resident_.end();
-            for (auto it = resident_.begin(); it != resident_.end(); ++it)
-                if (it->first.mip != maxMip_ && !requested.count(it->first) &&
-                    (victim == resident_.end() || it->second.touched < victim->second.touched))
-                    victim = it;
-            if (victim == resident_.end())
-                break;
-            slot = victim->second.slot;
-            // Decode before eviction so corrupt disk pages preserve a usable table.
-            auto page = source_.readPage(id.mip, id.x, id.y);
-            install(id, slot, std::move(page));
-            tableData_[(size_t(row(victim->first.mip) + victim->first.y) * tableWidth_ + victim->first.x) *
-                           4 +
-                       3] = 0;
-            resident_.erase(victim);
-            resident_[id] = {slot, clock_};
-            uploadTable();
-            --uploads;
-            continue;
+        if(resident_.count(id))continue;
+        if(!uploads)break;
+        VirtualTextureSource::Page pages;
+        if(asynchronous_) {
+            auto found=pending_.find(id);
+            if(found==pending_.end()) {
+                if(pending_.size()>=16 || issued>=8)continue;
+                auto source=source_;source.rootPage.clear();
+                auto task=std::make_shared<std::packaged_task<VirtualTextureSource::Page()>>([source=std::move(source),id]{
+                    std::lock_guard<std::mutex> lock(*source.ioMutex);return source.readPage(id.mip,id.x,id.y);
+                });
+                auto future=task->get_future();
+                if(!engine::JobSystem::io().tryEnqueue([task]{(*task)();}))continue;
+                pending_.emplace(id,std::move(future));++issued;continue;
+            }
+            if(found->second.wait_for(std::chrono::seconds(0))!=std::future_status::ready)continue;
+            try{pages=found->second.get();}catch(...){pending_.erase(found);throw;}
+            pending_.erase(found);
+        }else {std::lock_guard<std::mutex> lock(*source_.ioMutex);pages=source_.readPage(id.mip,id.x,id.y);}
+        uint32_t slot=0;auto victim=resident_.end();
+        if(resident_.size()<capacity()){
+            std::set<uint32_t> used;for(const auto& page:resident_)used.insert(page.second.slot);
+            while(used.count(slot))++slot;
+        }else{
+            for(auto it=resident_.begin();it!=resident_.end();++it)
+                if(it->first.mip!=maxMip_ && !requested.count(it->first) && (victim==resident_.end() || it->second.touched<victim->second.touched))victim=it;
+            if(victim==resident_.end())break;slot=victim->second.slot;
         }
-        install(id, slot);
-        resident_[id] = {slot, clock_};
-        uploadTable();
-        --uploads;
+        // Validate and upload every plane before publishing the complete mapping.
+        install(id,slot,std::move(pages));
+        if(victim!=resident_.end()){
+            tableData_[(size_t(row(victim->first.mip)+victim->first.y)*tableWidth_+victim->first.x)*4+3]=0;
+            resident_.erase(victim);
+        }
+        resident_[id]={slot,clock_};uploadTable();--uploads;
     }
 }
 void GpuVirtualTexture::prepare(const glm::mat4 &vp, const glm::mat4 &model, uint32_t width, uint32_t height,

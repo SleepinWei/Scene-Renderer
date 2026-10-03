@@ -29,6 +29,9 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 if(APPLE)
+    enable_language(OBJCXX)
+    set(CMAKE_OBJCXX_STANDARD 17)
+    set_source_files_properties(src/engine/RenderRuntime.cpp PROPERTIES LANGUAGE OBJCXX COMPILE_FLAGS "-fobjc-arc")
     execute_process(
         COMMAND brew --prefix
         OUTPUT_VARIABLE HOMEBREW_PREFIX
@@ -155,6 +158,7 @@ else()
     endif()
     if(APPLE)
         target_compile_definitions(${PROJECT_NAME} PRIVATE GL_SILENCE_DEPRECATION)
+        target_link_libraries(${PROJECT_NAME} PRIVATE "-framework Foundation")
     endif()
 endif()
 
@@ -168,6 +172,12 @@ if(SCENERENDERER_METAL AND SCENERENDERER_LEGACY_METAL)
     endif()
 endif()
 if(BUILD_TESTING)
+    find_package(Threads REQUIRED)
+    add_executable(engine-concurrency-tests tests/engine/ConcurrencyTests.cpp src/engine/JobSystem.cpp)
+    target_include_directories(engine-concurrency-tests PRIVATE include)
+    target_link_libraries(engine-concurrency-tests PRIVATE Threads::Threads)
+    add_test(NAME engine-concurrency COMMAND engine-concurrency-tests)
+    set_tests_properties(engine-concurrency PROPERTIES TIMEOUT 20)
     add_executable(rhi-image-decoder-tests tests/rhi/ImageDecoderTests.cpp src/renderer/rhi/DdsDecoder.cpp)
     target_include_directories(rhi-image-decoder-tests PRIVATE include external)
     add_test(NAME rhi-image-decoder COMMAND rhi-image-decoder-tests)
@@ -185,8 +195,10 @@ if(BUILD_TESTING)
     set_tests_properties(rhi-gpu PROPERTIES WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} LABELS "gpu" TIMEOUT 60)
     if(SCENERENDERER_METAL OR SCENERENDERER_DEFAULT_VULKAN)
         add_test(NAME rhi-editor-resize COMMAND ${PROJECT_NAME} --demo --hidden --size 800x450 --frames 20 --time 8 --resize 640x360 --screenshot "${CMAKE_BINARY_DIR}/rhi/editor-resize.ppm")
+        add_test(NAME rhi-editor-terrain COMMAND ${PROJECT_NAME} --classic terrain --hidden --size 640x360 --frames 40 --time 8 --resize 480x270 --screenshot "${CMAKE_BINARY_DIR}/rhi/editor-terrain.ppm")
+        add_test(NAME rhi-editor-single-thread COMMAND ${PROJECT_NAME} --classic cornell --single-thread --hidden --size 640x360 --frames 8 --time 8)
         add_test(NAME rhi-editor-forward COMMAND ${PROJECT_NAME} --classic cornell --forward --hidden --size 640x360 --frames 8 --time 8 --screenshot "${CMAKE_BINARY_DIR}/rhi/editor-forward.ppm")
-        set_tests_properties(rhi-editor-resize rhi-editor-forward PROPERTIES LABELS "gpu" TIMEOUT 90 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+        set_tests_properties(rhi-editor-resize rhi-editor-forward rhi-editor-terrain rhi-editor-single-thread PROPERTIES LABELS "gpu" TIMEOUT 90 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
     endif()
     if(NOT SCENERENDERER_METAL AND NOT SCENERENDERER_DEFAULT_VULKAN)
         add_executable(rhi-opengl-state-tests tests/rhi/OpenGLStateValidation.cpp
@@ -212,7 +224,7 @@ if(SCENERENDERER_VULKAN_PROTOTYPE)
     target_sources(${PROJECT_NAME} PRIVATE src/rhi/VulkanDevice.cpp)
     target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
     target_compile_definitions(${PROJECT_NAME} PRIVATE SCENERENDERER_HAS_VULKAN)
-    add_executable(rhi-vulkan-validation tests/rhi/VulkanValidation.cpp
+    add_executable(rhi-vulkan-validation tests/rhi/VulkanValidation.cpp src/engine/JobSystem.cpp
         src/rhi/Device.cpp src/rhi/GraphicsDevice.cpp src/rhi/ShaderAssets.cpp
         src/rhi/Validation.cpp src/rhi/FrameValidation.cpp src/rhi/GraphicsValidation.cpp src/rhi/ComputeValidation.cpp src/rhi/VulkanDevice.cpp
         src/renderer/rhi/GpuMesh.cpp src/renderer/rhi/GpuMaterial.cpp src/renderer/rhi/ImageDecoder.cpp src/renderer/rhi/DdsDecoder.cpp

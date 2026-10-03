@@ -1,0 +1,118 @@
+#include "engine/RenderRuntime.h"
+#include "renderer/rhi/SceneAdapter.h"
+#include "rhi/ShaderAssets.h"
+#include <chrono>
+#include <algorithm>
+#include <filesystem>
+#include <fstream>
+namespace engine {
+RenderRuntime::RenderRuntime(std::shared_ptr<rhi::GraphicsDevice> device,
+                             std::unique_ptr<render::GuiRenderer> gui, size_t capacity)
+    : device_(std::move(device)), queue_(capacity) {
+    if (!device_ || device_->backend() == rhi::Backend::OpenGL)
+        throw std::invalid_argument("Threaded renderer requires a native Metal or Vulkan device");
+    device_->waitIdle(); // Quiescent ownership transfer after window/font bootstrap.
+    thread_ = std::thread([this, gui = std::move(gui)]() mutable { run(std::move(gui)); });
+}
+RenderRuntime::~RenderRuntime() {
+    try {
+        finish();
+    } catch (...) {
+    }
+}
+void RenderRuntime::run(std::unique_ptr<render::GuiRenderer> gui) {
+#ifdef __APPLE__
+    @autoreleasepool {
+#endif
+        device_->adoptCurrentThread();
+        try {
+            render::SceneAdapter adapter(device_);
+            std::unique_ptr<render::ForwardPbrRenderer> renderer;
+            while (auto packet = queue_.pop()) {
+#ifdef __APPLE__
+                @autoreleasepool {
+#endif
+                    const auto started = std::chrono::steady_clock::now();
+                    const auto &snapshot = *packet->world;
+                    auto width = snapshot.frame.viewportWidth, height = snapshot.frame.viewportHeight;
+                    const auto surface = surfaceExtent_.load();
+                    device_->setPresentationExtent(surface == UINT64_MAX ? width : uint32_t(surface >> 32),
+                                                   surface == UINT64_MAX ? height : uint32_t(surface));
+                    device_->beginFrame();
+                    if (!renderer)
+                        renderer = std::make_unique<render::ForwardPbrRenderer>(
+                            device_, rhi::defaultShaderDirectory(), width, height, render::PbrPath::Scene);
+                    renderer->resize(width, height);
+                    auto frame = adapter.resolve(snapshot);
+                    renderer->render(frame.frame, frame.packets, frame.exposure);
+                    if (gui)
+                        gui->render(packet->gui, renderer->output());
+                    if (!packet->screenshot.empty()) {
+                        auto pixels = device_->readTexture(renderer->output());
+                        auto path = std::filesystem::path(packet->screenshot);
+                        if (!path.parent_path().empty())
+                            std::filesystem::create_directories(path.parent_path());
+                        std::ofstream file(path, std::ios::binary);
+                        file << "P6\n" << width << " " << height << "\n255\n";
+                        for (size_t i = 0; i < pixels.size(); i += 4)
+                            file.write(reinterpret_cast<const char *>(pixels.data() + i), 3);
+                        if (!file)
+                            throw std::runtime_error("Cannot write render screenshot");
+                    }
+                    device_->copyToBackbuffer(renderer->output());
+                    device_->present();
+                    ++framesRendered_;
+                    peakResourceBytes_ =
+                        std::max(peakResourceBytes_.load(), uint64_t(device_->allocatedBufferBytes() +
+                                                                     device_->allocatedTextureBytes()));
+                    renderMilliseconds_ =
+                        std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - started)
+                            .count();
+#ifdef __APPLE__
+                }
+#endif
+            }
+            device_->waitIdle();
+            renderer.reset();
+        } catch (...) {
+            std::lock_guard<std::mutex> lock(failureMutex_);
+            failure_ = std::current_exception();
+            queue_.close();
+        }
+        // ImGui context stays on the UI thread; GPU backend destruction never touches it.
+        gui.reset();
+        try {
+            if (device_->frameActive())
+                device_->endFrame();
+            device_->waitIdle();
+        } catch (...) {
+            std::lock_guard<std::mutex> lock(failureMutex_);
+            if (!failure_)
+                failure_ = std::current_exception();
+        }
+#ifdef __APPLE__
+    }
+#endif
+}
+bool RenderRuntime::submit(RenderPacket packet) {
+    rethrowFailure();
+    if (!packet.world)
+        throw std::invalid_argument("Render packet needs an immutable world");
+    bool accepted = queue_.push(std::move(packet));
+    rethrowFailure();
+    return accepted;
+}
+void RenderRuntime::rethrowFailure() const {
+    std::lock_guard<std::mutex> lock(failureMutex_);
+    if (failure_)
+        std::rethrow_exception(failure_);
+}
+void RenderRuntime::finish() {
+    queue_.close();
+    if (thread_.joinable()) {
+        thread_.join();
+        device_->adoptCurrentThread();
+    }
+    rethrowFailure();
+}
+} // namespace engine

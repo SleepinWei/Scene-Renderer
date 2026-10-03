@@ -1,4 +1,5 @@
 #pragma once
+#include "engine/AssetIdentity.h"
 #include<vector>
 #include<stdexcept>
 #include<glm/glm.hpp>
@@ -12,7 +13,7 @@
 class Component; 
 using json = nlohmann::json;
 
-class GameObject:public std::enable_shared_from_this<GameObject> {
+class GameObject:public engine::AssetIdentity, public std::enable_shared_from_this<GameObject> {
 public:
 	GameObject();
 	GameObject(std::string name);
@@ -35,6 +36,10 @@ public:
 
 	std::shared_ptr<GameObject> addComponent(const std::shared_ptr<Component>& component);
 	std::shared_ptr<Component> GetComponent(std::string component_type_name) ;
+    template<class T> std::shared_ptr<T> getComponent() const {
+        for(const auto& entry:component_type_instance_map)if(auto value=std::dynamic_pointer_cast<T>(entry.second))return value;
+        return {};
+    }
 
 	virtual void loadFromJson(json& data);
 	bool isDeferred()const;

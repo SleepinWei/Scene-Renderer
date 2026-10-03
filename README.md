@@ -48,7 +48,7 @@ cmake --build build -j 8
 ./build/Scene-Renderer --demo --backend Vulkan
 ```
 
-`--forward` 使用完整场景的前向光照；`--frames N` 有界运行，`--time 8` 固定海洋/草时间，`--size 800x450` 与 `--resize 640x360` 用于窗口回归，`--frames-in-flight 1` 可对照默认的 3 个在途提交。`--screenshot path.ppm` 保存包括 UI 的最后一帧。`--render-gallery directory core` 保存无 UI 的经典场景 PNG。本机 Metal 回归启用 API／Shader Validation；Vulkan／MoltenVK 通过 GPU 数值测试验证。本机没有 Khronos validation layer，不能把这些结果视为 Vulkan layer 验证；对 MoltenVK 开启 MetalTools 的已知阻塞组合由 CTest 单独关闭。
+原生编辑器默认主逻辑／渲染双线程，`--single-thread` 可切换同步对照。`--forward` 使用完整场景的前向光照；`--frames N` 有界运行，`--time 8` 固定海洋/草时间，`--size 800x450` 与 `--resize 640x360` 用于窗口回归，`--frames-in-flight 1` 可对照默认的 3 个在途提交。`--screenshot path.ppm` 保存包括 UI 的最后一帧。`--render-gallery directory core` 保存无 UI 的经典场景 PNG。本机 Metal 回归启用 API／Shader Validation；Vulkan／MoltenVK 通过 GPU 数值测试验证。本机没有 Khronos validation layer，不能把这些结果视为 Vulkan layer 验证；对 MoltenVK 开启 MetalTools 的已知阻塞组合由 CTest 单独关闭。
 
 ### 示例资源
 
@@ -199,40 +199,39 @@ GUI 的 `Enable TSAA` 可关闭此效果。场景切换、窗口尺寸、明显�
 
 ## 整体系统设计
 
-项目按场景、效果调度、资源和 GPU 后端分层。`GameObject` 组合变换、网格、材质、灯光和自然场景组件，`RenderScene` 管理对象与相机。`RenderManager` 驱动编辑器；`SceneAdapter` 将 CPU 场景转为 GPU 网格／材质、绘制包和每帧参数，原生渲染器通过 RHI 记录命令。
+项目按主逻辑、不可变场景快照、CPU 资产任务、渲染调度和 GPU 后端分层。主线程拥有 `RenderScene`、输入、相机和 ImGui，`SceneSnapshotBuilder` 准备可共享的 const CPU payload；独立 `RenderRuntime` 从有界队列消费快照，`SceneAdapter.resolve` 只在渲染线程创建 GPU 网格／材质和绘制包。`RenderManager` 保留编辑器设置及旧兼容调度。
 
 ```mermaid
 flowchart TD
-    A[JSON / Assimp / glTF / 程序场景] --> B[RenderScene 与组件]
-    I[InputManager / Camera / ImGui] --> C[RenderManager]
-    B --> C
-    C --> D[SceneAdapter：网格 / 材质 / FrameData]
-    D --> E[ForwardPbrRenderer：前向 / 延迟 / HDR / TSAA]
-    D --> F[GpuAtmosphere / GpuOcean / GpuTerrain / GpuGrass]
-    D --> T[GpuVirtualTexture：页预测 / 驻留 / 上传]
+    A[JSON / Assimp / glTF / 程序场景] --> J[有界 CPU 解码与加载事务]
+    J --> B[主线程：RenderScene 与组件]
+    I[GLFW / 输入 / Camera / ImGui] --> B
+    B --> S[SceneSnapshotBuilder：不可变 CPU 数据]
+    S --> Q[有界帧队列：2 个等待包]
+    Q --> D[渲染线程：SceneAdapter.resolve]
+    D --> E[RenderGraph / ForwardPbrRenderer / TSAA]
+    D --> F[大气 / 海洋 / 地形 / 草 / 细分]
+    D --> T[VT 预测与有界异步 IO]
     T --> F
-    T --> E
-    E --> G[RHI：GraphicsDevice / CommandList / 显式资源与绑定]
+    E --> G[RHI：设备线程归属 / 显式命令与资源]
     F --> G
-    G --> H[MetalDevice / CAMetalLayer]
-    G --> V[VulkanDevice / Swapchain]
-    B -. Connector .-> K[CPU PTScene]
-    K --> L[BVH / 材质采样 / 多线程积分]
-    L --> M[离线图像]
+    G --> H[Metal / CAMetalLayer]
+    G --> V[Vulkan / Swapchain]
+    B -. Connector .-> K[CPU PTScene / BVH / 多线程积分]
 ```
 
 新 Metal／Vulkan 路径直接使用 RHI 的缓冲区、纹理、管线、资源绑定和命令列表。GL 风格组件字段仍用于读取历史场景数据，但原生 GPU 效果由 `src/renderer/rhi/` 调度；旧 `RenderPass` 与 Metal GL 兼容桥只属于保留的兼容路径。RHI 后端负责资源生命周期、状态转换、上传／读回、提交及呈现，支持多个在途帧；算法与 backend 分开，CPU 路径追踪保持独立。
 
 ### 一帧如何生成
 
-1. `SceneAdapter` 收集相机、几何、材质、太阳及局部灯光，更新地形 LOD、草和计算细分资源。
+1. 主线程收集相机、几何、材质、太阳及局部灯光，复制 GUI draw data，发布不可变快照；CPU jobs 准备新资产，渲染线程接纳有预算的上传并更新地形 LOD、草和细分。
 2. 统一太阳状态和观察高度；按参数缓存或更新大气 LUT，更新海洋 FFT、位移、法线与泡沫。
 3. `ShadowRenderer` 渲染方向光级联、点光源六面及聚光灯阴影；可选捕获太阳／天空 RSM 的位置、法线与反射功率。
 4. 不透明对象写入 G-buffer，计算 SSAO；全屏合成 PBR、天空与 RSM；前向模式改用共享材质公式绘制场景。前后表面深度用于近似 SSS。
 5. 拷贝不透明 HDR 场景，绘制排序透明材质与折射／吸收／散射水面，并生成物体和海面的运动信息。
 6. TSAA 在 HDR 中检查深度、重投影与裁剪历史，然后统一曝光、色调映射，绘制 ImGui 并呈现。
 
-组件通过 weak owner 避免对象引用环；场景 Loader 已处理重复 join、worker 异常及线程数边界。资源 cache 并发、加载事务、稳定渲染 snapshot、异步 VT IO 与 render graph 仍需进一步完善，具体问题、影响和实施顺序见 [Engine 设计审查](docs/engine-design-review.md)。
+组件通过 weak owner 避免对象引用环，网格／材质／组件使用稳定 ID 与内容版本。资源缓存合并同 key 的解码；Loader 后台构建并验证完整 staging，在主线程一次发布，失败保留旧场景。VT 页通过有界 IO jobs 准备后由渲染线程上传，未完成页保持粗 mip 回退；有序 render graph 在记录前检查初始化及读写声明。线程归属、取消／退出、上传预算、单线程对照和剩余边界见 [Engine 多线程说明](docs/engine-multithreading.md) 与 [设计审查](docs/engine-design-review.md)。
 
 `--forward` 在同一场景调度中改用前向材质光照，保留阴影、环境光、水体和后处理。核心实现见 [ForwardPbrRenderer.cpp](src/renderer/rhi/ForwardPbrRenderer.cpp)、[SceneAdapter.cpp](src/renderer/rhi/SceneAdapter.cpp) 与 [RenderManager.cpp](src/system/RenderManager.cpp)。
 
@@ -287,11 +286,13 @@ flowchart LR
 | `src/rhi/shaders/` | 统一 PBR、阴影、RSM、SSAO、大气、海洋、地形及 TSAA shader |
 | `src/renderer/rhi/`、`src/rhi/` | 效果调度、GPU 资源、原生后端与验证入口 |
 | `src/shader/` | 旧 OpenGL / Metal 兼容路径效果源码 |
+| `src/engine/`、`include/engine/` | 有界任务与帧队列、资源 cache、资产 ID、render graph 与渲染线程 |
 | `src/PT/` | CPU 路径追踪与实时场景转换 |
 | `tools/` | 着色器转换及可复现的资源下载脚本 |
 | `samples/`、`img/metal/` | 示例资产与来源清单、本项目生成的截图 |
 | `doc/metal.md`、`doc/rsm.md` | 中文 Metal 迁移说明与太阳／天空 RSM 实现、验证说明 |
 | `docs/sky-and-sun-review.md` | 历史天空问题、新 RHI 太阳／大气修复、能量与 GPU 回归 |
+| `docs/engine-multithreading.md`、`docs/engine-design-review.md` | 主逻辑／渲染分离、资源事务与快照、设计评价及下一步 |
 | `docs/tsaa.md` | TSAA 重投影、海洋运动信息、历史处理与截图复现 |
 | `docs/ocean-fft-and-rendering-review.md` | 海洋 FFT、高清波纹、透明与散射的修复和验证记录 |
 
@@ -300,12 +301,13 @@ flowchart LR
 | 命令 | 用途 |
 | --- | --- |
 | `--demo` | 自动生成的功能演示，无需历史资产包 |
-| `--classic <name>` | 选择 `cornell`、`bunny`、`helmet`、`sponza`、`san-miguel`、`sky`、`ocean` 、`ocean-clear` 或 `terrain` |
+| `--classic <name>` | 选择 `cornell`、`bunny`、`helmet`、`sponza`、`san-miguel`、`sky`、`ocean`、`ocean-clear` 或 `terrain` |
 | `--frames <N>` | 窗口渲染 N 帧后退出 |
 | `--render-gallery <目录> core` | 离屏生成三个随仓库提供的基础示例 |
 | `--render-gallery <目录> gi` | 生成两个 GI 场景、RSM 开关对照及纯间接光／太阳／天空贡献图 |
 | `--render-gallery <目录> <场景名>` | 仅生成指定场景 |
 | `--render-gallery <目录>` | 默认生成三个基础示例 |
+| `--single-thread` | 原生编辑器同步对照；默认 Metal／Vulkan 使用独立渲染线程 |
 | `--rhi-self-test` | 所选 RHI 后端的 GPU 正确性自检 |
 
 `W/A/S/D` 移动，`E/Q` 上下移动，按住 `Shift` 加速；按住鼠标右键调整视角。ImGui 用于修改渲染选项和场景参数。经典场景和离屏画廊支持 Metal/Vulkan；同时编译两后端时加 `--backend Vulkan`。`--rhi-self-test` 同时支持 OpenGL 基础路径。历史 `--metal-self-test` 仅在显式启用 `SCENERENDERER_LEGACY_METAL` 时提供。
@@ -337,6 +339,8 @@ ctest --test-dir build/vulkan --output-on-failure
 ```
 
 GPU 验证覆盖上传/异步读回、延迟释放、MRT、前向/延迟 PBR、SSS 深度、透明排序、三类阴影、SSAO、太阳/天空 RSM、大气 LUT、完整海洋 IFFT、地形/草的 VT 区域上传、页淘汰与回退、流式高度、网格预算和闭合接缝、计算细分及 TSAA。CPU 数值参考和限定的像素比较用于检查结果；编辑器测试同时覆盖真实 resize、UI 与窗口呈现。画廊提供实际模型和贴图的视觉回归，不以历史截图作为物理参考图像。
+
+2026-10-03 Engine 多线程回归在 Apple M4/macOS 验收：Metal **11/11**、Vulkan/MoltenVK **12/12**；有界 CPU cache／job／帧队列与 graph 测试在 ThreadSanitizer 下通过。包括主逻辑／渲染分离、加载事务、快照／GUI 隔离、异步地形、窗口缩放与单线程对照；完整应用没有在 ThreadSanitizer 下验收。
 
 2026-10-03 天空修复在 Apple M4/macOS 验收：Metal **8/8**、Vulkan/MoltenVK **9/9**，包含太阳角半径／能量、地平线及几何遮挡、控制同步、观察高度与极限参数。OpenGL 4.1 的历史 RHI 验收为 7/7，本轮未重复运行。Metal 开启 API/Shader Validation；本机没有 Khronos validation layer，Windows/Linux 与 OpenGL 4.3+ 尚未实机验收。Metal/Vulkan 使用单队列、最多三帧并行提交；单次吞吐测量和算法边界见 [RHI 重构计划](docs/rhi-refactor-plan.md)。大规模 OBJ 导入仍需较多 CPU 内存与启动时间。
 

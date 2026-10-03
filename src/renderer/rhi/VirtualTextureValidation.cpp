@@ -4,6 +4,8 @@
 #include <set>
 #include <fstream>
 #include <filesystem>
+#include <chrono>
+#include <thread>
 namespace render {
 namespace {
 void check(bool pass, const char *reason) {
@@ -13,6 +15,21 @@ void check(bool pass, const char *reason) {
 } // namespace
 void validateVirtualTextureRhi(std::shared_ptr<rhi::GraphicsDevice> device, const std::string &directory) {
     Resources resources(device);
+    {
+        auto source=heightVirtualSource(128,128,std::vector<float>(128*128,.25f));
+        source.rootPage=source.readPage(1,0,0);auto read=source.readPage;
+        std::promise<void> release;auto gate=release.get_future().share();
+        auto started=std::make_shared<std::promise<void>>();auto ready=started->get_future();
+        source.readPage=[read,gate,started](uint32_t mip,uint32_t x,uint32_t y){started->set_value();gate.wait();return read(mip,x,y);};
+        GpuVirtualTexture texture(device,source,2);texture.enableAsync();
+        texture.update({{0,0,0}},1);
+        check(texture.pendingPages()==1 && texture.residentPages()==1,"Async VT published a pending page");
+        check(ready.wait_for(std::chrono::seconds(2))==std::future_status::ready,"Async VT read was not scheduled");
+        texture.update({{0,0,0}},1);check(texture.pendingPages()==1 && texture.residentPages()==1,"Async VT blocked or duplicated a pending read");
+        release.set_value();const auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(2);
+        while(texture.residentPages()!=2 && std::chrono::steady_clock::now()<deadline){texture.update({{0,0,0}},1);std::this_thread::yield();}
+        check(texture.residentPages()==2 && texture.pendingPages()==0,"Completed VT page was not uploaded and published");
+    }
     for (auto format : {rhi::Format::RGBA8UNorm, rhi::Format::RGBA32Float}) {
         auto texture = resources.texture({8, 8, format,
                                           rhi::TextureUsage::CopyDestination | rhi::TextureUsage::CopySource,
@@ -127,7 +144,7 @@ void validateVirtualTextureRhi(std::shared_ptr<rhi::GraphicsDevice> device, cons
         }
     }
     // Small disk pack exercises the same source path without retaining a CPU field.
-    auto base = std::filesystem::temp_directory_path() / "scene-renderer-vt-validation";
+    auto base = std::filesystem::temp_directory_path() / ("scene-renderer-vt-validation-"+std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
     std::filesystem::create_directories(base);
     auto page = heightVirtualSource(2, 2, {0, 1, 0, 1}).readPage(0, 0, 0);
     {

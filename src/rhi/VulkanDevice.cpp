@@ -122,7 +122,7 @@ public:
         return {true,{l.maxComputeWorkGroupCount[0],l.maxComputeWorkGroupCount[1],l.maxComputeWorkGroupCount[2]},
             {l.maxComputeWorkGroupSize[0],l.maxComputeWorkGroupSize[1],l.maxComputeWorkGroupSize[2]},l.maxComputeWorkGroupInvocations,size_t(std::max<VkDeviceSize>(1,l.minStorageBufferOffsetAlignment)),l.maxStorageBufferRange,l.maxPerStageDescriptorStorageBuffers,l.maxPerStageDescriptorUniformBuffers,l.maxPerStageDescriptorStorageImages,l.maxPerStageDescriptorSampledImages};
     }
-    std::array<uint32_t,2> presentationExtent()const override{int w=0,h=0;if(c_->window)glfwGetFramebufferSize(c_->window,&w,&h);return {uint32_t(w),uint32_t(h)};}
+    std::array<uint32_t,2> presentationExtent()const override{if(hasConfiguredExtent_)return configuredExtent_;int w=0,h=0;if(c_->window)glfwGetFramebufferSize(c_->window,&w,&h);return {uint32_t(w),uint32_t(h)};}
     bool supportsPresentation() const override {return c_ && c_->window;}
     Backend backend() const override { return Backend::Vulkan; }
     bool supportsTexture(Format f, TextureUsage usage) const override {
@@ -192,24 +192,26 @@ protected:
         throw std::logic_error("RHI Vulkan: legacy uniform binding is unsupported; use BindingSet");
     }
     void beginFrameImpl() override {
-        if(!c_->window)return;int width,height;glfwGetFramebufferSize(c_->window,&width,&height);
-        if(width<=0 || height<=0)throw std::invalid_argument("RHI Vulkan: cannot begin minimized surface frame");
-        if(!swapchain_ || extent_.width!=uint32_t(width) || extent_.height!=uint32_t(height))recreateSwapchain();
+        surfaceUnavailable_=false;
+        if(!c_->window)return;auto size=presentationExtent();const int width=int(size[0]),height=int(size[1]);
+        if(width<=0 || height<=0){surfaceUnavailable_=true;return;}
+        if((!swapchain_ || extent_.width!=uint32_t(width) || extent_.height!=uint32_t(height)) && !recreateSwapchain())surfaceUnavailable_=true;
     }
-    void acquireSurface() {
-        if(!c_->window)return;
+    bool acquireSurface() {
+        if(!c_->window)return false;
         if(acquired_)throw std::logic_error("RHI Vulkan: frame already acquired");
-        int width,height;glfwGetFramebufferSize(c_->window,&width,&height);
-        if(width<=0 || height<=0)throw std::invalid_argument("RHI Vulkan: cannot acquire minimized surface");
-        if(!swapchain_ || extent_.width!=uint32_t(width) || extent_.height!=uint32_t(height))recreateSwapchain();
+        auto size=presentationExtent();const int width=int(size[0]),height=int(size[1]);
+        if(width<=0 || height<=0){surfaceUnavailable_=true;return false;}
+        if((!swapchain_ || extent_.width!=uint32_t(width) || extent_.height!=uint32_t(height)) && !recreateSwapchain()){surfaceUnavailable_=true;return false;}
         VkFence fence=VK_NULL_HANDLE;VkFenceCreateInfo info{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};check(vkCreateFence(c_->device,&info,nullptr,&fence),"create acquire fence");
         VkResult result=vkAcquireNextImageKHR(c_->device,swapchain_,UINT64_MAX,VK_NULL_HANDLE,fence,&imageIndex_);
-        if(result==VK_ERROR_OUT_OF_DATE_KHR) { vkDestroyFence(c_->device,fence,nullptr);recreateSwapchain();acquireSurface();return; }
+        if(result==VK_ERROR_OUT_OF_DATE_KHR) { vkDestroyFence(c_->device,fence,nullptr);if(!recreateSwapchain()){surfaceUnavailable_=true;return false;}return acquireSurface(); }
         if(result!=VK_SUCCESS && result!=VK_SUBOPTIMAL_KHR){vkDestroyFence(c_->device,fence,nullptr);check(result,"acquire image");}
-        result=vkWaitForFences(c_->device,1,&fence,VK_TRUE,UINT64_MAX);vkDestroyFence(c_->device,fence,nullptr);check(result,"wait acquire");acquired_=true;copied_=false;
+        result=vkWaitForFences(c_->device,1,&fence,VK_TRUE,UINT64_MAX);vkDestroyFence(c_->device,fence,nullptr);check(result,"wait acquire");acquired_=true;copied_=false;return true;
     }
     void presentImpl() override {
         if(!c_->window){waitIdleImpl();return;}
+        if(surfaceUnavailable_ && !acquired_ && !copied_)return; // Minimized surface; complete GPU work without presentation.
         if(!acquired_ || !copied_)throw std::logic_error("RHI Vulkan: copyToBackbuffer required before present");
         VkPresentInfoKHR info{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};info.swapchainCount=1;info.pSwapchains=&swapchain_;info.pImageIndices=&imageIndex_;info.waitSemaphoreCount=1;info.pWaitSemaphores=&renderFinished_[imageIndex_];
         const auto result=vkQueuePresentKHR(c_->queue,&info);acquired_=false;copied_=false;
@@ -403,14 +405,15 @@ protected:
     void writeTextureFloatImpl(NativeObject id,const TextureDesc& desc,const float* pixels,size_t bytes) override {writeTextureImpl(id,desc,pixels,bytes);}
     void copyToBackbufferImpl(NativeObject id,const TextureDesc& desc) override {
         if(!frameActive())throw std::logic_error("RHI Vulkan: beginFrame required before copy");
-        if(!acquired_)acquireSurface();
-        if(desc.width!=extent_.width || desc.height!=extent_.height)throw std::invalid_argument("RHI Vulkan: output size differs from swapchain");
+        if(!acquired_ && !acquireSurface())return;
+        // A queued frame can precede an OS resize. Scale it to the acquired
+        // surface; subsequent packets resize renderer targets to the new extent.
         execute([&](VkCommandBuffer command) {
             auto& source=images_.at(id);transition(command,source,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
             VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};barrier.oldLayout=presented_[imageIndex_]?VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:VK_IMAGE_LAYOUT_UNDEFINED;barrier.newLayout=VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
             barrier.srcQueueFamilyIndex=barrier.dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;barrier.image=swapImages_[imageIndex_];barrier.subresourceRange={VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1};barrier.dstAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;
             vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,0,0,nullptr,0,nullptr,1,&barrier);
-            VkImageBlit blit{};blit.srcSubresource=blit.dstSubresource={VK_IMAGE_ASPECT_COLOR_BIT,0,0,1};blit.srcOffsets[1]=blit.dstOffsets[1]={int32_t(desc.width),int32_t(desc.height),1};
+            VkImageBlit blit{};blit.srcSubresource=blit.dstSubresource={VK_IMAGE_ASPECT_COLOR_BIT,0,0,1};blit.srcOffsets[1]={int32_t(desc.width),int32_t(desc.height),1};blit.dstOffsets[1]={int32_t(extent_.width),int32_t(extent_.height),1};
             vkCmdBlitImage(command,source.gpu,source.layout,swapImages_[imageIndex_],VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,1,&blit,VK_FILTER_NEAREST);
             barrier.oldLayout=VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;barrier.newLayout=VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;barrier.srcAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;barrier.dstAccessMask=0;
             vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,0,0,nullptr,0,nullptr,1,&barrier);
@@ -510,14 +513,15 @@ private:
         for(auto semaphore:renderFinished_)vkDestroySemaphore(c_->device,semaphore,nullptr);renderFinished_.clear();
         if(swapchain_)vkDestroySwapchainKHR(c_->device,swapchain_,nullptr);swapchain_=VK_NULL_HANDLE;swapImages_.clear();presented_.clear();
     }
-    void recreateSwapchain() {
+    bool recreateSwapchain() {
         waitIdleImpl();VkSurfaceCapabilitiesKHR capabilities{};check(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(c_->physical,c_->surface,&capabilities),"query surface capabilities");
         uint32_t count=0;check(vkGetPhysicalDeviceSurfaceFormatsKHR(c_->physical,c_->surface,&count,nullptr),"query surface formats");std::vector<VkSurfaceFormatKHR> formats(count);check(vkGetPhysicalDeviceSurfaceFormatsKHR(c_->physical,c_->surface,&count,formats.data()),"query surface formats");
         auto selected=std::find_if(formats.begin(),formats.end(),[](const auto& f){return (f.format==VK_FORMAT_B8G8R8A8_UNORM || f.format==VK_FORMAT_R8G8B8A8_UNORM) && f.colorSpace==VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;});
         if(selected==formats.end() || !(capabilities.supportedUsageFlags&VK_IMAGE_USAGE_TRANSFER_DST_BIT))throw std::runtime_error("RHI Vulkan: display format/transfer destination unavailable");
         VkFormatProperties properties{};vkGetPhysicalDeviceFormatProperties(c_->physical,selected->format,&properties);if(!(properties.optimalTilingFeatures&VK_FORMAT_FEATURE_BLIT_DST_BIT))throw std::runtime_error("RHI Vulkan: display blit unsupported");
         VkExtent2D extent=capabilities.currentExtent;
-        if(extent.width==UINT32_MAX) { int width,height;glfwGetFramebufferSize(c_->window,&width,&height);extent={std::clamp(uint32_t(width),capabilities.minImageExtent.width,capabilities.maxImageExtent.width),std::clamp(uint32_t(height),capabilities.minImageExtent.height,capabilities.maxImageExtent.height)}; }
+        if(extent.width==UINT32_MAX) { auto size=presentationExtent();const int width=int(size[0]),height=int(size[1]);extent={std::clamp(uint32_t(width),capabilities.minImageExtent.width,capabilities.maxImageExtent.width),std::clamp(uint32_t(height),capabilities.minImageExtent.height,capabilities.maxImageExtent.height)}; }
+        if(!extent.width || !extent.height)return false;
         VkSwapchainCreateInfoKHR info{VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};info.surface=c_->surface;info.minImageCount=capabilities.minImageCount+1;if(capabilities.maxImageCount)info.minImageCount=std::min(info.minImageCount,capabilities.maxImageCount);
         info.imageFormat=selected->format;info.imageColorSpace=selected->colorSpace;info.imageExtent=extent;info.imageArrayLayers=1;info.imageUsage=VK_IMAGE_USAGE_TRANSFER_DST_BIT;info.imageSharingMode=VK_SHARING_MODE_EXCLUSIVE;info.preTransform=capabilities.currentTransform;
         info.compositeAlpha=VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;if(!(capabilities.supportedCompositeAlpha&info.compositeAlpha))info.compositeAlpha=VkCompositeAlphaFlagBitsKHR(capabilities.supportedCompositeAlpha&(~capabilities.supportedCompositeAlpha+1));
@@ -526,7 +530,7 @@ private:
         std::vector<VkImage> images;
         try { check(vkGetSwapchainImagesKHR(c_->device,replacement,&count,nullptr),"query swapchain images");images.resize(count);check(vkGetSwapchainImagesKHR(c_->device,replacement,&count,images.data()),"query swapchain images"); }
         catch(...) {vkDestroySwapchainKHR(c_->device,replacement,nullptr);throw;}
-        destroySwapchain();swapchain_=replacement;swapImages_=std::move(images);presented_.assign(count,false);extent_=extent;acquired_=false;copied_=false;renderFinished_.resize(count);VkSemaphoreCreateInfo semaphore{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};for(auto& signal:renderFinished_)check(vkCreateSemaphore(c_->device,&semaphore,nullptr,&signal),"create present semaphore");
+        destroySwapchain();swapchain_=replacement;swapImages_=std::move(images);presented_.assign(count,false);extent_=extent;acquired_=false;copied_=false;renderFinished_.resize(count);VkSemaphoreCreateInfo semaphore{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};for(auto& signal:renderFinished_)check(vkCreateSemaphore(c_->device,&semaphore,nullptr,&signal),"create present semaphore");return true;
     }
     uint64_t submitted_=0,completed_=0;std::deque<Pending> pending_;
     std::vector<VkSemaphore> renderFinished_;
@@ -535,7 +539,7 @@ private:
     std::vector<bool> presented_;
     VkExtent2D extent_{};
     uint32_t imageIndex_=0;
-    bool acquired_=false,copied_=false;
+    bool acquired_=false,copied_=false,surfaceUnavailable_=false;
     std::unique_ptr<Context> c_;
     uint64_t next_ = 1;
     std::unordered_map<uint64_t, Buffer> buffers_;

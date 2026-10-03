@@ -1,4 +1,5 @@
 #include "renderer/rhi/ForwardPbrRenderer.h"
+#include "engine/RenderGraph.h"
 #include "rhi/ShaderAssets.h"
 #include "renderer/rhi/ShadowRenderer.h"
 #include <glm/gtc/matrix_inverse.hpp>
@@ -235,73 +236,398 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
         objects_.push_back({data,bindings});
     }
     Resources frameResources(resources_.device);
-    auto commands = device.createCommandList();rhi::RenderPassDesc pass;pass.color = targets_->hdrView;pass.depth = targets_->depthView;pass.clearColor = {0,0,0,1};
-    if (path_ != PbrPath::Forward) {
-        pass.color = targets_->gbufferViews[0];pass.clearColor = {0,0,0,0};
-        for (size_t i=1;i<(path_==PbrPath::Scene?6u:4u);++i) pass.additionalColors.push_back({targets_->gbufferViews[i]});
-    }
-    commands.beginRenderPass(pass);commands.bindPipeline(forward_);
-    for (size_t i = 0; i < packets.size(); ++i) {
-        device.writeBuffer(objects_[i].data,0,128,&blocks[i]);if(path_==PbrPath::Scene && packets[i].material->transparent())continue;if(packets[i].mesh->instances()){auto layout=geometryLayout_;layout.entries.push_back({3,rhi::BindingType::StorageRead,rhi::ShaderStage::Vertex,"OutPose",64});std::vector<rhi::BindingEntry> entries{{0,camera_,0,64,{},{}},{1,objects_[i].data,0,128,{},{}},{3,packets[i].mesh->instances(),0,size_t(packets[i].mesh->instanceCapacity())*64,{},{}}};if(path_==PbrPath::Forward)entries.push_back({2,lighting_,0,1472,{},{}});commands.bindPipeline(packets[i].wireframe?wireframeInstanced_:instanced_);commands.bindBindingSet(frameResources.bindings({layout,entries}));}else {commands.bindPipeline(packets[i].wireframe?wireframe_:forward_);commands.bindBindingSet(objects_[i].bindings);}packets[i].material->bind(commands);packets[i].mesh->draw(commands);
-    }
-    commands.endRenderPass();pass = {};pass.clearColor = {0,0,0,1};
-    if(shadows_){
-        pass.color=targets_->aoView;pass.clearColor={1,1,1,1};commands.beginRenderPass(pass);commands.bindPipeline(ssaoPipeline_);
-        commands.bindBindingSet(effectsBindings_);commands.bindBindingSet(targets_->ssaoBindings);commands.bindVertexBuffer(quad_);commands.draw(6);commands.endRenderPass();
-    }
-    if(shadows_){pass={};pass.color=targets_->backDepthView;pass.clearColor={0,0,0,0};pass.depth=targets_->backTestView;pass.clearDepth=0;commands.beginRenderPass(pass);commands.bindPipeline(backDepthPipeline_);
-        for(size_t i=0;i<packets.size();++i)if(packets[i].material->extension().lobes.w>0 && !packets[i].mesh->instances()){auto b=frameResources.bindings({ShadowRenderer::objectLayout(),{{0,camera_,0,64,{},{}},{1,objects_[i].data,0,128,{},{}}}});commands.bindBindingSet(b);packets[i].material->bindShadow(commands);packets[i].mesh->draw(commands);}commands.endRenderPass();pass={};}
-    if (path_ != PbrPath::Forward) {
-        pass.clearColor={0,0,0,1};pass.color = targets_->hdrView;commands.beginRenderPass(pass);commands.bindPipeline(deferredPipeline_);
-        commands.bindBindingSet(targets_->lightBindings);commands.bindBindingSet(targets_->deferredBindings);if(shadows_)commands.bindBindingSet(targets_->effectBindings);commands.bindVertexBuffer(quad_);commands.draw(6);commands.endRenderPass();
-    }
-    if(frame.forwardShading && path_==PbrPath::Scene && !(frame.rsm && frame.rsmSettings.indirectOnly)){
-        commands.copyTexture(targets_->hdr,targets_->opaque);
-        auto environment=frameResources.bindings({sceneForwardLayout_,{{0,skyParameters_,0,128,{},{}},{1,shadows_->parameters(),0,sizeof(ShadowParameters),{},{}},{2,{},0,0,skyView_,skySampler_},{3,{},0,0,irradianceView_,skySampler_},{4,{},0,0,shadows_->view(),hdrSampler_},{5,{},0,0,targets_->opaqueView,hdrSampler_},{6,{},0,0,targets_->aoView,hdrSampler_},{7,{},0,0,targets_->backDepthView,hdrSampler_}}});
-        pass={};pass.color=targets_->hdrView;pass.colorLoad=rhi::LoadOp::Load;pass.depth=targets_->depthView;pass.depthLoad=rhi::LoadOp::Load;commands.beginRenderPass(pass);
-        for(size_t i=0;i<packets.size();++i){auto& packet=packets[i];if(packet.material->transparent())continue;auto layout=frameLayout();std::vector<rhi::BindingEntry> entries{{0,camera_,0,64,{},{}},{1,objects_[i].data,0,128,{},{}},{2,lighting_,0,1472,{},{}}};
-            if(packet.mesh->instances()){layout.entries.push_back({3,rhi::BindingType::StorageRead,rhi::ShaderStage::Vertex,"OutPose",64});entries.push_back({3,packet.mesh->instances(),0,size_t(packet.mesh->instanceCapacity())*64,{},{}});commands.bindPipeline(packet.wireframe?sceneForwardWireInstanced_:sceneForwardInstanced_);}else commands.bindPipeline(packet.wireframe?sceneForwardWire_:sceneForward_);
-            commands.bindBindingSet(frameResources.bindings({layout,entries}));packet.material->bind(commands);commands.bindBindingSet(environment);packet.mesh->draw(commands);
-        }commands.endRenderPass();pass={};
-    }
-    if(shadows_){
-        pass={};pass.color=targets_->motionView;pass.clearColor={0,0,0,0};pass.depth=targets_->depthView;pass.depthLoad=rhi::LoadOp::Load;commands.beginRenderPass(pass);
-        if(frame.taa){std::array<glm::mat4,3> camera{frame.viewProjection,temporal_->valid()?temporal_->previousVP():frame.viewProjection,temporal_->valid()?temporal_->previousView():frame.view};auto cameraBuffer=frameResources.buffer({sizeof(camera),rhi::BufferUsage::Uniform,"Motion camera"},camera.data());
-            for(size_t i=0;i<packets.size();++i){const auto& packet=packets[i];if(packet.material->transparent())continue;const uint64_t id=packet.id?packet.id:uint64_t(reinterpret_cast<uintptr_t>(packet.mesh.get()))^(uint64_t(i+1)<<32);auto old=previousModels_.find(id);struct alignas(16) Object {glm::mat4 model,previous;glm::ivec4 flags;};Object object{packet.model,old==previousModels_.end()?packet.model:old->second,{(packet.mesh->instances() || packet.mesh->indirectBuffer())?1:0,0,0,0}};auto data=frameResources.buffer({sizeof(object),rhi::BufferUsage::Uniform,"Motion object"},&object);
-                auto layout=motionLayout_;std::vector<rhi::BindingEntry> entries{{0,cameraBuffer,0,192,{},{}},{1,data,0,144,{},{}}};if(packet.mesh->instances()){layout.entries.push_back({3,rhi::BindingType::StorageRead,rhi::ShaderStage::Vertex,"OutPose",64});entries.push_back({3,packet.mesh->instances(),0,size_t(packet.mesh->instanceCapacity())*64,{},{}});commands.bindPipeline(motionInstanced_);}else commands.bindPipeline(motionPipeline_);commands.bindBindingSet(frameResources.bindings({layout,entries}));packet.material->bindShadow(commands);packet.mesh->draw(commands);
-            }
-        }
-        commands.endRenderPass();pass={};
-    }
-    if(!frame.oceans.empty()){
-        commands.copyTexture(targets_->hdr,targets_->opaque);pass={};pass.color=targets_->hdrView;pass.colorLoad=rhi::LoadOp::Load;pass.depth=targets_->depthView;pass.depthLoad=rhi::LoadOp::Load;pass.additionalColors={{targets_->motionView,rhi::LoadOp::Load}};
-        commands.beginRenderPass(pass);for(const auto& ocean:frame.oceans)oceans_.at(ocean.id)->record(frameResources,commands,frame,ocean,skyView_,targets_->opaqueView,targets_->gbufferViews[0],targets_->gbufferViews[1]);commands.endRenderPass();pass={};
-    }
-    if(path_==PbrPath::Scene){
-        std::vector<size_t> sorted;for(size_t i=0;i<packets.size();++i)if(packets[i].material->transparent())sorted.push_back(i);
-        std::stable_sort(sorted.begin(),sorted.end(),[&](size_t a,size_t b){auto center=[&](size_t i){return frame.view*packets[i].model*glm::vec4((packets[i].mesh->boundsMin()+packets[i].mesh->boundsMax())*.5f,1);};return center(a).z<center(b).z;});
-        if(!sorted.empty()){
-            auto environment=frameResources.bindings({transparentLayout_,{{0,skyParameters_,0,128,{},{}},{1,shadows_->parameters(),0,sizeof(ShadowParameters),{},{}},{2,{},0,0,skyView_,skySampler_},{3,{},0,0,irradianceView_,skySampler_},{4,{},0,0,shadows_->view(),hdrSampler_}}});
-            pass={};pass.color=targets_->hdrView;pass.colorLoad=rhi::LoadOp::Load;pass.depth=targets_->depthView;pass.depthLoad=rhi::LoadOp::Load;pass.additionalColors={{targets_->motionView,rhi::LoadOp::Load}};commands.beginRenderPass(pass);
-            for(auto i:sorted){auto layout=frameLayout();std::vector<rhi::BindingEntry> entries{{0,camera_,0,64,{},{}},{1,objects_[i].data,0,128,{},{}},{2,lighting_,0,1472,{},{}}};if(packets[i].mesh->instances()){layout.entries.push_back({3,rhi::BindingType::StorageRead,rhi::ShaderStage::Vertex,"OutPose",64});entries.push_back({3,packets[i].mesh->instances(),0,size_t(packets[i].mesh->instanceCapacity())*64,{},{}});commands.bindPipeline(transparentInstanced_);}else commands.bindPipeline(transparentPipeline_);commands.bindBindingSet(frameResources.bindings({layout,entries}));packets[i].material->bind(commands);commands.bindBindingSet(environment);packets[i].mesh->draw(commands);}commands.endRenderPass();pass={};
-        }
-    }
+    auto commands = device.createCommandList();
+    rhi::RenderPassDesc pass;
+    pass.color = targets_->hdrView;
+    pass.depth = targets_->depthView;
+    pass.clearColor = {0, 0, 0, 1};
+    engine::RenderGraph graph;
+    using A = engine::RenderGraph::Access;
+    graph.import("assets");
+    graph.import("environment");
     rhi::TextureViewHandle resolved;
-    if(frame.taa)resolved=temporal_->record(frameResources,commands,frame,targets_->hdrView,targets_->depthView,targets_->motionView);
-    pass.color = targets_->outputView;commands.beginRenderPass(pass);
-    commands.bindPipeline(tonePipeline_);commands.bindBindingSet(resolved?frameResources.bindings({{0,{{0,rhi::BindingType::UniformBuffer,rhi::ShaderStage::Fragment,"ToneMap",16},{1,rhi::BindingType::SampledTexture,rhi::ShaderStage::Fragment,"hdrBuffer",0}}},{{0,tone_,0,16,{},{}},{1,{},0,0,resolved,hdrSampler_}}}):targets_->toneBindings);commands.bindVertexBuffer(quad_);commands.draw(6);commands.endRenderPass();device.submit(commands);
-    temporalOutput_=frame.taa;if(frame.taa)temporal_->commit(frame);
-    previousTaa_=source.taa;previousCamera_=source.cameraPosition;previousProjection_=source.viewProjection*glm::inverse(source.view);historyKey_=frame.historyKey;
-    std::map<uint64_t,glm::mat4> models;for(size_t i=0;i<packets.size();++i)models[packets[i].id?packets[i].id:uint64_t(reinterpret_cast<uintptr_t>(packets[i].mesh.get()))^(uint64_t(i+1)<<32)]=packets[i].model;previousModels_.swap(models);
+    graph.add("geometry",
+              {{"assets", A::Read},
+               {"environment", A::Read},
+               {"depth", A::Write},
+               {path_ == PbrPath::Forward ? "hdr" : "gbuffer", A::Write}},
+              [&] {
+                  if (path_ != PbrPath::Forward) {
+                      pass.color = targets_->gbufferViews[0];
+                      pass.clearColor = {0, 0, 0, 0};
+                      for (size_t i = 1; i < (path_ == PbrPath::Scene ? 6u : 4u); ++i)
+                          pass.additionalColors.push_back({targets_->gbufferViews[i]});
+                  }
+                  commands.beginRenderPass(pass);
+                  commands.bindPipeline(forward_);
+                  for (size_t i = 0; i < packets.size(); ++i) {
+                      device.writeBuffer(objects_[i].data, 0, 128, &blocks[i]);
+                      if (path_ == PbrPath::Scene && packets[i].material->transparent())
+                          continue;
+                      if (packets[i].mesh->instances()) {
+                          auto layout = geometryLayout_;
+                          layout.entries.push_back(
+                              {3, rhi::BindingType::StorageRead, rhi::ShaderStage::Vertex, "OutPose", 64});
+                          std::vector<rhi::BindingEntry> entries{
+                              {0, camera_, 0, 64, {}, {}},
+                              {1, objects_[i].data, 0, 128, {}, {}},
+                              {3,
+                               packets[i].mesh->instances(),
+                               0,
+                               size_t(packets[i].mesh->instanceCapacity()) * 64,
+                               {},
+                               {}}};
+                          if (path_ == PbrPath::Forward)
+                              entries.push_back({2, lighting_, 0, 1472, {}, {}});
+                          commands.bindPipeline(packets[i].wireframe ? wireframeInstanced_ : instanced_);
+                          commands.bindBindingSet(frameResources.bindings({layout, entries}));
+                      } else {
+                          commands.bindPipeline(packets[i].wireframe ? wireframe_ : forward_);
+                          commands.bindBindingSet(objects_[i].bindings);
+                      }
+                      packets[i].material->bind(commands);
+                      packets[i].mesh->draw(commands);
+                  }
+                  commands.endRenderPass();
+                  pass = {};
+                  pass.clearColor = {0, 0, 0, 1};
+              });
+    if (shadows_)
+        graph.add("ao", {{"gbuffer", A::Read}, {"ao", A::Write}}, [&] {
+            if (shadows_) {
+                pass.color = targets_->aoView;
+                pass.clearColor = {1, 1, 1, 1};
+                commands.beginRenderPass(pass);
+                commands.bindPipeline(ssaoPipeline_);
+                commands.bindBindingSet(effectsBindings_);
+                commands.bindBindingSet(targets_->ssaoBindings);
+                commands.bindVertexBuffer(quad_);
+                commands.draw(6);
+                commands.endRenderPass();
+            }
+        });
+    if (shadows_)
+        graph.add("back", {{"assets", A::Read}, {"backdepth", A::Write}}, [&] {
+            if (shadows_) {
+                pass = {};
+                pass.color = targets_->backDepthView;
+                pass.clearColor = {0, 0, 0, 0};
+                pass.depth = targets_->backTestView;
+                pass.clearDepth = 0;
+                commands.beginRenderPass(pass);
+                commands.bindPipeline(backDepthPipeline_);
+                for (size_t i = 0; i < packets.size(); ++i)
+                    if (packets[i].material->extension().lobes.w > 0 && !packets[i].mesh->instances()) {
+                        auto b = frameResources.bindings(
+                            {ShadowRenderer::objectLayout(),
+                             {{0, camera_, 0, 64, {}, {}}, {1, objects_[i].data, 0, 128, {}, {}}}});
+                        commands.bindBindingSet(b);
+                        packets[i].material->bindShadow(commands);
+                        packets[i].mesh->draw(commands);
+                    }
+                commands.endRenderPass();
+                pass = {};
+            }
+        });
+    std::vector<engine::RenderGraph::Use> lightingUses{
+        {"gbuffer", A::Read}, {"environment", A::Read}, {"hdr", A::Write}};
+    if (shadows_) {
+        lightingUses.push_back({"ao", A::Read});
+        lightingUses.push_back({"backdepth", A::Read});
+    }
+    if (path_ != PbrPath::Forward)
+        graph.add("light", std::move(lightingUses), [&] {
+            if (path_ != PbrPath::Forward) {
+                pass.clearColor = {0, 0, 0, 1};
+                pass.color = targets_->hdrView;
+                commands.beginRenderPass(pass);
+                commands.bindPipeline(deferredPipeline_);
+                commands.bindBindingSet(targets_->lightBindings);
+                commands.bindBindingSet(targets_->deferredBindings);
+                if (shadows_)
+                    commands.bindBindingSet(targets_->effectBindings);
+                commands.bindVertexBuffer(quad_);
+                commands.draw(6);
+                commands.endRenderPass();
+            }
+        });
+    if (frame.forwardShading && path_ == PbrPath::Scene && !(frame.rsm && frame.rsmSettings.indirectOnly))
+        graph.add("forward-copy", {{"hdr", A::Read}, {"opaque", A::Write}},
+                  [&] { commands.copyTexture(targets_->hdr, targets_->opaque); });
+    if (frame.forwardShading && path_ == PbrPath::Scene && !(frame.rsm && frame.rsmSettings.indirectOnly))
+        graph.add("forward",
+                  {{"assets", A::Read},
+                   {"environment", A::Read},
+                   {"hdr", A::ReadWrite},
+                   {"depth", A::ReadWrite},
+                   {"ao", A::Read},
+                   {"backdepth", A::Read},
+                   {"opaque", A::Read}},
+                  [&] {
+                      if (frame.forwardShading && path_ == PbrPath::Scene &&
+                          !(frame.rsm && frame.rsmSettings.indirectOnly)) {
+                          auto environment = frameResources.bindings(
+                              {sceneForwardLayout_,
+                               {{0, skyParameters_, 0, 128, {}, {}},
+                                {1, shadows_->parameters(), 0, sizeof(ShadowParameters), {}, {}},
+                                {2, {}, 0, 0, skyView_, skySampler_},
+                                {3, {}, 0, 0, irradianceView_, skySampler_},
+                                {4, {}, 0, 0, shadows_->view(), hdrSampler_},
+                                {5, {}, 0, 0, targets_->opaqueView, hdrSampler_},
+                                {6, {}, 0, 0, targets_->aoView, hdrSampler_},
+                                {7, {}, 0, 0, targets_->backDepthView, hdrSampler_}}});
+                          pass = {};
+                          pass.color = targets_->hdrView;
+                          pass.colorLoad = rhi::LoadOp::Load;
+                          pass.depth = targets_->depthView;
+                          pass.depthLoad = rhi::LoadOp::Load;
+                          commands.beginRenderPass(pass);
+                          for (size_t i = 0; i < packets.size(); ++i) {
+                              auto &packet = packets[i];
+                              if (packet.material->transparent())
+                                  continue;
+                              auto layout = frameLayout();
+                              std::vector<rhi::BindingEntry> entries{{0, camera_, 0, 64, {}, {}},
+                                                                     {1, objects_[i].data, 0, 128, {}, {}},
+                                                                     {2, lighting_, 0, 1472, {}, {}}};
+                              if (packet.mesh->instances()) {
+                                  layout.entries.push_back({3, rhi::BindingType::StorageRead,
+                                                            rhi::ShaderStage::Vertex, "OutPose", 64});
+                                  entries.push_back({3,
+                                                     packet.mesh->instances(),
+                                                     0,
+                                                     size_t(packet.mesh->instanceCapacity()) * 64,
+                                                     {},
+                                                     {}});
+                                  commands.bindPipeline(packet.wireframe ? sceneForwardWireInstanced_
+                                                                         : sceneForwardInstanced_);
+                              } else
+                                  commands.bindPipeline(packet.wireframe ? sceneForwardWire_ : sceneForward_);
+                              commands.bindBindingSet(frameResources.bindings({layout, entries}));
+                              packet.material->bind(commands);
+                              commands.bindBindingSet(environment);
+                              packet.mesh->draw(commands);
+                          }
+                          commands.endRenderPass();
+                          pass = {};
+                      }
+                  });
+    if (shadows_)
+        graph.add("motion", {{"depth", A::Read}, {"assets", A::Read}, {"motion", A::Write}}, [&] {
+            if (shadows_) {
+                pass = {};
+                pass.color = targets_->motionView;
+                pass.clearColor = {0, 0, 0, 0};
+                pass.depth = targets_->depthView;
+                pass.depthLoad = rhi::LoadOp::Load;
+                commands.beginRenderPass(pass);
+                if (frame.taa) {
+                    std::array<glm::mat4, 3> camera{
+                        frame.viewProjection,
+                        temporal_->valid() ? temporal_->previousVP() : frame.viewProjection,
+                        temporal_->valid() ? temporal_->previousView() : frame.view};
+                    auto cameraBuffer = frameResources.buffer(
+                        {sizeof(camera), rhi::BufferUsage::Uniform, "Motion camera"}, camera.data());
+                    for (size_t i = 0; i < packets.size(); ++i) {
+                        const auto &packet = packets[i];
+                        if (packet.material->transparent())
+                            continue;
+                        const uint64_t id = packet.id
+                                                ? packet.id
+                                                : uint64_t(reinterpret_cast<uintptr_t>(packet.mesh.get())) ^
+                                                      (uint64_t(i + 1) << 32);
+                        auto old = previousModels_.find(id);
+                        struct alignas(16) Object {
+                            glm::mat4 model, previous;
+                            glm::ivec4 flags;
+                        };
+                        Object object{
+                            packet.model,
+                            old == previousModels_.end() ? packet.model : old->second,
+                            {(packet.mesh->instances() || packet.mesh->indirectBuffer()) ? 1 : 0, 0, 0, 0}};
+                        auto data = frameResources.buffer(
+                            {sizeof(object), rhi::BufferUsage::Uniform, "Motion object"}, &object);
+                        auto layout = motionLayout_;
+                        std::vector<rhi::BindingEntry> entries{{0, cameraBuffer, 0, 192, {}, {}},
+                                                               {1, data, 0, 144, {}, {}}};
+                        if (packet.mesh->instances()) {
+                            layout.entries.push_back(
+                                {3, rhi::BindingType::StorageRead, rhi::ShaderStage::Vertex, "OutPose", 64});
+                            entries.push_back({3,
+                                               packet.mesh->instances(),
+                                               0,
+                                               size_t(packet.mesh->instanceCapacity()) * 64,
+                                               {},
+                                               {}});
+                            commands.bindPipeline(motionInstanced_);
+                        } else
+                            commands.bindPipeline(motionPipeline_);
+                        commands.bindBindingSet(frameResources.bindings({layout, entries}));
+                        packet.material->bindShadow(commands);
+                        packet.mesh->draw(commands);
+                    }
+                }
+                commands.endRenderPass();
+                pass = {};
+            }
+        });
+    if (!frame.oceans.empty())
+        graph.add("ocean-copy", {{"hdr", A::Read}, {"opaque", A::Write}},
+                  [&] { commands.copyTexture(targets_->hdr, targets_->opaque); });
+    if (!frame.oceans.empty())
+        graph.add("ocean",
+                  {{"environment", A::Read},
+                   {"gbuffer", A::Read},
+                   {"depth", A::ReadWrite},
+                   {"hdr", A::ReadWrite},
+                   {"motion", A::ReadWrite},
+                   {"opaque", A::Read}},
+                  [&] {
+                      if (!frame.oceans.empty()) {
+                          pass = {};
+                          pass.color = targets_->hdrView;
+                          pass.colorLoad = rhi::LoadOp::Load;
+                          pass.depth = targets_->depthView;
+                          pass.depthLoad = rhi::LoadOp::Load;
+                          pass.additionalColors = {{targets_->motionView, rhi::LoadOp::Load}};
+                          commands.beginRenderPass(pass);
+                          for (const auto &ocean : frame.oceans)
+                              oceans_.at(ocean.id)->record(frameResources, commands, frame, ocean, skyView_,
+                                                           targets_->opaqueView, targets_->gbufferViews[0],
+                                                           targets_->gbufferViews[1]);
+                          commands.endRenderPass();
+                          pass = {};
+                      }
+                  });
+    if (path_ == PbrPath::Scene)
+        graph.add(
+            "alpha",
+            {{"assets", A::Read},
+             {"environment", A::Read},
+             {"depth", A::ReadWrite},
+             {"hdr", A::ReadWrite},
+             {"motion", A::ReadWrite}},
+            [&] {
+                if (path_ == PbrPath::Scene) {
+                    std::vector<size_t> sorted;
+                    for (size_t i = 0; i < packets.size(); ++i)
+                        if (packets[i].material->transparent())
+                            sorted.push_back(i);
+                    std::stable_sort(sorted.begin(), sorted.end(), [&](size_t a, size_t b) {
+                        auto center = [&](size_t i) {
+                            return frame.view * packets[i].model *
+                                   glm::vec4((packets[i].mesh->boundsMin() + packets[i].mesh->boundsMax()) *
+                                                 .5f,
+                                             1);
+                        };
+                        return center(a).z < center(b).z;
+                    });
+                    if (!sorted.empty()) {
+                        auto environment = frameResources.bindings(
+                            {transparentLayout_,
+                             {{0, skyParameters_, 0, 128, {}, {}},
+                              {1, shadows_->parameters(), 0, sizeof(ShadowParameters), {}, {}},
+                              {2, {}, 0, 0, skyView_, skySampler_},
+                              {3, {}, 0, 0, irradianceView_, skySampler_},
+                              {4, {}, 0, 0, shadows_->view(), hdrSampler_}}});
+                        pass = {};
+                        pass.color = targets_->hdrView;
+                        pass.colorLoad = rhi::LoadOp::Load;
+                        pass.depth = targets_->depthView;
+                        pass.depthLoad = rhi::LoadOp::Load;
+                        pass.additionalColors = {{targets_->motionView, rhi::LoadOp::Load}};
+                        commands.beginRenderPass(pass);
+                        for (auto i : sorted) {
+                            auto layout = frameLayout();
+                            std::vector<rhi::BindingEntry> entries{{0, camera_, 0, 64, {}, {}},
+                                                                   {1, objects_[i].data, 0, 128, {}, {}},
+                                                                   {2, lighting_, 0, 1472, {}, {}}};
+                            if (packets[i].mesh->instances()) {
+                                layout.entries.push_back({3, rhi::BindingType::StorageRead,
+                                                          rhi::ShaderStage::Vertex, "OutPose", 64});
+                                entries.push_back({3,
+                                                   packets[i].mesh->instances(),
+                                                   0,
+                                                   size_t(packets[i].mesh->instanceCapacity()) * 64,
+                                                   {},
+                                                   {}});
+                                commands.bindPipeline(transparentInstanced_);
+                            } else
+                                commands.bindPipeline(transparentPipeline_);
+                            commands.bindBindingSet(frameResources.bindings({layout, entries}));
+                            packets[i].material->bind(commands);
+                            commands.bindBindingSet(environment);
+                            packets[i].mesh->draw(commands);
+                        }
+                        commands.endRenderPass();
+                        pass = {};
+                    }
+                }
+            });
+    if (frame.taa)
+        graph.add("temporal",
+                  {{"hdr", A::Read}, {"depth", A::Read}, {"motion", A::Read}, {"resolved", A::Write}}, [&] {
+                      if (frame.taa)
+                          resolved = temporal_->record(frameResources, commands, frame, targets_->hdrView,
+                                                       targets_->depthView, targets_->motionView);
+                  });
+    graph.add("tone", {{frame.taa ? "resolved" : "hdr", A::Read}, {"output", A::Write}}, [&] {
+        pass.color = targets_->outputView;
+        commands.beginRenderPass(pass);
+        commands.bindPipeline(tonePipeline_);
+        commands.bindBindingSet(
+            resolved
+                ? frameResources.bindings(
+                      {{0,
+                        {{0, rhi::BindingType::UniformBuffer, rhi::ShaderStage::Fragment, "ToneMap", 16},
+                         {1, rhi::BindingType::SampledTexture, rhi::ShaderStage::Fragment, "hdrBuffer", 0}}},
+                       {{0, tone_, 0, 16, {}, {}}, {1, {}, 0, 0, resolved, hdrSampler_}}})
+                : targets_->toneBindings);
+        commands.bindVertexBuffer(quad_);
+        commands.draw(6);
+        commands.endRenderPass();
+    });
+    graph.execute();
+    device.submit(commands);
+    temporalOutput_ = frame.taa;
+    if (frame.taa)
+        temporal_->commit(frame);
+    previousTaa_ = source.taa;
+    previousCamera_ = source.cameraPosition;
+    previousProjection_ = source.viewProjection * glm::inverse(source.view);
+    historyKey_ = frame.historyKey;
+    std::map<uint64_t, glm::mat4> models;
+    for (size_t i = 0; i < packets.size(); ++i)
+        models[packets[i].id ? packets[i].id
+                             : uint64_t(reinterpret_cast<uintptr_t>(packets[i].mesh.get())) ^
+                                   (uint64_t(i + 1) << 32)] = packets[i].model;
+    previousModels_.swap(models);
 }
-std::vector<float> ForwardPbrRenderer::readBackDepth(){if(!shadows_)throw std::invalid_argument("SSS unavailable on this path");return resources_.device->readTextureFloat(targets_->backDepth);}
-std::vector<float> ForwardPbrRenderer::readSSAO(){if(!shadows_)throw std::invalid_argument("SSAO unavailable on this path");return resources_.device->readTextureFloat(targets_->ao);}
-std::vector<float> ForwardPbrRenderer::readShadowDepth(){if(!shadows_)throw std::invalid_argument("Shadows unavailable on this path");return shadows_->readDepth();}
+std::vector<float> ForwardPbrRenderer::readBackDepth() {
+    if (!shadows_)
+        throw std::invalid_argument("SSS unavailable on this path");
+    return resources_.device->readTextureFloat(targets_->backDepth);
+}
+std::vector<float> ForwardPbrRenderer::readSSAO() {
+    if (!shadows_)
+        throw std::invalid_argument("SSAO unavailable on this path");
+    return resources_.device->readTextureFloat(targets_->ao);
+}
+std::vector<float> ForwardPbrRenderer::readShadowDepth() {
+    if (!shadows_)
+        throw std::invalid_argument("Shadows unavailable on this path");
+    return shadows_->readDepth();
+}
 std::vector<float> ForwardPbrRenderer::readGBuffer(uint32_t attachment) {
-    if (path_ == PbrPath::Forward || attachment >= (path_==PbrPath::Scene?6u:4u)) throw std::invalid_argument("Renderer: invalid G-buffer attachment");
+    if (path_ == PbrPath::Forward || attachment >= (path_ == PbrPath::Scene ? 6u : 4u))
+        throw std::invalid_argument("Renderer: invalid G-buffer attachment");
     return resources_.device->readTextureFloat(targets_->gbuffer[attachment]);
 }
 rhi::TextureHandle ForwardPbrRenderer::output() const { return targets_->output; }
-std::vector<float> ForwardPbrRenderer::readHDR() { return temporalOutput_?temporal_->read():resources_.device->readTextureFloat(targets_->hdr); }
-std::vector<uint8_t> ForwardPbrRenderer::readOutput() { return resources_.device->readTexture(targets_->output); }
+std::vector<float> ForwardPbrRenderer::readHDR() {
+    return temporalOutput_ ? temporal_->read() : resources_.device->readTextureFloat(targets_->hdr);
+}
+std::vector<uint8_t> ForwardPbrRenderer::readOutput() {
+    return resources_.device->readTexture(targets_->output);
+}
 }

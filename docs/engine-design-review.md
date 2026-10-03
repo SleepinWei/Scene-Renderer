@@ -1,71 +1,44 @@
-# Engine 设计审查与改进建议
+# Engine 设计审查与实施状态
 
-审查范围为组件／对象所有权、场景加载与资源缓存、场景到 RHI 的转换、渲染调度，以及本次地形 VT 的接入。以下明确区分已经修复的问题和仍需推进的架构工作。
+截至 2026-10-03，项目已从“渲染器直接读取可变组件”的课程式封装，推进为**主线程拥有世界、CPU job 准备资产、独立渲染线程消费不可变快照、RHI 负责设备**的原生运行结构。这个边界适合继续扩展现有引擎；仍需避免把它等同于完整商业引擎的资产服务、ECS 或 render graph。
 
-## 本次已修复
+## 按推荐顺序已落地
 
-| 问题 | 触发与影响 | 修改与验证 |
+| 顺序 | 原问题 | 实施结果 |
 | --- | --- | --- |
-| GameObject 与 Component 相互持有 shared_ptr | 场景清空后对象／组件仍存活，地形数组、纹理等可能无法释放 | 组件 owner 改 weak_ptr；`owner()` 明确检查过期。生命周期测试验证对象释放后 weak 引用失效 |
-| `GameObject(std::string name)` 自赋值 | 用带名字的构造函数创建对象，成员名字仍为空 | 明确写入 `this->name`，覆盖构造测试 |
-| 组件重复插入先绑定 owner | 被拒绝的组件仍关联对象；模板接口返回未挂载的新实例 | 已有同类型模板返回真正的已挂载实例；共享指针接口只给成功插入的组件绑定 owner；拒绝跨对象重复挂载 |
-| Loader 重复 join 已完成线程 | 第二次加载包含旧 threadpool，抛出 system_error | 只 join joinable 线程并清空，验证连续加载及失败后再加载 |
-| `hardware_concurrency()-2` 无符号下溢 | 0／1 核报告值导致异常线程数 | 先判断再减，线程数限定为 1–32 |
-| Loader worker 异常未处理 | 无效 JSON／地形输入可触发 std::terminate | worker 捕获异常，完成线程 join 后传回调用线程；坏子文件回归验证 |
-| 主场景 JSON 未解析就 destroy | 主文件解析失败后丢失当前场景 | 主 JSON 解析成功后才清空；验证失败前后的场景 revision 不变 |
-| `RenderManager::generateShader` 未覆盖枚举时无返回 | 旧兼容路径可能发生未定义行为 | 明确抛出错误；消除对应的编译诊断 |
-| 地形缓存、高度文件与草包围盒问题 | 见地形审查 | 版本／源路径／预算失效，分页输入，模型变化同步包围盒，GPU 与 CPU 回归 |
+| 1：资源 cache 与加载事务 | Loader worker 并发写无锁 unordered_map，同文件重复解码；子文件失败仍清空旧场景 | 私有 AssetCache、路径规范化、共享进行中的 future、失败可重试与未使用条目释放；独立 staging，所有资源验证成功后主线程一次 replace |
+| 2：snapshot 与资产版本 | 渲染器读取相机、组件和公开容器，还回写太阳参数；GPU cache 依赖地址 | SceneSnapshotBuilder 在逻辑线程复制值与 const CPU payload；SceneAdapter.resolve 只在渲染线程消费；单调 ID、Mesh／Material 内容版本、地形来源与草状态失效 |
+| 3：有界 jobs 与上传 | 公共 threadpool、无限任务／帧积压、VT 在帧内同步读取磁盘 | 有界 CPU／IO／协调队列；独立 RenderRuntime、2 个等待帧、设备线程检查、错误传播及排空 join；VT future、16 页上限、每帧 8 请求／8 上传，普通资产上传接纳预算 |
+| 4：模块、实体与类型基础 | RenderManager 同时处理逻辑／GPU，字符串 static cast，手工 pass 顺序 | 原生编辑器不经 RenderManager.render 读取世界；独立设置描述、检查过的 getComponent<T>()、稳定 ID；有序 RenderGraph 验证初始化／读写声明并记录现有 pass |
 
-组件 API 的所有权变化需要调用者使用 `component->owner()` 或 `component->gameObject.lock()`，不要再直接把 `gameObject` 当作强引用。组件没有 owner 或 owner 已销毁时，`owner()` 抛出逻辑错误，方便定位无效使用。
+主线程继续承担 GLFW、编辑器和主逻辑，渲染线程独占 RHI 和原生效果对象；CPU 路径追踪与旧 OpenGL 编辑器保留各自路径。详细线程图、接口、预算、验证和兼容边界见 [Engine 多线程说明](engine-multithreading.md)。
 
-## 尚未修复的高优先级问题
+## 保留并验证的生命周期修复
 
-### P1：资源缓存存在并发数据竞争
+- Component owner 使用 weak_ptr，避免 GameObject 引用环；过期 owner 明确抛错。
+- GameObject 名称构造、重复组件挂载及模板返回值正确；复制活资产生成不同 ID。
+- Loader 捕获异常并在 future 中传播，不保留已 join 的线程；坏主／子 JSON 和缺少文件不会破坏当前场景。
+- `RenderManager::generateShader` 对不支持枚举明确抛错。
+- 地形源版本、预算、接缝、边界法线、草容量及包围盒修复见 [地形审查](terrain-virtual-texture.md)。
 
-`ResourceManager::getResource` / `getResourceAsync` / `find` 对共享 `unordered_map` 没有同步，而 Loader 可以在多个 worker 中调用它们。并发插入可能破坏容器，同一路径也可能被重复解码。路径键尚未统一，cache 保持强引用且没有释放预算。
+## 尚需推进的设计工作
 
-建议先把 cache 内部容器封装为私有数据，统一规范化的 asset key；为同一 key 保存一个进行中的 future，合并重复请求。锁只保护索引，不覆盖耗时解码。把 CPU 解码结果和 GPU 上传状态分开，GPU 资源只能在渲染线程／设备队列创建。增加并发同 key、不同 key、加载失败与释放的回归，并用 ThreadSanitizer 验证。
-
-### P1：加载失败仍可能留下部分新场景
-
-本次处理了 worker 异常和重复 join，但 `loadSceneAsync` 仍会等待所有 worker，属于并行加载的阻塞接口。主 JSON 验证后会清空原场景，子资源失败仍可能留下部分新数据；`loadObject` / `loadSky` / `loadTerrain` 对部分打开失败只输出信息并返回。
-
-建议将加载目标设为一个新的 `SceneBuildResult`：worker 只构建 CPU 数据，不修改当前世界；成功后一次发布，失败时保留旧场景。接口返回 future／状态与诊断；加入取消、进度与有界 job queue，再改名为真正的异步 API。Loader 的公共线程容器与线程数也应封装，禁止多个调用线程同时调度。
-
-### P1：场景没有统一、稳定的渲染快照
-
-`RenderScene::addObject` 分别锁对象和灯光；`destroy`、sky／terrain 指针及 revision 没有完整同步。当前 `SceneAdapter` 同时锁两个列表进行复制，仍不能保证所有公开字段是同一版本，也无法让 GUI 与异步发布共享明确的边界。
-
-建议引入不可变的 `RenderWorldSnapshot`，对象、灯光、相机、环境与版本一次发布。修改走场景命令队列；统一结构 revision 与每个资产的内容 revision。所有改变渲染输出的 add/remove/参数变更应有相应历史／缓存失效规则。
-
-### P1：地形 IO 尚未移出渲染线程
-
-VT 已限制页数与每帧上传量，但 `GpuVirtualTexture::update` 直接调用源的 `readPage`。慢磁盘或首次粗页跨度读取可能影响帧时间。源回调与文件句柄目前按单线程使用，不能直接在多个 job 中并发调用。
-
-建议拆成 request → IO/decode → ready → upload → publish 五个状态，并按字节数和时间分别限制解码、上传。使用版本与取消 token 拒绝过期结果；页表只发布成功上传且可用于该帧的映射。GPU 屏幕反馈可作为下一阶段增加精度的输入。
-
-## P2：结构与可维护性
-
-| 当前设计 | 建议 | 验收标准 |
+| 优先级 | 当前边界 | 下一步与验收 |
 | --- | --- | --- |
-| 组件由字符串定位，再 static_pointer_cast | 类型化 `ComponentId` / 模板查询；实体使用稳定 ID 与 generation | 类型不匹配可检测，删除／重用实体不会命中旧 GPU cache |
-| 非地形网格／材质 cache 主要依赖对象地址和显式 invalidate | 为 mesh、image、material 增加内容版本；区分几何、图片、标量更新 | 编辑同一对象的数据也能定向重建，避免整场景清缓存 |
-| RenderManager 集中编辑器、旧 GL pass 与原生渲染调度 | 把编辑器控制、CPU 场景、渲染 snapshot、RHI renderer 分为明确模块 | 脱离 GUI 可渲染与测试；旧 GL 头不再进入核心场景数据 |
-| ForwardPbrRenderer 包含阴影、G-buffer、透明、水、运动与后处理的手工顺序 | 在现有显式 CommandList 上建立小型 render graph，声明读写及资源生命周期 | 验证未初始化读取／反馈环，自动安排 transient targets 与调试标记 |
-| RHI 纹理仍限定单 mip／单 layer 2D | 按实际需求增加 mip/layer/subresource 描述及能力查询 | Metal／Vulkan 对相同接口有契约验证，Unsupported 不被静默替换 |
-| 地形采用固定距离 LOD、全局高度界及非确定性原子预算 | 屏幕误差 LOD、分块 min/max、优先级／稳定预算；保留前帧状态做 morph | 峰值误差和预算可测，移动相机时减少细节跳变，并恢复地形 TSAA 累积 |
-| 程序场景与单例持有全局时钟／设置 | 显式传入时间、帧尺寸、render settings 与 asset service | 同一 snapshot 能在固定输入下稳定重放，不依赖已有 GUI 状态 |
+| P1 | 历史组件、RenderScene、Mesh／Material 仍有公开可变字段，类型查询使用 dynamic cast | 私有世界写接口、实体／组件注册表和主线程命令队列；新模块不得跨线程直接写字段。删除或复用实体时有清晰 generation 规则 |
+| P1 | 同一普通材质图片可能仍创建多个 GPU texture；cache 回收不是全局字节预算 | CPU／GPU 资产状态分离并统一 GPU image cache、显存预算／统计；同一图共享上传与引用，压力下按策略释放 |
+| P1 | 大地形／细分／海洋和 pipeline 初建仍不可分割；队列背压会等待 | 分段 upload、pipeline cache、按用时接纳；测量大场景启动、95/99 分位帧时间、输入延迟及实际 native heap 峰值 |
+| P2 | 场景取消不能中断正在执行的 Assimp／磁盘操作；路径仍沿用历史 cwd 约定 | 资产根目录、结构化诊断、分阶段取消与请求代际；失败／过期结果不发布 |
+| P2 | graph 是有序记录及校验，大气／阴影／海洋模拟仍在图前执行 | 将效果纳入资源图，增加 RHI mip/layer/subresource、transient 生命周期和 debug marker；再实现自动调度／资源复用 |
+| P2 | 相机与编辑器逻辑仍按主线程帧 tick，PT 启动接口会阻塞 | 输入消息与独立固定步长模拟；PT 任务状态／取消；验收暂停、慢 GPU、加载时逻辑时钟与交互行为 |
+| P2 | VT 是 CPU 预测，LOD 用固定距离和全局高度界；动态地形不累积 TSAA | 屏幕 feedback、阴影／反射视角请求、分块 min/max、屏幕误差 LOD、morph 与可靠运动历史 |
 
-目前 RHI 的显式资源、binding layout、命令依赖、在途帧、异步 readback 与延迟释放是合适的基础。本次增加区域上传和明确的材质 feature 位，继续把算法放在 renderer 中、把原生对象及提交留在 backend 中；VT 不需要回到 GL 兼容桥。
+推荐后续仍按依赖顺序：先完成资产与世界接口封装／预算，再扩展 graph 与 RHI 子资源，最后推进屏幕反馈 VT 和地形时间连续性。屏幕 feedback、morph、全局 ECS、跨队列 GPU 调度没有在本次实现中伪装为已经完成。
 
-## 推荐实施顺序
+## 验证范围
 
-1. 先封装资源 cache，修复并发访问与重复解码；为 scene 加载建立“成功才发布”的事务。
-2. 接入统一 snapshot 与资产版本，移除渲染／编辑器跨线程读取公开可变容器。
-3. 增加有界 IO／GPU upload job，接管 VT 和普通大资源的加载；记录实际帧时间与显存峰值。
-4. 在功能保持一致的前提下拆出 render graph、稳定实体 ID 与类型化组件接口。
-5. 再推进屏幕反馈 VT、地形屏幕误差 LOD、morph、可靠运动历史与更丰富的 RHI 子资源。
+CPU cache／job／帧队列和 graph 契约有独立测试，并在 ThreadSanitizer 下运行。原生 GPU 回归检查 immutable snapshot、场景加载事务、GUI 数据、worker 异常、线程归属、异步 VT 页表及窗口变化；原有天空、海洋、阴影、材质、地形和 TSAA 数值回归继续执行。
 
-本次未重写整个 ECS、render graph 或资源服务，也未运行 ThreadSanitizer。并发风险是基于现有调用路径与无同步容器访问的代码审查结论，不能将 GPU 回归通过当成线程安全的证明。
+没有对完整应用及第三方 AppKit／GLFW 运行 ThreadSanitizer，也没有 Windows／Linux 实机多线程验收。Metal 使用 API／Shader Validation；Vulkan 使用 MoltenVK，本机没有 Khronos validation layer。
 
-2026-10-03 最终回归：Metal CTest 8/8、Vulkan CTest 9/9 通过。应用自检覆盖组件生命周期、重复加载、worker 异常传播与恢复、地形源替换后的缓存／历史失效，以及草组件的添加和移除。
+2026-10-03 最终原生回归：Metal **11/11**、Vulkan/MoltenVK **12/12**，包含线程故障传播、GUI／世界快照隔离、真实 Texture 路径合并、异步地形缩放和单线程对照。

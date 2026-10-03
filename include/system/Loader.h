@@ -1,48 +1,36 @@
 #pragma once
-#include<string>
-#include<memory>
-#include<fstream>
-#include<json/json.hpp>
-#include<thread>
-#include<functional>
-#include<mutex>
-#include<exception>
-//#include<vector>
-#include<queue>
-
-using json = nlohmann::json;
-
+#include "engine/JobSystem.h"
+#include <atomic>
+#include <memory>
+#include <string>
 class RenderScene;
-class GameObject;
-
-// singleton
-class Loader{  
-private: 
-	Loader();
-	~Loader();
-    void launch(std::function<void()>);
-    void finish();
-    std::mutex errorMutex_;std::exception_ptr workerError_;
-public:
-	void loadSceneAsync(std::shared_ptr<RenderScene>& scene,const std::string& filename);
-
-	static Loader* GetInstance(){
-		static Loader loader;
-		return &loader;
-	}
-
-public:
-	//std::mutex istream_lock;
-	std::vector<std::thread> threadpool;
-	//std::queue<std::thread> threadQueue;
-	int maxThread;
-
-public:
-	void loadObject(std::shared_ptr<RenderScene>& scene, const std::string& filename);
-	void loadObjectAsync(std::shared_ptr<RenderScene> scene,json data,std::vector<std::string> objectname,int threadid);
-	void loadSky(std::shared_ptr<RenderScene> scene, const std::string filename);
-	void loadSkyAsync(std::shared_ptr<RenderScene>& scene, const std::string& filename);
-	void loadTerrain(std::shared_ptr<RenderScene> scene, const std::string filename);
-	void loadTerrainAsync(std::shared_ptr<RenderScene>& scene, const std::string& filename);
+struct SceneLoadRequest {
+    std::future<std::shared_ptr<RenderScene>> result;
+    std::shared_ptr<std::atomic<bool>> cancelled;
+    std::shared_ptr<std::atomic<size_t>> completed;
+    std::shared_ptr<std::atomic<size_t>> total;
+    void cancel() const {
+        if (cancelled)
+            cancelled->store(true);
+    }
 };
+class Loader {
+  public:
+    static Loader *GetInstance() {
+        static Loader loader;
+        return &loader;
+    }
+    SceneLoadRequest buildScene(const std::string &filename);
+    void waitIdle(); // Drain cancelled/obsolete requests before device shutdown.
+    // Compatibility blocking wrapper. Commits only after the full build succeeds.
+    void loadSceneAsync(std::shared_ptr<RenderScene> &scene, const std::string &filename);
+    void loadObject(std::shared_ptr<RenderScene> &scene, const std::string &filename);
+    void loadSky(std::shared_ptr<RenderScene> scene, const std::string filename);
+    void loadTerrain(std::shared_ptr<RenderScene> scene, const std::string filename);
 
+  private:
+    Loader() = default;
+    // Coordinator is separate: it may wait for decode workers without pool recursion.
+    engine::JobSystem decode_{0, 128};
+    engine::JobSystem coordinator_{1, 4};
+};

@@ -1,82 +1,36 @@
-#include"renderer/RenderScene.h"
-#include"object/Terrain.h"
-#include"component/GameObject.h"
-#include"object/SkyBox.h"
-#include"component/Lights.h"
-
-using std::shared_ptr;
-
-RenderScene::RenderScene() {
-	sky = nullptr;
-	terrain = nullptr;
-	main_camera = nullptr;
+#include "renderer/RenderScene.h"
+#include "object/Terrain.h"
+#include "component/GameObject.h"
+#include "object/SkyBox.h"
+#include "component/Lights.h"
+#include <fstream>
+RenderScene::RenderScene()=default;
+void RenderScene::checkLogicThread()const{if(logicThread_!=std::this_thread::get_id())throw std::logic_error("Mutable scene belongs to its logic thread; publish a detached snapshot for rendering");}
+std::shared_ptr<RenderScene> RenderScene::addObject(std::shared_ptr<GameObject> object){
+    checkLogicThread();if(!object)throw std::invalid_argument("Cannot add null object");
+    std::scoped_lock lock(mtx,lightMtx);objects.push_back(object);
+    if(auto light=object->getComponent<PointLight>())pointLights.push_back(light);
+    if(auto light=object->getComponent<DirectionLight>())directionLights.push_back(light);
+    if(auto light=object->getComponent<SpotLight>())spotLights.push_back(light);
+    ++revision_;return shared_from_this();
 }
-
-std::shared_ptr<RenderScene> RenderScene::addObject(std::shared_ptr<GameObject> object) {
-	//
-	mtx.lock();
-	objects.emplace_back(object);
-	mtx.unlock();
-
-	auto&& Plight= object->GetComponent("PointLight");
-	if (Plight) {
-		std::shared_ptr<PointLight> light = std::static_pointer_cast<PointLight> (Plight);
-		lightMtx.lock();
-		this->pointLights.emplace_back(light);
-		lightMtx.unlock();
-	}
-	auto&& Dlight = object->GetComponent("DirectionLight");
-	if (Dlight) {
-		std::shared_ptr<DirectionLight> light = std::static_pointer_cast<DirectionLight> (Dlight);
-		lightMtx.lock();
-		this->directionLights.emplace_back(light);
-		lightMtx.unlock();
-	}
-	auto&& Slight = object->GetComponent("SpotLight");
-	if (Slight) {
-		std::shared_ptr<SpotLight> light = std::static_pointer_cast<SpotLight> (Slight);
-		lightMtx.lock();
-		this->spotLights.emplace_back(light);
-		lightMtx.unlock();
-	}
-	//
-	return shared_from_this();
-}
-std::shared_ptr<RenderScene> RenderScene::addTerrain(std::shared_ptr<Terrain>terrain) {
-	//
-	this->terrain = terrain;
-	// 
-	return shared_from_this();
-}
-
-std::shared_ptr<RenderScene> RenderScene::addSky(std::shared_ptr<Sky>sky) {
-	//
-	this->sky = sky;
-	//
-	return shared_from_this();
-}
-
-void RenderScene::loadFromJson(json& data) {
-	auto& objects = data["objects"];
-	for (auto iter = objects.begin(); iter != objects.end(); ++iter) {
-		auto object_path = iter.value().get <std::string>();
-		std::ifstream f(object_path);
-		json data = json::parse(f);
-		std::shared_ptr<GameObject> object = std::make_shared<GameObject>();
-		object->loadFromJson(data);
-
-		this->addObject(object);
-	}
-}
-
-void RenderScene::destroy() {
+std::shared_ptr<RenderScene> RenderScene::addTerrain(std::shared_ptr<Terrain> value){checkLogicThread();std::lock_guard<std::mutex> lock(mtx);terrain=std::move(value);++revision_;return shared_from_this();}
+std::shared_ptr<RenderScene> RenderScene::addSky(std::shared_ptr<Sky> value){checkLogicThread();std::lock_guard<std::mutex> lock(mtx);sky=std::move(value);++revision_;return shared_from_this();}
+void RenderScene::replaceWith(RenderScene& staging){
+    checkLogicThread();if(this==&staging)return;
+    std::scoped_lock lock(mtx,lightMtx,staging.mtx,staging.lightMtx);
+    objects=std::move(staging.objects);directionLights=std::move(staging.directionLights);
+    pointLights=std::move(staging.pointLights);spotLights=std::move(staging.spotLights);
+    sky=std::move(staging.sky);terrain=std::move(staging.terrain);preparedAssets=std::move(staging.preparedAssets);
+    if(staging.main_camera)main_camera=std::move(staging.main_camera);
     ++revision_;
-	//
-	terrain = nullptr;
-	std::vector<shared_ptr<GameObject>>().swap(objects);
-	std::vector<shared_ptr<DirectionLight>>().swap(directionLights);
-	std::vector<shared_ptr<PointLight>>().swap(pointLights);
-	std::vector<shared_ptr<SpotLight>>().swap(spotLights);
-	sky = nullptr;
-	//main_camera = nullptr;
 }
+void RenderScene::loadFromJson(json& data){
+    auto staging=std::make_shared<RenderScene>();
+    for(const auto& entry:data.at("objects").items()){
+        auto path=entry.value().get<std::string>();std::ifstream file(path);if(!file)throw std::runtime_error("Cannot open object: "+path);
+        auto data=json::parse(file);auto object=std::make_shared<GameObject>();object->loadFromJson(data);staging->addObject(object);
+    }
+    replaceWith(*staging);
+}
+void RenderScene::destroy(){checkLogicThread();std::scoped_lock lock(mtx,lightMtx);terrain.reset();sky.reset();preparedAssets.reset();objects.clear();directionLights.clear();pointLights.clear();spotLights.clear();++revision_;}

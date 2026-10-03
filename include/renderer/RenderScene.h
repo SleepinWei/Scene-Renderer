@@ -1,4 +1,7 @@
 #pragma once
+#include "engine/AssetIdentity.h"
+#include <atomic>
+#include <thread>
 #include<memory>
 #include<string>
 #include<vector>
@@ -15,8 +18,9 @@ class PointLight;
 class DirectionLight;
 class SpotLight;
 class Sky;
+namespace render {struct RenderWorldSnapshot;}
 
-class RenderScene : public std::enable_shared_from_this<RenderScene> {
+class RenderScene : public engine::AssetIdentity, public std::enable_shared_from_this<RenderScene> {
 	// scene objects
 public:
 	std::shared_ptr<Terrain> terrain;
@@ -27,6 +31,8 @@ public:
 	std::vector<std::shared_ptr<SpotLight>> spotLights;
 
 	std::shared_ptr<Camera> main_camera;
+    // Validated immutable CPU assets from the loader. No GPU objects here.
+    std::shared_ptr<const render::RenderWorldSnapshot> preparedAssets;
 
 public:
 	RenderScene();
@@ -35,9 +41,12 @@ public:
 	std::shared_ptr<RenderScene> addSky(std::shared_ptr<Sky>skybox);
 	void loadFromJson(json& data);
 	void destroy();
-    uint64_t revision()const{return revision_;}
+    void replaceWith(RenderScene& staging); // Logic thread: atomic structural publication.
+    void checkLogicThread() const;
+    uint64_t revision()const{return revision_.load();}
 private:
-    uint64_t revision_=0;
+    std::atomic<uint64_t> revision_{0};
+    const std::thread::id logicThread_=std::this_thread::get_id();
 public:
 	std::mutex mtx;
 	std::mutex lightMtx;

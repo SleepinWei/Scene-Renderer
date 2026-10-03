@@ -1,83 +1,30 @@
-#include"system/ResourceManager.h"
-#include"renderer/Texture.h"
+#include "system/ResourceManager.h"
+#include "renderer/Texture.h"
+#include "rhi/Device.h"
 #include <filesystem>
-#include <fstream>
-#include<utility>
-
-/*
-	开始的时候先根据把GUID和对应的文件路径全都加载进来
-	路径格式是从.asset/model/开始的相对路径 因为所有Unity导过来的资源都在这里
-*/
-ResourceManager::ResourceManager()
-{
-	//std::string root = std::filesystem::current_path().string() + "\\asset\\model\\";
-	//// 只读取这三个重要文件夹
-	//// clear
-	//std::unordered_map<std::string, std::string>().swap(guidMap); 
-
-	//std::vector<std::string> dirs = { "meshes","materials","textures"};
-	//for (std::string dir : dirs)
-	//{
-	//	if (!std::filesystem::is_directory(root + dir))
-	//	{
-	//		std::cout << "ERROR: ResourceManager can't find directory: " + root + dir << std::endl;
-	//		continue;
-	//	}
-	//	for (auto& i : std::filesystem::directory_iterator(root + dir))
-	//	{
-	//		std::string path = i.path().string();
-	//		if (path.substr(path.find_last_of('.') + 1) == "meta")
-	//		{
-	//			// 解析meta文件中的guid
-	//			std::ifstream meta_ifs(path, std::ios::in);
-	//			std::string guid;
-	//			do
-	//			{
-	//				meta_ifs >> guid;
-	//			} while (guid != "guid:");
-	//			meta_ifs >> guid;
-	//			meta_ifs.close();
-
-	//			// 添加文件guid索引
-	//			guidMap.emplace(guid, path.substr(0, path.size() - 5));
-	//		}
-	//	}
-	//}
+namespace {
+std::string key(const std::string &path) {
+    return std::filesystem::weakly_canonical(std::filesystem::absolute(path)).generic_string();
 }
-
-std::shared_ptr<Texture> ResourceManager::find(std::string tex_name) {
-	auto iter = resourceMap.find(tex_name);
-	if (iter == resourceMap.end()) {
-		return nullptr; 
-	}
-	return resourceMap[tex_name];
+std::shared_ptr<Texture> decode(const std::string &path, bool gpu) {
+    auto texture = gpu ? Texture::loadFromFile(path) : Texture::loadFromFileAsync(path);
+    if (!texture || texture->width <= 0 || texture->height <= 0 || (!texture->data && !texture->id))
+        throw std::runtime_error("Cannot decode texture: " + path);
+    return texture;
 }
-
-ResourceManager::~ResourceManager() {
-
+} // namespace
+std::shared_ptr<Texture> ResourceManager::find(std::string path) {
+    auto k = key(path);
+    auto value = cpu_.find(k);
+    return value ? value : legacyGpu_.find(k);
 }
-
-std::shared_ptr<Texture> ResourceManager::getResource(const std::string& file_path) {
-	//std::shared_ptr<Texture> tex = Texture::loadFromFile(file_path);
-	auto iter = resourceMap.find(file_path);
-	if (iter == resourceMap.end()) {
-		// can't find
-		auto tex = Texture::loadFromFile(file_path);
-		resource.push_back(tex);
-		resourceMap.insert(std::make_pair(tex->name,tex));
-		return tex;
-	}
-	return iter->second;
+std::shared_ptr<Texture> ResourceManager::getResource(const std::string &path) {
+    auto k = key(path);
+    if (rhi::usesNativeRenderer())
+        return cpu_.get(k, [&] { return decode(k, false); });
+    return legacyGpu_.get(k, [&] { return decode(k, true); });
 }
-
-std::shared_ptr<Texture> ResourceManager::getResourceAsync(const std::string& filename) {
-	auto iter = resourceMap.find(filename);
-	if (iter == resourceMap.end()) {
-		// can't find
-		auto tex = Texture::loadFromFileAsync(filename);
-		//resource.push_back(tex);
-		resourceMap.insert(std::make_pair(tex->name,tex));
-		return tex;
-	}
-	return iter->second;
+std::shared_ptr<Texture> ResourceManager::getResourceAsync(const std::string &path) {
+    auto k = key(path);
+    return cpu_.get(k, [&] { return decode(k, false); });
 }

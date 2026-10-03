@@ -43,7 +43,7 @@ GraphicsDevice::GraphicsDevice(BufferLimits b, GraphicsLimits g) : Device(b), gr
     require(g.maxTextureDimension2D && g.maxVertexAttributes && g.maxBindingGroups && g.maxBindingsPerGroup,
             "RHI: invalid graphics limits");
 }
-void GraphicsDevice::checkOpen() const { if (!isOpen()) throw std::logic_error("RHI: device is closed"); }
+void GraphicsDevice::checkOpen() const { checkThread();if (!isOpen()) throw std::logic_error("RHI: device is closed"); }
 const GraphicsDevice::TextureRecord& GraphicsDevice::texture(TextureHandle h) const {
     checkOpen();auto it = textures_.find(h.value);
     require(it != textures_.end(), "RHI: stale or foreign texture");return it->second;
@@ -152,23 +152,23 @@ void GraphicsDevice::validateBindings(const BindingSetDesc& desc) const {
 BindingSetHandle GraphicsDevice::createBindingSet(const BindingSetDesc& desc) {
     checkOpen();validateBindings(desc);BindingSetHandle h{nextObject++};bindingSets_.emplace(h.value, desc);return h;
 }
-void GraphicsDevice::destroyBindingSet(BindingSetHandle h) { bindingSets_.erase(h.value); }
-void GraphicsDevice::destroyPipeline(PipelineHandle h) {
+void GraphicsDevice::destroyBindingSet(BindingSetHandle h) { checkThread(); bindingSets_.erase(h.value); }
+void GraphicsDevice::destroyPipeline(PipelineHandle h) { checkThread();
     auto it = pipelines_.find(h.value);if (it == pipelines_.end()) return;
     waitForResourceRelease();destroyPipelineImpl(it->second.native);pipelines_.erase(it);
 }
-void GraphicsDevice::destroyTexture(TextureHandle h) {
+void GraphicsDevice::destroyTexture(TextureHandle h) { checkThread();
     auto it = textures_.find(h.value);if (it == textures_.end()) return;
     for (const auto& v : views_) require(v.second.desc.texture.value != h.value, "RHI: texture still has live views");
     waitForResourceRelease();destroyTextureImpl(it->second.native);textures_.erase(it);
 }
-void GraphicsDevice::destroyTextureView(TextureViewHandle h) {
+void GraphicsDevice::destroyTextureView(TextureViewHandle h) { checkThread();
     auto it = views_.find(h.value);if (it == views_.end()) return;
     for (const auto& s : bindingSets_) for (const auto& b : s.second.entries)
         require(b.texture.value != h.value, "RHI: texture view still has live binding sets");
     waitForResourceRelease();destroyTextureViewImpl(it->second.native);views_.erase(it);
 }
-void GraphicsDevice::destroySampler(SamplerHandle h) {
+void GraphicsDevice::destroySampler(SamplerHandle h) { checkThread();
     auto it = samplers_.find(h.value);if (it == samplers_.end()) return;
     for (const auto& s : bindingSets_) for (const auto& b : s.second.entries)
         require(b.sampler.value != h.value, "RHI: sampler still has live binding sets");
@@ -262,7 +262,7 @@ ComputePipelineHandle GraphicsDevice::createComputePipeline(const ComputePipelin
     const auto native = createComputePipelineImpl(desc);ComputePipelineHandle handle{nextObject++};
     try { computePipelines_.emplace(handle.value,ComputeRecord{desc,native}); } catch (...) { destroyComputePipelineImpl(native);throw; }return handle;
 }
-void GraphicsDevice::destroyComputePipeline(ComputePipelineHandle handle) {
+void GraphicsDevice::destroyComputePipeline(ComputePipelineHandle handle) { checkThread();
     const auto it = computePipelines_.find(handle.value);if (it == computePipelines_.end()) return;
     waitForResourceRelease();destroyComputePipelineImpl(it->second.native);computePipelines_.erase(it);
 }
@@ -477,3 +477,5 @@ void CommandList::dispatchIndirect(ComputePipelineHandle pipeline,const std::vec
 }
 void CommandList::endRenderPass() { requirePass();inPass_ = false; }
 } // namespace rhi
+
+namespace rhi {size_t GraphicsDevice::allocatedTextureBytes() const {checkThread();size_t bytes=0;for(const auto& entry:textures_){const auto& desc=entry.second.desc;size_t stride=desc.format==Format::RGBA32Float?16:desc.format==Format::RGBA16Float?8:4;bytes+=size_t(desc.width)*desc.height*stride;}return bytes;}}

@@ -19,6 +19,7 @@
 #include<glfw/glfw3.h>
 #include<glm/glm.hpp>
 #include<thread>
+#include "engine/RenderRuntime.h"
 //utils
 #include"utils/Utils.h"
 #include"utils/Camera.h"
@@ -71,11 +72,52 @@ std::string nativeScreenshot;
 float fixedNativeTime=-1;
 std::array<int,2> scriptedResize{};
 bool startForward=false;
+bool singleThreadedNative=false;
 int maxFramesInFlight=3;
 bool hiddenEditor=false;
 std::array<int,2> windowSize{1600,900};
 
+void NativeRealTimeRun(GLFWwindow* window,shared_ptr<RenderScene>& scene){
+    Gui gui(window);
+    render::SceneSnapshotBuilder snapshots;
+    const auto started=std::chrono::steady_clock::now();
+    engine::RenderRuntime runtime(rhi::graphicsDevice(),std::move(gui.nativeRenderer_));
+    int framesSubmitted=0;
+    try{
+        while(!glfwWindowShouldClose(window)){
+            runtime.rethrowFailure();glfwPollEvents();
+            if(framesSubmitted==4 && scriptedResize[0]>0){glfwSetWindowSize(window,scriptedResize[0],scriptedResize[1]);scriptedResize={};glfwPollEvents();}
+            int width,height;glfwGetFramebufferSize(window,&width,&height);
+            runtime.notifySurfaceExtent(uint32_t(std::max(0,width)),uint32_t(std::max(0,height)));
+            if(width<=0 || height<=0){glfwWaitEventsTimeout(.05);continue;}
+            framebuffer_size_callback(window,width,height);
+            gui.window(scene);InputManager::GetInstance()->tick();
+            if(InputManager::GetInstance()->keyStatus[KEY_R]==PRESSED){Connector::GetInstance()->LaunchPathTracingWithRenderScene(scene);InputManager::GetInstance()->keyStatus[KEY_R]=RELEASED;}
+            if(scene->main_camera){scene->main_camera->aspect_ratio=float(width)/height;scene->main_camera->tick();}
+            const auto settings=RenderManager::GetInstance()->setting;
+            auto captured=snapshots.capture(scene,settings.timeOverride>=0?settings.timeOverride:float(glfwGetTime()),uint32_t(width),uint32_t(height),false);
+            if(captured){
+                auto snapshot=std::make_shared<render::RenderWorldSnapshot>(*captured);auto& frame=snapshot->frame;
+                frame.shadows=settings.enableShadow;frame.ssao=settings.enableSSAO;frame.rsm=settings.enableRSM;frame.taa=settings.enableTSAA;frame.aoRadius=settings.aoRadius;frame.aoBias=settings.aoBias;frame.aoPower=settings.aoPower;frame.toneMapping=settings.enableHDR;frame.rsmSettings=settings.rsmSettings;frame.directionalEnabled=settings.enableDirectional;frame.forwardShading=!settings.useDefer;
+                engine::RenderPacket packet;packet.world=std::move(snapshot);packet.gui=render::GuiFrame::capture(ImGui::GetDrawData());
+                if(!nativeScreenshot.empty() && frameLimit==1)packet.screenshot=nativeScreenshot;
+                if(!runtime.submit(std::move(packet)))break;++framesSubmitted;
+                if(frameLimit>0 && --frameLimit==0)glfwSetWindowShouldClose(window,true);
+                if(framesSubmitted%120==0)ResourceManager::GetInstance()->releaseUnused();
+            }else {glfwWaitEventsTimeout(.002);}
+            InputManager::GetInstance()->reset();
+        }
+        runtime.finish();
+    }catch(...){
+        auto error=std::current_exception();try{runtime.finish();}catch(...){}
+        gui.destroy();RenderManager::GetInstance()->releaseNative();scene->destroy();scene.reset();rhi::shutdown();glfwDestroyWindow(window);glfwTerminate();std::rethrow_exception(error);
+    }
+    std::cout<<"RHI threaded editor rendered "<<runtime.framesRendered()<<" frames in "<<std::chrono::duration<double>(std::chrono::steady_clock::now()-started).count()<<" seconds; last render "<<runtime.renderMilliseconds()<<" ms; peak RHI resource estimate "<<runtime.peakResourceBytes()/1048576.0<<" MiB; CPU queue 2, GPU frame limit "<<maxFramesInFlight<<"\n";
+    gui.destroy();RenderManager::GetInstance()->releaseNative();scene->destroy();scene.reset();ResourceManager::GetInstance()->releaseUnused();rhi::shutdown();glfwDestroyWindow(window);glfwTerminate();
+}
+
 void RealTimeRun(GLFWwindow* window, shared_ptr<RenderScene>& scene) {
+    if(rhi::usesNativeRenderer() && !singleThreadedNative){NativeRealTimeRun(window,scene);return;}
 	
 	
 	//gui
@@ -186,6 +228,7 @@ int main(int argc, char** argv) {
         else if(argument=="--frames-in-flight" && i+1<argc)maxFramesInFlight=std::stoi(argv[++i]);
         else if(argument=="--size" && i+1<argc){const std::string size=argv[++i];auto x=size.find('x');if(x==std::string::npos)throw std::invalid_argument("Size expects WIDTHxHEIGHT");windowSize={std::stoi(size.substr(0,x)),std::stoi(size.substr(x+1))};if(windowSize[0]<=0 || windowSize[1]<=0)throw std::invalid_argument("Window dimensions must be positive");}
         else if(argument=="--forward")startForward=true;
+        else if(argument=="--single-thread")singleThreadedNative=true;
         else if(argument=="--resize" && i+1<argc){const std::string size=argv[++i];auto x=size.find('x');if(x==std::string::npos)throw std::invalid_argument("Resize expects WIDTHxHEIGHT");scriptedResize={std::stoi(size.substr(0,x)),std::stoi(size.substr(x+1))};if(scriptedResize[0]<=0 || scriptedResize[1]<=0)throw std::invalid_argument("Resize dimensions must be positive");}
         else if(argument=="--time" && i+1<argc)fixedNativeTime=std::stof(argv[++i]);
         else if(argument=="--screenshot" && i+1<argc)nativeScreenshot=argv[++i];

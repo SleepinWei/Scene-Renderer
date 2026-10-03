@@ -1,4 +1,5 @@
 #pragma once
+#include "engine/AssetIdentity.h"
 #include<glm/glm.hpp>
 #include<memory>
 #include<string>
@@ -9,7 +10,7 @@ using json = nlohmann::json;
 
 class GameObject; 
 
-class Component{
+class Component : public engine::AssetIdentity {
 public:
 	Component() =default;
 	virtual ~Component() {};

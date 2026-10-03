@@ -1,4 +1,5 @@
 #pragma once
+#include "engine/AssetIdentity.h"
 #include<unordered_map>
 #include<vector>
 #include<string>
@@ -16,7 +17,7 @@ class Texture;
 //	TERRAIN
 //};
 
-class Material:public std::enable_shared_from_this<Material> {
+class Material:public engine::AssetIdentity, public std::enable_shared_from_this<Material> {
 public:
 	Material();
 	//Material(std::vector<std::shared_ptr<Texture>>& textures) {

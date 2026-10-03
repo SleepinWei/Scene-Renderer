@@ -1,4 +1,5 @@
 #include "rhi/Device.h"
+#include <future>
 #include "rhi/Validation.h"
 #include <cstring>
 #include <iostream>
@@ -98,6 +99,9 @@ int main() {
         rejects<std::logic_error>([&] { owner->beginFrame(); });
         rejects<std::logic_error>([&] { owner->createBuffer({64, usage, "closed"}); });
         rejects<std::logic_error>([&] { device(); });
+        TestDevice threaded;
+        auto foreign=std::async(std::launch::async,[&]{rejects<std::logic_error>([&]{threaded.createBuffer({64,BufferUsage::Vertex,"wrong thread"});});});foreign.get();
+        auto transfer=std::async(std::launch::async,[&]{threaded.adoptCurrentThread();auto buffer=threaded.createBuffer({64,BufferUsage::Vertex,"worker owner"});threaded.destroyBuffer(buffer);});transfer.get();threaded.adoptCurrentThread();threaded.close();
         TestDevice asynchronous;asynchronous.manual=true;int retired=0;
         std::vector<CompletionToken> tokens;
         for(int i=0;i<3;++i){asynchronous.beginFrame();asynchronous.retireResources([&]{++retired;});tokens.push_back(asynchronous.endFrame());}

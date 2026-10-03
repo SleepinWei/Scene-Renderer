@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include "engine/RenderSettings.h"
 #include <mutex>
 #include <vector>
 
@@ -19,39 +20,6 @@ class RSMPass;
 class ShadowPass;
 class SSAOPass;
 class TemporalAA;
-
-enum class ShaderType
-{
-	SIMPLE = 0,
-	LIGHT,
-	PBR,
-	PBR_TESS,
-	PBR_CLEARCOAT,
-	PBR_ANISOTROPY,
-	PBR_SSS,
-	TERRAIN,
-	SKYBOX,
-	HDR,
-	SKY,
-	TEST,
-	DEPTH,
-
-	KIND_COUNT
-};
-
-struct RenderSetting
-{
-	bool enableHDR;
-	bool useDefer;
-	bool enableShadow;
-	bool enableRSM;
-	bool enableDirectional;
-	bool enableSSAO;
-    bool enableTSAA=true;
-    float timeOverride=-1;
-    float aoRadius=1,aoBias=.025f,aoPower=1.5f;
-    render::RsmSettings rsmSettings;
-};
 
 class RenderManager
 {

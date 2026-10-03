@@ -8,6 +8,7 @@
 #include <deque>
 #include <vector>
 #include <functional>
+#include <thread>
 
 struct GLFWwindow;
 
@@ -68,6 +69,10 @@ public:
     void waitIdle();
     void close();
     bool isOpen() const { return open_; }
+    // Transfer only at a quiescent startup/join boundary; this is not a lock.
+    void adoptCurrentThread() { ownerThread_=std::this_thread::get_id(); }
+    void checkThread() const;
+    size_t allocatedBufferBytes() const;
 
 protected:
     explicit Device(BufferLimits limits);
@@ -102,6 +107,7 @@ private:
     std::vector<std::function<void()>> retirements_;
     BufferLimits limits_;
     bool open_ = true;
+    std::thread::id ownerThread_=std::this_thread::get_id();
     std::unordered_map<uint64_t, Record> buffers_;
 };
 

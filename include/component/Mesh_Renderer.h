@@ -4,7 +4,7 @@
 #include<memory>
 #include<glm/glm.hpp>
 #include"component/Component.h"
-#include"system/RenderManager.h"
+#include "engine/RenderSettings.h"
 #include"utils/header.h"
 
 class Material; 

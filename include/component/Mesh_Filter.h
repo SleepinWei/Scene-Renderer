@@ -1,4 +1,5 @@
 #pragma once
+#include "engine/AssetIdentity.h"
 
 #include"../component/Component.h"
 #include<string>
@@ -35,7 +36,7 @@ struct Vertex {
 };
 
 typedef unsigned int GLuint;
-class Mesh 
+class Mesh : public engine::AssetIdentity
 {
 public:
 	std::vector<Vertex> vertices;

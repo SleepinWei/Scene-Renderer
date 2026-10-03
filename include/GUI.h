@@ -32,6 +32,9 @@ using namespace std::filesystem;
 class Gui {
 public:
 	std::unique_ptr<render::GuiRenderer> nativeRenderer_;
+    bool nativeUi_=rhi::usesNativeRenderer();
+    std::optional<SceneLoadRequest> loading_;
+    std::string loadError_;
 	ImGui::FileBrowser fileDialog;
 	const std::string base_path = "./asset/objects";
 public:
@@ -62,7 +65,9 @@ public:
 		fileDialog.SetPwd(base_path);
 	}
 	void destroy() {
-        if(nativeRenderer_)nativeRenderer_.reset();else {
+        if(loading_){loading_->cancel();loading_->result.wait();loading_.reset();}
+        Loader::GetInstance()->waitIdle();
+        if(nativeUi_){nativeRenderer_.reset();auto& io=ImGui::GetIO();io.Fonts->SetTexID(nullptr);io.BackendRendererName=nullptr;io.BackendFlags&=~ImGuiBackendFlags_RendererHasVtxOffset;}else {
 		#ifdef SCENERENDERER_LEGACY_METAL
         MetalBackend::guiShutdown();
 #elif !defined(SCENERENDERER_METAL)
@@ -73,7 +78,11 @@ public:
 		ImGui::DestroyContext();
 	}
 	void window(std::shared_ptr<RenderScene>& scene) {
-        if(!nativeRenderer_){
+        if(loading_ && loading_->result.wait_for(std::chrono::seconds(0))==std::future_status::ready){
+            try{auto built=loading_->result.get();if(loading_->cancelled->load())throw std::runtime_error("Scene load cancelled");scene->replaceWith(*built);loadError_.clear();}catch(const std::exception& error){loadError_=error.what();}
+            loading_.reset();
+        }
+        if(!nativeUi_){
 		#ifdef SCENERENDERER_LEGACY_METAL
         MetalBackend::guiNewFrame();
 #elif !defined(SCENERENDERER_METAL)
@@ -86,6 +95,8 @@ public:
 		ImGui::Begin("Info");
 
 		if (ImGui::CollapsingHeader("Scene loading")) {
+            if(loading_){ImGui::Text("Loading %zu / %zu",loading_->completed->load(),loading_->total->load());if(ImGui::Button("Cancel load"))loading_->cancel();}
+            if(!loadError_.empty())ImGui::TextWrapped("%s",loadError_.c_str());
 			if (ImGui::Button("Select Scene")) {
 				fileDialog.Open();
 			}
@@ -105,7 +116,7 @@ public:
 				setting.enableShadow = enableShadow;
 			}
 			ImGui::Toggle("Enable RSM", &setting.enableRSM);
-            if(setting.enableRSM && nativeRenderer_){
+            if(setting.enableRSM && nativeUi_){
                 auto& rsm=setting.rsmSettings;
                 ImGui::Checkbox("Sun and sky RSM",&rsm.useSunSky);ImGui::Checkbox("Sun bounce",&rsm.sunBounce);ImGui::Checkbox("Sky bounce",&rsm.skyBounce);
                 ImGui::SliderFloat("RSM world radius",&rsm.worldRadius,2,80);ImGui::SliderFloat("RSM intensity",&rsm.intensity,0,4);
@@ -128,8 +139,8 @@ public:
 
 			ImGui::Toggle("Enable SSAO", &setting.enableSSAO);
             ImGui::Toggle("Enable TSAA", &setting.enableTSAA);
-            if(nativeRenderer_){ImGui::Checkbox("Deferred shading",&setting.useDefer);ImGui::Checkbox("HDR tone mapping",&setting.enableHDR);}
-			if(nativeRenderer_)ImGui::SliderFloat("SSAO radius",&setting.aoRadius,0.f,5.f);else ImGui::SliderFloat("SSAO radius", &(RenderManager::GetInstance()->ssaoPass->radius),0.0f,0.5f);
+            if(nativeUi_){ImGui::Checkbox("Deferred shading",&setting.useDefer);ImGui::Checkbox("HDR tone mapping",&setting.enableHDR);}
+			if(nativeUi_)ImGui::SliderFloat("SSAO radius",&setting.aoRadius,0.f,5.f);else ImGui::SliderFloat("SSAO radius", &(RenderManager::GetInstance()->ssaoPass->radius),0.0f,0.5f);
 		}
 
 		ImGui::Separator();
@@ -288,7 +299,8 @@ public:
 				std::string selected = fileDialog.GetSelected().string();
 				// 
 				//std::cout << selected << '\n';
-				Loader::GetInstance()->loadSceneAsync(scene, selected);
+				if(nativeUi_){if(loading_)loading_->cancel();loading_=Loader::GetInstance()->buildScene(selected);loadError_.clear();}
+                else Loader::GetInstance()->loadSceneAsync(scene, selected);
 				fileDialog.ClearSelected();
 				//fileDialog.Close();
 			}
@@ -298,7 +310,7 @@ public:
 	}
 
 	void render() {
-        if(nativeRenderer_){nativeRenderer_->render(ImGui::GetDrawData(),RenderManager::GetInstance()->output());return;}
+        if(nativeUi_){if(!nativeRenderer_)throw std::logic_error("Native UI GPU renderer belongs to render thread");nativeRenderer_->render(ImGui::GetDrawData(),RenderManager::GetInstance()->output());return;}
 		#ifdef SCENERENDERER_LEGACY_METAL
         MetalBackend::guiRender(ImGui::GetDrawData());
 #elif !defined(SCENERENDERER_METAL)

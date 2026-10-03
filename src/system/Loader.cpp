@@ -1,104 +1,181 @@
-#include"system/Loader.h"
-#include"renderer/RenderScene.h"
-#include"component/GameObject.h"
-#include"object/Terrain.h"
-#include"object/SkyBox.h"
-#include<utility>
-
-Loader::Loader() {
-	const unsigned cores=std::thread::hardware_concurrency();maxThread=cores>2?int(std::min(cores-2,32u)):1;
+#include "system/Loader.h"
+#include "renderer/RenderScene.h"
+#include "component/GameObject.h"
+#include "object/Terrain.h"
+#include "object/SkyBox.h"
+#include "renderer/rhi/SceneSnapshot.h"
+#include "utils/Camera.h"
+#include "rhi/Device.h"
+#include <fstream>
+#include <stdexcept>
+namespace {
+json readJson(const std::string &path) {
+    std::ifstream file(path);
+    if (!file)
+        throw std::runtime_error("Cannot open scene resource: " + path);
+    return json::parse(file);
 }
-
-Loader::~Loader() {for(auto& thread:threadpool)if(thread.joinable())thread.join();}
-void Loader::launch(std::function<void()> task){
-    threadpool.emplace_back([this,task=std::move(task)]{try{task();}catch(...){std::lock_guard<std::mutex> lock(errorMutex_);if(!workerError_)workerError_=std::current_exception();}});
+void checkCancelled(const std::shared_ptr<std::atomic<bool>> &cancelled) {
+    if (cancelled->load())
+        throw std::runtime_error("Scene load cancelled");
 }
-void Loader::finish(){
-    for(auto& thread:threadpool)if(thread.joinable())thread.join();threadpool.clear();
-    std::exception_ptr error;{std::lock_guard<std::mutex> lock(errorMutex_);error=std::exchange(workerError_,{});}if(error)std::rethrow_exception(error);
+} // namespace
+void Loader::loadObject(std::shared_ptr<RenderScene> &scene, const std::string &filename) {
+    auto data = readJson(filename);
+    auto object = std::make_shared<GameObject>();
+    object->loadFromJson(data);
+    scene->addObject(object);
 }
-
-void Loader::loadObjectAsync(std::shared_ptr<RenderScene> scene, json data, std::vector<std::string> objectname, int threadid) {
-	//std::thread loadThread = std::thread(&Loader::loadObject, this, scene, filename);
-	//threadpool.push_back(std::move(loadThread));
-	//threadQueue.push(std::move(loadThread));
-	int size = data.size();
-	int interval = size / maxThread;
-	if (size % maxThread != 0) {
-		++interval;
-	}
-	int start = interval * threadid;
-	int end = std::min(start + interval, size);
-
-	for(int i =start ;i<end;++i){
-		auto key = objectname[i];
-		auto filename = data.at(key).get<std::string>();
-		loadObject(scene, filename);
-	}
-}
-
-void Loader::loadObject(std::shared_ptr<RenderScene>& scene, const std::string& filename) {
-	std::ifstream f(filename);
-	if (!f) {
-		std::cout << "Loader::loadObject : Failed to load file " << filename << '\n';
-		return;
-	}
-	json data = json::parse(f);
-	std::shared_ptr<GameObject> object = std::make_shared<GameObject>();
-	object->loadFromJson(data);
-
-	scene->addObject(object);
-}
-
-void Loader::loadSceneAsync(std::shared_ptr<RenderScene>& scene,const std::string& filename){
-    finish();if(!scene || maxThread<1)throw std::invalid_argument("Loader needs a scene and positive worker count");
-    std::ifstream input(filename);if(!input)throw std::invalid_argument("Cannot open scene: "+filename);json data=json::parse(input);
-    // Parse before clearing the current scene; malformed JSON leaves it intact.
-    scene->destroy();
-    try{
-        if(data.contains("objects")){
-            auto objectData=data.at("objects");std::vector<std::string> names;for(auto it=objectData.begin();it!=objectData.end();++it)names.push_back(it.key());
-            for(int i=0;i<std::min(maxThread,int(objectData.size()));i++)launch([this,scene,objectData,names,i]{loadObjectAsync(scene,objectData,names,i);});
-        }
-        if(data.contains("sky"))loadSkyAsync(scene,data.at("sky").get<std::string>());
-        if(data.contains("terrain"))loadTerrainAsync(scene,data.at("terrain").get<std::string>());
-        finish();
-    }catch(...){auto error=std::current_exception();try{finish();}catch(...){}std::rethrow_exception(error);}
-}
-
-void Loader::loadSkyAsync(std::shared_ptr<RenderScene>& scene, const std::string& filename) {
-    launch([this,scene,filename]{loadSky(scene,filename);});
-	//threadQueue.push(std::move(loadThread));
-}
-
 void Loader::loadSky(std::shared_ptr<RenderScene> scene, const std::string filename) {
-	std::ifstream f(filename);
-	if (!f) {
-		std::cout << "In Loader::loadSky : Failed to open file: " << filename << '\n';
-		return;
-	}
-	json data = json::parse(f);
-
-	std::shared_ptr<Sky> sky = std::make_shared<Sky>();
-	//scene->addObject(atm);
-	sky->loadFromJson(data);
-	scene->addSky(sky);
+    auto data = readJson(filename);
+    auto sky = std::make_shared<Sky>();
+    sky->loadFromJson(data);
+    scene->addSky(sky);
 }
-
-void Loader::loadTerrainAsync(std::shared_ptr<RenderScene>& scene, const std::string& filename) {
-    launch([this,scene,filename]{loadTerrain(scene,filename);});
-	//threadQueue.push(std::move(loadThread));
-}
-
 void Loader::loadTerrain(std::shared_ptr<RenderScene> scene, const std::string filename) {
-	std::ifstream f(filename);
-	if (!f) {
-		std::cout << "In Loader::loadTerrain : Failed to open file: " << filename << '\n';
-		return;
-	}
-	json data = json::parse(f);
+    auto data = readJson(filename);
+    auto terrain = std::make_shared<Terrain>();
+    terrain->loadFromJson(data);
+    scene->addTerrain(terrain);
+}
+SceneLoadRequest Loader::buildScene(const std::string &filename) {
+    SceneLoadRequest request;
+    request.cancelled = std::make_shared<std::atomic<bool>>(false);
+    request.completed = std::make_shared<std::atomic<size_t>>(0);
+    request.total = std::make_shared<std::atomic<size_t>>(0);
+    auto cancelled = request.cancelled;
+    auto completed = request.completed;
+    auto total = request.total;
+    if (!rhi::usesNativeRenderer()) {
+        std::promise<std::shared_ptr<RenderScene>> rejected;
+        request.result = rejected.get_future();
+        rejected.set_exception(std::make_exception_ptr(std::logic_error(
+            "Background scene build requires the native renderer; legacy GL loads on its context thread")));
+        return request;
+    }
+    auto task = std::make_shared<std::packaged_task<std::shared_ptr<RenderScene>()>>(
+        [this, filename, cancelled, completed, total] {
+            checkCancelled(cancelled);
+            auto data = readJson(filename);
+            auto staging = std::make_shared<RenderScene>();
+            std::vector<std::future<std::shared_ptr<GameObject>>> objects;
+            std::future<std::shared_ptr<Sky>> sky;
+            std::future<std::shared_ptr<Terrain>> terrain;
+            std::exception_ptr failure;
+            try {
+                if (data.contains("objects")) {
+                    if (!data.at("objects").is_object())
+                        throw std::invalid_argument("Scene objects must be a path dictionary");
+                    total->fetch_add(data.at("objects").size());
+                    for (const auto &entry : data.at("objects").items()) {
+                        auto path = entry.value().get<std::string>();
+                        objects.push_back(decode_.submit([path, cancelled, completed] {
+                            checkCancelled(cancelled);
+                            auto json = readJson(path);
+                            auto object = std::make_shared<GameObject>();
+                            object->loadFromJson(json);
+                            checkCancelled(cancelled);
+                            completed->fetch_add(1);
+                            return object;
+                        }));
+                    }
+                }
+                if (data.contains("sky")) {
+                    total->fetch_add(1);
+                    auto path = data.at("sky").get<std::string>();
+                    sky = decode_.submit([path, cancelled, completed] {
+                        checkCancelled(cancelled);
+                        auto json = readJson(path);
+                        auto object = std::make_shared<Sky>();
+                        object->loadFromJson(json);
+                        checkCancelled(cancelled);
+                        completed->fetch_add(1);
+                        return object;
+                    });
+                }
+                if (data.contains("terrain")) {
+                    total->fetch_add(1);
+                    auto path = data.at("terrain").get<std::string>();
+                    terrain = decode_.submit([path, cancelled, completed] {
+                        checkCancelled(cancelled);
+                        auto json = readJson(path);
+                        auto object = std::make_shared<Terrain>();
+                        object->loadFromJson(json);
+                        checkCancelled(cancelled);
+                        completed->fetch_add(1);
+                        return object;
+                    });
+                }
+            } catch (...) {
+                failure = std::current_exception();
+            }
+            // Drain every issued future even when one fails. The old world is untouched.
+            for (auto &object : objects)
+                try {
+                    staging->addObject(object.get());
+                } catch (...) {
+                    if (!failure)
+                        failure = std::current_exception();
+                }
+            if (sky.valid())
+                try {
+                    staging->addSky(sky.get());
+                } catch (...) {
+                    if (!failure)
+                        failure = std::current_exception();
+                }
+            if (terrain.valid())
+                try {
+                    staging->addTerrain(terrain.get());
+                } catch (...) {
+                    if (!failure)
+                        failure = std::current_exception();
+                }
+            if (failure)
+                std::rethrow_exception(failure);
+            checkCancelled(cancelled);
+            if (rhi::usesNativeRenderer()) {
+                // Decode/validate every referenced native asset and VT bootstrap page
+                // before publication. Reuse those detached payloads on the logic thread.
+                staging->main_camera = std::make_shared<Camera>();
+                render::SceneSnapshotBuilder prepare;
+                staging->preparedAssets = prepare.capture(staging, 0, 64, 64, true);
+                staging->main_camera.reset();
+            }
+            checkCancelled(cancelled);
+            return staging;
+        });
+    request.result = task->get_future();
+    if (!coordinator_.tryEnqueue([task] { (*task)(); })) {
+        std::promise<std::shared_ptr<RenderScene>> rejected;
+        request.result = rejected.get_future();
+        rejected.set_exception(std::make_exception_ptr(std::runtime_error("Scene load queue is full")));
+    }
+    return request;
+}
+void Loader::loadSceneAsync(std::shared_ptr<RenderScene> &scene, const std::string &filename) {
+    if (!scene)
+        throw std::invalid_argument("Loader needs a destination scene");
+    if (!rhi::usesNativeRenderer()) {
+        // Legacy component constructors can create GL objects. Keep them on the
+        // context thread, while still preserving the transaction on failure.
+        auto data = readJson(filename);
+        auto staging = std::make_shared<RenderScene>();
+        if (data.contains("objects"))
+            for (const auto &entry : data.at("objects").items())
+                loadObject(staging, entry.value().get<std::string>());
+        if (data.contains("sky"))
+            loadSky(staging, data.at("sky").get<std::string>());
+        if (data.contains("terrain"))
+            loadTerrain(staging, data.at("terrain").get<std::string>());
+        scene->replaceWith(*staging);
+        return;
+    }
+    auto request = buildScene(filename);
+    auto built = request.result.get();
+    scene->replaceWith(*built);
+}
 
-	std::shared_ptr<Terrain> terrain = std::make_shared<Terrain>();
-	terrain->loadFromJson(data);
-	scene->addTerrain(terrain);
+void Loader::waitIdle() {
+    coordinator_.submit([] {}).get();
 }
