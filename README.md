@@ -2,7 +2,7 @@
 
 一个用于学习和实验的 C++17 图形渲染项目，起源于同济大学计算机图形学课程小组作业。项目把**实时光栅化渲染、自然场景的 GPU 计算和独立的 CPU 路径追踪**放在同一套代码中，用可运行的场景展示材质、光照、阴影和几何生成之间的关系。
 
-实时渲染通过统一 **RHI** 支持原生 **Metal** 与 **Vulkan**，macOS 默认 Metal。默认编辑器、特殊材质、阴影、RSM、大气、FFT 海洋、地形/草、计算细分、TSAA 和 ImGui 均走新路径；默认构建不编译旧 Metal GL 兼容桥。OpenGL 保留桌面兼容路径；macOS OpenGL 4.1 不支持这些计算效果，OpenGL 4.3+ 的计算路径尚未迁移。实现、验收和剩余平台边界见 [RHI 重构计划](docs/rhi-refactor-plan.md)，历史 Metal 迁移见 [旧迁移说明](doc/metal.md)。
+实时渲染通过统一 **RHI** 支持原生 **Metal** 与 **Vulkan**，macOS 默认 Metal。默认编辑器、特殊材质、阴影、RSM、大气、FFT 海洋、地形/草、计算细分、TSAA 和 ImGui 均走新路径；默认构建不编译旧 Metal GL 兼容桥。OpenGL 保留桌面兼容路径；macOS OpenGL 4.1 不支持这些计算效果，OpenGL 4.3+ 的计算路径尚未迁移。实现、验收和剩余平台边界见 [RHI 重构计划](docs/rhi-refactor-plan.md)，历史 Metal 迁移见 [旧迁移说明](docs/metal.md)。
 
 ![本项目在 Metal 上渲染的 Sponza 中庭](img/metal/sponza.png)
 
@@ -96,7 +96,7 @@ python3 tools/fetch_gi_assets.py
 
 </details>
 
-实现、原有问题、能量公式、历史 GPU 数值测试和 Xcode 捕获方法见[中文 RSM 说明](doc/rsm.md)。界面可独立切换太阳／天空反弹、查看纯间接光，并调整正交覆盖范围、采样半径和采样数。
+实现、原有问题、能量公式、历史 GPU 数值测试和 Xcode 捕获方法见[中文 RSM 说明](docs/rsm.md)。界面可独立切换太阳／天空反弹、查看纯间接光，并调整正交覆盖范围、采样半径和采样数。
 
 ### Cornell 风格场景、Bunny 与 Helmet
 
@@ -320,6 +320,8 @@ CPU 路径支持静态 mesh 和基础 PBR；程序化地形／草、FFT 海面�
 
 ## 目录与模块
 
+完整目录约定与依赖管理见 [仓库结构说明](docs/repository-layout.md)，技术文档见 [文档索引](docs/README.md)，测试入口见 [测试说明](tests/README.md)。
+
 | 路径 | 职责 |
 | --- | --- |
 | `src/main.cpp` | 程序入口、命令行、窗口与主循环 |
@@ -334,8 +336,11 @@ CPU 路径支持静态 mesh 和基础 PBR；程序化地形／草、FFT 海面�
 | `src/engine/`、`include/engine/` | 有界任务与帧队列、资源 cache、资产 ID、render graph 与渲染线程 |
 | `src/PT/` | CPU 路径追踪与实时场景转换 |
 | `tools/` | 着色器转换及可复现的资源下载脚本 |
+| `tests/`、`tests/legacy/` | 当前 CMake／Python 回归与历史反射实验源码 |
+| `external/`、`lib/` | 随仓库保留的第三方源码／头文件与 Windows CMake 构建所需 `.lib` |
 | `samples/`、`img/metal/`、`img/path-tracing/` | 示例资产与来源清单、实时渲染与 CPU 路径追踪截图 |
-| `doc/metal.md`、`doc/rsm.md` | 中文 Metal 迁移说明与太阳／天空 RSM 实现、验证说明 |
+| `docs/metal.md`、`docs/rsm.md` | 中文 Metal 迁移说明与太阳／天空 RSM 实现、验证说明 |
+| `docs/archive/` | 早期架构笔记与开发计划，供历史参考 |
 | `docs/sky-and-sun-review.md` | 历史天空问题、新 RHI 太阳／大气修复、能量与 GPU 回归 |
 | `docs/engine-multithreading.md`、`docs/engine-design-review.md`、`docs/engine-followup-fixes.md` | 主逻辑／渲染分离、资源事务与快照、GPU 图片共享与修复、设计评价及下一步 |
 | `docs/engine-world-commands.md` | 私有组件注册表、线程封存移交、后台值命令与 RHI 统一资源配额 |

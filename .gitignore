@@ -1,47 +1,98 @@
-build/
-dll/
-# lib/
+# Build directories and generated binaries.
+/build/
+/build-*/
+/cmake-build-*/
+/CMakeFiles/
+/CMakeCache.txt
+/cmake_install.cmake
+/CTestTestfile.cmake
+/Testing/
+**/Debug/
+**/Release/
+**/x64/
+**/x86/
+*.obj
+*.o
+*.exe
+*.pdb
+*.ilk
+*.exp
+*.tlog
+*.idb
+*.ipch
+*.a
+*.lib
+*.dll
+*.dylib
+*.so
+*.so.*
+*.spv
+*.air
+*.metallib
+
+# Local IDE, operating-system and tool state.
 .vs/
-.history/
 .vscode/
-x64/
+.idea/
+.history/
 .cache/
-include/UDRefl/*
-include/UDRefl_ext/*
-include/USmallFlat/*
-include/UTemplate/*
-a.exe
-asset.zip
-*.rdc
-*.jpg
-RenderDoc/
-*.pptx
 .VSCodeCounter/
-*.zip
-asset/heightmap
-asset/model
-asset/pbr
-asset/skybox
-asset/tex
-asset/objects
-asset/
-package-lock.json
-package.json
-node_modules/
-*.js
-asset/*.json
-*.rar
-lib/
-
-packages/
-Testing/
-lib/*
-# Redistributable classic sample assets, credited in samples/README.md.
-!samples/assets/damaged-helmet/*.jpg
-
-# Large GI datasets are reproducibly downloaded, not committed.
-samples/downloads/
-samples/assets/gi/
-
-# Python shader/terrain tooling bytecode.
+.DS_Store
+Thumbs.db
+*.sln
+*.slnx
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.suo
+*.sdf
+*.VC.db
+*.VC.VC.opendb
 __pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local environment files; sanitized examples may be committed.
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Runtime output and GPU captures. Documentation images under img/ stay tracked.
+imgui.ini
+*.ppm
+*.pfm
+/output.txt
+*.log
+*.rdc
+*.gputrace
+/RenderDoc/
+
+# Locally supplied assets, downloaded packages and archives.
+/asset/
+/dll/
+/packages/
+/samples/downloads/
+/samples/assets/gi/
+*.zip
+*.rar
+*.nupkg
+*.pptx
+
+# Optional reflection-library checkouts.
+/include/UDRefl/
+/include/UDRefl_ext/
+/include/USmallFlat/
+/include/UTemplate/
+
+# Optional local JavaScript tooling; source and manifests may be committed.
+node_modules/
+
+# Small Wavefront models are source assets, despite sharing the .obj suffix.
+# The ignored samples/assets/gi/ parent still excludes downloaded GI models.
+!samples/assets/**/*.obj
+!samples/assets/**/*.ppm
+!samples/assets/**/*.pfm
+
+# lib/*.lib are checked-in inputs to the Windows CMake build, not outputs.
+!/lib/*.lib

@@ -1,6 +1,6 @@
 # Metal 迁移说明（历史兼容层记录）
 
-2026-10-03：默认实现已迁入独立 `src/rhi/MetalDevice.mm`，本文记录此前 GL 接口兼容层方案。当前分层、功能与验收见 [RHI 重构计划](../docs/rhi-refactor-plan.md)。`SCENERENDERER_LEGACY_METAL=ON` 才编译本文中的旧桥、ShaderMetal 与旧测试；旧 gallery 入口改为 `--legacy-gallery`，常规 `--render-gallery` 使用新 RHI。
+2026-10-03：默认实现已迁入独立 `src/rhi/MetalDevice.mm`，本文记录此前 GL 接口兼容层方案。当前分层、功能与验收见 [RHI 重构计划](rhi-refactor-plan.md)。`SCENERENDERER_LEGACY_METAL=ON` 才编译本文中的旧桥、ShaderMetal 与旧测试；旧 gallery 入口改为 `--legacy-gallery`，常规 `--render-gallery` 使用新 RHI。
 
 macOS 构建默认启用 `SCENERENDERER_METAL=ON`。程序创建 GLFW `GLFW_NO_API` 窗口，并通过 `CAMetalLayer` 显示画面。GPU 缓冲区、纹理、光栅化、计算、曲面细分、间接命令、界面绘制和画面呈现均由原生 Metal 执行。Metal 构建不创建 OpenGL 上下文，也不链接 OpenGL 框架。
 
@@ -70,7 +70,7 @@ MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 ./build/Scene-Renderer --render-galler
 
 ### 高清海洋
 
-`--classic ocean` 和 `--classic ocean-clear` 使用 1024×1024 主频谱、256×256 短波频谱与 513×513 网格。画廊命令输出 1920×1080 截图及短波、散射或透明开关对照。综合演示使用 512×512 主频谱。具体问题、修复、27 项新增 GPU 数值测试及实时折射／散射限制见 [海洋修复记录](../docs/ocean-fft-and-rendering-review.md)。
+`--classic ocean` 和 `--classic ocean-clear` 使用 1024×1024 主频谱、256×256 短波频谱与 513×513 网格。画廊命令输出 1920×1080 截图及短波、散射或透明开关对照。综合演示使用 512×512 主频谱。具体问题、修复、27 项新增 GPU 数值测试及实时折射／散射限制见 [海洋修复记录](ocean-fft-and-rendering-review.md)。
 
 ## 已迁移的实时渲染功能
 
@@ -130,7 +130,7 @@ MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 ctest --test-dir build -R metal-gi-gal
 
 ## TSAA 与新版效果图
 
-延迟路径默认启用 TSAA，可通过 GUI 的 `Enable TSAA` 开关控制。当前基础、GI 和海洋画廊在累积 16 帧后导出，开关对照分别清空历史。新增 25 项 GPU 数值与状态测试，具体实现、复现命令及运动向量的覆盖范围见 [TSAA 实现说明](../docs/tsaa.md)。
+延迟路径默认启用 TSAA，可通过 GUI 的 `Enable TSAA` 开关控制。当前基础、GI 和海洋画廊在累积 16 帧后导出，开关对照分别清空历史。新增 25 项 GPU 数值与状态测试，具体实现、复现命令及运动向量的覆盖范围见 [TSAA 实现说明](tsaa.md)。
 
 ## 当前性能限制
 

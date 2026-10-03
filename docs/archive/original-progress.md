@@ -1,3 +1,7 @@
+# 原始开发计划
+
+本文保留早期课程项目记录；当前实现与验证以 [项目 README](../../README.md) 和 [文档索引](../README.md) 为准。
+
 # Progress & Plan
 
 ## Feature

@@ -81,7 +81,7 @@ Metal 直接创建 MTLBuffer 并通过现有队列上传，OpenGL 直接创建/�
 - `UniformBuffer` 不再暴露 UBO 标识或隐式 bind/unbind；相机、三类灯光、大气与级联阴影矩阵通过 RHI 更新/绑定。大气 vec3 上传只读取实际 CPU 数据的 12 字节，保留 std140 的 16 字节槽位与既有 offset。
 - 主循环的 beginFrame/present/shutdown 使用 RHI。`SCENERENDERER_RHI_BACKEND` 明确选择 Metal/OpenGL；AUTO 沿用旧选项，Vulkan 选择会失败并说明尚未实现。
 - `--rhi-self-test` 验证原生 GPU 初始上传、局部更新、未修改区间和同步读回。独立契约测试覆盖 foreign/stale handle、越界、usage、对齐与关闭后的行为。
-- Windows 现有 `.vcxproj` 同步加入 RHI 源文件；未在 Windows 机器运行构建。
+- 此阶段曾向旧 Windows 工程同步加入 RHI 源文件；该工程现已移除，构建入口统一为 CMake，未在 Windows 机器运行构建。
 
 2026-10-03，在 Apple M4/macOS 上：Metal/OpenGL Release 构建通过；Metal CTest 4/4 通过（旧 GPU 自检、经典 gallery、RHI 契约与隐藏窗口 GPU 测试），OpenGL CTest 2/2 通过（契约与 GPU 测试）。Metal 测试与 `--demo --frames 3` 开启 API/Shader Validation，通过且未报告校验错误。OpenGL 运行验证使用 macOS 4.1，仅证明本次 buffer 路径。
 
@@ -131,7 +131,7 @@ ctest --test-dir build/vulkan -R '^rhi-vulkan-gpu$' --output-on-failure
 
 macOS 可显式传入 `-DVulkan_INCLUDE_DIR=/absolute/path/MoltenVK/include` 与 `-DVulkan_LIBRARY=/absolute/path/libMoltenVK.dylib`。本机使用临时下载到被忽略的 `build/_deps/` 的官方 MoltenVK 1.4.2，无全局安装要求。Windows/Linux 使用对应 Vulkan SDK 与驱动；这些平台尚未实际运行。创建 instance 时若存在 `VK_LAYER_KHRONOS_validation` 会启用它，否则输出 unavailable；本次本机未安装该层，不能称为通过 Vulkan validation/synchronization validation。
 
-CMake 构建需要 Python、glslangValidator 和 spirv-cross；Metal 还需要 Xcode Metal compiler。Visual Studio 工程已加入新 RHI 源/头文件，但 shader cook 以 CMake 为准；直接用 `.vcxproj` 运行自检时须先执行 `python tools/compile_rhi_shaders.py --output build/rhi/shaders`，并从仓库根目录启动。Windows 工程尚未实机编译。
+CMake 构建需要 Python、glslangValidator 和 spirv-cross；Metal 还需要 Xcode Metal compiler。项目构建与 shader cook 统一由 CMake 管理；Visual Studio 工程可由 CMake 在构建目录生成，运行自检时从仓库根目录启动。Windows 构建尚未实机验证。
 
 2026-10-03，Apple M4/macOS 上的最终阶段 1B 验收：
 
@@ -175,7 +175,7 @@ GPU 无关图形契约测试另覆盖 foreign/stale 资源、使用中的 View/S
 
 前向 RHI 入口当前使用内置场景、固定相机与 PBR 基础材质。SceneAdapter 将所收集的三角形视为基础 PBR，不保留旧 Shader 对象的自定义行为；只接受 filled triangles。默认 RenderManager 的 deferred/RSM、天空、地形、透明排序、阴影、IBL、细分、clearcoat/anisotropy/SSS 及 ImGui 尚未迁移。该入口是阶段 2 的真实场景路径，不能据此称为全仓库已脱离兼容桥。现有 CPU Mesh/Material 类型的旧 API 为其他 Pass 保留，新渲染核心不使用它们的 GL 资源标识。
 
-GPU 验证增加两对象深度与 alpha hole、材料更新、法线贴图切线方向、exposure 更新、成功/失败 resize、图像解码行序、HDR 值 >1，以及 BRDF/映射曲线与 CPU 参考比对；同一份验证在 Metal/OpenGL/Vulkan 执行。窗口场景使用三个不同颜色/粗糙度/金属度的球和地面，并保存实际新前向输出用于目视检查。Windows 工程已同步加入文件，仍未在 Windows 机器上编译；Vulkan 仍以 macOS/MoltenVK 离屏验证为限。
+GPU 验证增加两对象深度与 alpha hole、材料更新、法线贴图切线方向、exposure 更新、成功/失败 resize、图像解码行序、HDR 值 >1，以及 BRDF/映射曲线与 CPU 参考比对；同一份验证在 Metal/OpenGL/Vulkan 执行。窗口场景使用三个不同颜色/粗糙度/金属度的球和地面，并保存实际新前向输出用于目视检查。此阶段曾同步更新旧 Windows 工程，现已统一为 CMake，仍未在 Windows 机器上编译；Vulkan 仍以 macOS/MoltenVK 离屏验证为限。
 
 阶段 2 最终验收（2026-10-03，Apple M4/macOS）：Metal Release 6/6（开启 API/Shader Validation）、OpenGL 4.1 Release 5/5、Vulkan/MoltenVK 离屏 1/1 通过。64×64 前向测试图在三后端逐字节一致，最大通道差为 0。真实 SceneAdapter 场景分别完成 3 帧与 backbuffer 呈现；截图保存在 `build/rhi/forward-scene.ppm`、`build/opengl/rhi/forward-scene.ppm`，Metal PNG 预览为 `build/rhi/forward-scene.png`。已目视检查三个球的颜色/金属高光和地面。验证针对本次基础 PBR 路径，Vulkan validation layer 与 Windows/Linux 实机验证仍未完成。
 
