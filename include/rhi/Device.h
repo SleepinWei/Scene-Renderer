@@ -140,6 +140,7 @@ private:
 // Installed by the native backend after its device/context is ready.
 void installDevice(std::shared_ptr<Device>);
 std::shared_ptr<Device> device();
+bool hasDevice();
 void shutdown();
 bool usesNativeRenderer();
 void useLegacyRenderer(bool);

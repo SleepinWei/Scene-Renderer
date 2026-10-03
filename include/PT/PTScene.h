@@ -8,10 +8,12 @@
 using std::shared_ptr;
 using std::make_shared; 
 
+namespace pt {class CpuScene;}
 class RenderScene;
 class PTScene{
 public:
     PTScene();
+    std::shared_ptr<pt::CpuScene> cpuScene;
     shared_ptr<PTCamera> camera;
     shared_ptr<BVH_Node> bvh;
     shared_ptr<hittable_list> lights; 

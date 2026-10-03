@@ -65,6 +65,12 @@ void RenderRuntime::run(std::unique_ptr<render::GuiRenderer> gui) {
 #ifdef __APPLE__
                 @autoreleasepool {
 #endif
+                    if(packet->atmosphereCapture) {
+                        auto request=packet->atmosphereCapture;
+                        try {request->completion.set_value(render::bakeAtmosphere(device_,request->frame));}
+                        catch(...) {request->completion.set_exception(std::current_exception());}
+                        continue;
+                    }
                     const auto started = std::chrono::steady_clock::now();
                     const auto &snapshot = *packet->world;
                     auto width = snapshot.frame.viewportWidth, height = snapshot.frame.viewportHeight;
@@ -205,6 +211,14 @@ bool RenderRuntime::submit(RenderPacket packet) {
     peakQueueWaitMilliseconds_ = std::max(peakQueueWaitMilliseconds_.load(), waited);
     rethrowFailure();
     return accepted;
+}
+render::BakedAtmosphere RenderRuntime::captureAtmosphere(const render::FrameData &frame) {
+    if(std::this_thread::get_id()==thread_.get_id())throw std::logic_error("Atmosphere capture cannot block its own GPU thread");
+    rethrowFailure();auto request=std::make_shared<AtmosphereCapture>();request->frame=frame;
+    auto result=request->completion.get_future();RenderPacket packet;packet.atmosphereCapture=request;
+    if(!queue_.push(std::move(packet)))throw std::runtime_error("Render runtime closed during atmosphere capture");
+    while(result.wait_for(std::chrono::milliseconds(50))!=std::future_status::ready)rethrowFailure();
+    rethrowFailure();return result.get();
 }
 std::string RenderRuntime::lastRecoveryMessage() const {
     std::lock_guard<std::mutex> lock(failureMutex_);

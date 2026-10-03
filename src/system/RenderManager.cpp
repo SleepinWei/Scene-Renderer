@@ -27,7 +27,7 @@ RenderManager::RenderManager() {
 	int ShaderTypeNum = static_cast<int>(ShaderType::KIND_COUNT);
 	m_shader = std::vector<std::shared_ptr<Shader>>(ShaderTypeNum,nullptr);
 	// init Shaders
-	for (int i = 0; i < ShaderTypeNum; i++) {
+	for (int i = 0; rhi::hasDevice() && i < ShaderTypeNum; i++) {
 		m_shader[i] = generateShader(ShaderType(i));
 	}
 
@@ -44,6 +44,7 @@ RenderManager::RenderManager() {
 }
 
 void RenderManager::init() {
+    native_=rhi::usesNativeRenderer();
     if(native_)return;
 	// UBOs
 	initVPbuffer();
@@ -377,13 +378,14 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
 }
 
 std::shared_ptr<Shader> RenderManager::getShader(ShaderType type) {
-    if(native_)return nullptr;
+    if(!rhi::hasDevice() || rhi::usesNativeRenderer())return nullptr;
 	int index = static_cast<int>(type);
 	//if(!m_shader[index]){
 	//	//if not initialized
 	//	m_shader[index] = RenderManager::generateShader(type);
 	//}
 	//
+	if(!m_shader[index])m_shader[index]=generateShader(type);
 	return m_shader[index];
 }
 

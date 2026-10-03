@@ -33,9 +33,9 @@ public:
 
 	void parse(json &data);
 
-	bool bUseBVH : true;
-	int samples;
-	int max_depth;
+	bool bUseBVH = true;
+	int samples = 64;
+	int max_depth = 8;
 };
 
 class PTRenderer

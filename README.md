@@ -6,7 +6,7 @@
 
 ![本项目在 Metal 上渲染的 Sponza 中庭](img/metal/sponza.png)
 
-[快速运行](#快速运行) · [经典场景](#场景与效果) · [天空与太阳](#大气天空与太阳) · [海洋与水体](#高清海洋与透明水体) · [虚拟纹理地形](#虚拟纹理地形) · [系统设计](#整体系统设计) · [技术与限制](#渲染技术) · [验证](#构建验证与限制)
+[快速运行](#快速运行) · [经典场景](#场景与效果) · [天空与太阳](#大气天空与太阳) · [海洋与水体](#高清海洋与透明水体) · [虚拟纹理地形](#虚拟纹理地形) · [CPU 路径追踪](#cpu-路径追踪) · [系统设计](#整体系统设计) · [技术与限制](#渲染技术) · [验证](#构建验证与限制)
 
 项目的主要实验内容包括 PBR 材质及特殊材质、太阳／天空驱动的 RSM 间接光照、大气散射、高清 FFT 海洋与透明水体、高度与材质 Virtual Texture 地形／草和 TSAA。编辑器可实时调整相机、灯光及效果参数；离屏画廊提供固定时间、固定视角的真实渲染图和开关对照。CPU 路径追踪用于独立的离线实验。
 
@@ -265,15 +265,58 @@ flowchart LR
 | FFT 海洋与水体 | 共轭 Phillips 频谱、归一化二维 IFFT、主波与短波叠加、法线与 Jacobian 泡沫；深度折射、RGB 消光、近似单次散射与 HDR 光照 | 周期有限海面；折射限于屏幕空间，散射厚度是近似；不是流体求解器 |
 | 地形与草 | 高度／五层材质 VT、固定页缓存与祖先 mip 回退、有预算 GPU 四叉树、跨 LOD 拼接、间接实例草 | CPU 预测请求与有界异步 IO（原生编辑器）；无 GPU feedback／高度 morph；动态地形仍使用 reactive 时域路径 |
 | 模型导入 | Assimp、glTF；GI 示例增加 OBJ/MTL 材质、透明遮罩与高度图转法线 | OBJ 的传统材质参数近似转换为 PBR，玻璃／水不做真实折射 |
-| CPU 路径追踪 | 球、三角形、矩形、基础漫反射／金属／介质材质、BVH、重要性采样和多线程 | 实时场景转换仍不完整，网格材质转换为白色 Lambertian，不能作为实时 PBR 的完整参考解 |
+| CPU 路径追踪 | 冻结物体快照、纹理 PBR、alpha/法线图、扁平 SAH BVH、天空/太阳/发光面 NEE + MIS、确定性多线程；Sponza/San Miguel 256 spp 输出 | 静态 mesh 路径；程序化地形/海洋及特殊材质 lobe 未进入 CPU 求交，尚无 GPU tracing/denoiser |
 
 ### CPU 路径追踪
 
-`src/PT/` 包含独立的光线、相交结构、材质采样、BVH 和积分器。`Connector` 可从实时场景提取部分几何并构建 `PTScene`；离线渲染按采样次数与最大反弹深度运行，输出 `out.ppm`。此模块在 CPU 上执行，独立于实时 RHI；当前没有 GPU 路径追踪。
+`src/PT/` 通过不可变场景快照保留物体变换、纹理、法线图、金属度／粗糙度、透明裁剪和灯光。CPU 使用扁平 SAH BVH 加速求交，以 Lambert + GGX 材质追踪多次反弹；天空、有限角半径太阳和发光面使用重要性采样与 MIS。天空先由 **Metal 或 Vulkan 的实时大气**烘焙为 HDR 环境贴图，保存后可以完全在 CPU 上复用。
 
-历史 Cornell 效果（100 spp，最大深度 10）：
+下面是本项目在 Apple M4 上生成的 **640×480、256 spp、最大 8 次反弹**结果，曝光为 3。阴影区仍有采样噪声，尚未加入降噪器；这些图不是收敛参考解。
+
+| Sponza | San Miguel |
+| --- | --- |
+| ![CPU Path Tracing：Sponza，256 spp](img/path-tracing/sponza.png) | ![CPU Path Tracing：San Miguel，256 spp](img/path-tracing/san-miguel.png) |
+
+| 场景 | 有效三角形 | 320×240 / 8 spp 预览 | 640×480 / 256 spp | 非有限样本 |
+| --- | --- | --- | --- | --- |
+| Sponza | 262,266 | 1.30 秒 | 124.55 秒 | 0 |
+| San Miguel | 5,602,728 | 2.04 秒 | 197.08 秒 | 0 |
+
+预览使用 6 个 worker，最终图使用 8 个 worker。时间包括追踪期间的 checkpoint 保存，不包括模型导入、BVH 构建及首次天空烘焙；运行时存在其他开发负载，不作为严格性能基准。
+
+从仓库根目录运行，先生成预览，再复用天空提高采样：
+
+```sh
+python3 tools/fetch_gi_assets.py
+
+# 烘焙实时天空，生成两个场景的预览。
+for scene in sponza san-miguel; do
+    ./build/Scene-Renderer --path-trace "$scene" --pt-size 320x240 \
+        --pt-samples 8 --pt-bounces 6 --pt-threads 6 \
+        --pt-output "build/path-tracing/$scene-preview"
+done
+
+# 复用 HDR 及太阳参数，无需创建 GPU/context。
+for scene in sponza san-miguel; do
+    ./build/Scene-Renderer --path-trace "$scene" \
+        --pt-environment "build/path-tracing/$scene-preview-environment.hdr" \
+        --pt-size 640x480 --pt-samples 256 --pt-bounces 8 \
+        --pt-threads 8 --pt-exposure 3 --pt-output "build/path-tracing/$scene"
+done
+```
+
+输出位于 `build/path-tracing/`：渐进 PNG、线性 HDR PFM、albedo/normal 诊断图、JSON 参数记录，以及环境 HDR 和太阳参数 sidecar。前 4、16 spp 和后续每增加 32 spp 保存 checkpoint；当前每次运行从零开始。编辑器 `R` 键冻结当前场景并阻塞渲染，输出 `build/path-tracing/editor.*`。
+
+CPU 路径支持静态 mesh 和基础 PBR；程序化地形／草、FFT 海面、计算细分后的几何及 clearcoat／anisotropy／SSS 特殊 lobe 尚未接入。macOS OpenGL 4.1 可通过已保存的 HDR 或 `--pt-no-sky` 运行 CPU 追踪。实现、数学边界、全部参数及验证见 [CPU Path Tracing 说明](docs/path-tracing-cpu.md)。
+
+<details>
+<summary>历史 Cornell 实验（100 spp，最大深度 10）</summary>
+
+旧独立 Cornell 实验仍保留 `out.ppm` 路径。
 
 ![CPU 路径追踪历史效果](img/ray_tracing.png)
+
+</details>
 
 ## 目录与模块
 
@@ -291,7 +334,7 @@ flowchart LR
 | `src/engine/`、`include/engine/` | 有界任务与帧队列、资源 cache、资产 ID、render graph 与渲染线程 |
 | `src/PT/` | CPU 路径追踪与实时场景转换 |
 | `tools/` | 着色器转换及可复现的资源下载脚本 |
-| `samples/`、`img/metal/` | 示例资产与来源清单、本项目生成的截图 |
+| `samples/`、`img/metal/`、`img/path-tracing/` | 示例资产与来源清单、实时渲染与 CPU 路径追踪截图 |
 | `doc/metal.md`、`doc/rsm.md` | 中文 Metal 迁移说明与太阳／天空 RSM 实现、验证说明 |
 | `docs/sky-and-sun-review.md` | 历史天空问题、新 RHI 太阳／大气修复、能量与 GPU 回归 |
 | `docs/engine-multithreading.md`、`docs/engine-design-review.md`、`docs/engine-followup-fixes.md` | 主逻辑／渲染分离、资源事务与快照、GPU 图片共享与修复、设计评价及下一步 |
@@ -299,6 +342,7 @@ flowchart LR
 | `docs/engine-data-boundaries.md` | 核心数据私有化、资产移交、自动版本失效、参数校验与剩余边界 |
 | `docs/engine-gpu-publication.md` | 内存压力回收、候选 GPU 缓存事务、失败画面保留与恢复、成本与验收 |
 | `docs/engine-streaming-and-pipeline-cache.md` | 静态网格跨帧上传、字节／用时预算、管线独立句柄与共享 native、LRU 与验收 |
+| `docs/path-tracing-cpu.md` | CPU 物体渲染、HDR 天空桥、两个大型场景输出与复现、数值验证及限制 |
 | `docs/tsaa.md` | TSAA 重投影、海洋运动信息、历史处理与截图复现 |
 | `docs/ocean-fft-and-rendering-review.md` | 海洋 FFT、高清波纹、透明与散射的修复和验证记录 |
 
@@ -316,6 +360,9 @@ flowchart LR
 | `--gpu-resource-budget-mib <N>` | 原生编辑器的 RHI buffer／texture 逻辑负载配额；默认 0 不限额；双线程编辑器超限保留成功画面并重试，冷启动失败仍报错；不含 driver heap 等隐式开销 |
 | `--single-thread` | 原生编辑器同步对照；默认 Metal／Vulkan 使用独立渲染线程 |
 | `--rhi-self-test` | 所选 RHI 后端的 GPU 正确性自检 |
+| `--path-trace <场景名>` | CPU 路径追踪，默认 Sponza；使用 `--pt-size`、`--pt-samples`、`--pt-bounces` 等设置输出 |
+| `--pt-environment <HDR>` / `--pt-no-sky` | 复用环境贴图及太阳 sidecar，或跳过实时天空烘焙 |
+| `--pt-self-test` | Metal／Vulkan 设备线程上的天空烘焙与 CPU 环境采样自检 |
 
 `W/A/S/D` 移动，`E/Q` 上下移动，按住 `Shift` 加速；按住鼠标右键调整视角。ImGui 用于修改渲染选项和场景参数。经典场景和离屏画廊支持 Metal/Vulkan；同时编译两后端时加 `--backend Vulkan`。`--rhi-self-test` 同时支持 OpenGL 基础路径。历史 `--metal-self-test` 仅在显式启用 `SCENERENDERER_LEGACY_METAL` 时提供。
 
@@ -347,11 +394,13 @@ ctest --test-dir build/vulkan --output-on-failure
 
 GPU 验证覆盖上传/异步读回、延迟释放、MRT、前向/延迟 PBR、SSS 深度、透明排序、三类阴影、SSAO、太阳/天空 RSM、大气 LUT、完整海洋 IFFT、地形/草的 VT 区域上传、页淘汰与回退、流式高度、网格预算和闭合接缝、计算细分及 TSAA。CPU 数值参考和限定的像素比较用于检查结果；编辑器测试同时覆盖真实 resize、UI 与窗口呈现。画廊提供实际模型和贴图的视觉回归，不以历史截图作为物理参考图像。
 
+2026-10-03 CPU Path Tracing 在 Apple M4/macOS 验收：包含新增 PT 回归的完整 CTest 为 Metal **14/14**、Vulkan/MoltenVK **15/15**；CPU 测试通过 AddressSanitizer 和 UndefinedBehaviorSanitizer。覆盖 BVH 与暴力求交对照、材质／alpha／法线贴图、环境 PDF、GGX 数值积分、MIS、遮挡与发光面、确定性多线程、渐进累加和输出格式；另验证 Cornell 场景入口及设备线程上的天空烘焙。两个大型场景均输出 256 spp 图像，非有限样本为 0；完整记录见 [CPU Path Tracing 说明](docs/path-tracing-cpu.md)。
+
 2026-10-03 Engine 多线程回归在 Apple M4/macOS 验收：Metal **11/11**、Vulkan/MoltenVK **12/12**；有界 CPU cache／job／帧队列、世界命令与 graph 测试在 ThreadSanitizer 下通过。本轮后续修复同时通过 OpenGL 兼容路径 **8/8**。包括主逻辑／渲染分离、加载事务、快照／GUI 隔离、场景结构／组件自动灯光索引、封存移交、旧世界／旧组件命令失效、混合 RHI 资源配额、GPU 图片共享／LRU 与 CPU 地址复用、上传等待保留资产、异步地形、窗口缩放与单线程对照；新增核心数据边界回归包含错误线程访问、非法参数保留、Camera／Mesh／Material 移交和材质标量／图片版本隔离，结果仍为 Metal 11/11、Vulkan 12/12、OpenGL 8/8。内存压力与 GPU 发布回归也通过以上三个后端；新增空闲图片回收、候选缓存回滚、窗口／海洋超限时像素保持及后续恢复验证，CPU RHI 压力回调测试通过 TSan。分段上传／管线缓存继续通过三后端全部回归，新增 30 万顶点跨帧上传与逐字节 GPU 读回、待上传任务上限、取消／回滚、管线独立句柄／LRU／shader 内容失效，以及 renderer 共享管线后的像素一致性；CPU buffer／graphics 契约另通过 TSan。完整应用没有在 ThreadSanitizer 下验收。
 
 2026-10-03 天空修复在 Apple M4/macOS 验收：Metal **8/8**、Vulkan/MoltenVK **9/9**，包含太阳角半径／能量、地平线及几何遮挡、控制同步、观察高度与极限参数。OpenGL 4.1 的历史 RHI 验收为 7/7，本轮未重复运行。Metal 开启 API/Shader Validation；本机没有 Khronos validation layer，Windows/Linux 与 OpenGL 4.3+ 尚未实机验收。Metal/Vulkan 使用单队列、最多三帧并行提交；单次吞吐测量和算法边界见 [RHI 重构计划](docs/rhi-refactor-plan.md)。大规模 OBJ 导入仍需较多 CPU 内存与启动时间。
 
-`Cloud` 当前只有声明，没有体积云实现。自动曝光、GPU 路径追踪和完整的实时场景到 CPU PBR 转换尚未实现；历史资产缺失也限制了原场景的视觉回归。Sponza 和 San Miguel 展示当前渲染器的能力，不代表已经实现完整 GI。
+`Cloud` 当前只有声明，没有体积云实现。自动曝光与 GPU 路径追踪尚未实现，CPU 转换当前覆盖静态物体及基础 PBR；历史资产缺失也限制了原场景的视觉回归。Sponza 和 San Miguel 的实时图采用 RSM 一次反弹近似，CPU 路径追踪图采用有最大深度限制的多次反弹；两条路径的近似与尚未支持的效果见各自说明。
 
 旧 OpenGL 后端可使用独立目录构建：
 

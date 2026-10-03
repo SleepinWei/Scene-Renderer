@@ -48,6 +48,7 @@
 #include"system/Config.h"
 #include"PT/PTScene.h"
 #include"PT/Connector.h"
+#include "PT/CpuPathTracer.h"
 //json
 #include<json/json.hpp>
 using json = nlohmann::json;
@@ -93,7 +94,13 @@ void NativeRealTimeRun(GLFWwindow* window,shared_ptr<RenderScene>& scene){
             if(width<=0 || height<=0){glfwWaitEventsTimeout(.05);continue;}
             framebuffer_size_callback(window,width,height);
             gui.window(scene);InputManager::GetInstance()->tick();
-            if(InputManager::GetInstance()->keyStatus[KEY_R]==PRESSED){Connector::GetInstance()->LaunchPathTracingWithRenderScene(scene);InputManager::GetInstance()->keyStatus[KEY_R]=RELEASED;}
+            if(InputManager::GetInstance()->keyStatus[KEY_R]==PRESSED){
+                auto captured=std::make_shared<render::RenderWorldSnapshot>(*snapshots.capture(scene,8,uint32_t(width),uint32_t(height)));
+                captured->frame.directionalEnabled=RenderManager::GetInstance()->setting.enableDirectional;
+                auto baked=runtime.captureAtmosphere(captured->frame);
+                Connector::GetInstance()->LaunchPathTracingWithSnapshot(std::move(captured),baked);
+                InputManager::GetInstance()->keyStatus[KEY_R]=RELEASED;
+            }
             if(scene->mainCamera()){scene->mainCamera()->setAspect(float(width)/height);scene->mainCamera()->tick();}
             const auto settings=RenderManager::GetInstance()->setting;
             auto captured=snapshots.capture(scene,settings.timeOverride>=0?settings.timeOverride:float(glfwGetTime()),uint32_t(width),uint32_t(height),false);
@@ -182,7 +189,21 @@ int main(int argc, char** argv) {
 #else
     if(rhi::requestedBackend()==rhi::Backend::Metal)throw std::invalid_argument("Use a Metal CMake build on macOS");
 #endif
+    if (argc > 1 && std::string(argv[1]) == "--path-trace") return pt::runCommandLine(argc,argv);
     if (argc > 1 && (std::string(argv[1]) == "--rhi-forward" || std::string(argv[1]) == "--rhi-deferred" || std::string(argv[1]) == "--rhi-scene")) { render::runForwardScene(argc,argv);return 0; }
+    if (argc > 1 && std::string(argv[1]) == "--pt-self-test") {
+        if(rhi::requestedBackend()==rhi::Backend::OpenGL)throw std::invalid_argument("PT sky bridge test requires Metal or Vulkan; CPU tests run separately");
+#ifdef SCENERENDERER_HAS_VULKAN
+        if(rhi::requestedBackend()==rhi::Backend::Vulkan)rhi::configureVulkanWindowing();
+#endif
+        if(!glfwInit())throw std::runtime_error("PT validation GLFW initialization failed");
+        glfwWindowHint(GLFW_VISIBLE,GLFW_FALSE);GLFWwindow* window=nullptr;
+        try {
+            if(createWindow(window,64,64)!=0 || gladInit()!=0)throw std::runtime_error("PT validation device initialization failed");
+            pt::validatePathTracingBridge(rhi::graphicsDevice());rhi::shutdown();
+        }catch(...){try{rhi::shutdown();}catch(...){}if(window)glfwDestroyWindow(window);glfwTerminate();throw;}
+        glfwDestroyWindow(window);glfwTerminate();return 0;
+    }
     if (argc > 1 && std::string(argv[1]) == "--rhi-self-test") {
 #ifdef SCENERENDERER_HAS_VULKAN
         if(rhi::requestedBackend()==rhi::Backend::Vulkan)rhi::configureVulkanWindowing();
@@ -206,6 +227,7 @@ int main(int argc, char** argv) {
         rhi::validateComputeAndIndirect(*rhi::graphicsDevice());
             render::validateOceanRhi(rhi::graphicsDevice(),rhi::defaultShaderDirectory());
             rhi::validateFrameLifecycle(rhi::graphicsDevice());
+            pt::validatePathTracingBridge(rhi::graphicsDevice());
             rhi::shutdown();
         } catch (...) {
             rhi::shutdown();glfwDestroyWindow(validationWindow);glfwTerminate();throw;

@@ -9,6 +9,7 @@ using nlohmann::json;
 using std::shared_ptr;
 
 // connect between path tracer and real time rendering part
+namespace render {struct BakedAtmosphere;}
 class Connector{
 public:
     static Connector* GetInstance(){
@@ -19,6 +20,7 @@ public:
     void buildPTSceneFromRenderScene(shared_ptr<PTScene> ptscene, const shared_ptr<RenderScene> renderScene);
     void passDataToPTConfig(json& data);
     void LaunchPathTracingWithRenderScene(shared_ptr<RenderScene> scene);
+    void LaunchPathTracingWithSnapshot(std::shared_ptr<const render::RenderWorldSnapshot>, const render::BakedAtmosphere &);
 
 public:
     std::vector<std::thread> threadpool;

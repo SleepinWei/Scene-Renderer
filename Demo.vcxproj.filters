@@ -522,4 +522,14 @@
     <ClInclude Include="include\renderer\rhi\GpuTerrain.h" />
     <ClInclude Include="include\renderer\rhi\GuiRenderer.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\PT\CpuPathTracer.cpp" />
+    <ClCompile Include="src\PT\CpuPathTracingEntry.cpp" />
+    <ClCompile Include="src\PT\PathTracingValidation.cpp" />
+    <ClCompile Include="src\renderer\rhi\AtmosphereBake.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\PT\CpuPathTracer.h" />
+    <ClInclude Include="include\renderer\rhi\AtmosphereBake.h" />
+  </ItemGroup>
 </Project>

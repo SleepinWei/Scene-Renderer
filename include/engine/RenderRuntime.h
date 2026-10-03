@@ -2,13 +2,20 @@
 #include "engine/BoundedQueue.h"
 #include "renderer/rhi/SceneSnapshot.h"
 #include "renderer/rhi/GuiRenderer.h"
+#include "renderer/rhi/AtmosphereBake.h"
+#include <future>
 #include <atomic>
 #include <thread>
 namespace engine {
+struct AtmosphereCapture {
+    render::FrameData frame;
+    std::promise<render::BakedAtmosphere> completion;
+};
 struct RenderPacket {
     std::shared_ptr<const render::RenderWorldSnapshot> world;
     render::GuiFrame gui;
     std::string screenshot;
+    std::shared_ptr<AtmosphereCapture> atmosphereCapture;
 };
 class RenderRuntime {
   public:
@@ -16,6 +23,8 @@ class RenderRuntime {
                   size_t queueCapacity = 2);
     ~RenderRuntime();
     bool submit(RenderPacket);
+    // Synchronous CPU request; GPU bake executes exclusively on the render owner thread.
+    render::BakedAtmosphere captureAtmosphere(const render::FrameData &);
     void notifySurfaceExtent(uint32_t width, uint32_t height) {
         surfaceExtent_.store((uint64_t(width) << 32) | height);
     }

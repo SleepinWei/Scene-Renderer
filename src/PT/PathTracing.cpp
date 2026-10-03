@@ -3,6 +3,7 @@
 //#include"PTVec.h"
 #include"PT/PTHeader.h"
 #include"PT/PTScene.h"
+#include "PT/CpuPathTracer.h"
 #include<PT/hittable/Rect.h>
 #include<utility>
 
@@ -63,7 +64,11 @@ void cornell_box(shared_ptr<PTScene> scene) {
 }
 
 void PathTracingRun(shared_ptr<PTScene> pt_scene) {
-	srand(time(0));
+    if(pt_scene->cpuScene) {
+        pt::Options options;auto config=PTConfig::GetInstance();options.samples=uint32_t(std::max(1,config->samples));options.maxDepth=uint32_t(std::max(1,config->max_depth));
+        if(pt_scene->camera){options.width=uint32_t(pt_scene->camera->width);options.height=uint32_t(pt_scene->camera->height);}
+        auto image=pt::render(*pt_scene->cpuScene,options);pt::writeImage(image,options.exposure,"build/path-tracing/editor");return;
+    }
 	auto config = PTConfig::GetInstance();
 
 	int samples = config->samples;

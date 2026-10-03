@@ -184,6 +184,7 @@ Device::NativeBuffer Device::nativeBuffer(BufferHandle handle, BufferUsage requi
     return record.native;
 }
 const BufferDesc& Device::bufferDesc(BufferHandle handle) const { return buffer(handle).desc; }
+bool hasDevice(){return active && active->isOpen();}
 bool usesNativeRenderer(){return active && active->isOpen() && active->backend()!=Backend::OpenGL && !legacy;}
 void useLegacyRenderer(bool value){legacy=value;}
 bool legacyRendererRequested(){return legacy;}

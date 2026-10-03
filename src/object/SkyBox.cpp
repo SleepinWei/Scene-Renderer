@@ -25,7 +25,7 @@ SkyBox::SkyBox() {
 }
 
 void SkyBox::init(){
-    if(rhi::usesNativeRenderer())return;
+    if(!rhi::hasDevice() || rhi::usesNativeRenderer())return;
 	float skyboxVertices[] = {
 		// positions          
 		-1.0f,  1.0f, -1.0f,
