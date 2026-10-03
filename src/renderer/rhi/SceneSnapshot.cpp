@@ -307,7 +307,12 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
         if (component) {
             auto grassComponent = scene->terrain()->getComponent<Grass>();
             bool grass = bool(grassComponent);
-            const auto vegetation = grass ? grassComponent->settings() : VegetationSettings{};
+            auto vegetation = grass ? grassComponent->settings() : VegetationSettings{};
+            const auto shoreline = component->settings().shoreline;
+            if(shoreline.enabled) {
+                vegetation.exclusionSeaLevel=shoreline.seaLevel;vegetation.exclusionHeightRange=shoreline.heightRange;
+                vegetation.exclusionSlopeMin=shoreline.slopeMin;vegetation.exclusionSlopeMax=shoreline.slopeMax;
+            }
             uint64_t key = component->assetId;
             uint64_t revision = 0xcbf29ce484222325ull;
             auto mix = [&](uint64_t value) {
@@ -316,6 +321,8 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
             mix(component->getSourceRevision());
             mix(component->settings().maxLeaves);
             mix(grass);
+            mix(shoreline.enabled);
+            if(shoreline.enabled)for(auto& path:shoreline.paths)mix(std::hash<std::string>{}(path));
             if (grass) {
                 mix(vegetation.capacity);
                 mix(std::hash<std::string>{}(vegetation.waterMaskPath));
@@ -362,7 +369,7 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
             }
             auto source = requestPayload(
                 state_->terrain, revision,
-                [key, revision, grass, vegetation, heightPath, heightVT, materialVT, w, h, capacity,
+                [key, revision, grass, vegetation, shoreline, heightPath, heightVT, materialVT, w, h, capacity,
                  heights = std::move(heights), material] {
                     auto payload = std::make_shared<TerrainPayload>();
                     payload->id = key;
@@ -370,6 +377,7 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
                     payload->capacity = capacity;
                     payload->grass = grass;
                     payload->vegetation = vegetation;
+                    if(shoreline.enabled)for(size_t i=0;i<4;++i)payload->shorelineImages[i]=ImageRGBA8::loadShared(shoreline.paths[i]);
                     if (!vegetation.waterMaskPath.empty())
                         payload->waterMask = ImageRGBA8::loadShared(vegetation.waterMaskPath);
                     if (!heightVT.empty())
@@ -400,6 +408,8 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
                 wait);
             SnapshotTerrain terrain;
             terrain.vegetation = vegetation;
+            terrain.extension.shoreHeight={shoreline.seaLevel,shoreline.heightRange,shoreline.wetBelow,shoreline.wetAbove};
+            terrain.extension.shoreSurface={shoreline.textureLength,shoreline.slopeMin,shoreline.slopeMax,shoreline.normalStrength};
             terrain.source = source;
             terrain.model = component->settings().model;
             terrain.wireframe = component->settings().polyMode == GL_LINE;

@@ -599,6 +599,14 @@ void TerrainComponent::loadFromJson(json& data) {
         model=glm::scale(glm::translate(glm::mat4(1),glm::vec3(0,yShift,0)),glm::vec3(200,yScale,200));
     }
     if(data.contains("materialVT"))materialVirtualTexture=data.at("materialVT").get<std::string>();
+    if(data.contains("shoreline")) {
+        auto& shore=data.at("shoreline");shoreline.enabled=true;
+        shoreline.seaLevel=shore.value("seaLevel",0.f);shoreline.heightRange=shore.value("heightRange",24.f);
+        shoreline.wetBelow=shore.value("wetBelow",1.f);shoreline.wetAbove=shore.value("wetAbove",3.f);
+        shoreline.textureLength=shore.value("textureLength",30.f);shoreline.normalStrength=shore.value("normalStrength",1.f);
+        shoreline.slopeMin=shore.value("slopeMin",.7f);shoreline.slopeMax=shore.value("slopeMax",.95f);
+        shoreline.paths=shore.at("textures").get<std::array<std::string,4>>();shoreline.validate();
+    }
     maxLeaves=data.value("maxLeaves",2048u);if(maxLeaves<25 || maxLeaves>25600)throw std::invalid_argument("Terrain maxLeaves outside 25..25600");
 	if (!data.contains("heightVT") && data.find("heightMap") != data.end()) {
 		std::string heightmap_path = data["heightMap"].get < std::string>();
@@ -615,7 +623,7 @@ void TerrainComponent::loadFromJson(json& data) {
 }
 
 TerrainConfiguration TerrainComponent::settings() const {
-    checkLogicThread();return {yScale,yShift,polyMode,model,material,terrainMaterial,heightSourcePath,heightVirtualTexture,materialVirtualTexture,maxLeaves};
+    checkLogicThread();return {yScale,yShift,polyMode,model,material,terrainMaterial,heightSourcePath,heightVirtualTexture,materialVirtualTexture,maxLeaves,shoreline};
 }
 void TerrainComponent::setSettings(const TerrainConfiguration& value) {
     checkLogicThread();
@@ -623,11 +631,12 @@ void TerrainComponent::setSettings(const TerrainConfiguration& value) {
        (value.polyMode!=GL_FILL && value.polyMode!=GL_LINE))throw std::invalid_argument("Invalid terrain settings");
     for(int c=0;c<4;++c)for(int r=0;r<4;++r)if(!std::isfinite(value.model[c][r]))throw std::invalid_argument("Nonfinite terrain transform");
     if(std::abs(glm::determinant(value.model))<1e-12f)throw std::invalid_argument("Singular terrain transform");
+    value.shoreline.validate();
     if(value.material)value.material->checkLogicThread();if(value.terrainMaterial)value.terrainMaterial->checkLogicThread();
     if(heightSourcePath!=value.heightSourcePath || heightVirtualTexture!=value.heightVirtualTexture || materialVirtualTexture!=value.materialVirtualTexture || maxLeaves!=value.maxLeaves)++sourceRevision;
     yScale=value.yScale;yShift=value.yShift;polyMode=value.polyMode;model=value.model;
     material=value.material;terrainMaterial=value.terrainMaterial;heightSourcePath=value.heightSourcePath;
-    heightVirtualTexture=value.heightVirtualTexture;materialVirtualTexture=value.materialVirtualTexture;maxLeaves=value.maxLeaves;invalidate();
+    heightVirtualTexture=value.heightVirtualTexture;materialVirtualTexture=value.materialVirtualTexture;maxLeaves=value.maxLeaves;shoreline=value.shoreline;invalidate();
 }
 void TerrainComponent::setHeightData(uint32_t width,uint32_t height,std::vector<float> pixels) {
     checkLogicThread();if(width<2 || height<2 || width>16384 || height>16384 || pixels.size()!=size_t(width)*height)

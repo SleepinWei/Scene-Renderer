@@ -1,0 +1,12 @@
+Aerial Beach 01
+Author: Rob Tuytel
+Publisher: Poly Haven
+Asset: https://polyhaven.com/a/aerial_beach_01
+License: CC0 1.0 Universal
+License text: https://creativecommons.org/publicdomain/zero/1.0/
+
+The repository contains processed 1K diffuse, OpenGL normal, roughness and
+ambient occlusion textures. Each image is repacked into a vertical mip atlas;
+diffuse levels average linear light, normal levels are normalized, and AO /
+roughness / metallic-zero are packed into RGB. Original file URLs and checksums
+are recorded in samples/beach-material.json.

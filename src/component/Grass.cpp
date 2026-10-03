@@ -8,6 +8,7 @@
 
 Grass::Grass() {
 	Component::name = "Grass";
+	settings_.nearSpacing=.15f;settings_.maxLod=3;
 	initDone = false;
 	shader = nullptr;
 	outPoseBuffer = nullptr;

@@ -77,6 +77,52 @@ void validateTerrainRhi(std::shared_ptr<rhi::GraphicsDevice> d,const std::string
         std::sort(result.begin(),result.end(),[](auto a,auto b){return a.x!=b.x?a.x<b.x:a.z<b.z;});return result;};
     auto roots0=roots(poses),roots1=roots(wind);check(roots0.size()==roots1.size(),"Wind changed vegetation population");
     for(size_t i=0;i<roots0.size();++i)check(glm::length(roots0[i]-roots1[i])<1e-5f,"Wind moved vegetation roots");
+    {
+        auto center=f;center.cameraPosition={0,6,0};center.view=glm::lookAt(center.cameraPosition,glm::vec3(0,0,-1),glm::vec3(0,1,0));
+        center.viewProjection=correction*glm::perspective(glm::radians(65.f),1.f,.1f,100.f)*center.view;
+        terrain.update(center,model);
+        VegetationSettings dense;dense.frustumCull=false;dense.maxLod=5;dense.distance=30;dense.fadeStart=25;
+        dense.nearSpacing=.15f;dense.farSpacing=1.5f;dense.denseRadius=2;dense.sparseRadius=7;
+        GpuGrass population(d,directory,terrainOwner,model,16384,dense);population.update(model,0);
+        auto populationArgs=population.readArguments();uint32_t close=0,far=0;
+        for(auto& pose:population.readPoses(populationArgs.instanceCount)) {
+            float radius=glm::length(glm::vec2(pose[3].x,pose[3].z));
+            if(radius<2)++close;if(radius>6 && radius<8)++far;
+        }
+        float closeDensity=close/(glm::pi<float>()*4),farDensity=far/(glm::pi<float>()*28);
+        check(closeDensity>35 && farDensity<3 && closeDensity>farDensity*10,"World-space grass density failed near/far census");
+        GpuGrass limited(d,directory,terrainOwner,model,512,dense);limited.update(model,0);
+        auto limitedArgs=limited.readArguments();check(limitedArgs.instanceCount>350 && limitedArgs.instanceCount<=512,"Near grass was lost under capacity pressure");
+        for(auto& pose:limited.readPoses(limitedArgs.instanceCount))check(glm::length(glm::vec2(pose[3].x,pose[3].z))<=2.001f,"Far grass consumed reserved near budget");
+        auto sandMask=std::make_shared<const ImageRGBA8>(ImageRGBA8{1,1,{255,255,255,255}});
+        dense.waterLevel=0;dense.shoreMargin=0;dense.exclusionHeightRange=4;
+        GpuGrass sandGrass(d,directory,terrainOwner,model,16384,dense,{},sandMask);sandGrass.update(model,0);
+        check(sandGrass.readArguments().instanceCount==0,"Beach coverage did not exclude grass");
+        std::cout<<"World-space grass census: near "<<closeDensity<<" clumps/m2, far "<<farDensity<<" clumps/m2; sand exclusion passed\n";
+        terrain.update(f,model);
+    }
+    {
+        MaterialDesc sand=desc;sand.parameters.albedoAlpha=glm::vec4(1);sand.parameters.factors={0,.9f,1,0};
+        sand.extension.shoreHeight={0,4,1,3};
+        auto atlas=[](std::array<uint8_t,4> value){ImageRGBA8 image{4,8,std::vector<uint8_t>(128)};
+            for(size_t at=0;at<128;at+=4)std::copy(value.begin(),value.end(),image.pixels.begin()+at);
+            return std::make_shared<const ImageRGBA8>(std::move(image));};
+        sand.shorelineImages={atlas({204,153,102,255}),atlas({160,128,251,255}),atlas({128,204,0,255}),
+            std::make_shared<const ImageRGBA8>(ImageRGBA8{1,1,{255,255,255,255}})};
+        auto sandMaterial=std::make_shared<GpuMaterial>(d,sand,virtualMaterial);
+        renderer.render(f,{{terrain.mesh(),sandMaterial,model}});auto sandPositions=renderer.readGBuffer(0);
+        auto sandColors=renderer.readGBuffer(2),sandNormals=renderer.readGBuffer(1),sandAO=renderer.readGBuffer(3);uint32_t sandPixels=0;
+        for(size_t at=0;at<sandPositions.size();at+=4)if(sandPositions[at+3]==1) {
+            float h=sandPositions[at+1],t=std::clamp((h+1)/4,0.f,1.f),wet=1-t*t*(3-2*t);
+            glm::vec3 expected=glm::pow(glm::vec3(.8f,.6f,.4f),glm::vec3(2.2f))*(1-.55f*wet);
+            check(glm::length(glm::vec3(sandColors[at],sandColors[at+1],sandColors[at+2])-expected)<.002f,"Beach diffuse/wetness blend incorrect");
+            check(std::abs(sandNormals[at+3]-(.8f*(1-.5f*wet)))<.002f,"Beach roughness blend incorrect");
+            check(std::abs(sandAO[at+3]-128/255.f)<.002f,"Beach AO packing incorrect");
+            check(std::abs(glm::length(glm::vec3(sandNormals[at],sandNormals[at+1],sandNormals[at+2]))-1)<.002f,"Beach normal is not normalized");++sandPixels;
+        }
+        check(sandPixels>100,"Beach validation drew no terrain");
+        std::cout<<"Beach wet diffuse, roughness and AO G-buffer validation passed; pixels "<<sandPixels<<"\n";
+    }
     std::cout<<"RHI grass GPU poses, height attachment, bounded indirect instance generation, vertex storage sampling and wind passed; instances "<<grassArgs.instanceCount<<", pixels "<<blades<<"\n";
     f.cameraPosition={0,70,100};f.view=glm::lookAt(f.cameraPosition,glm::vec3(0),glm::vec3(0,1,0));terrain.update(f,model);check(terrain.readNodes().size()/4<=fineLeaves,"Terrain distant view increased refinement");
     // Force the mesh budget to exhaust with uneven LOD, then verify a closed

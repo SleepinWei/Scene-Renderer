@@ -148,7 +148,7 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
     // Shadow attachments belong to the lights in each scene.
 
 
-    if (name == "mountain-lake" || name == "mountain-lake-ground") {
+    if (name == "mountain-lake" || name == "mountain-lake-ground" || name == "mountain-lake-beach") {
         std::ifstream input("samples/assets/terrain/mountain-lake/scene.json");
         if (!input) throw std::runtime_error("Mountain Lake is missing; download the official archives and run python3 tools/prepare_mountain_lake.py (see docs/mountain-lake.md)");
         nlohmann::json config; input >> config;
@@ -184,7 +184,8 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
         auto grass = std::make_shared<Grass>();
         grass->updateSettings([&](auto& value){
             value.capacity=65536;value.maxLod=3;value.samplesPerCell=8;value.distance=180;value.fadeStart=120;
-            value.density=.9f;value.heightScale=2.8f;value.widthScale=2.5f;
+            value.nearSpacing=.15f;value.farSpacing=3.5f;value.denseRadius=10;value.sparseRadius=70;
+            value.density=.95f;value.heightScale=2.8f;value.widthScale=2.5f;
             value.minimumNormalY=.8f;value.waterLevel=lake->settings().seaLevel;value.shoreMargin=1.5f;
             value.maximumAltitude=1200;value.waterMaskPath=lake->settings().waterMaskPath;
         });
@@ -192,6 +193,8 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
         target->setCamera(std::make_shared<Camera>(glm::vec3(-2600,800,2600),glm::vec3(0,1,0),-45,3));
         if(name=="mountain-lake-ground")
             target->setCamera(std::make_shared<Camera>(glm::vec3(-1050,464,2000),glm::vec3(0,1,0),-45,-4));
+        if(name=="mountain-lake-beach")
+            target->setCamera(std::make_shared<Camera>(glm::vec3(-1050,439,1750),glm::vec3(0,1,0),-60,-9));
         target->mainCamera()->setClipPlanes(.1f,16000);
         target->mainCamera()->setMovementSpeed(150);
         target->mainCamera()->setZoom(62); target->mainCamera()->setExposure(1.4f);

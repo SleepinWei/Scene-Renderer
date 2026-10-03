@@ -15,11 +15,12 @@ struct alignas(16) MaterialParameters {
     glm::vec4 factors{1, 1, 1, 0};        // metallic, roughness, AO strength, alpha cutoff.
     glm::vec4 emissiveNormal{0, 0, 0, 1}; // emissive RGB, normal strength.
 };
-enum class MaterialFeature : int { VirtualTexture = 1 };
+enum class MaterialFeature : int { VirtualTexture = 1, Shoreline = 2 };
 struct alignas(16) MaterialExtension {
     glm::vec4 lobes{0, .5f, 0, 0};
     glm::vec4 settings{.1f, .05f, 0, 0};
     glm::ivec4 features{0};
+    glm::vec4 shoreHeight{0,24,1,3}, shoreSurface{30,.7f,.95f,1};
 };
 struct MaterialDesc {
     MaterialParameters parameters;
@@ -29,6 +30,7 @@ struct MaterialDesc {
     // A shared source takes precedence over the corresponding value image.
     std::array<std::shared_ptr<const ImageRGBA8>, 5> sharedImages;
     std::shared_ptr<const ImageRGBA8> sharedSpecial;
+    std::array<std::shared_ptr<const ImageRGBA8>,4> shorelineImages;
     MaterialExtension extension;
     ImageRGBA8 special;
     bool transparent = false;
@@ -65,6 +67,7 @@ class GpuMaterial {
     MaterialParameters parameterData_;
     MaterialExtension extensionData_;
     bool transparent_ = false;
+    bool shoreline_ = false;
     rhi::BindingSetHandle bindings_, shadowBindings_, rsmBindings_;
 };
 } // namespace render

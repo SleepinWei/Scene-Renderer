@@ -4,10 +4,12 @@ layout(local_size_x=16,local_size_y=16,local_size_z=1)in;
 #include "grass-placement.glsl"
 layout(set=1,binding=1,std430) writeonly buffer OutPose {mat4 outPose[];};
 layout(set=1,binding=2,std430) buffer GrassIndirect {uint indexCount;uint instanceCount;uint firstIndex;int baseVertex;uint firstInstance;};
-layout(set=1,binding=3,std430) readonly buffer GrassCandidates {uint candidateCount;};
-void generate(uint sampleIndex){
-    vec3 position;uint seed;float growth;if(!candidate(sampleIndex,position,seed,growth))return;
-    float budget=candidateCount<=uint(grassSettings.y)?1.:.9*grassSettings.y/float(candidateCount);
+layout(set=1,binding=3,std430) readonly buffer GrassCandidates {uint candidateCount;uint nearCandidateCount;};
+void generate(uint sampleIndex,uint side){
+    vec3 position;uint seed;float growth;if(!candidate(sampleIndex,side,position,seed,growth))return;
+    float budgetCapacity=grassSettings.y,nearCount=float(nearCandidateCount),farCount=float(candidateCount-nearCandidateCount);
+    float budget=nearCandidate(position)?(nearCount<=budgetCapacity?1.:.9*budgetCapacity/max(nearCount,1.)):
+        (farCount<=max(budgetCapacity-nearCount,0.)?1.:.9*max(budgetCapacity-nearCount,0.)/max(farCount,1.));
     if(random(seed,5u)>budget)return;
     float angle=6.2831853*random(seed,6u),c=cos(angle),s=sin(angle);
     float h=shape.x*growth,w=shape.y*growth;
@@ -17,4 +19,4 @@ void generate(uint sampleIndex){
     if(index>=capacity){atomicMin(instanceCount,capacity);return;}outPose[index]=model;
 }
 
-void main(){if(!leafEligible())return;preparePatch();uint blocks=uint(controls.z)/2u;for(uint i=0;i<blocks*blocks;i++)generate(i);}
+void main(){if(!leafEligible())return;preparePatch();uint side=cellSide(),blocks=side/2u;for(uint i=0;i<blocks*blocks;i++)generate(i,side);}

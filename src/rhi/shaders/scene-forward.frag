@@ -15,13 +15,13 @@ layout(set=2,binding=7) uniform sampler2D backDepthBuffer;
 #include "pbr-lighting.glsl"
 void main() {
     vec2 screenUV=gl_FragCoord.xy/vec2(textureSize(aoBuffer,0));
-    vec4 base = sampleMaterial(albedoMap, uv) * albedoAlpha;
+    vec4 base = mappedBase();
     if (base.a < factors.w) discard;
     // Preserve the existing PBR path's manual albedo decoding and HDR curve.
     vec3 albedo = pow(max(base.rgb,vec3(0)), vec3(2.2));
-    float metallic = clamp(sampleMaterial(metallicMap, uv).b * factors.x,0,1);
-    float roughness = clamp(sampleMaterial(roughnessMap, uv).g * factors.y,0.045,1);
-    float ao = mix(1.0, sampleMaterial(aoMap, uv).r, factors.z)*texture(aoBuffer,screenUV).r;
+    float metallic = mappedMetallic();
+    float roughness = mappedRoughness();
+    float ao = mappedAO()*texture(aoBuffer,screenUV).r;
     vec3 N = mappedNormal();
     if(materialSettings.z>0){color=vec4(albedo+emissiveNormal.rgb,base.a);return;}
     color = vec4(shadePbrExtended(worldPosition,N,mappedTangent(N),albedo,metallic,roughness,ao,emissiveNormal.rgb,mappedLobes(),max(texture(backDepthBuffer,screenUV).r-gl_FragCoord.z,0.))+texture(indirectBuffer,screenUV).rgb,1);

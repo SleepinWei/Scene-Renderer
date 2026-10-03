@@ -159,7 +159,8 @@ SceneFrame SceneAdapter::resolveCandidate(const RenderWorldSnapshot &snapshot) {
         if (!device_->computeLimits().maxStorageImages)
             throw std::invalid_argument("Terrain requires storage compute");
         if (!cache_->terrain || cache_->terrain->source != source) {
-            admit(size_t(source->capacity) * 64 * (4 * sizeof(MeshVertex) + 6 * 4) + 12 * 1024 * 1024 +
+            size_t shoreBytes=0;for(const auto& image:source->shorelineImages)if(image)shoreBytes+=image->pixels.size();
+            admit(shoreBytes+size_t(source->capacity) * 64 * (4 * sizeof(MeshVertex) + 6 * 4) + 12 * 1024 * 1024 +
                   (source->grass ? size_t(source->vegetation.capacity)*64 : 0) +
                   (source->waterMask ? source->waterMask->pixels.size() : 0));
             auto record = std::make_unique<Cache::TerrainRecord>();
@@ -175,11 +176,12 @@ SceneFrame SceneAdapter::resolveCandidate(const RenderWorldSnapshot &snapshot) {
                 record->virtualMaterial->enableAsync();
             MaterialDesc material;
             material.parameters = terrain.parameters;
+            material.extension = terrain.extension;material.shorelineImages=source->shorelineImages;
             record->material = std::make_shared<GpuMaterial>(device_, material, record->virtualMaterial);
             record->parameters = terrain.parameters;
             if (source->grass) {
                 record->grass = std::make_shared<GpuGrass>(device_, rhi::defaultShaderDirectory(),
-                                                           record->gpu, terrain.model, source->vegetation.capacity, source->vegetation, source->waterMask);
+                                                           record->gpu, terrain.model, source->vegetation.capacity, source->vegetation, source->waterMask, source->shorelineImages[3]);
                 MaterialDesc grass;
                 grass.parameters.factors = {0, 1, 1, 0};
                 grass.parameters.emissiveNormal.w = 0;
@@ -202,6 +204,7 @@ SceneFrame SceneAdapter::resolveCandidate(const RenderWorldSnapshot &snapshot) {
         }
         result.frame.historyKey ^= record.gpu->heightTexture()->version() * 0x9e3779b97f4a7c15ull ^
                                    record.virtualMaterial->version() ^ (record.epoch * 0xd1b54a32d192ed03ull);
+        record.material->updateExtension(terrain.extension);
         result.packets.push_back({record.gpu->mesh(), record.material, terrain.model, record.epoch*0xd1b54a32d192ed03ull, terrain.wireframe,record.gpu->geometryStable()});
         if (record.grass) {
             record.grass->update(terrain.model, result.frame.timeSeconds, terrain.vegetation.value_or(source->vegetation));

@@ -8,13 +8,13 @@ layout(location=0) out vec4 color;
 #define RHI_TWO_SIDED (materialSettings.w>0.)
 #include "pbr-lighting.glsl"
 void main() {
-    vec4 base = sampleMaterial(albedoMap, uv) * albedoAlpha;
+    vec4 base = mappedBase();
     if (base.a < factors.w) discard;
     // Preserve the existing PBR path's manual albedo decoding and HDR curve.
     vec3 albedo = pow(max(base.rgb,vec3(0)), vec3(2.2));
-    float metallic = clamp(sampleMaterial(metallicMap, uv).b * factors.x,0,1);
-    float roughness = clamp(sampleMaterial(roughnessMap, uv).g * factors.y,0.045,1);
-    float ao = mix(1.0, sampleMaterial(aoMap, uv).r, factors.z);
+    float metallic = mappedMetallic();
+    float roughness = mappedRoughness();
+    float ao = mappedAO();
     vec3 N = mappedNormal();
     if(materialSettings.z>0){color=vec4(albedo+emissiveNormal.rgb,1);return;}
     color = vec4(shadePbrExtended(worldPosition,N,mappedTangent(N),albedo,metallic,roughness,ao,emissiveNormal.rgb,mappedLobes(),texture(specialMap,uv).a*materialSettings.x),1);

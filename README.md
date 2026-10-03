@@ -178,15 +178,20 @@ GUI 可修改太阳仰角、方位、角半径、多次散射强度、地面反�
 ![新 RHI／Metal Mountain Lake 山湖场景](img/metal/mountain-lake.png)
 
 ```sh
-python3 tools/prepare_mountain_lake.py # 先按说明下载两个官方归档
+python3 tools/prepare_mountain_lake.py # 先按说明下载两个官方归档；沙滩贴图已随仓库提供
 ./build/Scene-Renderer --classic mountain-lake
 ./build/Scene-Renderer --classic mountain-lake-ground # 湖岸植被近景
+./build/Scene-Renderer --classic mountain-lake-beach  # 沙滩 PBR 近景
 ./build/Scene-Renderer --render-gallery img/metal mountain-lake
 ```
 
-草丛采用四片弯叶、360° 随机朝向、距离淡出及有上限的 GPU 间接实例。密集草块共享地形角点，减少 VT 采样；水面省去完全干燥区域的网格单元。修复与验收见 [植被与 FFT 湖面](docs/vegetation-and-lake-water.md)。
+草丛采用四片弯叶、360° 随机朝向，按世界距离调节密度：10 m 内约 15 cm 间距，逐渐过渡到 70 m 处的 3.5 m 间距，120–180 m 淡出。近区优先使用 GPU 实例预算，满密度目标约 42 丛／169 片草叶每平方米，实际数量受坡度、水域与视锥过滤影响。密集草块共享地形角点；水面省去完全干燥区域的网格单元。修复与验收见 [植被与 FFT 湖面](docs/vegetation-and-lake-water.md) 和 [沙滩与草地密度](docs/beach-and-grass-density.md)。
 
 ![Metal 湖岸草丛近景](img/metal/mountain-lake-ground.png)
+
+湖岸新增 [Poly Haven Aerial Beach 01](https://polyhaven.com/a/aerial_beach_01) 沙滩材质（Rob Tuytel，CC0），包含底色、法线、粗糙度和 AO。30 m 世界坐标平铺与 mip 过滤补充近景细节；岸线距离、相对水位和坡度控制混合，湿沙更暗、更光滑，草在沙地区域退让。
+
+![Metal 湖岸沙滩近景](img/metal/mountain-lake-beach.png)
 
 ### 程序生成地形与草
 
@@ -455,7 +460,7 @@ CPU、Metal/Vulkan PT 和 CPU BDPT 可以加 `--pt-denoise` 使用 **Open Image 
 | 命令 | 用途 |
 | --- | --- |
 | `--demo` | 自动生成的功能演示，无需历史资产包 |
-| `--classic <name>` | 选择 `cornell`、`bunny`、`helmet`、`sponza`、`san-miguel`、`sky`、`ocean`、`ocean-clear` 或 `terrain` |
+| `--classic <name>` | 选择 `cornell`、`bunny`、`helmet`、`sponza`、`san-miguel`、`sky`、`ocean`、`ocean-clear`、`terrain`、`mountain-lake`、`mountain-lake-ground` 或 `mountain-lake-beach` |
 | `--frames <N>` | 窗口渲染 N 帧后退出 |
 | `--render-gallery <目录> core` | 离屏生成三个随仓库提供的基础示例 |
 | `--render-gallery <目录> gi` | 生成两个 GI 场景、RSM 开关对照及纯间接光／太阳／天空贡献图 |

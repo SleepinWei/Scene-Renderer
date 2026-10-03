@@ -3,6 +3,7 @@
 #include<vector>
 #include"../component/Component.h"
 #include<memory>
+#include "component/ShorelineSettings.h"
 
 class Material;
 enum class ShaderType; 
@@ -17,7 +18,7 @@ struct TerrainConfiguration {
     glm::mat4 model{1};
     std::shared_ptr<Material> material,terrainMaterial;
     std::string heightSourcePath,heightVirtualTexture,materialVirtualTexture;
-    uint32_t maxLeaves=2048;
+    uint32_t maxLeaves=2048;ShorelineSettings shoreline;
 };
 class TerrainComponent:public Component,public std::enable_shared_from_this<TerrainComponent>{
 public:
@@ -67,7 +68,7 @@ private:
 	std::shared_ptr<Material> terrainMaterial; 
 	float* heightData=nullptr;
     std::string heightSourcePath,heightVirtualTexture,materialVirtualTexture;uint32_t heightWidth=0,heightHeight=0;
-    uint32_t maxLeaves=2048;uint64_t sourceRevision=0;
+    uint32_t maxLeaves=2048;ShorelineSettings shoreline;uint64_t sourceRevision=0;
 public:
     void invalidateHeight(){checkLogicThread();++sourceRevision;}
 

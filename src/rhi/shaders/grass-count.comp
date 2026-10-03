@@ -2,6 +2,6 @@
 #extension GL_GOOGLE_include_directive : require
 layout(local_size_x=16,local_size_y=16,local_size_z=1)in;
 #include "grass-placement.glsl"
-layout(set=1,binding=3,std430) buffer GrassCandidates {uint candidateCount;};
-void main(){if(!leafEligible())return;preparePatch();uint blocks=uint(controls.z)/2u;
-    for(uint i=0;i<blocks*blocks;i++){vec3 position;uint seed;float growth;if(candidate(i,position,seed,growth))atomicAdd(candidateCount,1);}}
+layout(set=1,binding=3,std430) buffer GrassCandidates {uint candidateCount;uint nearCandidateCount;};
+void main(){if(!leafEligible())return;preparePatch();uint side=cellSide(),blocks=side/2u;
+    for(uint i=0;i<blocks*blocks;i++){vec3 position;uint seed;float growth;if(candidate(i,side,position,seed,growth)){atomicAdd(candidateCount,1);if(nearCandidate(position))atomicAdd(nearCandidateCount,1);}}}

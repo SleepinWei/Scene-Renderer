@@ -33,6 +33,7 @@ struct TerrainPayload {
     bool grass = false;
     VegetationSettings vegetation;
     std::shared_ptr<const ImageRGBA8> waterMask;
+    std::array<std::shared_ptr<const ImageRGBA8>,4> shorelineImages;
 };
 struct SnapshotTerrain {
     std::optional<VegetationSettings> vegetation;
@@ -40,6 +41,7 @@ struct SnapshotTerrain {
     glm::mat4 model{1};
     MaterialParameters parameters;
     bool wireframe = false;
+    MaterialExtension extension;
 };
 // Contains values and const, detached CPU payloads; no GameObject, Component,
 // Camera, Material or GPU handle crosses the logic/render boundary.

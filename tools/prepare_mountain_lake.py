@@ -16,6 +16,8 @@ import numpy as np
 from PIL import Image
 from bake_terrain_vt import extent_for, height_levels, material_levels, write_pack
 
+from prepare_beach_material import shoreline_mask
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -117,6 +119,8 @@ def prepare(original, gltf, output, verify=True):
     (field[::-1]/span).astype('<f4').tofile(raw)
     albedo = output/'albedo.png'
     color.save(albedo)
+    beach = shoreline_mask(field,waterline,span)
+    Image.fromarray(np.rint(beach*255).astype(np.uint8)).save(output/'beach-mask.png')
     write_pack(output/'vt', 'height', height_levels(raw, 1025, 1025), True)
     write_pack(output/'vt', 'material', material_levels([albedo, None, None, None, None], extent_for(1025)), False)
     info = dict(heightVT=(output/'vt/height.json').as_posix(),
@@ -124,6 +128,11 @@ def prepare(original, gltf, output, verify=True):
                 sourceResolution=[1025,1025], sourceHorizontalSpan=span,
                 sourceElevation=[float(field.min()),float(field.max())],
                 sceneScale=1., modelScale=[span*.5,span,span*.5],
+                shoreline=dict(seaLevel=waterline,heightRange=24, textures=[
+                    "samples/assets/materials/aerial-beach-01/albedo-mips.png",
+                    "samples/assets/materials/aerial-beach-01/normal-mips.png",
+                    "samples/assets/materials/aerial-beach-01/arm-mips.png",
+                    (output/"beach-mask.png").as_posix()]),
                 seaLevel=waterline, source=manifest['source'], author=manifest['author'],
                 license=manifest['license'],
                 changes='Reconstructed source height grid; converted Z-up to Y-up; flipped source color rows; baked VT; replaced source water with an FFT lake preset.')
