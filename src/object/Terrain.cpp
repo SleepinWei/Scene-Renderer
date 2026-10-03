@@ -24,10 +24,10 @@ void Terrain::render(const std::shared_ptr<Shader>& shader) {
 	assert(shader == nullptr);
 	auto&& terrainComponent = std::static_pointer_cast<TerrainComponent>(GetComponent("TerrainComponent"));
 	auto&& grassComponent = std::static_pointer_cast<Grass>(GetComponent("Grass"));
-	if (terrainComponent && terrainComponent->initDone) {
+	if (terrainComponent && terrainComponent->initialized()) {
 		terrainComponent->render(terrainComponent->terrainGBuffer);
 	}
-	if (grassComponent && terrainComponent->initDone) {
+	if (grassComponent && terrainComponent->initialized()) {
 		grassComponent->render(grassComponent->shader);
 	}
 

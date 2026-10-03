@@ -43,7 +43,7 @@ void Ocean::initTextures() {
     for(auto* target : {&GaussianRandomRT_Texture,&HeightSpectrumRT_Texture,&DisplaceXSpectrumRT_Texture,
                        &DisplaceZSpectrumRT_Texture,&OutputRT_Texture,&DisplaceRT_Texture,&NormalRT_Texture,&BubblesRT_Texture}) {
         *target=std::make_shared<ImageTexture>();(*target)->genImageTexture(GL_RGBA32F,GL_RGBA,fft_size,fft_size);
-        glBindTexture(GL_TEXTURE_2D,(*target)->tex->id);
+        glBindTexture(GL_TEXTURE_2D,(*target)->tex->gpuId());
         glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
@@ -89,7 +89,7 @@ void Ocean::initMesh() {
 void Ocean::ComputeFFT(std::shared_ptr<Shader> shader,std::shared_ptr<ImageTexture> input) {
     shader->use();input->setBinding(5);OutputRT_Texture->setBinding(6);
     glDispatchCompute(fft_size/8,fft_size/8,1);glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-    std::swap(input->tex->id,OutputRT_Texture->tex->id);
+    input->tex->swapGpuStorage(*OutputRT_Texture->tex);
 }
 void Ocean::ComputeOceanValue() {
     if(FFTPow<3 || FFTPow>11 || fft_size!=initializedSize || MeshSize!=initializedMeshSize || MeshLength!=initializedLength || fft_size!=(1<<FFTPow))
@@ -144,7 +144,7 @@ void Ocean::Update() {
 void Ocean::Draw() {
     auto deferred=RenderManager::GetInstance()->deferredPass;
     const int width=InputManager::GetInstance()->width,height=InputManager::GetInstance()->height;
-    if(!opaqueSceneColor || opaqueSceneColor->width!=width || opaqueSceneColor->height!=height) {
+    if(!opaqueSceneColor || opaqueSceneColor->getWidth()!=width || opaqueSceneColor->getHeight()!=height) {
         opaqueSceneColor=std::make_shared<Texture>();opaqueSceneColor->genTexture(GL_RGBA16F,GL_RGBA,width,height);
         opaqueSceneBuffer=std::make_shared<FrameBuffer>();opaqueSceneBuffer->bindTexture(opaqueSceneColor,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D);
     }
@@ -168,7 +168,7 @@ void Ocean::Draw() {
     BubblesRT_Texture->tex->bind(GL_TEXTURE_2D,2);draw_shader->setInt("BubblesRT",2);
     glActiveTexture(GL_TEXTURE3);glBindTexture(GL_TEXTURE_2D,0);
     auto atmosphere=scene && scene->sky() ? std::static_pointer_cast<Atmosphere>(scene->sky()->GetComponent("Atmosphere")) : nullptr;
-    if(atmosphere && atmosphere->skyViewTexture)glBindTexture(GL_TEXTURE_2D,atmosphere->skyViewTexture->tex->id);
+    if(atmosphere && atmosphere->skyViewTexture)glBindTexture(GL_TEXTURE_2D,atmosphere->skyViewTexture->tex->gpuId());
     draw_shader->setInt("hasSky",atmosphere && atmosphere->skyViewTexture ? 1:0);draw_shader->setInt("skyview",3);
     opaqueSceneColor->bind(GL_TEXTURE_2D,4);draw_shader->setInt("opaqueScene",4);
     deferred->gPosition->bind(GL_TEXTURE_2D,5);draw_shader->setInt("scenePosition",5);
@@ -206,18 +206,39 @@ void Ocean::Draw() {
         glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT1,GL_TEXTURE_2D,0,0);glDrawBuffer(GL_COLOR_ATTACHMENT0);
         if(!copyDisplacementShader)copyDisplacementShader=std::make_shared<Shader>("./src/shader/ocean/ocean_CopyDisplacement.comp");
         auto copy=[&](const std::shared_ptr<Texture>& source,std::shared_ptr<Texture>& target) {
-            if(!target || target->width!=source->width || target->height!=source->height) {
-                target=std::make_shared<Texture>();target->genTexture(GL_RGBA32F,GL_RGBA,source->width,source->height);
-                glBindTexture(GL_TEXTURE_2D,target->id);glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
+            if(!target || target->getWidth()!=source->getWidth() || target->getHeight()!=source->getHeight()) {
+                target=std::make_shared<Texture>();target->genTexture(GL_RGBA32F,GL_RGBA,source->getWidth(),source->getHeight());
+                glBindTexture(GL_TEXTURE_2D,target->gpuId());glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
             }
             copyDisplacementShader->use();
-            glBindImageTexture(0,source->id,0,GL_FALSE,0,GL_READ_ONLY,GL_RGBA32F);
-            glBindImageTexture(1,target->id,0,GL_FALSE,0,GL_WRITE_ONLY,GL_RGBA32F);
-            glDispatchCompute((source->width+7)/8,(source->height+7)/8,1);
+            glBindImageTexture(0,source->gpuId(),0,GL_FALSE,0,GL_READ_ONLY,GL_RGBA32F);
+            glBindImageTexture(1,target->gpuId(),0,GL_FALSE,0,GL_WRITE_ONLY,GL_RGBA32F);
+            glDispatchCompute((source->getWidth()+7)/8,(source->getHeight()+7)/8,1);
             glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT|GL_TEXTURE_FETCH_BARRIER_BIT);
         };
         copy(DisplaceRT_Texture->tex,previousDisplacement);
         if(detail)copy(detailOcean->DisplaceRT_Texture->tex,previousDetailDisplacement);
         previousSeaLevel=seaLevel;
     }
+}
+
+void Ocean::setSettings(OceanConfiguration value) {
+    checkLogicThread();
+    if(value.fft_size<8 || value.fft_size>2048 || (value.fft_size&(value.fft_size-1)) ||
+       value.MeshSize<2 || value.MeshSize>1025 || value.MeshLength<=0)
+        throw std::invalid_argument("Invalid ocean domain or mesh resolution");
+    value.FFTPow=0;for(int n=value.fft_size;n>1;n>>=1)++value.FFTPow;
+    for(float v:{value.MeshLength,value.TimeScale,value.detailStrength,value.A,value.Lambda,value.HeightScale,
+                 value.BubblesScale,value.BubblesThreshold,value.WindScale,value.seaLevel,value.refractionStrength,
+                 value.deepWaterDistance,value.subsurfaceStrength,value.scatteringAnisotropy,value.outer_FresnelScale})
+        if(!std::isfinite(v))throw std::invalid_argument("Nonfinite ocean configuration");
+    if(value.A<0 || value.WindScale<0 || value.HeightScale<0 || value.BubblesScale<0 || value.detailStrength<0 ||
+       value.deepWaterDistance<=0 || value.subsurfaceStrength<0 || std::abs(value.scatteringAnisotropy)>=1 ||
+       value.outer_FresnelScale<0 || value.outer_FresnelScale>1 || value.outer_Gloss<0 || value.refractionStrength<0)
+        throw std::invalid_argument("Invalid ocean optical or spectrum configuration");
+    for(auto vector:{value.absorption,value.scattering,value.outer_OceanColorShallow,value.outer_OceanColorDeep,
+                     value.outer_BubblesColor,value.outer_Specular,value.outer_ambient})
+        for(int i=0;i<3;++i)if(!std::isfinite(vector[i]) || vector[i]<0)throw std::invalid_argument("Invalid ocean color/coefficient");
+    for(int i=0;i<4;++i)if(!std::isfinite(value.WindAndSeed[i]))throw std::invalid_argument("Invalid ocean wind");
+    static_cast<OceanConfiguration&>(*this)=value;invalidate();
 }

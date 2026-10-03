@@ -191,6 +191,7 @@ void Material::loadFromJson(json& data) {
 /// </summary>
 void Material::genTexture() {
     checkLogicThread();
+    for(const auto& entry:textures)if(entry.second && !entry.second->id && entry.second->data)initDone=false;
 	if (!initDone) {
 		initDone= true;
 		/*for (auto iter = texture_path.begin(); iter != texture_path.end(); ++iter) {
@@ -233,14 +234,14 @@ void Material::genTexture() {
 
 						offset += mipSize;
 					}
-					free(tex->data);tex->data=nullptr;
+
 				}
 				else {
 					// normal texture
 					glTexImage2D(GL_TEXTURE_2D, 0, tex->internalformat, tex->width, tex->height, 0, tex->format, GL_UNSIGNED_BYTE, tex->data);
 					glGenerateMipmap(GL_TEXTURE_2D);
-					stbi_image_free(tex->data);tex->data=nullptr;
-					tex->data = nullptr;
+
+
 				}
 				glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -285,8 +286,8 @@ void Material::genTextureFloat() {
 
 				// free data
 				delete[] float_data;
-				stbi_image_free(tex->data);tex->data=nullptr;
-				tex->data = nullptr;
+
+
 			}
 		}
 	}
@@ -304,7 +305,7 @@ Material::Material(const Material& other):engine::LogicAsset(other) {
     normalStrength=copy.normalStrength;
     opacityFactor=copy.opacityFactor;
     emissiveFactor=copy.emissiveFactor;
-    textures=std::move(copy.textures);texture_path=std::move(copy.texture_path);initDone=copy.initDone;parameterRevision_=other.parameterRevision();
+    textures=other.getTextures();texture_path=std::move(copy.texture_path);initDone=copy.initDone;parameterRevision_=other.parameterRevision();
 }
 MaterialProperties Material::properties() const {checkLogicThread();MaterialProperties result;
     result.hasSubSurface=hasSubSurface;
@@ -319,7 +320,7 @@ MaterialProperties Material::properties() const {checkLogicThread();MaterialProp
     result.emissiveFactor=emissiveFactor;
     return result;
 }
-MaterialData Material::snapshot() const {checkLogicThread();MaterialData result;static_cast<MaterialProperties&>(result)=properties();result.textures=textures;result.texture_path=texture_path;result.initDone=initDone;return result;}
+MaterialData Material::snapshot() const {checkLogicThread();MaterialData result;static_cast<MaterialProperties&>(result)=properties();for(const auto& entry:textures)if(entry.second)result.textures.emplace(entry.first,entry.second->snapshot());result.texture_path=texture_path;result.initDone=initDone;return result;}
 void Material::setProperties(const MaterialProperties& value) {
     checkLogicThread();
     validateProperties(value);
@@ -352,4 +353,22 @@ void Material::validateProperties(const MaterialProperties& value) {
        !nonnegative(value.normalStrength)||(value.metallicFactor&&!unit(*value.metallicFactor))||
        (value.roughnessFactor&&!unit(*value.roughnessFactor)))throw std::invalid_argument("Invalid PBR material factors");
     for(int i=0;i<3;i++)if(!nonnegative(value.albedoFactor[i])||!nonnegative(value.emissiveFactor[i]))throw std::invalid_argument("Material colors must be finite and nonnegative");
+}
+
+uint64_t Material::getContentRevision() const {
+    checkLogicThread();
+    const auto base=engine::LogicAsset::getContentRevision();
+    bool changed=base!=observedRevision_;size_t count=0;
+    for(const auto& entry:textures)if(entry.second) {
+        ++count;auto it=observedTextures_.find(entry.first);
+        if(it==observedTextures_.end() || it->second!=std::make_pair(entry.second->assetId,entry.second->revision()))changed=true;
+    }
+    if(count!=observedTextures_.size())changed=true;
+    if(changed) {
+        std::unordered_map<std::string,std::pair<uint64_t,uint64_t>> versions;
+        for(const auto& entry:textures)if(entry.second)versions.emplace(entry.first,std::make_pair(entry.second->assetId,entry.second->revision()));
+        derivedContentRevision_=std::max(derivedContentRevision_+1,base);
+        observedRevision_=base;observedTextures_=std::move(versions);
+    }
+    return derivedContentRevision_;
 }

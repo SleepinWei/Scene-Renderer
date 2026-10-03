@@ -1,5 +1,6 @@
 #pragma once
 #include "engine/LogicAsset.h"
+#include "renderer/Texture.h"
 #include <unordered_map>
 #include <vector>
 #include <string>
@@ -23,7 +24,7 @@ struct MaterialProperties {
     glm::vec3 emissiveFactor = glm::vec3(0);
 };
 struct MaterialData : MaterialProperties {
-    std::unordered_map<std::string, std::shared_ptr<Texture>> textures;
+    std::unordered_map<std::string, TextureSnapshot> textures;
     std::unordered_map<std::string, std::string> texture_path;
     bool initDone = false;
 };
@@ -34,6 +35,7 @@ class Material : public engine::LogicAsset, public std::enable_shared_from_this<
     ~Material();
     MaterialProperties properties() const;
     MaterialData snapshot() const;
+    uint64_t getContentRevision() const;
     void setProperties(const MaterialProperties &);
     uint64_t parameterRevision() const {
         checkLogicThread();
@@ -161,6 +163,7 @@ class Material : public engine::LogicAsset, public std::enable_shared_from_this<
     void genTextureFloat();
 
   private:
+    friend class GameObject;
     static void validateProperties(const MaterialProperties &);
     bool hasSubSurface = false;
     float alphaCutoff = 0;
@@ -176,4 +179,6 @@ class Material : public engine::LogicAsset, public std::enable_shared_from_this<
     std::unordered_map<std::string, std::string> texture_path;
     bool initDone = false;
     uint64_t parameterRevision_ = 1;
+    mutable uint64_t observedRevision_=0, derivedContentRevision_=0;
+    mutable std::unordered_map<std::string,std::pair<uint64_t,uint64_t>> observedTextures_;
 };

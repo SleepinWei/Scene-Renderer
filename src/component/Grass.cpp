@@ -68,7 +68,7 @@ void Grass::constructCall() {
 	computeShader->use();
 	// get terrainModel
 	auto&& terrainComp = std::static_pointer_cast<TerrainComponent>(this->owner()->GetComponent("TerrainComponent"));
-	auto& terrainModel = terrainComp->model;
+	const auto& terrainModel = terrainComp->getModel();
 	computeShader->setMat4("terrainModel", terrainModel);
 
 	glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, this->grassPatchesBuffer->ssbo);

@@ -503,9 +503,9 @@ void DepthPass::render(const std::shared_ptr<RenderScene> &scene)
 	// set shaders
 	auto &&sssShader = RenderManager::GetInstance()->getShader(ShaderType::PBR_SSS);
 	glActiveTexture(GL_TEXTURE18);
-	glBindTexture(GL_TEXTURE_2D, frontDepth->id);
+	glBindTexture(GL_TEXTURE_2D, frontDepth->gpuId());
 	glActiveTexture(GL_TEXTURE19);
-	glBindTexture(GL_TEXTURE_2D, backDepth->id);
+	glBindTexture(GL_TEXTURE_2D, backDepth->gpuId());
 
 	glCullFace(GL_BACK);
 
@@ -654,13 +654,13 @@ void DeferredPass::render(const std::shared_ptr<RenderScene> &scene)
 	lightingShader->use();
 	// bind textures
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, gNormal->id);
+	glBindTexture(GL_TEXTURE_2D, gNormal->gpuId());
 	glActiveTexture(GL_TEXTURE2);
-	glBindTexture(GL_TEXTURE_2D, gAlbedoSpec->id);
+	glBindTexture(GL_TEXTURE_2D, gAlbedoSpec->gpuId());
 	glActiveTexture(GL_TEXTURE3);
-	glBindTexture(GL_TEXTURE_2D, gPBR->id);
+	glBindTexture(GL_TEXTURE_2D, gPBR->gpuId());
 	glActiveTexture(GL_TEXTURE4);
-	glBindTexture(GL_TEXTURE_2D, gPosition->id);
+	glBindTexture(GL_TEXTURE_2D, gPosition->gpuId());
 	glActiveTexture(GL_TEXTURE6);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glActiveTexture(GL_TEXTURE5);
@@ -676,7 +676,7 @@ void DeferredPass::render(const std::shared_ptr<RenderScene> &scene)
 		}
 	}
 	glActiveTexture(GL_TEXTURE7);
-	glBindTexture(GL_TEXTURE_2D,RenderManager::GetInstance()->ssaoPass->gSSAO->id);
+	glBindTexture(GL_TEXTURE_2D,RenderManager::GetInstance()->ssaoPass->gSSAO->gpuId());
 
 	glCheckError();
 
@@ -686,7 +686,7 @@ void DeferredPass::render(const std::shared_ptr<RenderScene> &scene)
 	{
 		int texture_unit_index = i + base;
 		glActiveTexture(GL_TEXTURE0 + texture_unit_index);
-		glBindTexture(GL_TEXTURE_2D_ARRAY, scene->directionLights().at(i)->shadowTex->id);
+		glBindTexture(GL_TEXTURE_2D_ARRAY, scene->directionLights().at(i)->shadowTex->gpuId());
 		lightingShader->setInt("shadow_maps[" + std::to_string(i) + "]", texture_unit_index);
 	}
 
@@ -695,7 +695,7 @@ void DeferredPass::render(const std::shared_ptr<RenderScene> &scene)
 	{
 		int texture_unit_index = i + base;
 		glActiveTexture(GL_TEXTURE0 + texture_unit_index);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, scene->pointLights().at(i)->shadowTex->id);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, scene->pointLights().at(i)->shadowTex->gpuId());
 		lightingShader->setInt("shadow_cubes[" + std::to_string(i) + "]", texture_unit_index);
 	}
 
@@ -790,7 +790,7 @@ void DeferredPass::renderAlphaObjects(const std::shared_ptr<RenderScene> &scene)
 void DeferredPass::postProcess(const std::shared_ptr<RenderScene> &scene)
 {
     auto manager=RenderManager::GetInstance();
-    unsigned source=manager->setting.enableRSM?manager->rsmPass->outTexture->id:postTexture->id;
+    unsigned source=manager->setting.enableRSM?manager->rsmPass->outTexture->gpuId():postTexture->gpuId();
     if(manager->temporalAA)source=manager->temporalAA->resolve(source,postBuffer->FBO);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -856,7 +856,7 @@ void RSMPass::initTextures()
 	worldPosMap->genTexture(GL_RGBA32F, GL_RGBA, RSM_WIDTH, RSM_HEIGHT);
 	fluxMap->genTexture(GL_RGBA32F, GL_RGBA, RSM_WIDTH, RSM_HEIGHT);
     for (const auto& texture : {normalMap, worldPosMap, fluxMap}) {
-        glBindTexture(GL_TEXTURE_2D, texture->id);
+        glBindTexture(GL_TEXTURE_2D, texture->gpuId());
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     }
@@ -920,7 +920,7 @@ void RSMPass::renderGbuffer(const std::shared_ptr<RenderScene> &scene)
         const bool sky = atmosphere && skyBounce;
         RSMShader->setInt("enableSky",sky?1:0);
         glActiveTexture(GL_TEXTURE19);
-        glBindTexture(GL_TEXTURE_2D,sky ? atmosphere->convolutionTexture->tex->id : 0);
+        glBindTexture(GL_TEXTURE_2D,sky ? atmosphere->convolutionTexture->tex->gpuId() : 0);
         RSMShader->setInt("skyIrradiance",19);
     } else {
         auto trans = std::static_pointer_cast<Transform>(light->owner()->GetComponent("Transform"));
@@ -969,7 +969,7 @@ void RSMPass::render(const std::shared_ptr<RenderScene>& scene)
 {
     const int width = InputManager::GetInstance()->width;
     const int height = InputManager::GetInstance()->height;
-    if (rsmBuffer->dirty || outTexture->width != width || outTexture->height != height) {
+    if (rsmBuffer->dirty || outTexture->getWidth() != width || outTexture->getHeight() != height) {
         rsmBuffer->dirty = false;
         outTexture->genTexture(GL_RGBA16F, GL_RGBA, width, height);
         rsmBuffer->bindTexture(outTexture, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
@@ -1033,7 +1033,7 @@ void SSAOPass::render()
 		gSSAO->genTexture(GL_RED, GL_RED, InputManager::GetInstance()->width, InputManager::GetInstance()->height);
 		noiseTexture->genTexture(GL_RGBA16F, GL_RGB, 4, 4);
 		// initialize noiseTexture
-		glBindTexture(GL_TEXTURE_2D, noiseTexture->id);
+		glBindTexture(GL_TEXTURE_2D, noiseTexture->gpuId());
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 4, 4, 0, GL_RGB, GL_FLOAT, ssaoNoise.data());
 
 		ssaoFBO->bindBuffer();
@@ -1051,11 +1051,11 @@ void SSAOPass::render()
 
 	glActiveTexture(GL_TEXTURE0);
 	// GBuffer's gPosition
-	glBindTexture(GL_TEXTURE_2D, gPosition->id);
+	glBindTexture(GL_TEXTURE_2D, gPosition->gpuId());
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, gNormal->id);
+	glBindTexture(GL_TEXTURE_2D, gNormal->gpuId());
 	glActiveTexture(GL_TEXTURE2);
-	glBindTexture(GL_TEXTURE_2D, noiseTexture->id);
+	glBindTexture(GL_TEXTURE_2D, noiseTexture->gpuId());
 
 	shaderSSAO->use();
 	shaderSSAO->setInt("gPosition", 0);

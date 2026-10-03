@@ -26,6 +26,7 @@ struct RenderSetting {
     bool enableDirectional = true;
     bool enableSSAO = true;
     bool enableTSAA = true;
+    bool automaticQuality = false;
     float timeOverride = -1;
     float aoRadius = 1, aoBias = .025f, aoPower = 1.5f;
     render::RsmSettings rsmSettings;

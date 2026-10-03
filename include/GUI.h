@@ -1,3 +1,4 @@
+#include "engine/RenderRuntime.h"
 #pragma once
 #include <imgui/imgui.h>
 #include "renderer/rhi/GuiRenderer.h"
@@ -34,7 +35,12 @@ public:
 	std::unique_ptr<render::GuiRenderer> nativeRenderer_;
     bool nativeUi_=rhi::usesNativeRenderer();
     std::optional<SceneLoadRequest> loading_;
+    bool pauseSimulation_=false;float simulationSpeed_=1;
     std::string loadError_;
+    std::shared_ptr<RenderScene> stagedScene_;
+    std::optional<engine::ScenePreparationTicket> preparing_;
+    std::function<engine::ScenePreparationTicket(std::shared_ptr<const render::RenderWorldSnapshot>,std::shared_ptr<std::atomic<bool>>)> prepareScene_;
+    std::function<void(uint64_t)> activateScene_;
 	ImGui::FileBrowser fileDialog;
 	const std::string base_path = "./asset/objects";
 public:
@@ -65,6 +71,7 @@ public:
 		fileDialog.SetPwd(base_path);
 	}
 	void destroy() {
+        if(preparing_){preparing_->cancel();preparing_.reset();stagedScene_.reset();}
         if(loading_){loading_->cancel();loading_->result.wait();loading_.reset();}
         Loader::GetInstance()->waitIdle();
         if(nativeUi_){nativeRenderer_.reset();auto& io=ImGui::GetIO();io.Fonts->SetTexID(nullptr);io.BackendRendererName=nullptr;io.BackendFlags&=~ImGuiBackendFlags_RendererHasVtxOffset;}else {
@@ -79,8 +86,17 @@ public:
 	}
 	void window(std::shared_ptr<RenderScene>& scene) {
         if(loading_ && loading_->result.wait_for(std::chrono::seconds(0))==std::future_status::ready){
-            try{auto built=loading_->result.get();if(loading_->cancelled->load())throw std::runtime_error("Scene load cancelled");scene->replaceWith(*built);loadError_.clear();}catch(const std::exception& error){loadError_=error.what();}
+            try{auto built=loading_->result.get();if(loading_->cancelled->load())throw std::runtime_error("Scene load cancelled");
+                if(prepareScene_){auto payload=built->publicationPayload();if(!payload)throw std::runtime_error("Staging has no prepared CPU payload");preparing_=prepareScene_(payload,loading_->cancelled);stagedScene_=std::move(built);}
+                else scene->replaceWith(*built);
+                loadError_.clear();}catch(const std::exception& error){loadError_=error.what();}
             loading_.reset();
+        }
+        if(preparing_ && preparing_->ready.wait_for(std::chrono::seconds(0))==std::future_status::ready) {
+            try{preparing_->ready.get();if(preparing_->cancelled->load())throw std::runtime_error("Scene load cancelled");
+                scene->replaceWith(*stagedScene_);activateScene_(preparing_->token);loadError_.clear();}
+            catch(const std::exception& error){loadError_=error.what();preparing_->cancel();}
+            preparing_.reset();stagedScene_.reset();
         }
         if(!nativeUi_){
 		#ifdef SCENERENDERER_LEGACY_METAL
@@ -95,8 +111,15 @@ public:
 		ImGui::Begin("Info");
 
 		if (ImGui::CollapsingHeader("Scene loading")) {
-            if(loading_){ImGui::Text("Loading %zu / %zu",loading_->completed->load(),loading_->total->load());if(ImGui::Button("Cancel load"))loading_->cancel();}
-            if(!loadError_.empty())ImGui::TextWrapped("%s",loadError_.c_str());
+            if(preparing_)ImGui::Text("Preparing GPU scene...");
+            if(loading_)ImGui::Text("Loading %zu / %zu",loading_->completed->load(),loading_->total->load());
+            if((loading_ || preparing_) && ImGui::Button("Cancel load")) {
+                if(loading_)loading_->cancel();
+                if(preparing_){preparing_->cancel();preparing_.reset();stagedScene_.reset();}
+            }
+            ImGui::Checkbox("Pause simulation",&pauseSimulation_);
+        ImGui::SliderFloat("Simulation speed",&simulationSpeed_,0,4);
+        if(!loadError_.empty())ImGui::TextWrapped("%s",loadError_.c_str());
 			if (ImGui::Button("Select Scene")) {
 				fileDialog.Open();
 			}
@@ -140,6 +163,7 @@ public:
 
 			ImGui::Toggle("Enable SSAO", &setting.enableSSAO);
             ImGui::Toggle("Enable TSAA", &setting.enableTSAA);
+            if(nativeUi_)ImGui::Checkbox("Automatic quality under memory pressure",&setting.automaticQuality);
             if(nativeUi_){ImGui::Checkbox("Deferred shading",&setting.useDefer);ImGui::Checkbox("HDR tone mapping",&setting.enableHDR);}
 			if(nativeUi_)ImGui::SliderFloat("SSAO radius",&setting.aoRadius,0.f,5.f);else ImGui::SliderFloat("SSAO radius", &(RenderManager::GetInstance()->ssaoPass->radius),0.0f,0.5f);
 		}
@@ -210,17 +234,19 @@ public:
 			ImGui::Separator();
 			if (ImGui::CollapsingHeader("Atmosphere")) {
 				auto&& atmos = std::static_pointer_cast<Atmosphere>(scene->sky()->GetComponent("Atmosphere"));
-				auto& atmosParam = atmos->atmosphere;
-				auto& sunAngle = atmos->sunAngle;
+				auto atmosphereSettings=atmos->settings();
+                auto& atmosParam = atmosphereSettings.atmosphere;
+				auto& sunAngle = atmosphereSettings.sunAngle;
 				ImGui::SliderFloat("Sun elevation", &sunAngle, -20.0f, 90.0f);
-                ImGui::SliderFloat("Sun azimuth", &atmos->sunAzimuth, -180.0f, 180.0f);
+                ImGui::SliderFloat("Sun azimuth", &atmosphereSettings.sunAzimuth, -180.0f, 180.0f);
                 float radiusDegrees=glm::degrees(atmosParam.sun_angular_radius);
                 if(ImGui::SliderFloat("Sun angular radius (degrees)",&radiusDegrees,.05f,2.f))atmosParam.sun_angular_radius=glm::radians(radiusDegrees);
-                ImGui::SliderFloat("Multiple scattering", &atmos->multipleScattering, 0, 2);
-                ImGui::SliderFloat("Ground albedo", &atmos->groundAlbedo, 0, 1);
-                ImGui::InputFloat("Sea level (m)", &atmos->seaLevelMeters);
+                ImGui::SliderFloat("Multiple scattering", &atmosphereSettings.multipleScattering, 0, 2);
+                ImGui::SliderFloat("Ground albedo", &atmosphereSettings.groundAlbedo, 0, 1);
+                ImGui::InputFloat("Sea level (m)", &atmosphereSettings.seaLevelMeters);
 				ImGui::SliderFloat("mie_g", &atmosParam.mie_g, 0.0f, .99f);
 				ImGui::SliderFloat3("rayleigh_scattering", (float*)&atmosParam.rayleigh_scattering, 0.0f, 1.0f);
+                try{atmos->setSettings(atmosphereSettings);}catch(const std::exception& error){loadError_=error.what();}
 			}
 
 			//ImGui::SliderFloat("RayLeigh Scattering",0.0e-3,)
@@ -245,34 +271,36 @@ public:
 			if (ImGui::CollapsingHeader("Ocean")) {
 				auto&& oceanComp = std::static_pointer_cast<Ocean>(scene->terrain()->GetComponent("Ocean"));
 
-				ImGui::Checkbox("Animate waves", &oceanComp->animate);
-                ImGui::SliderFloat("Wind speed (m/s)", &oceanComp->WindScale, 0, 40);
-                ImGui::SliderFloat2("Wind direction", &oceanComp->WindAndSeed.x, -1, 1);
-                ImGui::SliderFloat("Choppiness", &oceanComp->Lambda, 0, 2);
-                ImGui::SliderFloat("Spectrum amplitude", &oceanComp->A, 0, .003f, "%.6f");
-                ImGui::InputInt("Wave seed", &oceanComp->seed);
-                ImGui::InputFloat("Sea level", &oceanComp->seaLevel);
-                ImGui::Text("FFT: %d x %d | mesh: %d x %d", oceanComp->fft_size, oceanComp->fft_size, oceanComp->MeshSize, oceanComp->MeshSize);
-                ImGui::Checkbox("Small FFT waves", &oceanComp->detailWaves);
-                ImGui::SliderFloat("Small wave detail", &oceanComp->detailStrength, 0, 2);
-                ImGui::Checkbox("Water refraction", &oceanComp->refraction);
-                ImGui::SliderFloat("Refraction strength", &oceanComp->refractionStrength, 0, 1);
-                ImGui::SliderFloat3("Absorption (1/m)", &oceanComp->absorption.x, 0, 1);
-                ImGui::SliderFloat3("Scattering (1/m)", &oceanComp->scattering.x, 0, .3f);
-                ImGui::SliderFloat("Subsurface scattering", &oceanComp->subsurfaceStrength, 0, 3);
-                ImGui::SliderFloat("Forward scattering g", &oceanComp->scatteringAnisotropy, 0, .9f);
-				ImGui::InputFloat("BubblesScale", &oceanComp->BubblesScale);
-				ImGui::InputFloat("BubblesThreshold", &oceanComp->BubblesThreshold);
-				ImGui::InputFloat("TimeScale", &oceanComp->TimeScale);
+				auto oceanSettings=oceanComp->settings();
+                ImGui::Checkbox("Animate waves", &oceanSettings.animate);
+                ImGui::SliderFloat("Wind speed (m/s)", &oceanSettings.WindScale, 0, 40);
+                ImGui::SliderFloat2("Wind direction", &oceanSettings.WindAndSeed.x, -1, 1);
+                ImGui::SliderFloat("Choppiness", &oceanSettings.Lambda, 0, 2);
+                ImGui::SliderFloat("Spectrum amplitude", &oceanSettings.A, 0, .003f, "%.6f");
+                ImGui::InputInt("Wave seed", &oceanSettings.seed);
+                ImGui::InputFloat("Sea level", &oceanSettings.seaLevel);
+                ImGui::Text("FFT: %d x %d | mesh: %d x %d", oceanSettings.fft_size, oceanSettings.fft_size, oceanSettings.MeshSize, oceanSettings.MeshSize);
+                ImGui::Checkbox("Small FFT waves", &oceanSettings.detailWaves);
+                ImGui::SliderFloat("Small wave detail", &oceanSettings.detailStrength, 0, 2);
+                ImGui::Checkbox("Water refraction", &oceanSettings.refraction);
+                ImGui::SliderFloat("Refraction strength", &oceanSettings.refractionStrength, 0, 1);
+                ImGui::SliderFloat3("Absorption (1/m)", &oceanSettings.absorption.x, 0, 1);
+                ImGui::SliderFloat3("Scattering (1/m)", &oceanSettings.scattering.x, 0, .3f);
+                ImGui::SliderFloat("Subsurface scattering", &oceanSettings.subsurfaceStrength, 0, 3);
+                ImGui::SliderFloat("Forward scattering g", &oceanSettings.scatteringAnisotropy, 0, .9f);
+				ImGui::InputFloat("BubblesScale", &oceanSettings.BubblesScale);
+				ImGui::InputFloat("BubblesThreshold", &oceanSettings.BubblesThreshold);
+				ImGui::InputFloat("TimeScale", &oceanSettings.TimeScale);
 
-				ImGui::SliderFloat("FresnelScale", &oceanComp->outer_FresnelScale, 0.0f, 1.0f);
-				ImGui::SliderFloat("HeightScale", &oceanComp->HeightScale, 0.0f, 20.0f);
-				ImGui::InputFloat3("OceanColorShallow", (float*)&oceanComp->outer_OceanColorShallow);
-				ImGui::InputFloat3("OceanColorDeep", (float*)&oceanComp->outer_OceanColorDeep);
-				ImGui::SliderFloat3("BubblesColor", (float*)&oceanComp->outer_BubblesColor, 0.0f, 1.0f);
-				ImGui::SliderFloat3("Specular", (float*)&oceanComp->outer_Specular, 0.0f, 1.0f);
-				ImGui::SliderInt("Gloss", &oceanComp->outer_Gloss, 0, 512);
-				ImGui::SliderFloat3("ambient", (float*)&oceanComp->outer_ambient, 0.0f, 1.0f);
+				ImGui::SliderFloat("FresnelScale", &oceanSettings.outer_FresnelScale, 0.0f, 1.0f);
+				ImGui::SliderFloat("HeightScale", &oceanSettings.HeightScale, 0.0f, 20.0f);
+				ImGui::InputFloat3("OceanColorShallow", (float*)&oceanSettings.outer_OceanColorShallow);
+				ImGui::InputFloat3("OceanColorDeep", (float*)&oceanSettings.outer_OceanColorDeep);
+				ImGui::SliderFloat3("BubblesColor", (float*)&oceanSettings.outer_BubblesColor, 0.0f, 1.0f);
+				ImGui::SliderFloat3("Specular", (float*)&oceanSettings.outer_Specular, 0.0f, 1.0f);
+				ImGui::SliderInt("Gloss", &oceanSettings.outer_Gloss, 0, 512);
+				ImGui::SliderFloat3("ambient", (float*)&oceanSettings.outer_ambient, 0.0f, 1.0f);
+                try{oceanComp->setSettings(oceanSettings);}catch(const std::exception& error){loadError_=error.what();}
 			}
 		}
 
@@ -302,7 +330,7 @@ public:
 				std::string selected = fileDialog.GetSelected().string();
 				// 
 				//std::cout << selected << '\n';
-				if(nativeUi_){if(loading_)loading_->cancel();loading_=Loader::GetInstance()->buildScene(selected);loadError_.clear();}
+				if(nativeUi_){if(loading_)loading_->cancel();if(preparing_){preparing_->cancel();preparing_.reset();stagedScene_.reset();}loading_=Loader::GetInstance()->buildScene(selected);loadError_.clear();}
                 else Loader::GetInstance()->loadSceneAsync(scene, selected);
 				fileDialog.ClearSelected();
 				//fileDialog.Close();

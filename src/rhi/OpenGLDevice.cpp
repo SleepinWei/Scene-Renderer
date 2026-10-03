@@ -93,7 +93,7 @@ protected:
     }
     // GL 4.1 view for the only supported subresource aliases its texture; native
     // texture-view support will be capability-gated when mip/layer ranges arrive.
-    NativeObject createTextureViewImpl(NativeObject texture, const TextureDesc&) override { return texture; }
+    NativeObject createTextureViewImpl(NativeObject texture, const TextureDesc&,const TextureViewDesc&) override { return texture; }
     NativeObject createSamplerImpl(const SamplerDesc& desc) override {
         GLuint id = 0;glGenSamplers(1, &id);
         glSamplerParameteri(id, GL_TEXTURE_MIN_FILTER, desc.filter == Filter::Nearest ? GL_NEAREST : GL_LINEAR);

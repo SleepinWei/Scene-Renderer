@@ -73,6 +73,10 @@ class RenderScene : public engine::AssetIdentity, public std::enable_shared_from
     void destroy();
     // Staging must be detached and its producer joined before this ownership handoff.
     void replaceWith(RenderScene &staging);
+    std::shared_ptr<const render::RenderWorldSnapshot> publicationPayload() const {
+        if(!transferSealed_)throw std::logic_error("Publication payload requires a sealed staging world");
+        return preparedAssets_; // Caller must acquire the completed producer future first.
+    }
     void sealForTransfer(); // Loader: freeze a completed staging before delivering it.
     void checkLogicThread() const;
     uint64_t revision() const { return revision_.load(); }

@@ -121,8 +121,11 @@ void GameObject::setDeferred(bool value) {
 void GameObject::transferAssets(bool seal) {
     std::unordered_set<engine::LogicAsset *> assets;
     auto material = [&](const std::shared_ptr<Material> &value) {
-        if (value)
+        if (value) {
             assets.insert(value.get());
+            for(const auto& entry:value->textures)
+                if(entry.second && !entry.second->immutable())assets.insert(entry.second.get());
+        }
     };
     for (const auto &entry : components_) {
         if (auto filter = std::dynamic_pointer_cast<MeshFilter>(entry.second))

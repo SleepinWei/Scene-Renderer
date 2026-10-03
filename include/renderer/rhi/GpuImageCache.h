@@ -6,7 +6,9 @@ namespace render {
 // GPU leases are released on the owning device thread, after material binding sets.
 class GpuImage {
   public:
-    GpuImage(std::shared_ptr<rhi::GraphicsDevice>, std::shared_ptr<const ImageRGBA8>);
+    GpuImage(std::shared_ptr<rhi::GraphicsDevice>, std::shared_ptr<const ImageRGBA8>,bool deferred=false);
+    bool ready() const {return nextRow_==source_->height;}
+    size_t uploadRows(size_t maxBytes);
     rhi::TextureViewHandle view() const { return view_; }
     rhi::TextureHandle texture() const { return texture_; }
     const ImageRGBA8 &source() const { return *source_; }
@@ -17,9 +19,10 @@ class GpuImage {
     Resources resources_;
     rhi::TextureHandle texture_;
     rhi::TextureViewHandle view_;
+    uint32_t nextRow_=0;
 };
 struct GpuImageCacheStats {
-    size_t residentBytes = 0, idleBytes = 0, entries = 0;
+    size_t residentBytes = 0, idleBytes = 0, entries = 0, pendingEntries=0;
     uint64_t uploads = 0, uploadedBytes = 0, hits = 0, evictions = 0;
 };
 // One cache per device. RGBA8UNorm content is independent of material slot and
@@ -27,7 +30,8 @@ struct GpuImageCacheStats {
 class GpuImageCache {
   public:
     static std::shared_ptr<GpuImageCache> forDevice(std::shared_ptr<rhi::GraphicsDevice>);
-    std::shared_ptr<GpuImage> acquire(std::shared_ptr<const ImageRGBA8>);
+    std::shared_ptr<GpuImage> acquire(std::shared_ptr<const ImageRGBA8>,bool deferred=false);
+    size_t upload(const std::shared_ptr<GpuImage>&,size_t maxBytes);
     size_t missingBytes(const std::vector<std::shared_ptr<const ImageRGBA8>> &) const;
     void setIdleBudget(size_t bytes);
     void trim();

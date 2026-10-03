@@ -7,6 +7,17 @@
 #include <atomic>
 #include <thread>
 namespace engine {
+struct ScenePreparation {
+    uint64_t token=0;
+    std::shared_ptr<std::atomic<bool>> cancelled;
+    std::shared_ptr<std::promise<void>> completion;
+};
+struct ScenePreparationTicket {
+    uint64_t token=0;
+    std::future<void> ready;
+    std::shared_ptr<std::atomic<bool>> cancelled;
+    void cancel() const {if(cancelled)cancelled->store(true);}
+};
 struct AtmosphereCapture {
     render::FrameData frame;
     std::promise<render::BakedAtmosphere> completion;
@@ -16,6 +27,9 @@ struct RenderPacket {
     render::GuiFrame gui;
     std::string screenshot;
     std::shared_ptr<AtmosphereCapture> atmosphereCapture;
+    std::shared_ptr<ScenePreparation> prepare;
+    uint64_t activatePrepared=0;
+    std::chrono::steady_clock::time_point sampledAt;
 };
 class RenderRuntime {
   public:
@@ -23,13 +37,17 @@ class RenderRuntime {
                   size_t queueCapacity = 2);
     ~RenderRuntime();
     bool submit(RenderPacket);
+    bool trySubmitFrame(RenderPacket); // Full queue skips a render snapshot, never blocks event/simulation ticks.
     // Synchronous CPU request; GPU bake executes exclusively on the render owner thread.
     render::BakedAtmosphere captureAtmosphere(const render::FrameData &);
+    ScenePreparationTicket prepareScene(std::shared_ptr<const render::RenderWorldSnapshot>,std::shared_ptr<std::atomic<bool>> cancelled={});
+    void activatePrepared(uint64_t token);
     void notifySurfaceExtent(uint32_t width, uint32_t height) {
         surfaceExtent_.store((uint64_t(width) << 32) | height);
     }
     void rethrowFailure() const;
     void finish(); // Drain, join and return device ownership to caller.
+    uint64_t skippedSnapshots() const {return skippedSnapshots_.load();}
     uint64_t framesRendered() const { return framesRendered_.load(); }
     double renderMilliseconds() const { return renderMilliseconds_.load(); }
     double renderP95Milliseconds() const { return renderP95Milliseconds_.load(); }
@@ -45,6 +63,11 @@ class RenderRuntime {
     uint64_t meshUploadBytes() const { return meshUploadBytes_.load(); }
     uint64_t meshUploadChunks() const { return meshUploadChunks_.load(); }
     uint64_t pendingMeshUploads() const { return pendingMeshUploads_.load(); }
+    double peakGpuSubmissionMilliseconds() const {return peakGpuMilliseconds_.load();}
+    double peakCompletionLatencyMilliseconds() const {return peakCompletionLatency_.load();}
+    uint32_t qualityLevel() const {return qualityLevel_.load();}
+    bool nativeMemorySupported() const {return nativeMemorySupported_.load();}
+    uint64_t peakNativeBytes() const {return peakNativeBytes_.load();}
     uint64_t pipelineBuilds() const { return pipelineBuilds_.load(); }
     uint64_t pipelineCacheHits() const { return pipelineCacheHits_.load(); }
     std::string lastRecoveryMessage() const;
@@ -56,13 +79,18 @@ class RenderRuntime {
     std::thread thread_;
     mutable std::mutex failureMutex_;
     std::exception_ptr failure_;
-    std::atomic<uint64_t> framesRendered_{0};
+    uint64_t nextPreparation_=0; // Producer-thread only, like submit().
+    std::atomic<uint64_t> framesRendered_{0},skippedSnapshots_{0};
     std::atomic<double> renderMilliseconds_{0};
+    std::atomic<double> peakGpuMilliseconds_{0},peakCompletionLatency_{0};
     std::atomic<double> renderP95Milliseconds_{0}, renderP99Milliseconds_{0}, peakQueueWaitMilliseconds_{0};
     std::atomic<uint64_t> imageBytes_{0}, imageUploads_{0}, imageCacheHits_{0};
     std::atomic<uint64_t> peakResourceBytes_{0};
     std::atomic<uint64_t> rejectedPublications_{0}, fallbackFrames_{0}, memoryPressureEvents_{0};
     std::atomic<uint64_t> meshUploadBytes_{0}, meshUploadChunks_{0}, pendingMeshUploads_{0};
+    std::atomic<uint64_t> peakNativeBytes_{0};
+    std::atomic<bool> nativeMemorySupported_{false};
+    std::atomic<uint32_t> qualityLevel_{0};
     std::atomic<uint64_t> pipelineBuilds_{0}, pipelineCacheHits_{0};
     std::string recoveryMessage_;
     std::atomic<uint64_t> surfaceExtent_{UINT64_MAX};

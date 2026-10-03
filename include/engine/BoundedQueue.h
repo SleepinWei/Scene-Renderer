@@ -24,6 +24,11 @@ template <class T> class BoundedQueue {
         ready_.notify_one();
         return true;
     }
+    bool tryPush(T value) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if(closed_ || queue_.size()>=capacity_)return false;
+        queue_.push_back(std::move(value));ready_.notify_one();return true;
+    }
     std::optional<T> pop() {
         std::unique_lock<std::mutex> lock(mutex_);
         ready_.wait(lock, [this] { return closed_ || !queue_.empty(); });

@@ -1,5 +1,9 @@
+#include "rhi/ShaderAssets.h"
+#include <cstring>
+#include <optional>
 #include "renderer/rhi/GpuVirtualTexture.h"
 #include "engine/JobSystem.h"
+#include "engine/AssetPath.h"
 #include <chrono>
 #include <json/json.hpp>
 #include <algorithm>
@@ -26,6 +30,27 @@ size_t pixelBytes(rhi::Format f) {
         return 16;
     throw std::invalid_argument("Unsupported VT plane format");
 }
+struct HeightBounds {
+    uint32_t width,height;std::vector<glm::vec2> finest;
+    HeightBounds(uint32_t w,uint32_t h):width(w),height(h),finest(160*160,glm::vec2(std::numeric_limits<float>::max(),std::numeric_limits<float>::lowest())){}
+    void add(uint32_t x,uint32_t y,float heightValue) {
+        const auto lo=[](uint32_t value,uint32_t size){return std::min(159u,uint32_t(uint64_t(value?value-1:0)*160/(size-1)));};
+        const auto hi=[](uint32_t value,uint32_t size){return std::min(159u,uint32_t(uint64_t(std::min(value+1,size-1))*160/(size-1)));};
+        for(uint32_t yy=lo(y,height);yy<=hi(y,height);++yy)for(uint32_t xx=lo(x,width);xx<=hi(x,width);++xx) {
+            auto& bound=finest[yy*160+xx];bound.x=std::min(bound.x,heightValue);bound.y=std::max(bound.y,heightValue);
+        }
+    }
+    std::vector<glm::vec2> finish() {
+        std::vector<glm::vec2> result(34125);const uint32_t offsets[6]={8525,2125,525,125,25,0};
+        std::copy(finest.begin(),finest.end(),result.begin()+8525);
+        for(uint32_t lod=1;lod<6;++lod){const uint32_t n=160u>>lod,child=n*2;
+            for(uint32_t y=0;y<n;++y)for(uint32_t x=0;x<n;++x){glm::vec2 bound(std::numeric_limits<float>::max(),std::numeric_limits<float>::lowest());
+                for(uint32_t yy=0;yy<2;++yy)for(uint32_t xx=0;xx<2;++xx){auto v=result[offsets[lod-1]+(y*2+yy)*child+x*2+xx];bound.x=std::min(bound.x,v.x);bound.y=std::max(bound.y,v.y);}
+                result[offsets[lod]+y*n+x]=bound;
+            }
+        }return result;
+    }
+};
 float heightAt(const std::vector<float> &h, uint32_t w, uint32_t n, float u, float v) {
     float px = glm::clamp(u, 0.f, 1.f) * (w - 1), py = glm::clamp(v, 0.f, 1.f) * (n - 1);
     uint32_t x = uint32_t(px), y = uint32_t(py), xx = std::min(x + 1, w - 1), yy = std::min(y + 1, n - 1);
@@ -43,6 +68,9 @@ VirtualTextureSource heightVirtualSource(uint32_t w, uint32_t h, std::vector<flo
     source.extent = extentFor(std::max(w, h));
     source.heightField = true;
     source.formats = {rhi::Format::RGBA32Float};
+    HeightBounds bounds(w,h);
+    for(uint32_t y=0;y<h;++y){engine::CancellationScope::check();for(uint32_t x=0;x<w;++x)bounds.add(x,y,data[size_t(y)*w+x]);}
+    source.terrainBounds=bounds.finish();
     auto limits = std::minmax_element(data.begin(), data.end());
     source.minimum = *limits.first;
     source.maximum = *limits.second;
@@ -79,8 +107,10 @@ VirtualTextureSource rawHeightVirtualSource(const std::string &path, uint32_t wi
     source.minimum = std::numeric_limits<float>::max();
     source.maximum = std::numeric_limits<float>::lowest();
     stream->seekg(0);
+    HeightBounds bounds(width,height);
     std::vector<float> chunk(16384);
     for (size_t offset = 0; offset < samples;) {
+        engine::CancellationScope::check();
         size_t count = std::min(chunk.size(), samples - offset);
         stream->read(reinterpret_cast<char *>(chunk.data()), count * 4);
         if (!*stream)
@@ -90,9 +120,11 @@ VirtualTextureSource rawHeightVirtualSource(const std::string &path, uint32_t wi
                 throw std::invalid_argument("Raw VT height contains nonfinite samples");
             source.minimum = std::min(source.minimum, chunk[i]);
             source.maximum = std::max(source.maximum, chunk[i]);
+            bounds.add(uint32_t((offset+i)%width),uint32_t((offset+i)/width),chunk[i]);
         }
         offset += count;
     }
+    source.terrainBounds=bounds.finish();
     source.readPage = [stream, width, height, extent = source.extent](uint32_t mip, uint32_t tileX,
                                                                       uint32_t tileY) {
         constexpr uint32_t Tile = GpuVirtualTexture::Tile, Border = GpuVirtualTexture::Border,
@@ -444,8 +476,57 @@ void GpuVirtualTexture::update(const std::vector<PageId> &requests, uint32_t upl
         resident_[id]={slot,clock_};uploadTable();--uploads;
     }
 }
-void GpuVirtualTexture::prepare(const glm::mat4 &vp, const glm::mat4 &model, uint32_t width, uint32_t height,
-                                bool flipV, uint32_t uploads) {
+struct GpuVirtualTexture::Feedback {
+    Resources resources;
+    rhi::TextureHandle texture;rhi::TextureViewHandle view;
+    rhi::ComputePipelineHandle pipeline;rhi::BindingLayout layout;
+    std::optional<rhi::ReadbackTicket> readback;
+    uint32_t width,height;
+    Feedback(std::shared_ptr<rhi::GraphicsDevice> device,uint32_t w,uint32_t h):resources(device),width(w),height(h) {
+        using namespace rhi;
+        texture=resources.texture({w,h,Format::RGBA32Float,TextureUsage::Storage|TextureUsage::CopySource,"VT feedback pages"});view=resources.view(texture);
+        const auto path=defaultShaderDirectory()+"/vt-feedback.comp";
+        layout={0,{{0,BindingType::UniformBuffer,ShaderStage::Compute,"FeedbackParameters",160},
+                   {1,BindingType::SampledTexture,ShaderStage::Compute,"feedbackDepth",0},
+                   {2,BindingType::StorageTextureWrite,ShaderStage::Compute,"feedbackPages",0,Format::RGBA32Float}}};
+        pipeline=resources.computePipeline({{path+".glsl",path+".metallib",path+".spv",path+".json","main0"},{layout},{8,8,1},"VT feedback"});
+    }
+};
+GpuVirtualTexture::~GpuVirtualTexture()=default;
+void GpuVirtualTexture::collectFeedback() {
+    if(!feedback_ || !feedback_->readback || !resources_.device->isComplete(feedback_->readback->completion))return;
+    const auto& bytes=*feedback_->readback->bytes;
+    std::set<PageId> unique;
+    for(size_t offset=0;offset+16<=bytes.size();offset+=16) {
+        float sample[4];std::memcpy(sample,bytes.data()+offset,16);
+        if(sample[3]<.5f || !std::isfinite(sample[0]) || !std::isfinite(sample[1]) || !std::isfinite(sample[2]) ||
+           sample[0]<0 || sample[1]<0 || sample[2]<0 || sample[2]>maxMip_)continue;
+        PageId page{uint32_t(sample[2]),uint32_t(sample[0]),uint32_t(sample[1])};
+        if(page.x<(tableWidth_>>page.mip) && page.y<(tableWidth_>>page.mip))unique.insert(page);
+    }
+    feedbackRequests_.assign(unique.begin(),unique.end());feedbackSamples_+=bytes.size()/16;feedback_->readback.reset();
+}
+void GpuVirtualTexture::recordFeedback(rhi::TextureViewHandle depth,const glm::mat4& inverseVP,const glm::mat4& model,
+                                       uint32_t width,uint32_t height,float minimum,float maximum,bool flipV) {
+    if(!asynchronous_ || !resources_.device->computeLimits().maxStorageImages)return;
+    resources_.device->checkThread();collectFeedback();if(feedback_ && feedback_->readback)return;
+    const uint32_t stride=std::max(1u,(std::max(width,height)+127)/128);
+    const uint32_t w=(width+stride-1)/stride,h=(height+stride-1)/stride;
+    if(!w || !h || !std::isfinite(glm::determinant(model)) || std::abs(glm::determinant(model))<1e-12f)
+        throw std::invalid_argument("Invalid VT feedback view");
+    if(!feedback_ || feedback_->width!=w || feedback_->height!=h)feedback_=std::make_unique<Feedback>(resources_.device,w,h);
+    struct alignas(16) Parameters {glm::mat4 inverseVP,inverseModel;glm::vec4 grid,info;};
+    static_assert(sizeof(Parameters)==160,"VT feedback ABI");
+    Parameters parameters{inverseVP,glm::inverse(model),{float(width),float(height),float(tableWidth_),float(maxMip_)},
+                          {float(source_.extent),flipV?1.f:0.f,minimum,maximum}};
+    using namespace rhi;Resources frame(resources_.device);
+    auto buffer=frame.buffer({sizeof(parameters),BufferUsage::Uniform,"VT feedback parameters"},&parameters);
+    auto sampler=frame.sampler({Filter::Nearest,AddressMode::ClampToEdge});
+    auto binding=frame.bindings({feedback_->layout,{{0,buffer,0,sizeof(parameters),{},{}},{1,{},0,0,depth,sampler},{2,{},0,0,feedback_->view,{}}}});
+    auto commands=resources_.device->createCommandList();commands.dispatch(feedback_->pipeline,{binding},{(w+7)/8,(h+7)/8,1});resources_.device->submit(commands);
+    feedback_->readback=resources_.device->requestTextureReadback(feedback_->texture);
+}
+std::vector<GpuVirtualTexture::PageId> GpuVirtualTexture::predict(const glm::mat4 &vp,const glm::mat4 &model,uint32_t width,uint32_t height,bool flipV) const {
     if (!width || !height)
         throw std::invalid_argument("VT viewport empty");
     glm::mat4 transform = vp * model;
@@ -517,6 +598,21 @@ void GpuVirtualTexture::prepare(const glm::mat4 &vp, const glm::mat4 &model, uin
             break;
     }
     std::stable_sort(requests.begin(), requests.end(), [](PageId a, PageId b) { return a.mip > b.mip; });
-    update(requests, uploads);
+    return requests;
+}
+void GpuVirtualTexture::prepare(const glm::mat4& vp,const glm::mat4& model,uint32_t width,uint32_t height,bool flipV,uint32_t uploads) {
+    auto requests=predict(vp,model,width,height,flipV);
+    collectFeedback();
+    // Feedback takes priority within the fixed physical cache. CPU prediction fills
+    // remaining slots and provides bootstrap/fast-motion fallback without blocking.
+    std::vector<PageId> combined;
+    const size_t primaryLimit=auxiliaryViews_.empty()?capacity()-1:std::max(1u,(capacity()-1)*3/4);
+    auto append=[&](const std::vector<PageId>& pages,size_t limit) {
+        for(const auto& page:pages)if(combined.size()<limit && page.mip!=maxMip_ && std::find(combined.begin(),combined.end(),page)==combined.end())combined.push_back(page);
+    };
+    append(feedbackRequests_,primaryLimit);append(requests,primaryLimit);
+    for(const auto& view:auxiliaryViews_)append(predict(view.viewProjection,model,view.width,view.height,flipV),capacity()-1);
+    append(requests,capacity()-1);
+    update(combined,uploads);
 }
 } // namespace render

@@ -1,5 +1,7 @@
 # Engine 多线程与主逻辑／渲染分离
 
+> 本文保留对应批次的实现与验收。后续 Texture／联合加载／图片上传／RHI 子资源／VT／LOD 等当前状态见 [Engine 后续实施记录](engine-runtime-completion.md)。
+
 ## 线程与所有权
 
 原生 Metal／Vulkan 编辑器默认使用独立渲染线程。GLFW 初始化、窗口、事件、输入、相机 tick、ImGui context、场景编辑和设置保留在主线程；RHI 创建、更新、提交、读回、呈现和 GPU 资源释放归渲染线程。窗口与字体 atlas 的初始化在启动阶段完成，`waitIdle` 后移交设备，退出时先排空消息、join，再把设备归还主线程并销毁窗口。

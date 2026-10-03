@@ -157,7 +157,7 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 		if (material && material->getAlphaCutoff() > 0.0f) {
 			material->genTexture();
 			glActiveTexture(GL_TEXTURE31);
-			glBindTexture(GL_TEXTURE_2D, material->getTextures().at("material.albedo")->id);
+			glBindTexture(GL_TEXTURE_2D, material->getTextures().at("material.albedo")->gpuId());
 			actualShader->setInt("alphaTexture", 31);
 		}
 
@@ -176,7 +176,7 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 					//激活纹理单元0
 					glActiveTexture(GL_TEXTURE0 + texture_index);
 					//将加载的图片纹理句柄，绑定到纹理单元0的Texture2D上。
-					glBindTexture(GL_TEXTURE_2D, iterator->second->id);
+					glBindTexture(GL_TEXTURE_2D, iterator->second->gpuId());
 					//设置Shader程序从纹理单元0读取颜色数据
 					actualShader->setInt((iterator->first).c_str(), texture_index);
 					++texture_index;

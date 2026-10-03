@@ -30,7 +30,7 @@ int cases=0;
 void check(bool ok,const char* name){if(!ok)throw std::runtime_error(std::string("Ocean GPU regression: ")+name);++cases;}
 std::shared_ptr<ImageTexture> image(int n,const std::vector<glm::vec4>& values={}) {
     auto t=std::make_shared<ImageTexture>();t->genImageTexture(GL_RGBA32F,GL_RGBA,n,n);
-    if(!values.empty()){glBindTexture(GL_TEXTURE_2D,t->tex->id);glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F,n,n,0,GL_RGBA,GL_FLOAT,values.data());}
+    if(!values.empty()){glBindTexture(GL_TEXTURE_2D,t->tex->gpuId());glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F,n,n,0,GL_RGBA,GL_FLOAT,values.data());}
     return t;
 }
 void dispatch(const std::shared_ptr<Shader>& shader,int n){shader->use();glDispatchCompute(n/8,n/8,1);glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT|GL_TEXTURE_FETCH_BARRIER_BIT);}
@@ -56,7 +56,7 @@ void fftReference(int n,bool singleMode) {
         shader->use();shader->setInt("N",n);shader->setInt("Ns",ns);a->setBinding(5);b->setBinding(6);
         dispatch(shader,n);std::swap(a,b);
     }
-    auto raw=MetalBackend::readFloatTexture(a->tex->id);std::vector<Complex> expected(n*n);
+    auto raw=MetalBackend::readFloatTexture(a->tex->gpuId());std::vector<Complex> expected(n*n);
     if(singleMode)for(int y=0;y<n;++y)for(int x=0;x<n;++x)expected[y*n+x]=std::polar(1.0,2*pi*3*x/n);
     else expected=dft(spectral,n);
     double error=0,scale=1;
@@ -70,7 +70,7 @@ void conversion() {
     auto shader=std::make_shared<Shader>("./src/shader/ocean/ocean_TextureGenerationDisplace.comp");
     shader->use();shader->setInt("N",n);shader->setFloat("HeightScale",2);shader->setFloat("Lambda",.5);
     y->setBinding(2);x->setBinding(3);z->setBinding(4);out->setBinding(7);dispatch(shader,n);
-    auto raw=MetalBackend::readFloatTexture(out->tex->id);
+    auto raw=MetalBackend::readFloatTexture(out->tex->gpuId());
     check(std::abs(raw.rgba[0]+.5)<1e-6 && std::abs(raw.rgba[1]+2)<1e-6 && std::abs(raw.rgba[2]+.5)<1e-6,"signed real displacement, normalization and scale");
     check(std::abs(raw.rgba[4]-.5)<1e-6 && std::abs(raw.rgba[5]-2)<1e-6,"centered-spectrum checkerboard exactly once");
 }
@@ -83,7 +83,7 @@ void normalFoam(int n,bool flat) {
     shader->use();shader->setInt("N",n);shader->setFloat("OceanLength",length);
     shader->setFloat("BubblesScale",2);shader->setFloat("BubblesThreshold",.86f);
     d->setBinding(7);normals->setBinding(5);foam->setBinding(6);dispatch(shader,n);
-    auto nr=MetalBackend::readFloatTexture(normals->tex->id),fr=MetalBackend::readFloatTexture(foam->tex->id);
+    auto nr=MetalBackend::readFloatTexture(normals->tex->gpuId()),fr=MetalBackend::readFloatTexture(foam->tex->gpuId());
     double error=0;float unit=length/n;
     for(int z=0;z<n;++z)for(int x=0;x<n;++x) {
         float slope=flat?0: .5*std::sin(2*pi/n)*std::cos(2*pi*z/n)/unit;
@@ -96,16 +96,16 @@ void normalFoam(int n,bool flat) {
     check(error<2e-5,flat?"flat normal and zero foam":"periodic Z normals and world-space Jacobian/foam");
 }
 void spectrumAndEvolution() {
-    Ocean ocean;ocean.FFTPow=4;ocean.fft_size=16;ocean.MeshSize=17;ocean.MeshLength=64;ocean.WindScale=12;
-    ocean.HeightScale=1;ocean.Lambda=.8;
+    Ocean ocean;ocean.updateSettings([&](auto& value){value.FFTPow=4;});ocean.updateSettings([&](auto& value){value.fft_size=16;});ocean.updateSettings([&](auto& value){value.MeshSize=17;});ocean.updateSettings([&](auto& value){value.MeshLength=64;});ocean.updateSettings([&](auto& value){value.WindScale=12;});
+    ocean.updateSettings([&](auto& value){value.HeightScale=1;});ocean.updateSettings([&](auto& value){value.Lambda=.8;});
     const float t=1.7f;ocean.simulate(t);
-    auto random=MetalBackend::readFloatTexture(ocean.GaussianRandomRT_Texture->tex->id);
-    auto heights=MetalBackend::readFloatTexture(ocean.HeightSpectrumRT_Texture->tex->id);
+    auto random=MetalBackend::readFloatTexture(ocean.GaussianRandomRT_Texture->tex->gpuId());
+    auto heights=MetalBackend::readFloatTexture(ocean.HeightSpectrumRT_Texture->tex->gpuId());
     std::vector<Complex> spectrum(256);int n=16;double dk=2*pi/64,L=144/9.81;
     for(int y=1;y<n;++y)for(int x=1;x<n;++x) {
         double kx=(x-n/2)*dk,kz=(y-n/2)*dk,k2=kx*kx+kz*kz;if(k2==0)continue;
         double alignment=(kx+kz)/std::sqrt(2*k2);
-        double P=ocean.A*std::exp(-1/(k2*L*L))/(k2*k2)*alignment*alignment*std::exp(-k2*L*L*1e-6);
+        double P=ocean.settings().A*std::exp(-1/(k2*L*L))/(k2*k2)*alignment*alignment*std::exp(-k2*L*L*1e-6);
         int i=y*n+x,mirror=((n-y)%n)*n+(n-x)%n;
         auto a=Complex(random.rgba[4*i],random.rgba[4*i+1])*std::sqrt(P*.5);
         auto b=std::conj(Complex(random.rgba[4*mirror],random.rgba[4*mirror+1]))*std::sqrt(P*.5);
@@ -118,18 +118,18 @@ void spectrumAndEvolution() {
     std::cout<<"Ocean spectrum/evolution CPU error="<<error<<" imaginary/real="<<maxImag/maxReal<<'\n';
     check(error<2e-5,"metre wave numbers, independent conjugate mode and dispersion versus CPU");
     check(maxImag/maxReal<2e-5,"Hermitian height field is real");
-    auto first=MetalBackend::readFloatTexture(ocean.DisplaceRT_Texture->tex->id);
+    auto first=MetalBackend::readFloatTexture(ocean.DisplaceRT_Texture->tex->gpuId());
     double mean=0;float low=0,high=0;for(size_t i=1;i<first.rgba.size();i+=4){mean+=first.rgba[i];low=std::min(low,first.rgba[i]);high=std::max(high,first.rgba[i]);}
     check(std::abs(mean/(n*n))<1e-6 && low<0 && high>0,"zero mean with positive crests and negative troughs");
-    ocean.simulate(t);auto second=MetalBackend::readFloatTexture(ocean.DisplaceRT_Texture->tex->id);
+    ocean.simulate(t);auto second=MetalBackend::readFloatTexture(ocean.DisplaceRT_Texture->tex->gpuId());
     check(first.rgba==second.rgba,"same seed/time is deterministic");
-    ocean.simulate(t+.5f);second=MetalBackend::readFloatTexture(ocean.DisplaceRT_Texture->tex->id);
+    ocean.simulate(t+.5f);second=MetalBackend::readFloatTexture(ocean.DisplaceRT_Texture->tex->gpuId());
     check(first.rgba!=second.rgba,"time advances wave phases");
-    ocean.seed+=1;ocean.simulate(t);second=MetalBackend::readFloatTexture(ocean.DisplaceRT_Texture->tex->id);
+    ocean.updateSettings([](auto& value){++value.seed;});ocean.simulate(t);second=MetalBackend::readFloatTexture(ocean.DisplaceRT_Texture->tex->gpuId());
     check(first.rgba!=second.rgba,"changing seed regenerates Gaussian field");
     for(int mode=0;mode<3;++mode) {
-        ocean.WindScale=mode==0?0:12;ocean.WindAndSeed=mode==1?glm::vec4(0):glm::vec4(1,1,0,0);ocean.A=mode==2?0:.0005f;
-        ocean.simulate(t);auto raw=MetalBackend::readFloatTexture(ocean.DisplaceRT_Texture->tex->id);
+        ocean.updateSettings([&](auto& value){value.WindScale=mode==0?0:12;});ocean.updateSettings([&](auto& value){value.WindAndSeed=mode==1?glm::vec4(0):glm::vec4(1,1,0,0);});ocean.updateSettings([&](auto& value){value.A=mode==2?0:.0005f;});
+        ocean.simulate(t);auto raw=MetalBackend::readFloatTexture(ocean.DisplaceRT_Texture->tex->gpuId());
         bool zero=true;for(size_t i=0;i<raw.rgba.size();i+=4)for(int c=0;c<3;++c)zero &= std::isfinite(raw.rgba[i+c]) && raw.rgba[i+c]==0;
         check(zero,"zero speed/direction/amplitude remains flat and finite");
     }
@@ -139,7 +139,7 @@ void surfaceLighting() {
     scene=makeMetalOceanScene();scene->addSky({});
     auto water=std::static_pointer_cast<Ocean>(scene->terrain()->GetComponent("Ocean"));
     water->FFTPow=6;water->fft_size=64;water->MeshSize=65;water->animate=false;water->inner_time=8;
-    auto frame=[&](){MetalBackend::beginFrame();manager->render(scene);auto raw=MetalBackend::readFloatTexture(manager->deferredPass->postTexture->id);MetalBackend::present();return raw;};
+    auto frame=[&](){MetalBackend::beginFrame();manager->render(scene);auto raw=MetalBackend::readFloatTexture(manager->deferredPass->postTexture->gpuId());MetalBackend::present();return raw;};
     manager->setting.enableDirectional=false;auto dark=frame();float darkMax=0;
     for(size_t i=0;i<dark.rgba.size();i+=4)for(int c=0;c<3;++c)darkMax=std::max(darkMax,std::abs(dark.rgba[i+c]));
     check(darkMax<1e-6,"no sky and disabled sun yields no stale or hardcoded lighting");
@@ -172,16 +172,16 @@ std::shared_ptr<RenderScene> makeMetalOceanScene(bool clearWater) {
     {auto all=result->objects();for(const auto& o:all)if(o->getComponent<PointLight>() || o->getComponent<SpotLight>())result->removeObject(o->assetId);}
     result->setCamera(std::make_shared<Camera>(glm::vec3(0,7.5f,30),glm::vec3(0,1,0),-90,-10));result->mainCamera()->setZoom(58);result->mainCamera()->setExposure(1);
     if(!result->directionLights().empty())result->directionLights()[0]->setDirection({0,-.17364818f,.98480775f});
-    auto ocean=std::make_shared<Ocean>();ocean->FFTPow=10;ocean->fft_size=1024;ocean->MeshSize=513;
-    ocean->MeshLength=256;ocean->seaLevel=0;
+    auto ocean=std::make_shared<Ocean>();ocean->updateSettings([&](auto& value){value.FFTPow=10;});ocean->updateSettings([&](auto& value){value.fft_size=1024;});ocean->updateSettings([&](auto& value){value.MeshSize=513;});
+    ocean->updateSettings([&](auto& value){value.MeshLength=256;});ocean->updateSettings([&](auto& value){value.seaLevel=0;});
     // A rough deep-water preset: larger swell, steep crests and compression-driven whitecaps.
-    ocean->WindScale=28;ocean->A=.0008f;ocean->HeightScale=1.8f;ocean->Lambda=1.15f;
-    ocean->BubblesThreshold=.92f;ocean->BubblesScale=3;
-    ocean->outer_OceanColorShallow={.2f,.75f,.85f};ocean->outer_OceanColorDeep={.035f,.28f,.35f};
+    ocean->updateSettings([&](auto& value){value.WindScale=28;});ocean->updateSettings([&](auto& value){value.A=.0008f;});ocean->updateSettings([&](auto& value){value.HeightScale=1.8f;});ocean->updateSettings([&](auto& value){value.Lambda=1.15f;});
+    ocean->updateSettings([&](auto& value){value.BubblesThreshold=.92f;});ocean->updateSettings([&](auto& value){value.BubblesScale=3;});
+    ocean->updateSettings([&](auto& value){value.outer_OceanColorShallow={.2f,.75f,.85f};});ocean->updateSettings([&](auto& value){value.outer_OceanColorDeep={.035f,.28f,.35f};});
     if(clearWater) {
-        ocean->WindScale=9;ocean->A=.0005f;ocean->HeightScale=.6f;ocean->Lambda=.5f;ocean->refractionStrength=.35f;
-        ocean->BubblesThreshold=.86f;ocean->BubblesScale=2;
-        ocean->absorption={.08f,.025f,.012f};ocean->scattering={.01f,.02f,.025f};
+        ocean->updateSettings([&](auto& value){value.WindScale=9;});ocean->updateSettings([&](auto& value){value.A=.0005f;});ocean->updateSettings([&](auto& value){value.HeightScale=.6f;});ocean->updateSettings([&](auto& value){value.Lambda=.5f;});ocean->updateSettings([&](auto& value){value.refractionStrength=.35f;});
+        ocean->updateSettings([&](auto& value){value.BubblesThreshold=.86f;});ocean->updateSettings([&](auto& value){value.BubblesScale=2;});
+        ocean->updateSettings([&](auto& value){value.absorption={.08f,.025f,.012f};});ocean->updateSettings([&](auto& value){value.scattering={.01f,.02f,.025f};});
         result->setCamera(std::make_shared<Camera>(glm::vec3(0,9,13),glm::vec3(0,1,0),-90,-38));result->mainCamera()->setZoom(58);
         result->directionLights()[0]->setDirection({0,-.5735764f,.8191520f});
         std::static_pointer_cast<Atmosphere>(result->sky()->GetComponent("Atmosphere"))->sunAngle=35;

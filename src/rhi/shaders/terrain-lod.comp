@@ -6,6 +6,7 @@ layout(set=1,binding=2,std140) buffer FinalNodeList {uint finalNodeCnt;uint one;
 layout(set=1,binding=1,std430) buffer NodeDescriptor {uint info[];};
 layout(set=1,binding=3,std430) readonly buffer InQueue {uint nodeCnt;uint one;uint one_;uvec2 nodes[];} inQueue;
 layout(set=1,binding=4,std430) buffer OutQueue {uint nodeCnt;uint one;uint one_;uvec2 nodes[];} outQueue;
+layout(set=1,binding=0,std430) readonly buffer HeightBounds {vec2 heightBounds[];};
 uint descriptor(uvec2 p,uint lod){uint offsets[6]={8525,2125,525,125,25,0};uint sizes[6]={160,80,40,20,10,5};return offsets[lod]+p.y*sizes[lod]+p.x;}
 bool reserveSplit(){
     uint old=atomicAdd(info[34125],0);
@@ -20,13 +21,19 @@ void main(){
     vec3 lower=vec3(1e30),upper=vec3(-1e30);
     for(int i=0;i<8;i++){
         vec2 uv=vec2(p+offsets[i%4])/float(5u<<currentLOD);
-        float h=intBitsToFloat(i<4?heightDimensions.z:heightDimensions.w);
+        vec2 bounds=heightBounds[descriptor(p,5u-currentLOD)];float h=i<4?bounds.x:bounds.y;
         vec3 eye=(view*model*vec4(uv.x*2.-1.,h,uv.y*2.-1.,1)).xyz;
         lower=min(lower,eye);upper=max(upper,eye);
     }
-    float nearest=length(clamp(vec3(0),lower,upper));
-    int lod=nearest<5.?0:nearest>50.?5:int((nearest-5.)/45.*4.+1.);
-    if(lod+int(currentLOD)<5 && reserveSplit()){
+    float nearest=max(length(clamp(vec3(0),lower,upper)),.001);
+    mat4 projection=viewProjection*inverse(view);
+    float pixelsPerWorld=.5*max(abs(projection[0][0])*terrainScreen.x,abs(projection[1][1])*terrainScreen.y);
+    if(abs(projection[3][3])<.5)pixelsPerWorld/=nearest;
+    // Bound projected cell size and height variation, independent of FOV,
+    // terrain scale and output resolution. The leaf budget remains a hard cap.
+    float error=max(max(length(model[0].xyz),length(model[2].xyz))*2./float(40u<<currentLOD),
+                    (heightBounds[descriptor(p,5u-currentLOD)].y-heightBounds[descriptor(p,5u-currentLOD)].x)*length(model[1].xyz));
+    if(currentLOD<5u && error*pixelsPerWorld>terrainScreen.z && reserveSplit()){
         uint first=atomicAdd(outQueue.nodeCnt,4);for(int i=0;i<4;i++)outQueue.nodes[first+i]=p*2u+offsets[i];
     }else{uint first=atomicAdd(finalNodeCnt,1);finalNode[first]=uvec3(p,5u-currentLOD);info[descriptor(p,5u-currentLOD)]=1;}
 }

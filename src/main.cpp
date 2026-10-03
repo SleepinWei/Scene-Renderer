@@ -1,3 +1,5 @@
+#include "engine/AssetPath.h"
+#include "engine/FixedStepClock.h"
 #include<glad/glad.h>
 #include "rhi/Device.h"
 #include "rhi/GraphicsDevice.h"
@@ -76,7 +78,7 @@ bool startForward=false;
 bool singleThreadedNative=false;
 int maxFramesInFlight=3;
 size_t gpuResourceBudget=0;
-bool hiddenEditor=false;
+bool hiddenEditor=false,automaticQuality=false;
 std::array<int,2> windowSize{1600,900};
 
 void NativeRealTimeRun(GLFWwindow* window,shared_ptr<RenderScene>& scene){
@@ -84,14 +86,32 @@ void NativeRealTimeRun(GLFWwindow* window,shared_ptr<RenderScene>& scene){
     render::SceneSnapshotBuilder snapshots;
     const auto started=std::chrono::steady_clock::now();
     engine::RenderRuntime runtime(rhi::graphicsDevice(),std::move(gui.nativeRenderer_));
+    gui.prepareScene_=[&](std::shared_ptr<const render::RenderWorldSnapshot> payload,std::shared_ptr<std::atomic<bool>> cancelled){
+        auto target=std::make_shared<render::RenderWorldSnapshot>(*payload);auto& frame=target->frame;
+        int width,height;glfwGetFramebufferSize(window,&width,&height);frame.viewportWidth=std::max(1,width);frame.viewportHeight=std::max(1,height);
+        if(auto camera=scene->mainCamera()) {frame.view=camera->GetViewMatrix();glm::mat4 depth(1);depth[2][2]=.5f;depth[3][2]=.5f;frame.viewProjection=depth*camera->GetPerspective()*frame.view;
+            frame.cameraPosition=camera->getPosition();frame.nearPlane=camera->getNear();frame.farPlane=camera->getFar();target->exposure=camera->getExposure();}
+        const auto settings=RenderManager::GetInstance()->setting;
+        frame.shadows=settings.enableShadow;frame.ssao=settings.enableSSAO;frame.rsm=settings.enableRSM;frame.taa=settings.enableTSAA;
+        target->automaticQuality=settings.automaticQuality;
+        frame.forwardShading=!settings.useDefer;frame.rsmSettings=settings.rsmSettings;
+        return runtime.prepareScene(std::move(target),std::move(cancelled));
+    };
+    gui.activateScene_=[&](uint64_t token){runtime.activatePrepared(token);};
+    engine::FixedStepClock logicClock;InputManager::GetInstance()->tick();
     int framesSubmitted=0;
     try{
         while(!glfwWindowShouldClose(window)){
-            runtime.rethrowFailure();glfwPollEvents();scene->applyCommands();
+            runtime.rethrowFailure();glfwPollEvents();const auto inputSampledAt=std::chrono::steady_clock::now();scene->applyCommands();
             if(framesSubmitted==4 && scriptedResize[0]>0){glfwSetWindowSize(window,scriptedResize[0],scriptedResize[1]);scriptedResize={};glfwPollEvents();}
             int width,height;glfwGetFramebufferSize(window,&width,&height);
             runtime.notifySurfaceExtent(uint32_t(std::max(0,width)),uint32_t(std::max(0,height)));
-            if(width<=0 || height<=0){glfwWaitEventsTimeout(.05);continue;}
+            if(width<=0 || height<=0) {
+                auto input=InputManager::GetInstance();input->tick();const auto message=input->capture();
+                logicClock.setPaused(gui.pauseSimulation_);logicClock.setSpeed(gui.simulationSpeed_);
+                logicClock.advance(std::max(0.f,input->deltaFrame),[&](double step){if(scene->mainCamera())scene->mainCamera()->applyInput(message,float(step),false);});
+                input->reset();glfwWaitEventsTimeout(.016);continue;
+            }
             framebuffer_size_callback(window,width,height);
             gui.window(scene);InputManager::GetInstance()->tick();
             if(InputManager::GetInstance()->keyStatus[KEY_R]==PRESSED){
@@ -101,17 +121,23 @@ void NativeRealTimeRun(GLFWwindow* window,shared_ptr<RenderScene>& scene){
                 Connector::GetInstance()->LaunchPathTracingWithSnapshot(std::move(captured),baked);
                 InputManager::GetInstance()->keyStatus[KEY_R]=RELEASED;
             }
-            if(scene->mainCamera()){scene->mainCamera()->setAspect(float(width)/height);scene->mainCamera()->tick();}
+            logicClock.setPaused(gui.pauseSimulation_);logicClock.setSpeed(gui.simulationSpeed_);
+            if(scene->mainCamera()){scene->mainCamera()->setAspect(float(width)/height);scene->mainCamera()->applyInput(InputManager::GetInstance()->capture(),0,true);}
+            const auto inputMessage=InputManager::GetInstance()->capture();
+            logicClock.advance(std::max(0.f,InputManager::GetInstance()->deltaFrame),[&](double step){if(scene->mainCamera())scene->mainCamera()->applyInput(inputMessage,float(step),false);});
             const auto settings=RenderManager::GetInstance()->setting;
-            auto captured=snapshots.capture(scene,settings.timeOverride>=0?settings.timeOverride:float(glfwGetTime()),uint32_t(width),uint32_t(height),false);
+            auto captured=snapshots.capture(scene,settings.timeOverride>=0?settings.timeOverride:float(logicClock.seconds()),uint32_t(width),uint32_t(height),false);
             if(captured){
                 auto snapshot=std::make_shared<render::RenderWorldSnapshot>(*captured);auto& frame=snapshot->frame;
                 frame.shadows=settings.enableShadow;frame.ssao=settings.enableSSAO;frame.rsm=settings.enableRSM;frame.taa=settings.enableTSAA;frame.aoRadius=settings.aoRadius;frame.aoBias=settings.aoBias;frame.aoPower=settings.aoPower;frame.toneMapping=settings.enableHDR;frame.rsmSettings=settings.rsmSettings;frame.directionalEnabled=settings.enableDirectional;frame.forwardShading=!settings.useDefer;
-                engine::RenderPacket packet;packet.world=std::move(snapshot);packet.gui=render::GuiFrame::capture(ImGui::GetDrawData());
+                snapshot->automaticQuality=settings.automaticQuality;
+                engine::RenderPacket packet;packet.sampledAt=inputSampledAt;packet.world=std::move(snapshot);packet.gui=render::GuiFrame::capture(ImGui::GetDrawData());
                 if(!nativeScreenshot.empty() && frameLimit==1)packet.screenshot=nativeScreenshot;
-                if(!runtime.submit(std::move(packet)))break;++framesSubmitted;
-                if(frameLimit>0 && --frameLimit==0)glfwSetWindowShouldClose(window,true);
-                if(framesSubmitted%120==0)ResourceManager::GetInstance()->releaseUnused();
+                if(runtime.trySubmitFrame(std::move(packet))) {
+                    ++framesSubmitted;
+                    if(frameLimit>0 && --frameLimit==0)glfwSetWindowShouldClose(window,true);
+                    if(framesSubmitted%120==0)ResourceManager::GetInstance()->releaseUnused();
+                } else glfwWaitEventsTimeout(.002);
             }else {glfwWaitEventsTimeout(.002);}
             InputManager::GetInstance()->reset();
         }
@@ -120,7 +146,7 @@ void NativeRealTimeRun(GLFWwindow* window,shared_ptr<RenderScene>& scene){
         auto error=std::current_exception();try{runtime.finish();}catch(...){}
         gui.destroy();RenderManager::GetInstance()->releaseNative();scene->destroy();scene.reset();rhi::shutdown();glfwDestroyWindow(window);glfwTerminate();std::rethrow_exception(error);
     }
-    std::cout<<"RHI threaded editor rendered "<<runtime.framesRendered()<<" frames in "<<std::chrono::duration<double>(std::chrono::steady_clock::now()-started).count()<<" seconds; last render "<<runtime.renderMilliseconds()<<" ms; render CPU p95/p99 "<<runtime.renderP95Milliseconds()<<"/"<<runtime.renderP99Milliseconds()<<" ms; peak queue wait "<<runtime.peakQueueWaitMilliseconds()<<" ms; shared GPU images "<<runtime.imageBytes()/1048576.0<<" MiB / "<<runtime.imageUploads()<<" uploads / "<<runtime.imageCacheHits()<<" hits; peak RHI resource estimate "<<runtime.peakResourceBytes()/1048576.0<<" MiB; memory pressure "<<runtime.memoryPressureEvents()<<" events; rejected publications "<<runtime.rejectedPublications()<<" / fallback frames "<<runtime.fallbackFrames()<<"; chunked mesh uploads "<<runtime.meshUploadBytes()/1048576.0<<" MiB / "<<runtime.meshUploadChunks()<<" chunks / "<<runtime.pendingMeshUploads()<<" pending; pipelines "<<runtime.pipelineBuilds()<<" native builds / "<<runtime.pipelineCacheHits()<<" cache hits; CPU queue 2, GPU frame limit "<<maxFramesInFlight<<"\n";
+    std::cout<<"RHI threaded editor rendered "<<runtime.framesRendered()<<" frames in "<<std::chrono::duration<double>(std::chrono::steady_clock::now()-started).count()<<" seconds; last render "<<runtime.renderMilliseconds()<<" ms; render CPU p95/p99 "<<runtime.renderP95Milliseconds()<<"/"<<runtime.renderP99Milliseconds()<<" ms; peak queue wait "<<runtime.peakQueueWaitMilliseconds()<<" ms; shared GPU images "<<runtime.imageBytes()/1048576.0<<" MiB / "<<runtime.imageUploads()<<" uploads / "<<runtime.imageCacheHits()<<" hits; peak RHI resource estimate "<<runtime.peakResourceBytes()/1048576.0<<" MiB; memory pressure "<<runtime.memoryPressureEvents()<<" events; rejected publications "<<runtime.rejectedPublications()<<" / fallback frames "<<runtime.fallbackFrames()<<"; chunked mesh uploads "<<runtime.meshUploadBytes()/1048576.0<<" MiB / "<<runtime.meshUploadChunks()<<" chunks / "<<runtime.pendingMeshUploads()<<" pending; pipelines "<<runtime.pipelineBuilds()<<" native builds / "<<runtime.pipelineCacheHits()<<" cache hits; sampled native allocations "<<(runtime.nativeMemorySupported()?std::to_string(runtime.peakNativeBytes()/1048576.0)+" MiB":"unavailable")<<"; peak GPU submission "<<runtime.peakGpuSubmissionMilliseconds()<<" ms; peak input-sample-to-completion acknowledgement "<<runtime.peakCompletionLatencyMilliseconds()<<" ms; quality tier "<<runtime.qualityLevel()<<"; skipped render snapshots "<<runtime.skippedSnapshots()<<"; dropped logic time "<<logicClock.droppedSeconds()<<" s; CPU queue 2, GPU frame limit "<<maxFramesInFlight<<"\n";
     gui.destroy();RenderManager::GetInstance()->releaseNative();scene->destroy();scene.reset();ResourceManager::GetInstance()->releaseUnused();rhi::shutdown();glfwDestroyWindow(window);glfwTerminate();
 }
 
@@ -180,6 +206,10 @@ void RealTimeRun(GLFWwindow* window, shared_ptr<RenderScene>& scene) {
 
 int main(int argc, char** argv) {
     try {
+    for(int i=1;i<argc;++i)if(std::string(argv[i])=="--asset-root") {
+        if(i+1>=argc)throw std::invalid_argument("--asset-root requires a directory");
+        engine::AssetPath::setRoot(argv[i+1]);for(int k=i;k+2<argc;++k)argv[k]=argv[k+2];argc-=2;--i;
+    }
     for(int i=1;i<argc;++i)if(std::string(argv[i])=="--backend" && i+1<argc){const std::string name=argv[++i];if(name=="Vulkan")rhi::requestBackend(rhi::Backend::Vulkan);else if(name=="Metal")rhi::requestBackend(rhi::Backend::Metal);else if(name=="OpenGL")rhi::requestBackend(rhi::Backend::OpenGL);else throw std::invalid_argument("Unknown backend: "+name);}
 #ifndef SCENERENDERER_HAS_VULKAN
     if(rhi::requestedBackend()==rhi::Backend::Vulkan)throw std::invalid_argument("This build excludes Vulkan; enable SCENERENDERER_VULKAN_PROTOTYPE or select the Vulkan backend in CMake");
@@ -249,6 +279,7 @@ int main(int argc, char** argv) {
         else if(argument=="--backend" && i+1<argc){std::string name=argv[++i];if(name=="Vulkan")rhi::requestBackend(rhi::Backend::Vulkan);else if(name=="Metal")rhi::requestBackend(rhi::Backend::Metal);else if(name=="OpenGL")rhi::requestBackend(rhi::Backend::OpenGL);else throw std::invalid_argument("Unknown backend");}
         else if(argument=="--classic"&&i+1<argc)classicScene=argv[++i];
         else if(argument=="--hidden")hiddenEditor=true;
+        else if(argument=="--auto-quality")automaticQuality=true;
         else if(argument=="--gpu-resource-budget-mib" && i+1<argc){const std::string text=argv[++i];if(text.empty() || text[0]=='-')throw std::invalid_argument("Resource budget expects nonnegative MiB");size_t consumed=0;auto value=std::stoull(text,&consumed);if(consumed!=text.size() || value>SIZE_MAX/(1024*1024))throw std::invalid_argument("Resource budget exceeds supported byte range");gpuResourceBudget=size_t(value)*1024*1024;}
         else if(argument=="--frames-in-flight" && i+1<argc)maxFramesInFlight=std::stoi(argv[++i]);
         else if(argument=="--size" && i+1<argc){const std::string size=argv[++i];auto x=size.find('x');if(x==std::string::npos)throw std::invalid_argument("Size expects WIDTHxHEIGHT");windowSize={std::stoi(size.substr(0,x)),std::stoi(size.substr(x+1))};if(windowSize[0]<=0 || windowSize[1]<=0)throw std::invalid_argument("Window dimensions must be positive");}
@@ -289,6 +320,7 @@ int main(int argc, char** argv) {
     rhi::device()->setMaxFramesInFlight(maxFramesInFlight);
     if(gpuResourceBudget && !rhi::usesNativeRenderer())throw std::invalid_argument("Resource budget applies to the native RHI editor, not the legacy GL renderer");
     rhi::device()->setResourceBudget(gpuResourceBudget);
+    RenderManager::GetInstance()->setting.automaticQuality=automaticQuality;
 	if(!rhi::usesNativeRenderer()){glEnable(GL_DEPTH_TEST);
 	//glDepthMask(GL_FALSE);
 	glEnable(GL_CULL_FACE);

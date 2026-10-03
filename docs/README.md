@@ -18,6 +18,7 @@
 
 | 文档 | 内容 |
 | --- | --- |
+| [后续计划实施与验收](engine-runtime-completion.md) | 联合加载、增量图片、固定时钟、纹理子资源、图复用、地形反馈与降级 |
 | [设计审查](engine-design-review.md) | 架构评价、实施状态与后续工作 |
 | [多线程与渲染分离](engine-multithreading.md) | 线程归属、快照、任务与帧队列 |
 | [组件与世界命令](engine-world-commands.md) | 组件注册、后台命令与资源配额 |

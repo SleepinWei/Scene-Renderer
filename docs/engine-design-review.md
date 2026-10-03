@@ -29,19 +29,11 @@ RenderScene 的结构与灯光索引改为私有并迁移全部调用方；重�
 
 核心可变数据的第一阶段封装已完成：Transform、Light、Camera、Mesh／Material 与 MeshRenderer 的参数和容器使用检查接口；几何／图片修改自动失效，材质标量独立计版，Camera 与 CPU 资产参与封存移交。附带修复 JSON 基础形状材质、贴图替换及相机裁剪范围。具体接口、验收与剩余边界见 [可变数据边界](engine-data-boundaries.md)。
 
-## 尚需推进的设计工作
+## 后续计划实施结果
 
-| 优先级 | 当前边界 | 下一步与验收 |
-| --- | --- | --- |
-| P1 | 世界结构、组件注册表与核心 Transform／Light／Camera／Mesh／Material 数据已私有；Texture 像素、部分效果配置与兼容字段仍公开 | 继续迁移历史 Texture 与效果配置，约束共享可变资产组移交；新模块使用检查过的 API／命令。稳定 ID 不复用，后续 ECS 槽位需 generation |
-| P1 | 配额压力时回收空闲图片／等待退役，候选缓存事务与成功画面回退已实现；CPU 世界仍独立发布 | 完整世界的 CPU／GPU 联合两阶段加载、品质降级、实际 native heap 统计与大场景压力验收；动态 GPU 状态依靠成功画面隔离，详见发布文档 |
-| P1 | 异步静态 mesh 分段上传、用时预算和每设备 pipeline cache 已实现；完整分配、图片／生成资源和首次管线构建仍不可分割 | 扩展图片／生成资源的增量初始化与管线预热；测量大场景启动、GPU 时间、端到端输入延迟及实际 native heap 峰值，详见分段上传文档 |
-| P2 | 场景取消不能中断正在执行的 Assimp／磁盘操作；路径仍沿用历史 cwd 约定 | 资产根目录、结构化诊断、分阶段取消与请求代际；失败／过期结果不发布 |
-| P2 | graph 是有序记录及校验，大气／阴影／海洋模拟仍在图前执行 | 将效果纳入资源图，增加 RHI mip/layer/subresource、transient 生命周期和 debug marker；再实现自动调度／资源复用 |
-| P2 | 相机与编辑器逻辑仍按主线程帧 tick，PT 启动接口会阻塞 | 输入消息与独立固定步长模拟；PT 任务状态／取消；验收暂停、慢 GPU、加载时逻辑时钟与交互行为 |
-| P2 | VT 是 CPU 预测，LOD 用固定距离和全局高度界；动态地形不累积 TSAA | 屏幕 feedback、阴影／反射视角请求、分块 min/max、屏幕误差 LOD、morph 与可靠运动历史 |
+原计划中的 Texture／效果配置、联合 CPU／GPU 世界加载、普通图片分块上传、管线磁盘缓存、真实 RHI mip／layer、效果资源图、transient 纹理复用、GPU VT feedback／辅助阴影视图、分块高度界、屏幕 LOD／morph、固定逻辑时钟／输入值消息、可选品质降级与 native GPU 测量已经落地。普通帧队列满时跳过快照，主逻辑继续运行，控制消息仍保证送达。
 
-推荐后续仍按依赖顺序：继续完善历史资产接口与联合世界发布，扩展增量资源初始化与管线预热，再扩展 graph 与 RHI 子资源，最后推进屏幕反馈 VT 和地形时间连续性。屏幕 feedback、morph、全局 ECS、跨队列 GPU 调度没有在本次实现中伪装为已经完成。
+当前接口、预算、失败行为、验收及明确边界见 [Engine 后续计划实施与验收](engine-runtime-completion.md)。其中完整图自动调度／跨队列执行、native heap aliasing、首次冷管线后台编译、跨 LOD 的逐顶点运动历史和 Windows／Linux 实机验收仍未完成；它们没有被当作本轮现成能力。当前地形稳定几何可累积 TSAA，变化几何明确 reactive。
 
 ## 验证范围
 
@@ -60,3 +52,5 @@ CPU cache／job／帧队列和 graph 契约有独立测试，并在 ThreadSaniti
 内存压力与 GPU 帧发布阶段已完成并通过三后端回归：空闲图片回收、候选缓存／材质参数隔离、窗口与海洋超限时保留旧像素、正常快照恢复。完整范围、成本与剩余联合加载工作见 [GPU 发布文档](engine-gpu-publication.md)。
 
 分段静态网格上传与每设备 graphics／compute pipeline cache 已完成三后端回归及 CPU RHI TSan 检查；完整实现、预算与尚未拆分的工作见 [分段上传与管线缓存](engine-streaming-and-pipeline-cache.md)。
+
+本轮后续验证与压力测试见 [当前验收记录](engine-runtime-completion.md)，历史批次数字保留用于溯源。

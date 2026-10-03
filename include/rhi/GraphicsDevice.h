@@ -37,16 +37,18 @@ struct GraphicsLimits {
     uint32_t maxBindingsPerGroup = 8;
     uint32_t maxColorAttachments = 4;
 };
-// Initial contract: single-sample, one mip and one layer, two-dimensional textures.
-// Unsupported dimensionality is not silently flattened into a 2D image.
+// Single-sample 2D/2D-array storage. Views expose one layer as sampler2D.
 struct TextureDesc {
     uint32_t width = 0, height = 0;
     Format format = Format::RGBA8UNorm;
     TextureUsage usage = TextureUsage::None;
     std::string label;
+    uint32_t mipLevels=1, arrayLayers=1;
 };
-struct TextureRegion { uint32_t x=0, y=0, width=0, height=0; };
-struct TextureViewDesc { TextureHandle texture; };
+struct TextureRegion { uint32_t x=0, y=0, width=0, height=0, mip=0, layer=0; };
+struct TextureSubresource {uint32_t mip=0,layer=0;};
+struct TextureRange {uint32_t firstMip=0,mipCount=1,firstLayer=0,layerCount=1;};
+struct TextureViewDesc { TextureHandle texture; TextureRange range; };
 struct SamplerDesc { Filter filter = Filter::Linear; AddressMode address = AddressMode::ClampToEdge; };
 struct BindingLayoutEntry {
     uint32_t binding = 0;
@@ -153,10 +155,11 @@ struct ResourceDependency {
     BufferHandle buffer;TextureHandle texture;
     ResourceAccess before=ResourceAccess::None, after=ResourceAccess::None;
     ResourceStage beforeStages=ResourceStage::None, afterStages=ResourceStage::None;
+    TextureRange range;
 };
 struct DispatchCommand { ComputePipelineHandle pipeline;std::vector<BindingSetHandle> bindings;std::array<uint32_t,3> groups{1,1,1};BufferHandle indirect;size_t indirectOffset=0; };
 // Each dispatch is a separate logical pass, with a dependency boundary.
-struct RecordedPass { RenderPassDesc desc;std::vector<DrawCommand> draws;bool compute = false;DispatchCommand dispatch;std::vector<ResourceDependency> dependencies;bool copy=false;TextureHandle copySource,copyDestination; };
+struct RecordedPass { RenderPassDesc desc;std::vector<DrawCommand> draws;bool compute = false;DispatchCommand dispatch;std::vector<ResourceDependency> dependencies;bool copy=false;TextureHandle copySource,copyDestination;TextureSubresource sourceSubresource,destinationSubresource;std::string label; };
 class GraphicsDevice;
 // A logical command list. submit is synchronous in this first implementation.
 // Resources are checked again immediately before execution; lists are single-use.
@@ -172,7 +175,9 @@ public:
     void drawIndirect(BufferHandle arguments, size_t offset = 0);
     void drawIndexedIndirect(BufferHandle arguments, size_t offset = 0);
     void endRenderPass();
-    void copyTexture(TextureHandle source,TextureHandle destination);
+    void copyTexture(TextureHandle source,TextureHandle destination,TextureSubresource sourceLevel={},TextureSubresource destinationLevel={});
+    void setPassLabel(const std::string&);
+    void setLabel(std::string label) {if(submitted_)throw std::logic_error("RHI: submitted command list");label_=std::move(label); }
     void dispatch(ComputePipelineHandle, const std::vector<BindingSetHandle>&, std::array<uint32_t,3> groups);
     void dispatchIndirect(ComputePipelineHandle,const std::vector<BindingSetHandle>&,BufferHandle arguments,size_t offset=0);
     CommandList(const CommandList&) = delete;
@@ -185,8 +190,12 @@ private:
     std::shared_ptr<GraphicsDevice> owner_;
     std::vector<RecordedPass> passes_;
     DrawCommand state_;
+    std::string label_;
     bool inPass_ = false, submitted_ = false;
 };
+struct GpuTimingStats {bool supported=false;uint64_t samples=0;double milliseconds=0;std::string scope;double peakMilliseconds=0;};
+struct NativeMemoryStats {bool supported=false;uint64_t usedBytes=0,budgetBytes=0;std::string source;};
+struct PipelineDiskCacheStats {bool supported=false,loaded=false,saved=false;size_t bytes=0;std::string path;};
 struct PipelineCacheStats {
     uint64_t graphicsBuilds = 0, computeBuilds = 0, hits = 0, evictions = 0;
     size_t nativeEntries = 0, idleEntries = 0, liveHandles = 0;
@@ -200,10 +209,15 @@ public:
     PipelineHandle createGraphicsPipeline(const GraphicsPipelineDesc&);
     ComputePipelineHandle createComputePipeline(const ComputePipelineDesc&);
     void destroyComputePipeline(ComputePipelineHandle);
+    GpuTimingStats gpuTimingStats() const {checkOpen();return gpuTimingStatsImpl();}
+    NativeMemoryStats nativeMemoryStats() const {checkOpen();return nativeMemoryStatsImpl();}
     PipelineCacheStats pipelineCacheStats() const;
+    PipelineDiskCacheStats pipelineDiskCacheStats() const {checkOpen();return pipelineDiskCacheStatsImpl();}
+    void savePipelineDiskCache(){checkOpen();savePipelineDiskCacheImpl();}
     void setPipelineCacheIdleLimit(size_t count); // Combined graphics/compute idle LRU; default 64.
     void trimPipelineCache();
     virtual ComputeLimits computeLimits() const { return {}; }
+    virtual bool supportsTextureSubresources() const {return false;}
     virtual bool supportsWireframe() const { return false; }
     BindingSetHandle createBindingSet(const BindingSetDesc&);
     void destroyTexture(TextureHandle);
@@ -214,8 +228,9 @@ public:
     void writeTextureRegion(TextureHandle, TextureRegion, const void*, size_t bytes);
     void writeTexture(TextureHandle, const void* rgba, size_t bytes);
     // RGBA8 readback, tightly packed, row zero is the top of the render target.
-    ReadbackTicket requestTextureReadback(TextureHandle); // Tightly packed rows; format matches TextureDesc.
+    ReadbackTicket requestTextureReadback(TextureHandle,TextureSubresource={}); // Tightly packed rows; format matches TextureDesc.
     std::vector<uint8_t> readTexture(TextureHandle);
+    std::vector<uint8_t> readTextureSubresource(TextureHandle,TextureSubresource);
     std::vector<float> readTextureFloat(TextureHandle);
     void writeTextureFloat(TextureHandle, const float* rgba, size_t bytes);
     // Copy a display-ready RGBA8 target to the current native backbuffer.
@@ -253,14 +268,18 @@ protected:
     virtual NativeObject createComputePipelineImpl(const ComputePipelineDesc&);
     virtual void destroyComputePipelineImpl(NativeObject) noexcept {}
     virtual NativeObject createTextureImpl(const TextureDesc&) = 0;
-    virtual NativeObject createTextureViewImpl(NativeObject, const TextureDesc&) = 0;
+    virtual NativeObject createTextureViewImpl(NativeObject, const TextureDesc&,const TextureViewDesc&) = 0;
     virtual NativeObject createSamplerImpl(const SamplerDesc&) = 0;
     virtual NativeObject createPipelineImpl(const GraphicsPipelineDesc&) = 0;
     virtual void destroyTextureImpl(NativeObject) noexcept = 0;
     virtual void destroyTextureViewImpl(NativeObject) noexcept = 0;
     virtual void destroySamplerImpl(NativeObject) noexcept = 0;
     virtual void destroyPipelineImpl(NativeObject) noexcept = 0;
-    virtual std::function<void()> queueTextureReadbackImpl(NativeObject,const TextureDesc&,std::shared_ptr<std::vector<uint8_t>>);
+    virtual GpuTimingStats gpuTimingStatsImpl() const {return {};}
+    virtual NativeMemoryStats nativeMemoryStatsImpl() const {return {};}
+    virtual PipelineDiskCacheStats pipelineDiskCacheStatsImpl() const {return {};}
+    virtual void savePipelineDiskCacheImpl() {}
+    virtual std::function<void()> queueTextureReadbackImpl(NativeObject,const TextureDesc&,std::shared_ptr<std::vector<uint8_t>>,TextureSubresource);
     virtual void writeTextureRegionImpl(NativeObject, const TextureDesc&, TextureRegion, const void*, size_t);
     virtual void writeTextureImpl(NativeObject, const TextureDesc&, const void*, size_t) = 0;
     virtual std::vector<uint8_t> readTextureImpl(NativeObject, const TextureDesc&) = 0;
@@ -271,7 +290,7 @@ protected:
 private:
     friend class CommandList;
     struct TextureRecord { TextureDesc desc; NativeObject native; };
-    struct ViewRecord { TextureViewDesc desc; NativeObject native; };
+    struct ViewRecord { TextureViewDesc desc; NativeObject native; TextureDesc selected; };
     // unordered_map rehash preserves value addresses; leased entries cannot be evicted.
     struct CachedPipeline { NativeObject native; size_t leases = 0; uint64_t touched = 0; };
     struct PipelineRecord { GraphicsPipelineDesc desc; NativeObject native; CachedPipeline* cached; };

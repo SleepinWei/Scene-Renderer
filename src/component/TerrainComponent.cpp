@@ -1,4 +1,7 @@
 
+
+#include <cmath>
+#include <stdexcept>
 #include "rhi/Device.h"
 #include <filesystem>
 #include <cmath>
@@ -609,4 +612,33 @@ void TerrainComponent::loadFromJson(json& data) {
 			if(materialVirtualTexture.empty())this->material->addTextureAsync(mat_path, mat_type);else this->material->setTexturePath(mat_type,mat_path);
 		}
 	}
+}
+
+TerrainConfiguration TerrainComponent::settings() const {
+    checkLogicThread();return {yScale,yShift,polyMode,model,material,terrainMaterial,heightSourcePath,heightVirtualTexture,materialVirtualTexture,maxLeaves};
+}
+void TerrainComponent::setSettings(const TerrainConfiguration& value) {
+    checkLogicThread();
+    if(!std::isfinite(value.yScale) || !std::isfinite(value.yShift) || value.maxLeaves<25 || value.maxLeaves>25600 ||
+       (value.polyMode!=GL_FILL && value.polyMode!=GL_LINE))throw std::invalid_argument("Invalid terrain settings");
+    for(int c=0;c<4;++c)for(int r=0;r<4;++r)if(!std::isfinite(value.model[c][r]))throw std::invalid_argument("Nonfinite terrain transform");
+    if(std::abs(glm::determinant(value.model))<1e-12f)throw std::invalid_argument("Singular terrain transform");
+    if(value.material)value.material->checkLogicThread();if(value.terrainMaterial)value.terrainMaterial->checkLogicThread();
+    if(heightSourcePath!=value.heightSourcePath || heightVirtualTexture!=value.heightVirtualTexture || materialVirtualTexture!=value.materialVirtualTexture || maxLeaves!=value.maxLeaves)++sourceRevision;
+    yScale=value.yScale;yShift=value.yShift;polyMode=value.polyMode;model=value.model;
+    material=value.material;terrainMaterial=value.terrainMaterial;heightSourcePath=value.heightSourcePath;
+    heightVirtualTexture=value.heightVirtualTexture;materialVirtualTexture=value.materialVirtualTexture;maxLeaves=value.maxLeaves;invalidate();
+}
+void TerrainComponent::setHeightData(uint32_t width,uint32_t height,std::vector<float> pixels) {
+    checkLogicThread();if(width<2 || height<2 || width>16384 || height>16384 || pixels.size()!=size_t(width)*height)
+        throw std::invalid_argument("Invalid terrain height extent");
+    for(float pixel:pixels)if(!std::isfinite(pixel))throw std::invalid_argument("Nonfinite terrain height");
+    auto candidate=std::make_unique<float[]>(pixels.size());std::copy(pixels.begin(),pixels.end(),candidate.get());
+    delete[] heightData;heightData=candidate.release();heightWidth=width;heightHeight=height;
+    heightSourcePath.clear();heightVirtualTexture.clear();++sourceRevision;invalidate();
+}
+
+void TerrainComponent::initializeLegacyGrid() {
+    checkLogicThread();rez=5;nodeIndex.resize(50);
+    for(unsigned y=0;y<5;++y)for(unsigned x=0;x<5;++x){nodeIndex[2*(y*5+x)]=x;nodeIndex[2*(y*5+x)+1]=y;}
 }

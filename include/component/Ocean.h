@@ -8,28 +8,13 @@
 class Texture;
 class FrameBuffer;
 
-// Periodic Tessendorf surface: meters, seconds, wind speed in m/s.
-class Ocean : public Component, public std::enable_shared_from_this<Ocean> {
-public:
-    Ocean();
-    ~Ocean();
-    void render();
-    void simulate(float seconds); // Deterministic compute-only entry for numerical validation.
-    std::shared_ptr<ImageTexture> GaussianRandomRT_Texture, HeightSpectrumRT_Texture;
-    std::shared_ptr<ImageTexture> DisplaceXSpectrumRT_Texture, DisplaceZSpectrumRT_Texture;
-    std::shared_ptr<ImageTexture> InputRT_Texture, OutputRT_Texture, DisplaceRT_Texture;
-    std::shared_ptr<ImageTexture> NormalRT_Texture, BubblesRT_Texture;
-    std::shared_ptr<Shader> GaussianRandomRT_Shader, DisplaceSpectrum_Shader, HeightSpectrum_Shader;
-    std::shared_ptr<Shader> FFTHorizontal_Shader, FFTHorizontalEnd_Shader;
-    std::shared_ptr<Shader> FFTVertical_Shader, FFTVerticalEnd_Shader;
-    std::shared_ptr<Shader> TextureDisplace_Shader, TextureNormalBubbles_Shader, draw_shader;
+struct OceanConfiguration {
     int FFTPow=10, fft_size=1024, MeshSize=513;
     float MeshLength=512, TimeScale=1;
     glm::vec4 WindAndSeed={1,1,0,0}; // xy wind direction; zw retained for source compatibility.
     int seed=1337;
     bool animate=true, detailWaves=true;
     float detailStrength=1;
-    float inner_time=0, deltaTime=0, lastFrame=0;
     float A=0.0005f, Lambda=0.8f, HeightScale=1;
     float BubblesScale=2, BubblesThreshold=0.86f, WindScale=30;
     float seaLevel=-5;
@@ -45,7 +30,27 @@ public:
     glm::vec3 outer_Specular=pow(glm::vec3(.3962264f,.3943574f,.3943574f),glm::vec3(2.2f));
     int outer_Gloss=256;
     glm::vec3 outer_ambient={0,0,0};
+};
+// Periodic Tessendorf surface: meters, seconds, wind speed in m/s.
+class Ocean : private OceanConfiguration, public Component, public std::enable_shared_from_this<Ocean> {
+public:
+    Ocean();
+    ~Ocean();
+    void render();
+    OceanConfiguration settings() const {checkLogicThread();return *this;}
+    void setSettings(OceanConfiguration);
+    template<class F> void updateSettings(F&& edit) {auto candidate=settings();edit(candidate);setSettings(candidate);}
+    void simulate(float seconds); // Deterministic compute-only entry for numerical validation.
+    std::shared_ptr<ImageTexture> GaussianRandomRT_Texture, HeightSpectrumRT_Texture;
+    std::shared_ptr<ImageTexture> DisplaceXSpectrumRT_Texture, DisplaceZSpectrumRT_Texture;
+    std::shared_ptr<ImageTexture> InputRT_Texture, OutputRT_Texture, DisplaceRT_Texture;
+    std::shared_ptr<ImageTexture> NormalRT_Texture, BubblesRT_Texture;
+    std::shared_ptr<Shader> GaussianRandomRT_Shader, DisplaceSpectrum_Shader, HeightSpectrum_Shader;
+    std::shared_ptr<Shader> FFTHorizontal_Shader, FFTHorizontalEnd_Shader;
+    std::shared_ptr<Shader> FFTVertical_Shader, FFTVerticalEnd_Shader;
+    std::shared_ptr<Shader> TextureDisplace_Shader, TextureNormalBubbles_Shader, draw_shader;
 private:
+    float inner_time=0, deltaTime=0, lastFrame=0;
     std::vector<unsigned> vertexIndexs;
     std::vector<float> vertexInfo;
     unsigned VAO=0,VBO=0,EBO=0;

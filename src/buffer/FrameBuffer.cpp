@@ -22,12 +22,12 @@ void FrameBuffer::unbindBuffer() {
 
 void FrameBuffer::bindTexture(const std::shared_ptr<Texture>& tex,GLenum attachment,GLenum textarget) {
 	glBindFramebuffer(GL_FRAMEBUFFER, this->FBO);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, textarget, tex->id, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, textarget, tex->gpuId(), 0);
 }
 
 //to generate a series of maps to implementing CSM
 void FrameBuffer::bindShadowTexture(const std::shared_ptr<Texture>& tex, GLenum attachment)
 {
 	glBindFramebuffer(GL_FRAMEBUFFER, this->FBO);
-	glFramebufferTexture(GL_FRAMEBUFFER, attachment, tex->id, 0);
+	glFramebufferTexture(GL_FRAMEBUFFER, attachment, tex->gpuId(), 0);
 }

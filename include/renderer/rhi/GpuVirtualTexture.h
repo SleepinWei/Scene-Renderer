@@ -13,6 +13,7 @@ struct VirtualTextureSource {
     uint32_t extent = 64;
     float minimum = 0, maximum = 0;
     bool heightField = false;
+    std::vector<glm::vec2> terrainBounds; // 34125 conservative quadtree min/max pairs, optional for packed sources.
     std::vector<rhi::Format> formats;
     using Page = std::vector<std::vector<uint8_t>>;
     std::function<Page(uint32_t mip, uint32_t x, uint32_t y)> readPage;
@@ -32,6 +33,13 @@ class GpuVirtualTexture {
         bool operator==(const PageId &b) const { return mip == b.mip && x == b.x && y == b.y; }
     };
     GpuVirtualTexture(std::shared_ptr<rhi::GraphicsDevice>, VirtualTextureSource, uint32_t columns = 8);
+    ~GpuVirtualTexture();
+    struct VisibilityView {glm::mat4 viewProjection{1};uint32_t width=128,height=128;};
+    void setAuxiliaryViews(std::vector<VisibilityView> views) {if(views.size()>8)views.resize(8);auxiliaryViews_=std::move(views);}
+    void recordFeedback(rhi::TextureViewHandle depth,const glm::mat4& inverseVP,const glm::mat4& model,
+                        uint32_t width,uint32_t height,float minimum,float maximum,bool flipV=false);
+    size_t feedbackPageCount() const {return feedbackRequests_.size();}
+    uint64_t feedbackSamples() const {return feedbackSamples_;}
     // CPU conservative visibility requests, capped before upload. No synchronous GPU readback.
     void prepare(const glm::mat4 &viewProjection, const glm::mat4 &model, uint32_t viewportWidth,
                  uint32_t viewportHeight, bool flipV = false, uint32_t uploads = 8);
@@ -55,6 +63,11 @@ class GpuVirtualTexture {
     float maximum() const { return source_.maximum; }
 
   private:
+    struct Feedback;std::unique_ptr<Feedback> feedback_;
+    std::vector<PageId> feedbackRequests_;uint64_t feedbackSamples_=0;
+    void collectFeedback();
+    std::vector<PageId> predict(const glm::mat4&,const glm::mat4&,uint32_t,uint32_t,bool) const;
+    std::vector<VisibilityView> auxiliaryViews_;
     void install(PageId, uint32_t slot, VirtualTextureSource::Page pages = {});
     void uploadTable();
     uint32_t row(uint32_t mip) const;

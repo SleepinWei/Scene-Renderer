@@ -21,14 +21,14 @@ bool equalImage(const ImageRGBA8 &a, const ImageRGBA8 &b) {
     return a.width == b.width && a.height == b.height && a.pixels == b.pixels;
 }
 } // namespace
-GpuImage::GpuImage(std::shared_ptr<rhi::GraphicsDevice> device, std::shared_ptr<const ImageRGBA8> source)
+GpuImage::GpuImage(std::shared_ptr<rhi::GraphicsDevice> device, std::shared_ptr<const ImageRGBA8> source,bool deferred)
     : source_(std::move(source)), resources_(std::move(device)) {
     validate(*source_);
     texture_ = resources_.texture(
         {source_->width, source_->height, rhi::Format::RGBA8UNorm,
          rhi::TextureUsage::Sampled | rhi::TextureUsage::CopyDestination | rhi::TextureUsage::CopySource,
          "Shared PBR image"});
-    resources_.device->writeTexture(texture_, source_->pixels.data(), source_->pixels.size());
+    if(!deferred){resources_.device->writeTexture(texture_,source_->pixels.data(),source_->pixels.size());nextRow_=source_->height;}
     view_ = resources_.view(texture_);
 }
 GpuImageCache::GpuImageCache(std::shared_ptr<rhi::GraphicsDevice> device) : device_(std::move(device)) {}
@@ -68,7 +68,7 @@ const GpuImageCache::Entry *GpuImageCache::find(const ImageRGBA8 &image) const {
             return &it->second;
     return nullptr;
 }
-std::shared_ptr<GpuImage> GpuImageCache::acquire(std::shared_ptr<const ImageRGBA8> image) {
+std::shared_ptr<GpuImage> GpuImageCache::acquire(std::shared_ptr<const ImageRGBA8> image,bool deferred) {
     device_->checkThread();
     if (!image)
         throw std::invalid_argument("Null GPU image source");
@@ -82,6 +82,7 @@ std::shared_ptr<GpuImage> GpuImageCache::acquire(std::shared_ptr<const ImageRGBA
                 if (it->second.gpu == gpu) {
                     it->second.touched = ++clock_;
                     ++hits_;
+                    if(!deferred && !gpu->ready())upload(gpu,SIZE_MAX);
                     return gpu;
                 }
         }
@@ -90,14 +91,15 @@ std::shared_ptr<GpuImage> GpuImageCache::acquire(std::shared_ptr<const ImageRGBA
         const_cast<Entry *>(found)->touched = ++clock_;
         identities_[image.get()] = {image, gpu, hashImage(*image)};
         ++hits_;
+        if(!deferred && !gpu->ready())upload(gpu,SIZE_MAX);
         return gpu;
     }
-    auto gpu = std::make_shared<GpuImage>(device_, image);
+    if(deferred && stats().pendingEntries>=4)return {};
+    auto gpu = std::make_shared<GpuImage>(device_, image,deferred);
     const auto hash = hashImage(*image);
     entries_.emplace(hash, Entry{gpu, ++clock_});
     identities_[image.get()] = {image, gpu, hash};
-    ++uploads_;
-    uploadedBytes_ += image->pixels.size();
+    if(!deferred){++uploads_;uploadedBytes_+=image->pixels.size();}
     trim();
     return gpu;
 }
@@ -178,9 +180,27 @@ GpuImageCacheStats GpuImageCache::stats() const {
     result.evictions = evictions_;
     for (const auto &entry : entries_) {
         result.residentBytes += entry.second.gpu->bytes();
+        if(!entry.second.gpu->ready())++result.pendingEntries;
         if (entry.second.gpu.use_count() == 1)
             result.idleBytes += entry.second.gpu->bytes();
     }
     return result;
 }
 } // namespace render
+
+namespace render {
+size_t GpuImage::uploadRows(size_t maxBytes) {
+    const size_t rowBytes=size_t(source_->width)*4;
+    const uint32_t rows=uint32_t(std::min(size_t(source_->height-nextRow_),maxBytes/rowBytes));
+    if(!rows)return 0;
+    resources_.device->writeTextureRegion(texture_,{0,nextRow_,source_->width,rows},source_->pixels.data()+size_t(nextRow_)*rowBytes,size_t(rows)*rowBytes);
+    nextRow_+=rows;return size_t(rows)*rowBytes;
+}
+size_t GpuImageCache::upload(const std::shared_ptr<GpuImage>& image,size_t maxBytes) {
+    device_->checkThread();if(!image)throw std::invalid_argument("Null deferred GPU image");
+    bool registered=false;for(const auto& entry:entries_)if(entry.second.gpu==image){registered=true;break;}
+    if(!registered)throw std::invalid_argument("Foreign deferred GPU image");
+    const bool wasReady=image->ready();const auto bytes=image->uploadRows(maxBytes);
+    uploadedBytes_+=bytes;if(!wasReady && image->ready())++uploads_;return bytes;
+}
+}

@@ -1,5 +1,7 @@
 # 地形审查、修复与 Virtual Texture
 
+> 本文保留对应批次的实现与验收。后续 Texture／联合加载／图片上传／RHI 子资源／VT／LOD 等当前状态见 [Engine 后续实施记录](engine-runtime-completion.md)。
+
 本次把新 RHI 地形的**高度场和五张 PBR 材质图**接入软件虚拟纹理，Metal 与 Vulkan 共用算法。高度生成、草的位置、前向／延迟材质、阴影／RSM 的 alpha 和材质采样使用同一套页地址规则。实现不依赖硬件 sparse texture。
 
 ## 原实现的问题与修复

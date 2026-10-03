@@ -11,6 +11,14 @@ class SSBO;
 class ImageTexture;
 class Component;
 
+struct TerrainConfiguration {
+    float yScale=70,yShift=-20;
+    unsigned int polyMode=0x1B02;
+    glm::mat4 model{1};
+    std::shared_ptr<Material> material,terrainMaterial;
+    std::string heightSourcePath,heightVirtualTexture,materialVirtualTexture;
+    uint32_t maxLeaves=2048;
+};
 class TerrainComponent:public Component,public std::enable_shared_from_this<TerrainComponent>{
 public:
 	TerrainComponent();
@@ -29,11 +37,23 @@ public:
 	void constructCall();
 	void prepareData(); 
 
+    TerrainConfiguration settings() const;
+    void setSettings(const TerrainConfiguration&);
+    template<class F> void updateSettings(F&& edit){auto candidate=settings();edit(candidate);setSettings(candidate);}
+    void setHeightData(uint32_t,uint32_t,std::vector<float>);
+    void initializeLegacyGrid();
+    bool initialized() const {checkLogicThread();return initDone;}
+    const float* getHeightData() const {checkLogicThread();return heightData;}
+    uint32_t getHeightWidth() const {checkLogicThread();return heightWidth;}
+    uint32_t getHeightHeight() const {checkLogicThread();return heightHeight;}
+    uint64_t getSourceRevision() const {checkLogicThread();return sourceRevision;}
+    const glm::mat4& getModel() const {checkLogicThread();return model;}
 	void setPolyMode(unsigned int polyMode_);
 private:
 	void initVertexObject();
 
-public:
+private:
+    friend class GameObject;
 	std::vector<float> vertices;
 	std::vector<unsigned int> nodeIndex; // used in compute shader
 	std::vector<float> texCoords;
@@ -48,6 +68,7 @@ public:
 	float* heightData=nullptr;
     std::string heightSourcePath,heightVirtualTexture,materialVirtualTexture;uint32_t heightWidth=0,heightHeight=0;
     uint32_t maxLeaves=2048;uint64_t sourceRevision=0;
+public:
     void invalidateHeight(){checkLogicThread();++sourceRevision;}
 
 	std::shared_ptr<Shader> shader;

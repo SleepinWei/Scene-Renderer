@@ -2,6 +2,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include "engine/LogicAsset.h"
+#include "engine/InputFrame.h"
 #include <stdexcept>
 
 enum class Camera_Movement { FORWARD, BACKWARD, LEFT, RIGHT, UP, DOWN };
@@ -92,7 +93,8 @@ class Camera : public engine::LogicAsset {
     void ProcessKeyboard(Camera_Movement, float);
     void ProcessMouseMovement(float, float, bool constrainPitch = true);
     void ProcessMouseScroll(float);
-    void tick();
+    void tick(float fixedStep=-1,bool pointerInput=true);
+    void applyInput(const engine::InputFrame&,float step,bool pointerInput=true);
 
   private:
     void updateCameraVectors();

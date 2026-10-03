@@ -27,9 +27,9 @@
 extern std::shared_ptr<RenderScene> scene;
 namespace {
 std::shared_ptr<Texture> solid(glm::vec3 color) {
-    auto texture=std::make_shared<Texture>();texture->width=texture->height=4;texture->channels=3;texture->format=texture->internalformat=GL_RGB;
-    texture->data=(unsigned char*)std::malloc(4*4*3);
-    for(int i=0;i<16;i++)for(int c=0;c<3;c++)texture->data[i*3+c]=static_cast<unsigned char>(255*color[c]);
+    auto texture=std::make_shared<Texture>();std::vector<unsigned char> pixels(48);
+    for(int i=0;i<16;i++)for(int c=0;c<3;c++)pixels[i*3+c]=static_cast<unsigned char>(255*color[c]);
+    texture->setPixels(4,4,3,std::move(pixels));
     return texture;
 }
 std::shared_ptr<Material> material(glm::vec3 color) {
@@ -64,12 +64,12 @@ std::shared_ptr<RenderScene> makeMetalDemoScene() {
     auto spot=std::make_shared<GameObject>();spot->name="S0";auto st=std::make_shared<Transform>();st->setPosition({-4,7,6});spot->addComponent(st);auto sl=std::make_shared<SpotLight>();sl->setDirection(glm::normalize(-st->getPosition()));sl->setColor({2,2,2});spot->addComponent(sl);result->addObject(spot);
     auto sky=std::make_shared<Sky>();sky->addComponent(std::make_shared<Atmosphere>());sky->skybox->setInitialized(false);sky->skybox->addTexture(std::make_shared<Texture>(),"skybox");sky->width=sky->height=4;
     for(int face=0;face<6;face++){sky->data[face]=(unsigned char*)std::malloc(48);std::fill(sky->data[face],sky->data[face]+48,16);}result->addSky(sky);
-    auto terrain=std::make_shared<Terrain>();auto tc=std::make_shared<TerrainComponent>();terrain->addComponent(tc);tc->rez=5;tc->nodeIndex.resize(50);
-    for(unsigned y=0;y<5;y++)for(unsigned x=0;x<5;x++){tc->nodeIndex[2*(y*5+x)]=x;tc->nodeIndex[2*(y*5+x)+1]=y;}
-    tc->yScale=2;tc->yShift=-1;tc->model=glm::translate(glm::mat4(1),glm::vec3(0,-1,0))*glm::scale(glm::mat4(1),glm::vec3(100,2,100));tc->material=material({.35f,.48f,.18f});
-    auto height=std::make_shared<Texture>();height->width=height->height=128;height->internalformat=GL_R32F;height->format=GL_RED;tc->terrainMaterial->addTexture(height,"heightMap");
-    tc->heightData=new float[128*128];for(int y=0;y<128;y++)for(int x=0;x<128;x++)tc->heightData[y*128+x]=.5f+.2f*std::sin(x*.08f)*std::cos(y*.07f);
-    terrain->addComponent(std::make_shared<Grass>());auto ocean=std::make_shared<Ocean>();ocean->FFTPow=9;ocean->fft_size=512;ocean->HeightScale=1;ocean->WindScale=16;ocean->MeshLength=100;ocean->MeshSize=257;terrain->addComponent(ocean);result->addTerrain(terrain);
+    auto terrain=std::make_shared<Terrain>();auto tc=std::make_shared<TerrainComponent>();terrain->addComponent(tc);tc->initializeLegacyGrid();
+    tc->updateSettings([&](auto& value){value.yScale=2;});tc->updateSettings([&](auto& value){value.yShift=-1;});tc->updateSettings([&](auto& value){value.model=glm::translate(glm::mat4(1),glm::vec3(0,-1,0))*glm::scale(glm::mat4(1),glm::vec3(100,2,100));});tc->updateSettings([&](auto& value){value.material=material({.35f,.48f,.18f});});
+    auto height=std::make_shared<Texture>();height->setStorageDescriptor(128,128,GL_R32F,GL_RED);tc->settings().terrainMaterial->addTexture(height,"heightMap");
+    std::vector<float> heights(128*128);for(int y=0;y<128;y++)for(int x=0;x<128;x++)heights[y*128+x]=.5f+.2f*std::sin(x*.08f)*std::cos(y*.07f);
+    tc->setHeightData(128,128,std::move(heights));
+    terrain->addComponent(std::make_shared<Grass>());auto ocean=std::make_shared<Ocean>();ocean->updateSettings([&](auto& value){value.FFTPow=9;});ocean->updateSettings([&](auto& value){value.fft_size=512;});ocean->updateSettings([&](auto& value){value.HeightScale=1;});ocean->updateSettings([&](auto& value){value.WindScale=16;});ocean->updateSettings([&](auto& value){value.MeshLength=100;});ocean->updateSettings([&](auto& value){value.MeshSize=257;});terrain->addComponent(ocean);result->addTerrain(terrain);
     return result;
 }
 void validateMetalFeatures() {
@@ -80,26 +80,26 @@ void validateMetalFeatures() {
         manager->setting.enableRSM=i==2;manager->setting.enableShadow=i!=0;
         MetalBackend::beginFrame();manager->render(scene);
         if(i==0) {
-            MetalBackend::inspectTexture(manager->deferredPass->gAlbedoSpec->id,"build/metal-albedo.png");
-            MetalBackend::inspectTexture(manager->deferredPass->gNormal->id,"build/metal-normal.png");
-            MetalBackend::inspectTexture(manager->deferredPass->postTexture->id,"build/metal-hdr.png");
+            MetalBackend::inspectTexture(manager->deferredPass->gAlbedoSpec->gpuId(),"build/metal-albedo.png");
+            MetalBackend::inspectTexture(manager->deferredPass->gNormal->gpuId(),"build/metal-normal.png");
+            MetalBackend::inspectTexture(manager->deferredPass->postTexture->gpuId(),"build/metal-hdr.png");
             auto atmosphere=std::static_pointer_cast<Atmosphere>(scene->sky()->GetComponent("Atmosphere"));
-            MetalBackend::inspectTexture(atmosphere->skyViewTexture->tex->id,"build/metal-sky-lut.png");
+            MetalBackend::inspectTexture(atmosphere->skyViewTexture->tex->gpuId(),"build/metal-sky-lut.png");
         }
         MetalBackend::capture(i==0?"build/metal-validation.png":i==1?"build/metal-shadow-validation.png":"build/metal-rsm-validation.png");MetalBackend::present();
     }
     auto ocean=std::static_pointer_cast<Ocean>(scene->terrain()->GetComponent("Ocean"));
     scene->addTerrain(std::make_shared<Terrain>());scene->terrain()->addComponent(ocean);
     manager->setting.enableRSM=false;MetalBackend::beginFrame();manager->render(scene);
-    MetalBackend::inspectTexture(ocean->DisplaceRT_Texture->tex->id,"build/metal-ocean-displacement.png");
+    MetalBackend::inspectTexture(ocean->DisplaceRT_Texture->tex->gpuId(),"build/metal-ocean-displacement.png");
     MetalBackend::capture("build/metal-ocean-validation.png");MetalBackend::present();
     // The legacy standalone forward pipeline also supplies SSS front/back depth.
     scene->addTerrain({});manager->setting.useDefer=false;
     manager->postPass=std::make_shared<PostPass>();manager->basePass=std::make_shared<BasePass>();manager->depthPass=std::make_shared<DepthPass>();
     MetalBackend::beginFrame();manager->render(scene);
     MetalBackend::inspectTexture(manager->postPass->colorBuffer,"build/metal-forward-hdr.png");
-    MetalBackend::inspectTexture(manager->depthPass->frontDepth->id,"build/metal-front-depth.png");
-    MetalBackend::inspectTexture(manager->depthPass->backDepth->id,"build/metal-back-depth.png");
+    MetalBackend::inspectTexture(manager->depthPass->frontDepth->gpuId(),"build/metal-front-depth.png");
+    MetalBackend::inspectTexture(manager->depthPass->backDepth->gpuId(),"build/metal-back-depth.png");
     MetalBackend::capture("build/metal-forward-validation.png");MetalBackend::present();
     validateMetalOcean();
     validateMetalTemporalAA();

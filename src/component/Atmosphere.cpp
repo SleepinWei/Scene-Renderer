@@ -1,3 +1,6 @@
+
+#include <cmath>
+#include <stdexcept>
 #include<glad/glad.h>
 #include<glfw/glfw3.h>
 #include<glm/gtc/type_ptr.hpp>
@@ -170,7 +173,7 @@ void Atmosphere::renderDrawCall(const std::shared_ptr<Shader>& outShader) {
 		auto& skybox = std::static_pointer_cast<Sky>(Component::owner())->skybox;
 		if (skybox) {
 			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_CUBE_MAP,skybox->getTextures().at("skybox")->id);
+			glBindTexture(GL_TEXTURE_CUBE_MAP,skybox->getTextures().at("skybox")->gpuId());
 			shader->setInt("skybox", 1);
 
 			float time = glfwGetTime();
@@ -214,11 +217,28 @@ void Atmosphere::constructCall() {
 void Atmosphere::computeMultiTexture() {
 	multiTexture->setBinding(0);
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, transmittanceTexture->tex->id);
+	glBindTexture(GL_TEXTURE_2D, transmittanceTexture->tex->gpuId());
 
 	compMultiShader->use();
 	compMultiShader->setInt("transmittance", 0);
 	const int THREAD_GROUP_SIZE = 4;
 	glDispatchCompute(multiWidth / THREAD_GROUP_SIZE, multiHeight /THREAD_GROUP_SIZE, 1);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+}
+
+void Atmosphere::setSettings(const AtmosphereConfiguration& value) {
+    checkLogicThread();const auto& a=value.atmosphere;
+    for(float v:{value.sunAngle,value.sunAzimuth,value.seaLevelMeters,value.multipleScattering,value.groundAlbedo,
+                 a.solar_irradiance,a.sun_angular_radius,a.top_radius,a.bottom_radius,a.HDensityRayleigh,
+                 a.HDensityMie,a.OzoneCenter,a.mie_g,a.OzoneWidth})
+        if(!std::isfinite(v))throw std::invalid_argument("Nonfinite atmosphere configuration");
+    if(a.solar_irradiance<0 || a.sun_angular_radius<=0 || a.sun_angular_radius>.1f || a.bottom_radius<=0 ||
+       a.top_radius<=a.bottom_radius || a.HDensityRayleigh<=0 || a.HDensityMie<=0 || a.OzoneWidth<=0 ||
+       a.OzoneCenter<0 || std::abs(a.mie_g)>=1 || value.multipleScattering<0 ||
+       value.groundAlbedo<0 || value.groundAlbedo>1 || value.sunAngle< -90 || value.sunAngle>90)
+        throw std::invalid_argument("Invalid atmosphere configuration");
+    for(auto vector:{a.rayleigh_scattering,a.mie_scattering,a.mie_extinction,a.absorption_extinction})
+        for(int i=0;i<3;++i)if(!std::isfinite(vector[i]) || vector[i]<0)throw std::invalid_argument("Invalid atmosphere coefficient");
+    for(int i=0;i<3;++i)if(a.mie_extinction[i]<a.mie_scattering[i])throw std::invalid_argument("Mie extinction below scattering");
+    static_cast<AtmosphereConfiguration&>(*this)=value;invalidate();
 }

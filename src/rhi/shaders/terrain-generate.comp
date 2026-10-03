@@ -7,24 +7,18 @@ layout(set=1,binding=0,std430) writeonly buffer GeneratedVertices {float packedV
 layout(set=1,binding=3,std430) writeonly buffer GeneratedIndices {uint generatedIndices[];};
 layout(set=1,binding=7,rgba32f) readonly uniform image2D lodMap;
 layout(set=1,binding=5,std430) buffer OutIndirect {uint count;uint primCount;uint firstIndex;uint baseVertex;int baseInstance;};
-// All leaves use the same integer grid. At a boundary every touching cell is
-// consulted, so an arbitrary LOD difference and corner have one shared vertex.
-ivec2 stitch(ivec2 grid){
-    ivec2 hi=clamp(grid/8,ivec2(0),ivec2(159));
-    ivec2 lo=clamp((grid-ivec2(1))/8,ivec2(0),ivec2(159));
-    int lod=0;for(int y=0;y<2;y++)for(int x=0;x<2;x++)lod=max(lod,int(round(imageLoad(lodMap,ivec2(x==0?lo.x:hi.x,y==0?lo.y:hi.y)).r*5.)));
-    int step=1<<lod;return ((grid+step/2)/step)*step;
-}
+#include "terrain-surface.glsl"
 void main(){
     uint leaf=gl_WorkGroupID.x;if(leaf>=finalNodeCnt)return;ivec3 node=ivec3(finalNode[leaf]);int interval=1<<node.z;
     ivec2 offsets[4]={ivec2(0,0),ivec2(1,0),ivec2(1,1),ivec2(0,1)};
     uint first=atomicAdd(count,6),base=first/6*4;
     for(uint i=0;i<4;i++){
-        ivec2 grid=stitch((node.xy*8+ivec2(gl_LocalInvocationID.xy)+offsets[i])*interval);vec2 uv=vec2(grid)/1280.;
+        ivec2 grid=terrainStitch((node.xy*8+ivec2(gl_LocalInvocationID.xy)+offsets[i])*interval);vec2 uv=vec2(grid)/1280.;
         vec2 delta=1./vec2(heightDimensions.xy-1),lo=max(uv-delta,0.),hi=min(uv+delta,1.);
-        float dx=(sampleHeight(vec2(hi.x,uv.y))-sampleHeight(vec2(lo.x,uv.y)))/(2.*(hi.x-lo.x));
-        float dz=(sampleHeight(vec2(uv.x,hi.y))-sampleHeight(vec2(uv.x,lo.y)))/(2.*(hi.y-lo.y));
-        vec3 position=vec3(uv.x*2.-1.,sampleHeight(uv),uv.y*2.-1.),normal=normalize(vec3(-dx,1,-dz));
+        int effectiveInterval=terrainInterval(grid,interval);
+        float dx=(terrainMorphHeight(vec2(hi.x,uv.y),effectiveInterval,model,view,viewProjection,terrainScreen)-terrainMorphHeight(vec2(lo.x,uv.y),effectiveInterval,model,view,viewProjection,terrainScreen))/(2.*(hi.x-lo.x));
+        float dz=(terrainMorphHeight(vec2(uv.x,hi.y),effectiveInterval,model,view,viewProjection,terrainScreen)-terrainMorphHeight(vec2(uv.x,lo.y),effectiveInterval,model,view,viewProjection,terrainScreen))/(2.*(hi.y-lo.y));
+        vec3 position=vec3(uv.x*2.-1.,terrainMorphHeight(uv,effectiveInterval,model,view,viewProjection,terrainScreen),uv.y*2.-1.),normal=normalize(vec3(-dx,1,-dz));
         uint at=(base+i)*8;packedVertices[at]=position.x;packedVertices[at+1]=position.y;packedVertices[at+2]=position.z;packedVertices[at+3]=normal.x;packedVertices[at+4]=normal.y;packedVertices[at+5]=normal.z;packedVertices[at+6]=uv.x;packedVertices[at+7]=1.-uv.y;
     }
     uint order[6]={0,2,1,0,3,2};for(uint i=0;i<6;i++)generatedIndices[first+i]=base+order[i];

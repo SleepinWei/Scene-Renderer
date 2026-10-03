@@ -36,13 +36,11 @@
 namespace {
 std::shared_ptr<Texture> constantTexture(glm::vec3 color) {
     auto texture = std::make_shared<Texture>();
-    texture->width = texture->height = 4;
-    texture->channels = 3;
-    texture->format = texture->internalformat = GL_RGB;
-    texture->data = static_cast<unsigned char*>(std::malloc(48));
+    std::vector<unsigned char> pixels(48);
     for (int i = 0; i < 16; ++i)
         for (int c = 0; c < 3; ++c)
-            texture->data[i * 3 + c] = static_cast<unsigned char>(255 * color[c]);
+            pixels[i * 3 + c] = static_cast<unsigned char>(255 * color[c]);
+    texture->setPixels(4,4,3,std::move(pixels));
     return texture;
 }
 std::shared_ptr<Material> pbr(glm::vec3 color, float roughness = .6f, float metallic = 0) {
@@ -153,13 +151,14 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
     if (name == "terrain") {
         target->setCamera(std::make_shared<Camera>(glm::vec3(0,10,32),glm::vec3(0,1,0),-90,-12));
         target->mainCamera()->setZoom(60);target->mainCamera()->setExposure(1);
-        auto terrain=std::make_shared<Terrain>();auto component=std::make_shared<TerrainComponent>();component->heightWidth=component->heightHeight=1024;component->heightData=new float[1024*1024];
+        auto terrain=std::make_shared<Terrain>();auto component=std::make_shared<TerrainComponent>();std::vector<float> heights(1024*1024);
         auto elevation=[](float x,float z){float h=.28f*std::exp(-((x+.35f)*(x+.35f)*5+(z+.25f)*(z+.25f)*3))+.5f*std::exp(-((x-.45f)*(x-.45f)*9+(z+.4f)*(z+.4f)*4));return h+.035f*std::sin(x*18+z*13)*std::cos(z*16)*h;};
-        for(uint32_t y=0;y<1024;y++)for(uint32_t x=0;x<1024;x++)component->heightData[y*1024+x]=elevation(x/1023.f*2-1,y/1023.f*2-1);
-        component->model=glm::scale(glm::mat4(1),glm::vec3(30,22,30));component->maxLeaves=4096;
-        component->material=pbr(glm::vec3(1),.85f);auto texture=std::make_shared<Texture>();texture->width=texture->height=1024;texture->channels=4;texture->format=GL_RGBA;texture->data=static_cast<unsigned char*>(std::malloc(1024*1024*4));
-        for(uint32_t y=0;y<1024;y++)for(uint32_t x=0;x<1024;x++){float xx=x/1023.f*2-1,zz=y/1023.f*2-1,h=elevation(xx,zz),noise=.5f+.5f*std::sin(xx*140)*std::cos(zz*153);glm::vec3 color=glm::mix(glm::vec3(.20f,.31f,.11f),glm::vec3(.40f,.36f,.27f),glm::smoothstep(.15f,.38f,h));color*=.85f+.15f*noise;auto at=(y*1024+x)*4;texture->data[at]=uint8_t(color.r*255);texture->data[at+1]=uint8_t(color.g*255);texture->data[at+2]=uint8_t(color.b*255);texture->data[at+3]=255;}
-        component->material->addTexture(texture,"material.albedo");terrain->addComponent(component);terrain->addComponent(std::make_shared<Grass>());target->addTerrain(terrain);
+        for(uint32_t y=0;y<1024;y++)for(uint32_t x=0;x<1024;x++)heights[y*1024+x]=elevation(x/1023.f*2-1,y/1023.f*2-1);
+        component->setHeightData(1024,1024,std::move(heights));
+        component->updateSettings([&](auto& value){value.model=glm::scale(glm::mat4(1),glm::vec3(30,22,30));});component->updateSettings([&](auto& value){value.maxLeaves=4096;});
+        component->updateSettings([&](auto& value){value.material=pbr(glm::vec3(1),.85f);});auto texture=std::make_shared<Texture>();std::vector<unsigned char> terrainPixels(1024*1024*4);
+        for(uint32_t y=0;y<1024;y++)for(uint32_t x=0;x<1024;x++){float xx=x/1023.f*2-1,zz=y/1023.f*2-1,h=elevation(xx,zz),noise=.5f+.5f*std::sin(xx*140)*std::cos(zz*153);glm::vec3 color=glm::mix(glm::vec3(.20f,.31f,.11f),glm::vec3(.40f,.36f,.27f),glm::smoothstep(.15f,.38f,h));color*=.85f+.15f*noise;auto at=(y*1024+x)*4;terrainPixels[at]=uint8_t(color.r*255);terrainPixels[at+1]=uint8_t(color.g*255);terrainPixels[at+2]=uint8_t(color.b*255);terrainPixels[at+3]=255;}
+        texture->setPixels(1024,1024,4,std::move(terrainPixels));component->settings().material->addTexture(texture,"material.albedo");terrain->addComponent(component);terrain->addComponent(std::make_shared<Grass>());target->addTerrain(terrain);
         atmosphere(target);sun(target,glm::vec3(3),{-.5f,-1,-.4f});manager->setting.enableSSAO=true;
     } else if (name == "sky") {
         target->setCamera(std::make_shared<Camera>(glm::vec3(0,2,0),glm::vec3(0,1,0),-90,10));
@@ -181,7 +180,7 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
             {"material.roughness","Default_metalRoughness.jpg"},{"material.metallic","Default_metalRoughness.jpg"},{"material.ao","Default_AO.jpg"}};
         for (const auto& map : maps) {
             auto texture = Texture::loadFromFileAsync(folder + map.second);
-            if (!texture->data) throw std::runtime_error("Missing helmet texture: " + folder + map.second);
+            if (!texture->pixels()) throw std::runtime_error("Missing helmet texture: " + folder + map.second);
             material->addTexture(texture,map.first);
         }
         // AssimpLoader exposes mesh-local coordinates; the glTF node rotates +90 degrees about X.

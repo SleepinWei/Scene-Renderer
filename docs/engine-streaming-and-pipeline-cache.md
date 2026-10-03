@@ -1,5 +1,7 @@
 # 分段网格上传与 RHI 管线缓存
 
+> 本文保留对应批次的实现与验收。后续 Texture／联合加载／图片上传／RHI 子资源／VT／LOD 等当前状态见 [Engine 后续实施记录](engine-runtime-completion.md)。
+
 2026-10-03，接续 [GPU 发布与内存压力处理](engine-gpu-publication.md)，完成异步静态网格跨帧上传、用时预算与每设备 graphics／compute pipeline 共享缓存。README 与 Engine 设计审查同步更新。
 
 ## 修复的问题

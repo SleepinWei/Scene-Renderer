@@ -51,12 +51,12 @@ std::shared_ptr<const ImageRGBA8> decodeShared(const MaterialData &m, const char
     if (path != m.texture_path.end())
         return ImageRGBA8::loadShared(path->second);
     auto texture = m.textures.find(name);
-    if (texture == m.textures.end() || !texture->second)
+    if (texture == m.textures.end())
         return {};
-    const auto &t = *texture->second;
+    const auto &t = texture->second;
     if (!t.name.empty() && std::filesystem::is_regular_file(t.name))
         return ImageRGBA8::loadShared(t.name);
-    if (!t.data || t.width <= 0 || t.height <= 0 || t.channels < 1 || t.channels > 4 ||
+    if (!t.data() || t.width <= 0 || t.height <= 0 || t.channels < 1 || t.channels > 4 ||
         (t.format != GL_RED && t.format != GL_RG && t.format != GL_RGB && t.format != GL_RGBA))
         throw std::invalid_argument("Renderer: texture needs decoded CPU pixels or a supported image path: " +
                                     t.name);
@@ -64,7 +64,7 @@ std::shared_ptr<const ImageRGBA8> decodeShared(const MaterialData &m, const char
                      std::vector<uint8_t>(size_t(t.width) * t.height * 4)};
     for (int y = 0; y < t.height; ++y)
         for (int x = 0; x < t.width; ++x) {
-            const auto *source = t.data + (size_t(t.height - 1 - y) * t.width + x) * t.channels;
+            const auto *source = t.data() + (size_t(t.height - 1 - y) * t.width + x) * t.channels;
             auto *target = image.pixels.data() + (size_t(y) * t.width + x) * 4;
             for (int c = 0; c < 3; ++c)
                 target[c] = source[t.channels < 3 ? 0 : c];
@@ -123,32 +123,7 @@ template <class T> struct PendingPayload {
 };
 // Copy mutable in-memory texture bytes before dispatching to workers. File paths
 // need no pixel copy and are read by the decoder job.
-MaterialData detachMaterial(const Material &material) {
-    MaterialData copy = material.snapshot();
-    for (auto &entry : copy.textures) {
-        if (!entry.second || copy.texture_path.count(entry.first) ||
-            (!entry.second->name.empty() && std::filesystem::is_regular_file(entry.second->name)))
-            continue;
-        const auto &original = *entry.second;
-        auto texture = std::make_shared<Texture>();
-        texture->name = original.name;
-        texture->width = original.width;
-        texture->height = original.height;
-        texture->channels = original.channels;
-        texture->format = original.format;
-        texture->internalformat = original.internalformat;
-        if (original.data && original.width > 0 && original.height > 0 && original.channels > 0 &&
-            original.channels <= 4) {
-            size_t bytes = size_t(original.width) * original.height * original.channels;
-            texture->data = static_cast<unsigned char *>(std::malloc(bytes));
-            if (!texture->data)
-                throw std::bad_alloc();
-            std::memcpy(texture->data, original.data, bytes);
-        }
-        entry.second = std::move(texture);
-    }
-    return copy;
-}
+MaterialData detachMaterial(const Material &material) {return material.snapshot();}
 template <class T, class F>
 std::shared_ptr<const T> requestPayload(PendingPayload<T> &record, uint64_t revision, F &&build, bool wait) {
     if ((!record.pending.valid() && !record.value) || record.revision != revision) {
@@ -257,22 +232,22 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
     if (atmo && source != directional.end()) {
         auto light = *source;
         if (state_->sunAtmosphere.lock() == atmo &&
-            (atmo->sunAngle != state_->lastSunAngle || atmo->sunAzimuth != state_->lastSunAzimuth)) {
-            float elevation = glm::radians(atmo->sunAngle), azimuth = glm::radians(atmo->sunAzimuth);
+            (atmo->settings().sunAngle != state_->lastSunAngle || atmo->settings().sunAzimuth != state_->lastSunAzimuth)) {
+            float elevation = glm::radians(atmo->settings().sunAngle), azimuth = glm::radians(atmo->settings().sunAzimuth);
             light->setDirection(-glm::vec3(std::cos(elevation) * std::sin(azimuth), std::sin(elevation),
                                            -std::cos(elevation) * std::cos(azimuth)));
         } else {
             if (glm::dot(light->getData().direction, light->getData().direction) < 1e-10f)
                 throw std::invalid_argument("Sun needs a nonzero direction");
             auto sun = -glm::normalize(light->getData().direction);
-            atmo->sunAngle = glm::degrees(std::asin(glm::clamp(sun.y, -1.f, 1.f)));
-            atmo->sunAzimuth = glm::dot(glm::vec2(sun.x, sun.z), glm::vec2(sun.x, sun.z)) < 1e-10f
-                                   ? atmo->sunAzimuth
-                                   : glm::degrees(std::atan2(sun.x, -sun.z));
+            atmo->updateSettings([&](auto& value){value.sunAngle= glm::degrees(std::asin(glm::clamp(sun.y, -1.f, 1.f)));});
+            atmo->updateSettings([&](auto& value){value.sunAzimuth= glm::dot(glm::vec2(sun.x, sun.z), glm::vec2(sun.x, sun.z)) < 1e-10f
+                                   ? atmo->settings().sunAzimuth
+                                   : glm::degrees(std::atan2(sun.x, -sun.z));});
         }
         state_->sunAtmosphere = atmo;
-        state_->lastSunAngle = atmo->sunAngle;
-        state_->lastSunAzimuth = atmo->sunAzimuth;
+        state_->lastSunAngle = atmo->settings().sunAngle;
+        state_->lastSunAzimuth = atmo->settings().sunAzimuth;
     }
     for (const auto &l : directional)
         if (l && l->isEnabled())
@@ -304,12 +279,12 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
         auto atmo = scene->sky()->getComponent<Atmosphere>();
         if (atmo) {
             result.frame.sky = true;
-            result.frame.sunAngle = atmo->sunAngle;
-            result.frame.sunAzimuth = atmo->sunAzimuth;
-            result.frame.seaLevelMeters = atmo->seaLevelMeters;
-            result.frame.multipleScattering = atmo->multipleScattering;
-            result.frame.groundAlbedo = atmo->groundAlbedo;
-            const auto &a = atmo->atmosphere;
+            result.frame.sunAngle = atmo->settings().sunAngle;
+            result.frame.sunAzimuth = atmo->settings().sunAzimuth;
+            result.frame.seaLevelMeters = atmo->settings().seaLevelMeters;
+            result.frame.multipleScattering = atmo->settings().multipleScattering;
+            result.frame.groundAlbedo = atmo->settings().groundAlbedo;
+            const auto &a = atmo->settings().atmosphere;
             auto &p = result.frame.atmosphere;
             p.radii = {a.solar_irradiance, a.sun_angular_radius, a.top_radius, a.bottom_radius};
             p.densities = {a.HDensityRayleigh, a.HDensityMie, a.OzoneCenter, a.mie_g};
@@ -334,35 +309,35 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
             auto mix = [&](uint64_t value) {
                 revision ^= value + 0x9e3779b97f4a7c15ull + (revision << 6) + (revision >> 2);
             };
-            mix(component->sourceRevision);
-            mix(component->maxLeaves);
+            mix(component->getSourceRevision());
+            mix(component->settings().maxLeaves);
             mix(grass);
             // Paths are part of source identity; scalars and model are per-frame values.
-            for (const auto &path : {component->heightSourcePath, component->heightVirtualTexture,
-                                     component->materialVirtualTexture})
+            for (const auto &path : {component->settings().heightSourcePath, component->settings().heightVirtualTexture,
+                                     component->settings().materialVirtualTexture})
                 mix(std::hash<std::string>{}(path));
-            mix(component->heightWidth);
-            mix(component->heightHeight);
-            mix(reinterpret_cast<uintptr_t>(component->heightData));
-            if (component->material) {
-                mix(component->material->assetId);
-                mix(component->material->getContentRevision());
+            mix(component->getHeightWidth());
+            mix(component->getHeightHeight());
+            mix(reinterpret_cast<uintptr_t>(component->getHeightData()));
+            if (component->settings().material) {
+                mix(component->settings().material->assetId);
+                mix(component->settings().material->getContentRevision());
             }
             if (state_->terrainKey != key) {
                 state_->terrain = {};
                 state_->terrainKey = key;
             }
             // Capture only values. The worker does not access component or material.
-            const auto heightPath = component->heightSourcePath, heightVT = component->heightVirtualTexture,
-                       materialVT = component->materialVirtualTexture;
-            auto w = component->heightWidth, h = component->heightHeight;
-            auto capacity = component->maxLeaves;
+            const auto heightPath = component->settings().heightSourcePath, heightVT = component->settings().heightVirtualTexture,
+                       materialVT = component->settings().materialVirtualTexture;
+            auto w = component->getHeightWidth(), h = component->getHeightHeight();
+            auto capacity = component->settings().maxLeaves;
             if (!w || !h) {
-                auto material = component->terrainMaterial;
+                auto material = component->settings().terrainMaterial;
                 if (!material || !material->getTextures().count("heightMap"))
                     throw std::invalid_argument("Terrain lacks height metadata");
-                w = material->getTextures().at("heightMap")->width;
-                h = material->getTextures().at("heightMap")->height;
+                w = material->getTextures().at("heightMap")->getWidth();
+                h = material->getTextures().at("heightMap")->getHeight();
             }
             std::vector<float> heights;
             std::shared_ptr<MaterialData> material;
@@ -370,12 +345,12 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
                                     state_->terrain.revision != revision;
             if (needsBuild) {
                 if (heightPath.empty() && heightVT.empty()) {
-                    if (w < 2 || h < 2 || w > 16384 || h > 16384 || !component->heightData)
+                    if (w < 2 || h < 2 || w > 16384 || h > 16384 || !component->getHeightData())
                         throw std::invalid_argument("Invalid CPU height field");
-                    heights.assign(component->heightData, component->heightData + size_t(w) * h);
+                    heights.assign(component->getHeightData(), component->getHeightData() + size_t(w) * h);
                 }
-                if (component->material)
-                    material = std::make_shared<MaterialData>(detachMaterial(*component->material));
+                if (component->settings().material)
+                    material = std::make_shared<MaterialData>(detachMaterial(*component->settings().material));
             }
             auto source = requestPayload(
                 state_->terrain, revision,
@@ -414,16 +389,16 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
                 wait);
             SnapshotTerrain terrain;
             terrain.source = source;
-            terrain.model = component->model;
-            terrain.wireframe = component->polyMode == GL_LINE;
+            terrain.model = component->settings().model;
+            terrain.wireframe = component->settings().polyMode == GL_LINE;
             terrain.parameters.factors = {0, .85f, 1, 0};
             terrain.parameters.albedoAlpha = {.3f, .45f, .2f, 1};
-            if (component->material) {
-                terrain.parameters = parameters(*component->material);
+            if (component->settings().material) {
+                terrain.parameters = parameters(*component->settings().material);
                 if (!materialVT.empty()) {
-                    terrain.parameters.emissiveNormal.w = component->material->getNormalStrength();
-                    terrain.parameters.factors.x = component->material->getMetallicFactor().value_or(1.f);
-                    terrain.parameters.factors.y = component->material->getRoughnessFactor().value_or(1.f);
+                    terrain.parameters.emissiveNormal.w = component->settings().material->getNormalStrength();
+                    terrain.parameters.factors.x = component->settings().material->getMetallicFactor().value_or(1.f);
+                    terrain.parameters.factors.y = component->settings().material->getRoughnessFactor().value_or(1.f);
                 }
             }
             if (!source)
@@ -441,36 +416,36 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
             if (ocean) {
                 OceanSurfaceSettings s;
                 s.id = object->assetId;
-                s.spectrum = {uint32_t(ocean->fft_size),
-                              ocean->MeshLength,
-                              ocean->A,
-                              ocean->WindScale,
-                              ocean->Lambda,
-                              ocean->HeightScale,
-                              ocean->BubblesScale,
-                              ocean->BubblesThreshold,
-                              glm::vec2(ocean->WindAndSeed),
-                              ocean->seed};
-                s.meshSize = uint32_t(ocean->MeshSize);
-                s.seaLevel = ocean->seaLevel;
-                s.timeScale = ocean->TimeScale;
-                s.animate = ocean->animate;
-                s.detailWaves = ocean->detailWaves;
-                s.detailStrength = ocean->detailStrength;
-                s.refraction = ocean->refraction;
-                s.refractionStrength = ocean->refractionStrength;
-                s.deepWaterDistance = ocean->deepWaterDistance;
-                s.subsurfaceStrength = ocean->subsurfaceStrength;
-                s.anisotropy = ocean->scatteringAnisotropy;
-                s.absorption = ocean->absorption;
-                s.scattering = ocean->scattering;
-                s.fresnel = ocean->outer_FresnelScale;
-                s.gloss = float(ocean->outer_Gloss);
-                s.shallow = ocean->outer_OceanColorShallow;
-                s.deep = ocean->outer_OceanColorDeep;
-                s.foamColor = ocean->outer_BubblesColor;
-                s.specular = ocean->outer_Specular;
-                s.ambient = ocean->outer_ambient;
+                s.spectrum = {uint32_t(ocean->settings().fft_size),
+                              ocean->settings().MeshLength,
+                              ocean->settings().A,
+                              ocean->settings().WindScale,
+                              ocean->settings().Lambda,
+                              ocean->settings().HeightScale,
+                              ocean->settings().BubblesScale,
+                              ocean->settings().BubblesThreshold,
+                              glm::vec2(ocean->settings().WindAndSeed),
+                              ocean->settings().seed};
+                s.meshSize = uint32_t(ocean->settings().MeshSize);
+                s.seaLevel = ocean->settings().seaLevel;
+                s.timeScale = ocean->settings().TimeScale;
+                s.animate = ocean->settings().animate;
+                s.detailWaves = ocean->settings().detailWaves;
+                s.detailStrength = ocean->settings().detailStrength;
+                s.refraction = ocean->settings().refraction;
+                s.refractionStrength = ocean->settings().refractionStrength;
+                s.deepWaterDistance = ocean->settings().deepWaterDistance;
+                s.subsurfaceStrength = ocean->settings().subsurfaceStrength;
+                s.anisotropy = ocean->settings().scatteringAnisotropy;
+                s.absorption = ocean->settings().absorption;
+                s.scattering = ocean->settings().scattering;
+                s.fresnel = ocean->settings().outer_FresnelScale;
+                s.gloss = float(ocean->settings().outer_Gloss);
+                s.shallow = ocean->settings().outer_OceanColorShallow;
+                s.deep = ocean->settings().outer_OceanColorDeep;
+                s.foamColor = ocean->settings().outer_BubblesColor;
+                s.specular = ocean->settings().outer_Specular;
+                s.ambient = ocean->settings().outer_ambient;
                 result.frame.oceans.push_back(s);
             }
 

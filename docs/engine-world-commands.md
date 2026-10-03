@@ -1,5 +1,7 @@
 # Engine 组件边界、世界命令与资源配额
 
+> 后续计划的当前实施与验收见 [Engine 后续计划实施](engine-runtime-completion.md)；本文保留对应批次的历史问题与验证范围。
+
 日期：2026-10-03。接续 [上一批修复](engine-followup-fixes.md)，落实设计审查中的组件注册表、跨线程世界修改入口，以及 RHI buffer／texture 的统一配额。
 
 ## 原问题与修复

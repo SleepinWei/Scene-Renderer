@@ -18,9 +18,11 @@ template<class F> void rejects(F action) {
 class TestDevice final : public rhi::GraphicsDevice {
 public:
     TestDevice() : GraphicsDevice({4096, 1024, 256, 16}, {128, 16, 2, 8}) {}
+    bool supportsTextureSubresources() const override {return true;}
     rhi::Backend backend() const override { return rhi::Backend::OpenGL; }
     bool supportsTexture(rhi::Format f, rhi::TextureUsage u) const override {
         return ((f == rhi::Format::RGBA8UNorm || f==rhi::Format::RGBA16Float || f==rhi::Format::RGBA32Float) && !rhi::hasUsage(u, rhi::TextureUsage::DepthAttachment) && uint32_t(u) && !(uint32_t(u) & ~31u)) ||
+            (f == rhi::Format::RGBA32Float && u == rhi::TextureUsage::Storage) ||
             (f == rhi::Format::Depth32Float && u == rhi::TextureUsage::DepthAttachment);
     }
     unsigned submissions = 0;
@@ -28,12 +30,12 @@ public:
     bool failPipeline=false,failCompute=false;
     bool failTexture=false;unsigned textureAttempts=0;
     std::vector<rhi::RecordedPass> recorded;
-    rhi::ComputeLimits computeLimits() const override { return {true,{128,128,128},{32,32,32},256,16,4096}; }
+    rhi::ComputeLimits computeLimits() const override { return {true,{128,128,128},{32,32,32},256,16,4096,16,16,8,8}; }
     size_t allocations() const { return buffers.size() + graphics.size(); }
 protected:
     NativeObject allocate() { const auto id = next++;graphics.insert(id);return id; }
     NativeObject createTextureImpl(const rhi::TextureDesc&) override {++textureAttempts;if(failTexture)throw std::runtime_error("native texture failure");return allocate(); }
-    NativeObject createTextureViewImpl(NativeObject, const rhi::TextureDesc&) override { return allocate(); }
+    NativeObject createTextureViewImpl(NativeObject, const rhi::TextureDesc&,const rhi::TextureViewDesc&) override { return allocate(); }
     NativeObject createSamplerImpl(const rhi::SamplerDesc&) override { return allocate(); }
     NativeObject createComputePipelineImpl(const rhi::ComputePipelineDesc&) override { ++computeAttempts;if(failCompute)throw std::runtime_error("compute creation failure");return allocate(); }
     void destroyComputePipelineImpl(NativeObject id) noexcept override { graphics.erase(id); }
@@ -65,6 +67,32 @@ private:
 int main() {
     using namespace rhi;
     try {
+        {
+            auto d=std::make_shared<TestDevice>();auto t=d->createTexture({8,8,Format::RGBA8UNorm,TextureUsage::ColorAttachment,"Subresource hazards",4,2});
+            auto a=d->createTextureView({t,{0,1,0,1}}),b=d->createTextureView({t,{2,1,1,1}});
+            check(d->resourceMemory().textureBytes==680,"Mip/layer payload was not budgeted");
+            auto commands=d->createCommandList();RenderPassDesc pass;pass.color=a;commands.beginRenderPass(pass);commands.endRenderPass();
+            pass.color=b;commands.beginRenderPass(pass);commands.endRenderPass();
+            pass.color=a;commands.beginRenderPass(pass);commands.endRenderPass();d->submit(commands);
+            check(d->recorded[1].dependencies.empty() && d->recorded[2].dependencies.size()==1 && d->recorded[2].dependencies[0].range.firstMip==0 && d->recorded[2].dependencies[0].range.firstLayer==0,
+                  "RHI aliases independent subresources or omits overlapping hazard");
+            rejects([&]{d->createTextureView({t,{4,1,0,1}});});
+            rejects([&]{d->createTextureView({t,{0,1,2,1}});});
+            rejects([&]{d->createTexture({8,8,Format::RGBA8UNorm,TextureUsage::ColorAttachment,"Too many mips",5,1});});
+            d->destroyTextureView(a);d->destroyTextureView(b);d->destroyTexture(t);check(d->resourceMemory().textureBytes==0,"Mip/layer release did not restore quota");d->close();
+        }
+        {
+            auto d=std::make_shared<TestDevice>();
+            auto t=d->createTexture({8,8,Format::RGBA32Float,TextureUsage::Storage,"Storage subresource",4,2});
+            auto chain=d->createTextureView({t,{0,4,1,1}}), single=d->createTextureView({t,{2,1,1,1}});
+            BindingSetDesc bindings;
+            bindings.layout={0,{{0,BindingType::StorageTextureWrite,ShaderStage::Compute,"image",0,Format::RGBA32Float}}};
+            bindings.entries={{0,{},0,0,chain,{}}};
+            rejects([&]{d->createBindingSet(bindings);});
+            bindings.entries[0].texture=single;
+            auto set=d->createBindingSet(bindings);d->destroyBindingSet(set);
+            d->destroyTextureView(chain);d->destroyTextureView(single);d->destroyTexture(t);d->close();
+        }
         {
             TestDevice budget;budget.setResourceBudget(128);
             auto b=budget.createBuffer({64,BufferUsage::Vertex,"mixed buffer"});
@@ -252,7 +280,7 @@ int main() {
         check(d->recorded[1].dependencies.size()==1 && d->recorded[1].dependencies[0].before==ResourceAccess::ShaderWrite,"compute -> compute dependency missing");
         check(d->recorded[2].dependencies.size()==1 && d->recorded[2].dependencies[0].after==(ResourceAccess::VertexRead|ResourceAccess::IndirectRead),"compute -> vertex/indirect dependency missing");
         check(d->recorded[2].dependencies[0].beforeStages==ResourceStage::Compute && d->recorded[2].dependencies[0].afterStages==(ResourceStage::VertexInput|ResourceStage::DrawIndirect),"compute -> vertex/indirect stages missing");
-        auto sampledTarget=d->createBindingSet({layout,{{1,{},0,0,view,sampler}}});auto textureDependencies=d->createCommandList();textureDependencies.beginRenderPass({view});textureDependencies.endRenderPass();textureDependencies.beginRenderPass({secondView});textureDependencies.bindPipeline(pipeline);textureDependencies.bindVertexBuffer(newVertices);textureDependencies.bindBindingSet(sampledTarget);textureDependencies.draw(3);textureDependencies.endRenderPass();d->submit(textureDependencies);
+        auto sampledTarget=d->createBindingSet({layout,{{1,{},0,0,view,sampler}}});auto textureDependencies=d->createCommandList();textureDependencies.beginRenderPass({view});textureDependencies.endRenderPass();textureDependencies.beginRenderPass({secondView});textureDependencies.bindPipeline(pipeline);textureDependencies.bindVertexBuffer(newVertices);textureDependencies.bindBindingSet(sampledTarget);for(unsigned repeat=0;repeat<64;++repeat)textureDependencies.draw(3);textureDependencies.endRenderPass();d->submit(textureDependencies);
         check(d->recorded[1].dependencies.size()==1 && d->recorded[1].dependencies[0].texture.value==target.value && d->recorded[1].dependencies[0].after==ResourceAccess::ShaderRead,"attachment -> sampled dependency missing");
 
 

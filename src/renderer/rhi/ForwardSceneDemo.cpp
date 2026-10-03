@@ -67,8 +67,8 @@ void runForwardScene(int argc, char** argv) {
             if (gladInit() != 0) throw std::runtime_error("Forward scene: GLAD initialization failed");
         }
         auto device = rhi::graphicsDevice();auto scene = makeForwardDemoScene();
-        if(withSky){scene->addSky(std::make_shared<Sky>());scene->sky()->addComponent<Atmosphere>()->sunAngle=20;}
-        if(withOcean){auto object=std::make_shared<GameObject>();auto ocean=object->addComponent<Ocean>();ocean->fft_size=256;ocean->MeshSize=129;ocean->MeshLength=32;ocean->seaLevel=-.5f;scene->addObject(object);}
+        if(withSky){scene->addSky(std::make_shared<Sky>());scene->sky()->addComponent<Atmosphere>()->updateSettings([](auto& value){value.sunAngle=20;});}
+        if(withOcean){auto object=std::make_shared<GameObject>();auto ocean=object->addComponent<Ocean>();ocean->updateSettings([&](auto& value){value.fft_size=256;});ocean->updateSettings([&](auto& value){value.MeshSize=129;});ocean->updateSettings([&](auto& value){value.MeshLength=32;});ocean->updateSettings([&](auto& value){value.seaLevel=-.5f;});scene->addObject(object);}
         {
             SceneAdapter adapter(device);int width, height;glfwGetFramebufferSize(window,&width,&height);
             ForwardPbrRenderer renderer(device,rhi::defaultShaderDirectory(),width,height, std::string(argv[1]) == "--rhi-scene" ? PbrPath::Scene : std::string(argv[1]) == "--rhi-deferred" ? PbrPath::Deferred : PbrPath::Forward);int rendered = 0;

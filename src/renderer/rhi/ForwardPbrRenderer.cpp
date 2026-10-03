@@ -1,5 +1,6 @@
 #include "renderer/rhi/ForwardPbrRenderer.h"
 #include "engine/RenderGraph.h"
+#include "renderer/rhi/GraphTextures.h"
 #include "rhi/ShaderAssets.h"
 #include "renderer/rhi/ShadowRenderer.h"
 #include <glm/gtc/matrix_inverse.hpp>
@@ -35,6 +36,8 @@ void checkBlock(const rhi::ShaderAsset& asset, const char* block, std::initializ
 }
 struct ForwardPbrRenderer::Targets {
     Resources resources;
+    std::unique_ptr<GraphTextures> transients;
+    ~Targets(){resources.clear();transients.reset();}
     uint32_t width, height;
     rhi::TextureHandle hdr, depth, output;
     rhi::TextureViewHandle hdrView, depthView, outputView;
@@ -45,7 +48,16 @@ struct ForwardPbrRenderer::Targets {
     Targets(std::shared_ptr<rhi::GraphicsDevice> d, uint32_t w, uint32_t h, rhi::BufferHandle tone, rhi::SamplerHandle sampler, rhi::BufferHandle lighting, PbrPath path,ShadowRenderer* shadow,rhi::BufferHandle effects,rhi::BufferHandle skyParams,rhi::TextureViewHandle sky,rhi::TextureViewHandle irradiance,rhi::SamplerHandle skySampler) : resources(std::move(d)), width(w), height(h) {
         using namespace rhi;
         hdr = resources.texture({w, h, Format::RGBA16Float, TextureUsage::ColorAttachment | TextureUsage::Sampled | TextureUsage::CopySource, "Forward HDR"});hdrView = resources.view(hdr);
-        depth = resources.texture({w, h, Format::Depth32Float, TextureUsage::DepthAttachment|TextureUsage::Sampled|TextureUsage::CopySource, "Forward depth"});depthView = resources.view(depth);
+        if(path==PbrPath::Scene) {
+            engine::RenderGraph lifetime;
+            for(auto name:{"sss-depth","depth"})lifetime.describe(name,{1,1,true,"depth32"});
+            lifetime.add("back-faces",{{"sss-depth",engine::RenderGraph::Access::Write}},[]{});
+            lifetime.add("geometry",{{"depth",engine::RenderGraph::Access::Write}},[]{});
+            lifetime.add("later-effects",{{"depth",engine::RenderGraph::Access::Read}},[]{});
+            const TextureDesc descriptor{w,h,Format::Depth32Float,TextureUsage::DepthAttachment|TextureUsage::Sampled|TextureUsage::CopySource,"Shared SSS/scene depth"};
+            transients=std::make_unique<GraphTextures>(resources.device,lifetime.compile(),std::map<std::string,TextureDesc>{{"sss-depth",descriptor},{"depth",descriptor}});
+            depth=transients->texture("depth");depthView=transients->view("depth");
+        } else {depth = resources.texture({w, h, Format::Depth32Float, TextureUsage::DepthAttachment|TextureUsage::Sampled|TextureUsage::CopySource, "Forward depth"});depthView = resources.view(depth);}
         output = resources.texture({w, h, Format::RGBA8UNorm, TextureUsage::ColorAttachment | TextureUsage::CopySource | TextureUsage::Sampled, "Tone mapped output"});outputView = resources.view(output);
         BindingLayout layout{0, {{0, BindingType::UniformBuffer, ShaderStage::Fragment, "ToneMap", 16}, {1, BindingType::SampledTexture, ShaderStage::Fragment, "hdrBuffer", 0}}};
         toneBindings = resources.bindings({layout, {{0, tone, 0, 16, {}, {}}, {1, {}, 0, 0, hdrView, sampler}}});
@@ -57,7 +69,7 @@ struct ForwardPbrRenderer::Targets {
                 images.entries.push_back({i+1,BindingType::SampledTexture,ShaderStage::Fragment,names[i],0});entries.push_back({i+1,{},0,0,gbufferViews[i],sampler});
             }
             if(path==PbrPath::Scene){
-                backDepth=resources.texture({w,h,Format::RGBA32Float,TextureUsage::ColorAttachment|TextureUsage::Sampled|TextureUsage::CopySource,"SSS back-face depth"});backDepthView=resources.view(backDepth);backTest=resources.texture({w,h,Format::Depth32Float,TextureUsage::DepthAttachment,"SSS farthest depth"});backTestView=resources.view(backTest);
+                backDepth=resources.texture({w,h,Format::RGBA32Float,TextureUsage::ColorAttachment|TextureUsage::Sampled|TextureUsage::CopySource,"SSS back-face depth"});backDepthView=resources.view(backDepth);backTest=transients->texture("sss-depth");backTestView=transients->view("sss-depth");
                 BindingLayout effects{2,{}};std::vector<BindingEntry> effectEntries;
                 for(uint32_t i=4;i<6;++i){gbuffer[i]=resources.texture({w,h,Format::RGBA16Float,TextureUsage::ColorAttachment|TextureUsage::Sampled|TextureUsage::CopySource,"Material effect G-buffer"});gbufferViews[i]=resources.view(gbuffer[i]);effects.entries.push_back({i-4,BindingType::SampledTexture,ShaderStage::Fragment,i==4?"materialEffectsBuffer":"tangentBuffer",0});effectEntries.push_back({i-4,{},0,0,gbufferViews[i],sampler});}
                 effects.entries.push_back({2,BindingType::SampledTexture,ShaderStage::Fragment,"backDepthBuffer",0});effectEntries.push_back({2,{},0,0,backDepthView,sampler});effectBindings=resources.bindings({effects,effectEntries});
@@ -183,7 +195,7 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
         }
         // Update validates solar/atmospheric domains before any integration or draw.
         if(!atmosphere_)throw std::invalid_argument("Atmosphere compute unavailable on this renderer path/backend");
-        atmosphere_->update(frame.atmosphere,solar);
+
         if(sun!=frame.lights.end())sun->colorInner=glm::vec4(solar.irradiance*solarTransmittance(frame.atmosphere,solar),sun->colorInner.w);
         // Invalidate temporal color when lighting changes, while preserving normal camera reprojection.
         auto hash=[&](float x){uint32_t bits;std::memcpy(&bits,&x,4);frame.historyKey^=uint64_t(bits)+0x9e3779b97f4a7c15ull+(frame.historyKey<<6)+(frame.historyKey>>2);};
@@ -219,9 +231,9 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
     if(frame.sky && !atmosphere_)throw std::invalid_argument("Atmosphere compute unavailable on this renderer path/backend");
     if(!frame.oceans.empty() && path_!=PbrPath::Scene)throw std::invalid_argument("Ocean surface requires scene renderer");
     std::map<uint64_t,bool> used;
-    for(const auto& ocean:frame.oceans){if(!ocean.id || used.count(ocean.id))throw std::invalid_argument("Duplicate ocean identifier");used[ocean.id]=true;auto& surface=oceans_[ocean.id];if(!surface || !surface->compatible(ocean))surface=std::make_unique<OceanSurface>(resources_.device,directory_,ocean);surface->simulate(frame.timeSeconds,ocean);}
+    for(const auto& ocean:frame.oceans){if(!ocean.id || used.count(ocean.id))throw std::invalid_argument("Duplicate ocean identifier");used[ocean.id]=true;auto& surface=oceans_[ocean.id];if(!surface || !surface->compatible(ocean))surface=std::make_unique<OceanSurface>(resources_.device,directory_,ocean);}
     for(auto it=oceans_.begin();it!=oceans_.end();)if(!used.count(it->first))it=oceans_.erase(it);else ++it;
-    if(shadows_)shadows_->render(frame,packets);
+
     auto& device = *resources_.device;
     if(shadows_){const auto transmission=frame.sky?solarTransmittance(frame.atmosphere,solar,false):glm::vec3(0);
         const float diskArea=3.14159265359f*std::pow(std::sin(frame.atmosphere.radii.y),2);
@@ -242,16 +254,47 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
     pass.depth = targets_->depthView;
     pass.clearColor = {0, 0, 0, 1};
     engine::RenderGraph graph;
+    if(path_==PbrPath::Scene)for(auto name:{"sss-depth","depth"})graph.describe(name,{1,1,true,"depth32"});
     using A = engine::RenderGraph::Access;
     graph.import("assets");
-    graph.import("environment");
+    if(frame.sky)graph.add("atmosphere",{{"environment",A::Write}},[&]{atmosphere_->update(frame.atmosphere,solar);});
+    else graph.import("environment");
+    if(!frame.oceans.empty())graph.add("ocean-simulation",{{"ocean-state",A::Write}},[&]{
+        for(const auto& ocean:frame.oceans)oceans_.at(ocean.id)->simulate(frame.timeSeconds,ocean);
+    });
+    if(shadows_)graph.add("shadows-rsm",{{"assets",A::Read},{"environment",A::Read},{"shadow-state",A::Write}},[&]{shadows_->render(frame,packets);});
     rhi::TextureViewHandle resolved;
+    for(size_t i=0;i<packets.size();++i)device.writeBuffer(objects_[i].data,0,128,&blocks[i]);
+    if (shadows_)
+        graph.add("back", {{"assets", A::Read}, {"backdepth", A::Write}, {"sss-depth", A::Write}}, [&] {
+            if (shadows_) {
+                pass = {};
+                pass.color = targets_->backDepthView;
+                pass.clearColor = {0, 0, 0, 0};
+                pass.depth = targets_->backTestView;
+                pass.clearDepth = 0;
+                commands.beginRenderPass(pass);
+                commands.bindPipeline(backDepthPipeline_);
+                for (size_t i = 0; i < packets.size(); ++i)
+                    if (packets[i].material->extension().lobes.w > 0 && !packets[i].mesh->instances()) {
+                        auto b = frameResources.bindings(
+                            {ShadowRenderer::objectLayout(),
+                             {{0, camera_, 0, 64, {}, {}}, {1, objects_[i].data, 0, 128, {}, {}}}});
+                        commands.bindBindingSet(b);
+                        packets[i].material->bindShadow(commands);
+                        packets[i].mesh->draw(commands);
+                    }
+                commands.endRenderPass();
+                pass = {};
+            }
+        });
     graph.add("geometry",
               {{"assets", A::Read},
                {"environment", A::Read},
                {"depth", A::Write},
                {path_ == PbrPath::Forward ? "hdr" : "gbuffer", A::Write}},
               [&] {
+                  pass={};pass.depth=targets_->depthView;pass.clearColor={0,0,0,1};pass.color=targets_->hdrView;
                   if (path_ != PbrPath::Forward) {
                       pass.color = targets_->gbufferViews[0];
                       pass.clearColor = {0, 0, 0, 0};
@@ -261,7 +304,6 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
                   commands.beginRenderPass(pass);
                   commands.bindPipeline(forward_);
                   for (size_t i = 0; i < packets.size(); ++i) {
-                      device.writeBuffer(objects_[i].data, 0, 128, &blocks[i]);
                       if (path_ == PbrPath::Scene && packets[i].material->transparent())
                           continue;
                       if (packets[i].mesh->instances()) {
@@ -306,32 +348,10 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
                 commands.endRenderPass();
             }
         });
-    if (shadows_)
-        graph.add("back", {{"assets", A::Read}, {"backdepth", A::Write}}, [&] {
-            if (shadows_) {
-                pass = {};
-                pass.color = targets_->backDepthView;
-                pass.clearColor = {0, 0, 0, 0};
-                pass.depth = targets_->backTestView;
-                pass.clearDepth = 0;
-                commands.beginRenderPass(pass);
-                commands.bindPipeline(backDepthPipeline_);
-                for (size_t i = 0; i < packets.size(); ++i)
-                    if (packets[i].material->extension().lobes.w > 0 && !packets[i].mesh->instances()) {
-                        auto b = frameResources.bindings(
-                            {ShadowRenderer::objectLayout(),
-                             {{0, camera_, 0, 64, {}, {}}, {1, objects_[i].data, 0, 128, {}, {}}}});
-                        commands.bindBindingSet(b);
-                        packets[i].material->bindShadow(commands);
-                        packets[i].mesh->draw(commands);
-                    }
-                commands.endRenderPass();
-                pass = {};
-            }
-        });
     std::vector<engine::RenderGraph::Use> lightingUses{
         {"gbuffer", A::Read}, {"environment", A::Read}, {"hdr", A::Write}};
     if (shadows_) {
+        lightingUses.push_back({"shadow-state", A::Read});
         lightingUses.push_back({"ao", A::Read});
         lightingUses.push_back({"backdepth", A::Read});
     }
@@ -356,7 +376,7 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
                   [&] { commands.copyTexture(targets_->hdr, targets_->opaque); });
     if (frame.forwardShading && path_ == PbrPath::Scene && !(frame.rsm && frame.rsmSettings.indirectOnly))
         graph.add("forward",
-                  {{"assets", A::Read},
+                  {{"shadow-state", A::Read}, {"assets", A::Read},
                    {"environment", A::Read},
                    {"hdr", A::ReadWrite},
                    {"depth", A::ReadWrite},
@@ -444,7 +464,7 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
                         Object object{
                             packet.model,
                             old == previousModels_.end() ? packet.model : old->second,
-                            {(packet.mesh->instances() || packet.mesh->indirectBuffer()) ? 1 : 0, 0, 0, 0}};
+                            {(packet.mesh->instances() || (packet.mesh->indirectBuffer() && !packet.reliableGeneratedHistory)) ? 1 : 0, 0, 0, 0}};
                         auto data = frameResources.buffer(
                             {sizeof(object), rhi::BufferUsage::Uniform, "Motion object"}, &object);
                         auto layout = motionLayout_;
@@ -476,7 +496,7 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
                   [&] { commands.copyTexture(targets_->hdr, targets_->opaque); });
     if (!frame.oceans.empty())
         graph.add("ocean",
-                  {{"environment", A::Read},
+                  {{"ocean-state", A::Read}, {"environment", A::Read},
                    {"gbuffer", A::Read},
                    {"depth", A::ReadWrite},
                    {"hdr", A::ReadWrite},
@@ -587,8 +607,14 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
         commands.draw(6);
         commands.endRenderPass();
     });
-    graph.execute();
+    if(path_==PbrPath::Scene) {
+        auto plan=graph.compile();size_t a=SIZE_MAX,b=SIZE_MAX;
+        for(const auto& life:plan.lifetimes){if(life.resource=="depth")a=life.aliasSlot;if(life.resource=="sss-depth")b=life.aliasSlot;}
+        if(a==SIZE_MAX || a!=b)throw std::logic_error("SSS and scene depth lifetimes overlap; cannot reuse storage");
+    }
+    graph.execute([&](const std::string& name){commands.setLabel(name);});
     device.submit(commands);
+    renderedVP_=frame.viewProjection;
     temporalOutput_ = frame.taa;
     if (frame.taa)
         temporal_->commit(frame);
@@ -629,5 +655,16 @@ std::vector<float> ForwardPbrRenderer::readHDR() {
 }
 std::vector<uint8_t> ForwardPbrRenderer::readOutput() {
     return resources_.device->readTexture(targets_->output);
+}
+}
+
+namespace render {rhi::TextureViewHandle ForwardPbrRenderer::depthView() const {return targets_->depthView;}}
+
+namespace render {
+std::vector<glm::mat4> ForwardPbrRenderer::shadowVisibilityViews() const {
+    std::vector<glm::mat4> result;if(!shadows_ || (shadows_->data().settings.y<.5f && shadows_->data().settings.z<=0))return result;
+    const auto& data=shadows_->data();
+    if(data.settings.y>.5f)for(const auto& light:data.lights)for(int i=0;i<light.y && result.size()<7;++i)if(light.x+i>=0 && light.x+i<int(MaxShadowTiles))result.push_back(data.matrices[light.x+i]);
+    if(data.rsmRect.z>0 && result.size()<8)result.push_back(data.rsmMatrix);return result;
 }
 }

@@ -16,27 +16,27 @@ void ImageTexture::genImageTexture(unsigned int DataType, unsigned int channelTy
 }
 
 void ImageTexture::bindBuffer() {
-	glBindTexture(GL_TEXTURE_2D, tex->id);
+	glBindTexture(GL_TEXTURE_2D, tex->gpuId());
 }
 
 void ImageTexture::setBinding(int binding) {
 	this->binding = binding;
-	glBindImageTexture(binding, tex->id, 0, GL_FALSE, 0, GL_READ_WRITE,GL_RGBA32F);
+	glBindImageTexture(binding, tex->gpuId(), 0, GL_FALSE, 0, GL_READ_WRITE,GL_RGBA32F);
 }
 
 int ImageTexture::getHeight() {
 	if(tex)
-		return tex->height;
+		return tex->getHeight();
 }
 
 int ImageTexture::getWidth() {
 	if (tex)
-		return tex->width;
+		return tex->getWidth();
 }
 
 unsigned int ImageTexture::getTexture() {
 	if(tex)
-		return tex->id;
+		return tex->gpuId();
 }
 
 void ImageTexture::unbindBuffer() {

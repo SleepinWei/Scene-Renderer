@@ -1,5 +1,6 @@
 #pragma once
 #include<vector>
+#include "engine/InputFrame.h"
 #include"Key.h"
 
 class InputManager {
@@ -11,6 +12,7 @@ public:
 		static InputManager inputManager;
 		return &inputManager;
 	}
+	engine::InputFrame capture() const;
 	void reset(); 
 	void setMousePos(float x, float y);
 	void setMouseScroll(float x, float y);

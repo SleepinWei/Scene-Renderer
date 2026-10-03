@@ -1,5 +1,6 @@
 #include "rhi/GraphicsDevice.h"
 #include "rhi/ShaderAssets.h"
+#include "rhi/PipelineDiskCache.h"
 #include <vulkan/vulkan.h>
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -39,8 +40,11 @@ struct Context {
     VkCommandPool commands = VK_NULL_HANDLE;
     VkPhysicalDeviceProperties properties{};
     VkPhysicalDeviceMemoryProperties memory{};
+    bool memoryBudget=false;uint32_t timestampBits=0;
+    VkPipelineCache pipelineCache=VK_NULL_HANDLE;
+    PFN_vkCmdBeginDebugUtilsLabelEXT beginLabel=nullptr;PFN_vkCmdEndDebugUtilsLabelEXT endLabel=nullptr;
     ~Context() {
-        if (device) { vkDeviceWaitIdle(device);if (commands) vkDestroyCommandPool(device, commands, nullptr);vkDestroyDevice(device, nullptr); }
+        if (device) { vkDeviceWaitIdle(device);if(pipelineCache)vkDestroyPipelineCache(device,pipelineCache,nullptr);if (commands) vkDestroyCommandPool(device, commands, nullptr);vkDestroyDevice(device, nullptr); }
         if (surface) vkDestroySurfaceKHR(instance,surface,nullptr);
         if (instance) vkDestroyInstance(instance, nullptr);
     }
@@ -57,6 +61,8 @@ std::unique_ptr<Context> makeContext(GLFWwindow* window) {
     const bool portability = std::any_of(extensions.begin(), extensions.end(), [](const auto& e) { return std::strcmp(e.extensionName, VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) == 0; });
     std::vector<const char*> enabled;
     if (portability) enabled.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+    const bool debugUtils=std::any_of(extensions.begin(),extensions.end(),[](const auto& e){return std::strcmp(e.extensionName,VK_EXT_DEBUG_UTILS_EXTENSION_NAME)==0;});
+    if(debugUtils)enabled.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     if(window) {
         uint32_t count=0;const auto required=glfwGetRequiredInstanceExtensions(&count);
         if(!required || !count)throw std::runtime_error("RHI Vulkan: GLFW surface extensions unavailable");
@@ -81,20 +87,22 @@ std::unique_ptr<Context> makeContext(GLFWwindow* window) {
         if (props.apiVersion < VK_API_VERSION_1_1) continue;
         uint32_t families = 0;vkGetPhysicalDeviceQueueFamilyProperties(candidate, &families, nullptr);
         std::vector<VkQueueFamilyProperties> queues(families);vkGetPhysicalDeviceQueueFamilyProperties(candidate, &families, queues.data());
-        for (uint32_t i = 0; i < families; ++i) if (queues[i].queueCount && ((queues[i].queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT)) == (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT))) { VkBool32 supported=VK_TRUE;if(c->surface)check(vkGetPhysicalDeviceSurfaceSupportKHR(candidate,i,c->surface,&supported),"query presentation queue");if(supported){c->physical = candidate;family = i;break;} }
+        for (uint32_t i = 0; i < families; ++i) if (queues[i].queueCount && ((queues[i].queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT)) == (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT))) { VkBool32 supported=VK_TRUE;if(c->surface)check(vkGetPhysicalDeviceSurfaceSupportKHR(candidate,i,c->surface,&supported),"query presentation queue");if(supported){c->physical = candidate;family = i;c->timestampBits=queues[i].timestampValidBits;break;} }
         if (c->physical) break;
     }
     if (!c->physical) throw std::runtime_error("RHI Vulkan: no Vulkan 1.1 graphics device");
     vkGetPhysicalDeviceProperties(c->physical, &c->properties);vkGetPhysicalDeviceMemoryProperties(c->physical, &c->memory);
     check(vkEnumerateDeviceExtensionProperties(c->physical, nullptr, &count, nullptr), "enumerate device extensions");
     extensions.resize(count);check(vkEnumerateDeviceExtensionProperties(c->physical, nullptr, &count, extensions.data()), "enumerate device extensions");
-    enabled.clear();if(window)enabled.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    c->memoryBudget=std::any_of(extensions.begin(),extensions.end(),[](const auto& e){return std::strcmp(e.extensionName,VK_EXT_MEMORY_BUDGET_EXTENSION_NAME)==0;});
+    enabled.clear();if(c->memoryBudget)enabled.push_back(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);if(window)enabled.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
     for (const auto& e : extensions) if (std::strcmp(e.extensionName, "VK_KHR_portability_subset") == 0) enabled.push_back("VK_KHR_portability_subset");
     float priority = 1;VkDeviceQueueCreateInfo queue{VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};queue.queueFamilyIndex = family;queue.queueCount = 1;queue.pQueuePriorities = &priority;
     VkDeviceCreateInfo device{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};device.queueCreateInfoCount = 1;device.pQueueCreateInfos = &queue;
     device.enabledExtensionCount = uint32_t(enabled.size());device.ppEnabledExtensionNames = enabled.data();
     VkPhysicalDeviceFeatures supported{};vkGetPhysicalDeviceFeatures(c->physical,&supported);if(!supported.independentBlend)throw std::runtime_error("RHI Vulkan requires independent color attachment blending");VkPhysicalDeviceFeatures enabledFeatures{};enabledFeatures.independentBlend=VK_TRUE;enabledFeatures.fillModeNonSolid=supported.fillModeNonSolid;c->wireframe=supported.fillModeNonSolid;device.pEnabledFeatures=&enabledFeatures;
     check(vkCreateDevice(c->physical, &device, nullptr, &c->device), "create device");vkGetDeviceQueue(c->device, family, 0, &c->queue);
+    if(debugUtils){c->beginLabel=reinterpret_cast<PFN_vkCmdBeginDebugUtilsLabelEXT>(vkGetDeviceProcAddr(c->device,"vkCmdBeginDebugUtilsLabelEXT"));c->endLabel=reinterpret_cast<PFN_vkCmdEndDebugUtilsLabelEXT>(vkGetDeviceProcAddr(c->device,"vkCmdEndDebugUtilsLabelEXT"));}
     VkCommandPoolCreateInfo pool{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};pool.queueFamilyIndex = family;pool.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
     check(vkCreateCommandPool(c->device, &pool, nullptr, &c->commands), "create command pool");
     std::cout << "Vulkan device: " << c->properties.deviceName << "; Khronos validation " << (validation ? "enabled" : "unavailable") << '\n';
@@ -105,8 +113,8 @@ BufferLimits bufferLimitsFor(const Context& c) {
     return {size_t(std::numeric_limits<uint32_t>::max()), l.maxUniformBufferRange, size_t(std::max<VkDeviceSize>(1, l.minUniformBufferOffsetAlignment)), l.maxDescriptorSetUniformBuffers};
 }
 struct Buffer { VkBuffer gpu = VK_NULL_HANDLE;VkDeviceMemory memory = VK_NULL_HANDLE;size_t size = 0; };
-struct Image { VkImage gpu = VK_NULL_HANDLE;VkDeviceMemory memory = VK_NULL_HANDLE;VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT; };
-struct View { VkImageView gpu = VK_NULL_HANDLE;uint64_t image = 0; };
+struct Image { VkImage gpu = VK_NULL_HANDLE;VkDeviceMemory memory = VK_NULL_HANDLE;VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT;uint32_t mips=1,layers=1;std::vector<VkImageLayout> layouts; };
+struct View { VkImageView gpu = VK_NULL_HANDLE;uint64_t image = 0;TextureRange range; };
 struct Pipeline {
     VkPipeline gpu = VK_NULL_HANDLE;VkPipelineLayout layout = VK_NULL_HANDLE;VkRenderPass pass = VK_NULL_HANDLE;
     std::array<VkDescriptorSetLayout, 3> sets{};
@@ -114,7 +122,16 @@ struct Pipeline {
 class VulkanDevice final : public GraphicsDevice {
 public:
     explicit VulkanDevice(std::unique_ptr<Context> context) : GraphicsDevice(bufferLimitsFor(*context),
-        {context->properties.limits.maxImageDimension2D, context->properties.limits.maxVertexInputAttributes, 3, 8, context->properties.limits.maxColorAttachments}), c_(std::move(context)) {}
+        {context->properties.limits.maxImageDimension2D, context->properties.limits.maxVertexInputAttributes, 3, 8, context->properties.limits.maxColorAttachments}), c_(std::move(context)) {
+        const auto& properties=c_->properties;
+        cachePath_=pipelineDiskPath("vulkan-"+std::to_string(properties.vendorID)+"-"+std::to_string(properties.deviceID)+"-"+std::to_string(properties.driverVersion)+".bin");
+        auto bytes=readPipelineDisk(cachePath_);VkPipelineCacheHeaderVersionOne header{};
+        if(bytes.size()>=sizeof(header))std::memcpy(&header,bytes.data(),sizeof(header));
+        if(header.headerSize!=sizeof(header) || header.headerVersion!=VK_PIPELINE_CACHE_HEADER_VERSION_ONE || header.vendorID!=properties.vendorID || header.deviceID!=properties.deviceID || std::memcmp(header.pipelineCacheUUID,properties.pipelineCacheUUID,VK_UUID_SIZE))bytes.clear();
+        VkPipelineCacheCreateInfo info{VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};info.initialDataSize=bytes.size();info.pInitialData=bytes.data();
+        if(vkCreatePipelineCache(c_->device,&info,nullptr,&c_->pipelineCache)!=VK_SUCCESS){info.initialDataSize=0;info.pInitialData=nullptr;check(vkCreatePipelineCache(c_->device,&info,nullptr,&c_->pipelineCache),"create empty pipeline cache");bytes.clear();}
+        diskStats_={true,!bytes.empty(),false,bytes.size(),cachePath_.string()};
+    }
     ~VulkanDevice() override { try { close(); } catch (...) {} }
     bool supportsWireframe() const override { return c_->wireframe; }
     ComputeLimits computeLimits() const override {
@@ -227,12 +244,31 @@ protected:
     void waitCompletionImpl(uint64_t serial) override {
         if(serial<=completed_)return;for(const auto& p:pending_)if(p.serial==serial){check(vkWaitForFences(c_->device,1,&p.fence,VK_TRUE,UINT64_MAX),"wait frame fence");collectSubmissions();return;}throw std::logic_error("RHI Vulkan missing frame fence");
     }
-    void closeImpl() override {destroySwapchain();c_.reset();}
+    void closeImpl() override {savePipelineDiskCacheImpl();destroySwapchain();c_.reset();}
+    PipelineDiskCacheStats pipelineDiskCacheStatsImpl() const override {return diskStats_;}
+    void savePipelineDiskCacheImpl() override {
+        if(cachePath_.empty() || !c_ || !c_->pipelineCache)return;
+        size_t count=0;if(vkGetPipelineCacheData(c_->device,c_->pipelineCache,&count,nullptr)!=VK_SUCCESS || count>64*1024*1024)return;
+        std::vector<uint8_t> bytes(count);if(vkGetPipelineCacheData(c_->device,c_->pipelineCache,&count,bytes.data())!=VK_SUCCESS)return;
+        bytes.resize(count);diskStats_.saved=writePipelineDisk(cachePath_,bytes);if(diskStats_.saved)diskStats_.bytes=bytes.size();
+    }
+    bool supportsTextureSubresources() const override {return true;}
+    GpuTimingStats gpuTimingStatsImpl() const override {return {c_->timestampBits!=0,gpuSamples_,gpuMilliseconds_,"Vulkan pass-list submission",gpuPeakMilliseconds_};}
+    NativeMemoryStats nativeMemoryStatsImpl() const override {
+        if(!c_->memoryBudget)return {};
+        VkPhysicalDeviceMemoryBudgetPropertiesEXT budget{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT};
+        VkPhysicalDeviceMemoryProperties2 properties{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2};properties.pNext=&budget;
+        vkGetPhysicalDeviceMemoryProperties2(c_->physical,&properties);
+        NativeMemoryStats result{true,0,0,"Vulkan device-local heap estimate"};
+        for(uint32_t i=0;i<properties.memoryProperties.memoryHeapCount;++i)
+            if(properties.memoryProperties.memoryHeaps[i].flags&VK_MEMORY_HEAP_DEVICE_LOCAL_BIT){result.usedBytes+=budget.heapUsage[i];result.budgetBytes+=budget.heapBudget[i];}
+        return result;
+    }
     NativeObject createTextureImpl(const TextureDesc& desc) override {
         Image image;image.aspect = desc.format == Format::Depth32Float ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
         try {
             VkImageCreateInfo info{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};info.imageType = VK_IMAGE_TYPE_2D;info.format = format(desc.format);
-            info.extent = {desc.width, desc.height, 1};info.mipLevels = info.arrayLayers = 1;info.samples = VK_SAMPLE_COUNT_1_BIT;
+            info.extent = {desc.width, desc.height, 1};info.mipLevels = desc.mipLevels;info.arrayLayers = desc.arrayLayers;image.mips=desc.mipLevels;image.layers=desc.arrayLayers;image.layouts.resize(size_t(image.mips)*image.layers,VK_IMAGE_LAYOUT_UNDEFINED);info.samples = VK_SAMPLE_COUNT_1_BIT;
             info.tiling = VK_IMAGE_TILING_OPTIMAL;info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
             if (hasUsage(desc.usage, TextureUsage::Storage)) info.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
             if (hasUsage(desc.usage, TextureUsage::Sampled)) info.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -249,12 +285,12 @@ protected:
             const auto id = next_++;images_.emplace(id, image);return id;
         } catch (...) { if (image.gpu) vkDestroyImage(c_->device, image.gpu, nullptr);if (image.memory) vkFreeMemory(c_->device, image.memory, nullptr);throw; }
     }
-    NativeObject createTextureViewImpl(NativeObject imageId, const TextureDesc& desc) override {
+    NativeObject createTextureViewImpl(NativeObject imageId, const TextureDesc& desc,const TextureViewDesc& selection) override {
         const auto& image = images_.at(imageId);VkImageView view = VK_NULL_HANDLE;
         VkImageViewCreateInfo info{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};info.image = image.gpu;info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        info.format = format(desc.format);info.subresourceRange = {image.aspect, 0, 1, 0, 1};
+        info.format = format(desc.format);info.subresourceRange = {image.aspect, selection.range.firstMip, selection.range.mipCount, selection.range.firstLayer, 1};
         check(vkCreateImageView(c_->device, &info, nullptr, &view), "create image view");
-        try { const auto id = next_++;views_.emplace(id, View{view, imageId});return id; } catch (...) { vkDestroyImageView(c_->device, view, nullptr);throw; }
+        try { const auto id = next_++;views_.emplace(id, View{view, imageId,selection.range});return id; } catch (...) { vkDestroyImageView(c_->device, view, nullptr);throw; }
     }
     NativeObject createSamplerImpl(const SamplerDesc& desc) override {
         VkSamplerCreateInfo info{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};info.magFilter = info.minFilter = desc.filter == Filter::Linear ? VK_FILTER_LINEAR : VK_FILTER_NEAREST;
@@ -296,7 +332,7 @@ protected:
                 VkDescriptorSetLayoutCreateInfo layout{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};layout.bindingCount=uint32_t(bindings.size());layout.pBindings=bindings.data();check(vkCreateDescriptorSetLayout(c_->device,&layout,nullptr,&p.sets[group]),"create compute descriptor layout");
             }
             VkPipelineLayoutCreateInfo layout{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};layout.setLayoutCount=3;layout.pSetLayouts=p.sets.data();check(vkCreatePipelineLayout(c_->device,&layout,nullptr,&p.layout),"create compute layout");
-            VkComputePipelineCreateInfo info{VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};info.layout=p.layout;info.stage.sType=VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;info.stage.stage=VK_SHADER_STAGE_COMPUTE_BIT;info.stage.module=module;info.stage.pName=desc.shader.spirvEntryPoint.c_str();check(vkCreateComputePipelines(c_->device,VK_NULL_HANDLE,1,&info,nullptr,&p.gpu),"create compute pipeline");
+            VkComputePipelineCreateInfo info{VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};info.layout=p.layout;info.stage.sType=VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;info.stage.stage=VK_SHADER_STAGE_COMPUTE_BIT;info.stage.module=module;info.stage.pName=desc.shader.spirvEntryPoint.c_str();check(vkCreateComputePipelines(c_->device,c_->pipelineCache,1,&info,nullptr,&p.gpu),"create compute pipeline");
             const auto id=next_++;computePipelines_.emplace(id,p);vkDestroyShaderModule(c_->device,module,nullptr);return id;
         } catch(...) { if(module)vkDestroyShaderModule(c_->device,module,nullptr);freePipeline(p);throw; }
     }
@@ -338,7 +374,7 @@ protected:
             VkPipelineDynamicStateCreateInfo dynamic{VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO};dynamic.dynamicStateCount = 2;dynamic.pDynamicStates = dynamics;
             VkGraphicsPipelineCreateInfo info{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};info.stageCount = 2;info.pStages = stages;info.pVertexInputState = &vertex;info.pInputAssemblyState = &assembly;
             info.pViewportState = &viewport;info.pRasterizationState = &raster;info.pMultisampleState = &samples;info.pDepthStencilState = &depth;info.pColorBlendState = &blend;info.pDynamicState = &dynamic;info.layout = p.layout;info.renderPass = p.pass;
-            check(vkCreateGraphicsPipelines(c_->device, VK_NULL_HANDLE, 1, &info, nullptr, &p.gpu), "create graphics pipeline");
+            check(vkCreateGraphicsPipelines(c_->device, c_->pipelineCache, 1, &info, nullptr, &p.gpu), "create graphics pipeline");
             const auto id = next_++;pipelines_.emplace(id, p);for (auto m : modules) vkDestroyShaderModule(c_->device, m, nullptr);return id;
         } catch (...) { for (auto m : modules) if (m) vkDestroyShaderModule(c_->device, m, nullptr);freePipeline(p);throw; }
     }
@@ -353,36 +389,50 @@ protected:
             if(p.release)p.release();vkDestroyFence(c_->device,p.fence,nullptr);vkFreeCommandBuffers(c_->device,c_->commands,1,&p.command);completed_=p.serial;pending_.pop_front();
         }
     }
-    uint64_t execute(const std::function<void(VkCommandBuffer)>& record,bool defer=false,std::function<void()> release={},VkSemaphore signal=VK_NULL_HANDLE) {
+    uint64_t execute(const std::function<void(VkCommandBuffer)>& record,bool defer=false,std::function<void()> release={},VkSemaphore signal=VK_NULL_HANDLE,bool measure=false) {
         collectSubmissions();VkCommandBuffer command=VK_NULL_HANDLE;VkFence fence=VK_NULL_HANDLE;
-        std::unordered_map<uint64_t,VkImageLayout> previousLayouts;for(const auto& image:images_)previousLayouts.emplace(image.first,image.second.layout);bool submitted=false;
+        VkQueryPool query=VK_NULL_HANDLE;
+        if(measure && c_->timestampBits){VkQueryPoolCreateInfo info{VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO};info.queryType=VK_QUERY_TYPE_TIMESTAMP;info.queryCount=2;
+            if(vkCreateQueryPool(c_->device,&info,nullptr,&query)!=VK_SUCCESS)query=VK_NULL_HANDLE;}
+        auto queryOwner=std::shared_ptr<VkQueryPool>(new VkQueryPool(query),[this](VkQueryPool* p){if(*p)vkDestroyQueryPool(c_->device,*p,nullptr);delete p;});
+        if(query)release=[this,queryOwner,release=std::move(release)] {
+            uint64_t times[2]{};if(vkGetQueryPoolResults(c_->device,*queryOwner,0,2,sizeof(times),times,sizeof(uint64_t),VK_QUERY_RESULT_64_BIT)==VK_SUCCESS){
+                const uint64_t mask=c_->timestampBits>=64?UINT64_MAX:(uint64_t(1)<<c_->timestampBits)-1;
+                gpuMilliseconds_=double((times[1]-times[0])&mask)*c_->properties.limits.timestampPeriod/1e6;gpuPeakMilliseconds_=std::max(gpuPeakMilliseconds_,gpuMilliseconds_);++gpuSamples_;
+            }if(release)release();
+        };
+        std::unordered_map<uint64_t,Image> previousLayouts;for(const auto& image:images_)previousLayouts.emplace(image.first,image.second);bool submitted=false;
         try{
             VkCommandBufferAllocateInfo allocation{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};allocation.commandPool=c_->commands;allocation.level=VK_COMMAND_BUFFER_LEVEL_PRIMARY;allocation.commandBufferCount=1;check(vkAllocateCommandBuffers(c_->device,&allocation,&command),"allocate command buffer");
-            VkCommandBufferBeginInfo begin{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};begin.flags=VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;check(vkBeginCommandBuffer(command,&begin),"begin command buffer");record(command);check(vkEndCommandBuffer(command),"end command buffer");
+            VkCommandBufferBeginInfo begin{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};begin.flags=VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;check(vkBeginCommandBuffer(command,&begin),"begin command buffer");if(query){vkCmdResetQueryPool(command,query,0,2);vkCmdWriteTimestamp(command,VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,query,0);}
+            record(command);if(query)vkCmdWriteTimestamp(command,VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,query,1);check(vkEndCommandBuffer(command),"end command buffer");
             VkFenceCreateInfo info{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};check(vkCreateFence(c_->device,&info,nullptr,&fence),"create submission fence");VkSubmitInfo submit{VK_STRUCTURE_TYPE_SUBMIT_INFO};submit.commandBufferCount=1;submit.pCommandBuffers=&command;if(signal){submit.signalSemaphoreCount=1;submit.pSignalSemaphores=&signal;}
             check(vkQueueSubmit(c_->queue,1,&submit,fence),"submit commands");submitted=true;
             const auto serial=++submitted_;if(defer){pending_.push_back({serial,command,fence,std::move(release)});return serial;}
             check(vkWaitForFences(c_->device,1,&fence,VK_TRUE,UINT64_MAX),"wait submission fence");collectSubmissions();vkDestroyFence(c_->device,fence,nullptr);vkFreeCommandBuffers(c_->device,c_->commands,1,&command);completed_=serial;if(release)release();return serial;
-        }catch(...){vkDeviceWaitIdle(c_->device);if(!submitted)for(const auto& layout:previousLayouts)images_.at(layout.first).layout=layout.second;if(fence)vkDestroyFence(c_->device,fence,nullptr);if(command)vkFreeCommandBuffers(c_->device,c_->commands,1,&command);throw;}
+        }catch(...){vkDeviceWaitIdle(c_->device);if(!submitted)for(const auto& layout:previousLayouts)images_.at(layout.first)=layout.second;if(fence)vkDestroyFence(c_->device,fence,nullptr);if(command)vkFreeCommandBuffers(c_->device,c_->commands,1,&command);throw;}
     }
-    void transition(VkCommandBuffer command, Image& image, VkImageLayout layout) {
-        // Even the same layout needs a memory dependency between consecutive
-        // attachment writes and Load passes. This prototype uses conservative
-        // stages; finer resource-state scheduling belongs to the render graph.
-        VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};barrier.oldLayout = image.layout;barrier.newLayout = layout;
-        barrier.srcQueueFamilyIndex = barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;barrier.image = image.gpu;barrier.subresourceRange = {image.aspect, 0, 1, 0, 1};
-        barrier.srcAccessMask = image.layout == VK_IMAGE_LAYOUT_UNDEFINED ? 0 : VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
-        barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
-        vkCmdPipelineBarrier(command, image.layout == VK_IMAGE_LAYOUT_UNDEFINED ? VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT : VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-            VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);image.layout = layout;
+    void transition(VkCommandBuffer command, Image& image, VkImageLayout layout,TextureRange range={}) {
+        for(uint32_t layer=range.firstLayer;layer<range.firstLayer+range.layerCount;++layer)
+          for(uint32_t mip=range.firstMip;mip<range.firstMip+range.mipCount;++mip) {
+            auto& previous=image.layouts.at(size_t(layer)*image.mips+mip);
+            VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};barrier.oldLayout=previous;barrier.newLayout=layout;
+            barrier.srcQueueFamilyIndex=barrier.dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;barrier.image=image.gpu;
+            barrier.subresourceRange={image.aspect,mip,1,layer,1};
+            barrier.srcAccessMask=previous==VK_IMAGE_LAYOUT_UNDEFINED?0:VK_ACCESS_MEMORY_READ_BIT|VK_ACCESS_MEMORY_WRITE_BIT;
+            barrier.dstAccessMask=VK_ACCESS_MEMORY_READ_BIT|VK_ACCESS_MEMORY_WRITE_BIT;
+            vkCmdPipelineBarrier(command,previous==VK_IMAGE_LAYOUT_UNDEFINED?VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT:VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                                 VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,0,0,nullptr,0,nullptr,1,&barrier);previous=layout;
+          }
+        image.layout=layout;
     }
     void writeTextureRegionImpl(NativeObject id, const TextureDesc& desc, TextureRegion r, const void* pixels, size_t bytes) override {
         auto staging = allocateBuffer(bytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
         try {
             transfer(staging, 0, bytes, const_cast<void*>(pixels), true);
             execute([&](VkCommandBuffer command) {
-                auto& image = images_.at(id);transition(command, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-                VkBufferImageCopy copy{};copy.imageSubresource = {image.aspect, 0, 0, 1};copy.imageOffset = {int32_t(r.x),int32_t(r.y),0};copy.imageExtent = {r.width, r.height, 1};
+                auto& image = images_.at(id);transition(command, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,{r.mip,1,r.layer,1});
+                VkBufferImageCopy copy{};copy.imageSubresource = {image.aspect, r.mip, r.layer, 1};copy.imageOffset = {int32_t(r.x),int32_t(r.y),0};copy.imageExtent = {r.width, r.height, 1};
                 vkCmdCopyBufferToImage(command, staging.gpu, image.gpu, image.layout, 1, &copy);
             },frameActive(),[this,staging]{freeBuffer(staging);});
         } catch (...) { freeBuffer(staging);throw; }
@@ -400,9 +450,9 @@ protected:
             });transfer(staging, 0, result.size(), result.data(), false);freeBuffer(staging);return result;
         } catch (...) { freeBuffer(staging);throw; }
     }
-    std::function<void()> queueTextureReadbackImpl(NativeObject id,const TextureDesc& desc,std::shared_ptr<std::vector<uint8_t>> output) override {
+    std::function<void()> queueTextureReadbackImpl(NativeObject id,const TextureDesc& desc,std::shared_ptr<std::vector<uint8_t>> output,TextureSubresource level) override {
         const size_t bytes=size_t(desc.width)*desc.height*(desc.format==Format::RGBA8UNorm || desc.format==Format::Depth32Float?4:desc.format==Format::RGBA16Float?8:16);auto staging=allocateBuffer(bytes,VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-        try{execute([&](VkCommandBuffer command){auto& image=images_.at(id);transition(command,image,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);VkBufferImageCopy copy{};copy.imageSubresource={image.aspect,0,0,1};copy.imageExtent={desc.width,desc.height,1};vkCmdCopyImageToBuffer(command,image.gpu,image.layout,staging.gpu,1,&copy);VkMemoryBarrier host{VK_STRUCTURE_TYPE_MEMORY_BARRIER};host.srcAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;host.dstAccessMask=VK_ACCESS_HOST_READ_BIT;vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_HOST_BIT,0,1,&host,0,nullptr,0,nullptr);},true,[this,staging,bytes,output]{output->resize(bytes);transfer(staging,0,bytes,output->data(),false);freeBuffer(staging);});}catch(...){freeBuffer(staging);throw;}return {};
+        try{execute([&](VkCommandBuffer command){auto& image=images_.at(id);transition(command,image,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,{level.mip,1,level.layer,1});VkBufferImageCopy copy{};copy.imageSubresource={image.aspect,level.mip,level.layer,1};copy.imageExtent={desc.width,desc.height,1};vkCmdCopyImageToBuffer(command,image.gpu,image.layout,staging.gpu,1,&copy);VkMemoryBarrier host{VK_STRUCTURE_TYPE_MEMORY_BARRIER};host.srcAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;host.dstAccessMask=VK_ACCESS_HOST_READ_BIT;vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_HOST_BIT,0,1,&host,0,nullptr,0,nullptr);},true,[this,staging,bytes,output]{output->resize(bytes);transfer(staging,0,bytes,output->data(),false);freeBuffer(staging);});}catch(...){freeBuffer(staging);throw;}return {};
     }
     std::vector<uint8_t> readTextureImpl(NativeObject id, const TextureDesc& desc) override { return readPixels(id, desc, 4); }
     void writeTextureFloatImpl(NativeObject id,const TextureDesc& desc,const float* pixels,size_t bytes) override {writeTextureImpl(id,desc,pixels,bytes);}
@@ -439,10 +489,14 @@ protected:
             }
             execute([&](VkCommandBuffer command) {
                 for (const auto& pass : passes) {
+                    struct EndLabel {VkCommandBuffer command;PFN_vkCmdEndDebugUtilsLabelEXT end;~EndLabel(){if(end)end(command);}};
+                    const bool labelled=c_->beginLabel && c_->endLabel && !pass.label.empty();
+                    if(labelled){VkDebugUtilsLabelEXT label{VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT};label.pLabelName=pass.label.c_str();c_->beginLabel(command,&label);}
+                    EndLabel endLabel{command,labelled?c_->endLabel:nullptr};
                     if(pass.copy) {
                         auto& source=images_.at(textureObject(pass.copySource));auto& destination=images_.at(textureObject(pass.copyDestination));const auto& desc=textureDesc(pass.copySource);
-                        transition(command,source,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);transition(command,destination,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-                        VkImageCopy copy{};copy.srcSubresource=copy.dstSubresource={VK_IMAGE_ASPECT_COLOR_BIT,0,0,1};copy.extent={desc.width,desc.height,1};vkCmdCopyImage(command,source.gpu,source.layout,destination.gpu,destination.layout,1,&copy);continue;
+                        transition(command,source,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,{pass.sourceSubresource.mip,1,pass.sourceSubresource.layer,1});transition(command,destination,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,{pass.destinationSubresource.mip,1,pass.destinationSubresource.layer,1});
+                        VkImageCopy copy{};copy.srcSubresource={VK_IMAGE_ASPECT_COLOR_BIT,pass.sourceSubresource.mip,pass.sourceSubresource.layer,1};copy.dstSubresource={VK_IMAGE_ASPECT_COLOR_BIT,pass.destinationSubresource.mip,pass.destinationSubresource.layer,1};copy.extent={std::max(1u,desc.width>>pass.sourceSubresource.mip),std::max(1u,desc.height>>pass.sourceSubresource.mip),1};vkCmdCopyImage(command,source.gpu,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,destination.gpu,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,1,&copy);continue;
                     }
                     // Conservative dependency boundary covers earlier submissions as well as this list.
                     VkMemoryBarrier memory{VK_STRUCTURE_TYPE_MEMORY_BARRIER};memory.srcAccessMask=VK_ACCESS_MEMORY_WRITE_BIT;memory.dstAccessMask=VK_ACCESS_MEMORY_READ_BIT|VK_ACCESS_MEMORY_WRITE_BIT;
@@ -455,7 +509,7 @@ protected:
                             if(b.buffer) { buffer={buffers_.at(b.buffer).gpu,b.offset,b.size};write.descriptorType=isStorage(b.layout.type)?VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;write.pBufferInfo=&buffer; }
                             else {
                                 const auto layout=isStorageTexture(b.layout.type)?VK_IMAGE_LAYOUT_GENERAL:VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                                const auto& view=views_.at(b.textureView);transition(command,images_.at(view.image),layout);
+                                const auto& view=views_.at(b.textureView);transition(command,images_.at(view.image),layout,view.range);
                                 image={b.sampler?samplers_.at(b.sampler):VK_NULL_HANDLE,view.gpu,layout};write.descriptorType=isStorageTexture(b.layout.type)?VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;write.pImageInfo=&image;
                             }
                             vkUpdateDescriptorSets(c_->device,1,&write,0,nullptr);
@@ -465,14 +519,14 @@ protected:
                     const auto& target = viewTextureDesc(pass.desc.color?pass.desc.color:pass.desc.depth);const auto colors = colorAttachments(pass.desc);
                     // Sampling barriers must precede vkCmdBeginRenderPass.
                     for (const auto& draw : pass.draws) for (auto set : draw.bindings) for (const auto& b : resolvedBindings(set))
-                        if (b.textureView) transition(command, images_.at(views_.at(b.textureView).image), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+                        if (b.textureView) transition(command, images_.at(views_.at(b.textureView).image), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,views_.at(b.textureView).range);
                     std::vector<VkImageView> attachments;std::vector<Format> formats;std::vector<VkClearValue> clears;
                     for (const auto& color : colors) {
-                        const auto& view = views_.at(textureViewObject(color.view));transition(command, images_.at(view.image), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+                        const auto& view = views_.at(textureViewObject(color.view));transition(command, images_.at(view.image), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,view.range);
                         attachments.push_back(view.gpu);formats.push_back(viewTextureDesc(color.view).format);
                         VkClearValue clear{};std::copy(color.clear.begin(), color.clear.end(), clear.color.float32);clears.push_back(clear);
                     }
-                    if (pass.desc.depth) { const auto& depth = views_.at(textureViewObject(pass.desc.depth));transition(command, images_.at(depth.image), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);attachments.push_back(depth.gpu);VkClearValue clear{};clear.depthStencil.depth = pass.desc.clearDepth;clears.push_back(clear); }
+                    if (pass.desc.depth) { const auto& depth = views_.at(textureViewObject(pass.desc.depth));transition(command, images_.at(depth.image), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,depth.range);attachments.push_back(depth.gpu);VkClearValue clear{};clear.depthStencil.depth = pass.desc.clearDepth;clears.push_back(clear); }
                     auto renderPass = createPass(formats, bool(pass.desc.depth), colors, pass.desc.depthLoad, pass.desc.depthStore);renderPasses.push_back(renderPass);
                     VkFramebufferCreateInfo fb{VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};fb.renderPass = renderPass;fb.attachmentCount = uint32_t(attachments.size());fb.pAttachments = attachments.data();fb.width = target.width;fb.height = target.height;fb.layers = 1;
                     VkFramebuffer framebuffer = VK_NULL_HANDLE;check(vkCreateFramebuffer(c_->device, &fb, nullptr, &framebuffer), "create framebuffer");framebuffers.push_back(framebuffer);
@@ -508,7 +562,7 @@ protected:
                 }
                 VkMemoryBarrier host{VK_STRUCTURE_TYPE_MEMORY_BARRIER};host.srcAccessMask=VK_ACCESS_SHADER_WRITE_BIT;host.dstAccessMask=VK_ACCESS_HOST_READ_BIT;
                 vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,VK_PIPELINE_STAGE_HOST_BIT,0,1,&host,0,nullptr,0,nullptr);
-            },frameActive(),[this,framebufferOwner,renderPassOwner,pool]{for(auto f:*framebufferOwner)vkDestroyFramebuffer(c_->device,f,nullptr);for(auto p:*renderPassOwner)vkDestroyRenderPass(c_->device,p,nullptr);if(pool)vkDestroyDescriptorPool(c_->device,pool,nullptr);});
+            },frameActive(),[this,framebufferOwner,renderPassOwner,pool]{for(auto f:*framebufferOwner)vkDestroyFramebuffer(c_->device,f,nullptr);for(auto p:*renderPassOwner)vkDestroyRenderPass(c_->device,p,nullptr);if(pool)vkDestroyDescriptorPool(c_->device,pool,nullptr);},VK_NULL_HANDLE,true);
         } catch (...) { cleanup();throw; }
     }
 private:
@@ -535,6 +589,7 @@ private:
         catch(...) {vkDestroySwapchainKHR(c_->device,replacement,nullptr);throw;}
         destroySwapchain();swapchain_=replacement;swapImages_=std::move(images);presented_.assign(count,false);extent_=extent;acquired_=false;copied_=false;renderFinished_.resize(count);VkSemaphoreCreateInfo semaphore{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};for(auto& signal:renderFinished_)check(vkCreateSemaphore(c_->device,&semaphore,nullptr,&signal),"create present semaphore");return true;
     }
+    uint64_t gpuSamples_=0;double gpuMilliseconds_=0,gpuPeakMilliseconds_=0;
     uint64_t submitted_=0,completed_=0;std::deque<Pending> pending_;
     std::vector<VkSemaphore> renderFinished_;
     VkSwapchainKHR swapchain_=VK_NULL_HANDLE;
@@ -543,6 +598,7 @@ private:
     VkExtent2D extent_{};
     uint32_t imageIndex_=0;
     bool acquired_=false,copied_=false,surfaceUnavailable_=false;
+    std::filesystem::path cachePath_;PipelineDiskCacheStats diskStats_;
     std::unique_ptr<Context> c_;
     uint64_t next_ = 1;
     std::unordered_map<uint64_t, Buffer> buffers_;

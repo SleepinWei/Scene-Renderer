@@ -43,16 +43,23 @@ struct AtmosphereParameters {
 	// float mu_s_min;
 };
 
-class Atmosphere :public Component,public std::enable_shared_from_this<Atmosphere>{
+struct AtmosphereConfiguration {
+    AtmosphereParameters atmosphere{};
+    float sunAngle=10,sunAzimuth=0,seaLevelMeters=0,multipleScattering=1,groundAlbedo=.2f;
+};
+class Atmosphere :private AtmosphereConfiguration,public Component,public std::enable_shared_from_this<Atmosphere>{
 public:
 	Atmosphere();
 	~Atmosphere();
 	void render(const std::shared_ptr<Shader>& shader); 
+    AtmosphereConfiguration settings() const {checkLogicThread();return *this;}
+    void setSettings(const AtmosphereConfiguration&);
+    template<class F> void updateSettings(F&& edit) {auto candidate=settings();edit(candidate);setSettings(candidate);}
 	void constructCall();
 
 public:
 	// members
-	AtmosphereParameters atmosphere;
+
 	std::shared_ptr<ImageTexture> transmittanceTexture;
 	std::shared_ptr<ImageTexture> skyViewTexture;
 	std::shared_ptr<ImageTexture> multiTexture;
@@ -75,8 +82,8 @@ public:
 	const unsigned int multiHeight = 32;
 
 	//debug 
-	float sunAngle;
-    float sunAzimuth=0,seaLevelMeters=0,multipleScattering=1,groundAlbedo=.2f;
+
+
 
 private:
 	void computeTransTexture();

@@ -27,7 +27,7 @@ struct SnapshotDraw {
 };
 struct TerrainPayload {
     uint64_t id = 0, revision = 0;
-    uint32_t capacity = 2048;
+    uint32_t capacity = 2048,virtualColumns=8;
     VirtualTextureSource height, material;
     bool grass = false;
 };
@@ -41,7 +41,7 @@ struct SnapshotTerrain {
 // Camera, Material or GPU handle crosses the logic/render boundary.
 struct RenderWorldSnapshot {
     uint64_t sequence = 0;
-    bool asynchronousStreaming = false;
+    bool asynchronousStreaming = false,automaticQuality=false;
     FrameData frame;
     float exposure = 1;
     std::vector<SnapshotDraw> draws;

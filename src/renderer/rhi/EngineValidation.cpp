@@ -9,12 +9,15 @@
 #include "renderer/Material.h"
 #include "renderer/rhi/SceneSnapshot.h"
 #include "renderer/rhi/GpuImageCache.h"
+#include "renderer/rhi/GraphTextures.h"
 #include "component/Lights.h"
 #include "engine/RenderRuntime.h"
 #include "rhi/ShaderAssets.h"
 #include "object/Terrain.h"
 #include "utils/Camera.h"
 #include "system/Loader.h"
+#include "engine/AssetPath.h"
+#include "engine/FixedStepClock.h"
 #include "system/ResourceManager.h"
 #include "renderer/Texture.h"
 #include <glad/glad.h>
@@ -473,6 +476,14 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
               "World destruction left command futures unresolved");
     }
     {
+        Camera a,b;engine::InputFrame message;message.movement[0]=true;message.mouseMoved=true;message.mouseX=12;
+        engine::FixedStepClock first,second;
+        a.applyInput(message,0,true);b.applyInput(message,0,true);
+        first.advance(.1,[&](double dt){a.applyInput(message,float(dt),false);});
+        for(int i=0;i<10;++i)second.advance(.01,[&](double dt){b.applyInput(message,float(dt),false);});
+        check(glm::length(a.getPosition()-b.getPosition())<1e-6f && a.getYaw()==b.getYaw(),"Input replay depends on render partition or repeats pointer deltas");
+    }
+    {
         Material material;
         Material copy = material;
         check(material.assetId != copy.assetId, "Copied live material reused another asset identity");
@@ -521,7 +532,7 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
             for (size_t i = 1; i < requests.size(); ++i)
                 check(requests[i].get() == first,
                       "Normalized paths were decoded into different Texture assets");
-            check(first->width == 1 && first->height == 1 && first->data &&
+            check(first->getWidth() == 1 && first->getHeight() == 1 && first->pixels() &&
                       ResourceManager::GetInstance()->find((base / "." / "shared.ppm").string()) == first,
                   "CPU texture cache returned invalid data or inconsistent lookup");
             first.reset();
@@ -558,14 +569,18 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
         bool rejected = false;
         try {
             loader->loadSceneAsync(scene, (base / "bad.json").string());
-        } catch (const json::parse_error &) {
+        } catch (const std::exception &error) {
+            check(std::string(error.what()).find("parse_error") != std::string::npos,
+                  "Loader exception lost its JSON parse diagnostic");
             rejected = true;
         }
         check(rejected && scene->revision() == revision, "Loader cleared scene before validating JSON");
         rejected = false;
         try {
             loader->loadSceneAsync(scene, (base / "worker.json").string());
-        } catch (const json::parse_error &) {
+        } catch (const std::exception &error) {
+            check(std::string(error.what()).find("parse_error") != std::string::npos,
+                  "Loader exception lost its JSON parse diagnostic");
             rejected = true;
         }
         check(rejected && scene->revision() == revision,
@@ -593,6 +608,22 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
             scene->replaceWith(*built);
             check(scene->objects().empty() && scene->mainCamera() == camera && scene->revision() > revision,
                   "Successful commit lost camera or failed to replace world");
+            // Both scene children and textures resolve relative to their own document.
+            {
+                std::ofstream relativeObject(base / "relative-object.json");
+                relativeObject << R"({"name":"relative object","components":{"MeshFilter":{"shape":"plane","material":{"textures":{"material.albedo":"shared.ppm"}}}}})";
+                std::ofstream relativeScene(base / "relative-scene.json");
+                relativeScene << R"({"objects":{"one":"relative-object.json"}})";
+            }
+            auto rootBefore=engine::AssetPath::root();
+            engine::AssetPath::setRoot(base);
+            auto relative=loader->buildScene("relative-scene.json");
+            auto relativeWorld=relative.result.get();
+            engine::AssetPath::setRoot(rootBefore);
+            scene->replaceWith(*relativeWorld);
+            auto relativeTexture=scene->objects().at(0)->getComponent<MeshFilter>()->getMeshes().at(0)->getMaterial()->getTextures().at("material.albedo");
+            check(relativeTexture->getWidth()==1 && std::filesystem::path(relativeTexture->getPath()).is_absolute(),
+                  "Asset root or document-relative texture path was ignored");
             auto populated = loader->buildScene((base / "valid.json").string());
             auto builtObject = populated.result.get();
             scene->replaceWith(*builtObject);
@@ -611,14 +642,66 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
         std::filesystem::remove_all(base);
     }
     {
+        using namespace rhi;
+        {
+            engine::RenderGraph graph;for(auto name:{"first","second","overlap"})graph.describe(name,{1,1,true,"rgba8"});
+            graph.add("a",{{"first",engine::RenderGraph::Access::Write},{"overlap",engine::RenderGraph::Access::Write}},[]{});
+            graph.add("b",{{"first",engine::RenderGraph::Access::Read}},[]{});
+            graph.add("c",{{"second",engine::RenderGraph::Access::Write},{"overlap",engine::RenderGraph::Access::Read}},[]{});
+            const TextureDesc desc{16,16,Format::RGBA8UNorm,TextureUsage::ColorAttachment|TextureUsage::Sampled,"Transient validation"};
+            auto before=device->resourceMemory().textureBytes;
+            GraphTextures pool(device,graph.compile(),{{"first",desc},{"second",desc},{"overlap",desc}});
+            check(pool.texture("first").value==pool.texture("second").value && pool.texture("first").value!=pool.texture("overlap").value && device->resourceMemory().textureBytes-before==2*16*16*4,
+                  "Transient allocator ignored lifetimes or reused overlapping texture storage");
+        }
+        if(device->supportsTextureSubresources()) {
+            Resources levels(device);auto before=device->resourceMemory().textureBytes;
+            auto texture=levels.texture({8,8,Format::RGBA8UNorm,TextureUsage::Sampled|TextureUsage::ColorAttachment|TextureUsage::CopyDestination|TextureUsage::CopySource,"Mip/layer validation",4,2});
+            check(device->resourceMemory().textureBytes-before==(64+16+4+1)*4*2,"Texture quota omitted mip or array layers");
+            auto base=device->createTextureView({texture,{0,1,0,1}}),small=device->createTextureView({texture,{2,1,1,1}});
+            std::vector<uint8_t> red(64*4,0),green(4*4,0);for(size_t i=0;i<red.size();i+=4){red[i]=255;red[i+3]=255;}for(size_t i=0;i<green.size();i+=4){green[i+1]=255;green[i+3]=255;}
+            device->writeTextureRegion(texture,{0,0,8,8,0,0},red.data(),red.size());
+            device->writeTextureRegion(texture,{0,0,2,2,2,1},green.data(),green.size());
+            check(device->readTextureSubresource(texture,{0,0})==red && device->readTextureSubresource(texture,{2,1})==green,"Subresource upload/readback changed sibling mip or layer");
+            auto commands=device->createCommandList();RenderPassDesc pass;pass.color=small;pass.clearColor={0,0,1,1};commands.beginRenderPass(pass);commands.setPassLabel("Mip 2 layer 1 clear");commands.endRenderPass();device->submit(commands);
+            auto blue=green;for(size_t i=0;i<blue.size();i+=4){blue[i+1]=0;blue[i+2]=255;}
+            check(device->readTextureSubresource(texture,{2,1})==blue && device->readTextureSubresource(texture,{0,0})==red,"Subresource attachment used base level or another layer");
+            auto destination=levels.texture({2,2,Format::RGBA8UNorm,TextureUsage::CopySource|TextureUsage::CopyDestination,"Subresource copy"});
+            auto copy=device->createCommandList();copy.copyTexture(texture,destination,{2,1});device->submit(copy);
+            check(device->readTexture(destination)==blue,"Subresource copy failed extent or level selection");
+            bool denied=false;try{device->createTextureView({texture,{4,1,0,1}});}catch(const std::invalid_argument&){denied=true;}check(denied,"Invalid mip view accepted");
+            denied=false;try{device->writeTextureRegion(texture,{0,0,3,2,2,1},green.data(),green.size());}catch(const std::invalid_argument&){denied=true;}check(denied,"Subresource upload exceeds selected mip");
+            device->destroyTextureView(base);device->destroyTextureView(small);
+        } else {
+            bool denied=false;try{device->createTexture({4,4,Format::RGBA8UNorm,TextureUsage::Sampled,"Unsupported mip storage",2,1});}catch(const std::invalid_argument&){denied=true;}
+            check(denied,"Backend silently flattened unsupported mip storage");
+        }
+    }
+    {
+        auto cache=GpuImageCache::forDevice(device);
+        auto pixels=std::make_shared<ImageRGBA8>();pixels->width=pixels->height=128;pixels->pixels.resize(128*128*4);
+        for(size_t i=0;i<pixels->pixels.size();++i)pixels->pixels[i]=uint8_t((i*19+11)%251);
+        auto image=cache->acquire(pixels,true);check(image && !image->ready(),"Deferred image was eagerly uploaded");
+        check(cache->upload(image,16384)==16384 && !image->ready(),"Image exceeded its row upload budget");
+        check(cache->upload(image,SIZE_MAX)==49152 && image->ready() && device->readTexture(image->texture())==pixels->pixels,
+              "Chunked image upload changed row layout or final pixels");
+        if(device->computeLimits().maxStorageImages && device->backend()!=rhi::Backend::OpenGL) {
+            GpuVirtualTexture vt(device,heightVirtualSource(256,256,std::vector<float>(256*256)),4);vt.enableAsync();
+            Resources feedbackFrame(device);
+            auto depth=feedbackFrame.texture({64,64,rhi::Format::RGBA32Float,rhi::TextureUsage::Sampled|rhi::TextureUsage::CopyDestination,"Feedback validation depth"});
+            std::vector<float> values(64*64*4,.5f);device->writeTextureFloat(depth,values.data(),values.size()*4);
+            auto view=feedbackFrame.view(depth);glm::mat4 inverseVP=glm::scale(glm::mat4(1),glm::vec3(.2f,.2f,1));
+            auto model=glm::rotate(glm::mat4(1),glm::radians(90.f),glm::vec3(1,0,0));
+            vt.recordFeedback(view,inverseVP,model,64,64,-2,2);device->waitIdle();
+            vt.prepare(glm::mat4(1),model,64,64);
+            check(vt.feedbackSamples()==4096 && vt.feedbackPageCount()>0 && vt.residentPages()<=vt.capacity(),
+                  "GPU depth feedback failed readback, decode or physical cache bound");
+        }
+    }
+    {
         auto scene = makeForwardDemoScene();
         auto seedTexture = std::make_shared<Texture>();
-        seedTexture->width = 4;
-        seedTexture->height = 1;
-        seedTexture->channels = 4;
-        seedTexture->format = GL_RGBA;
-        seedTexture->data = static_cast<unsigned char *>(std::malloc(16));
-        std::fill(seedTexture->data, seedTexture->data + 16, 128);
+        seedTexture->setPixels(4,1,4,std::vector<unsigned char>(16,128));
         scene->objects().at(0)->getComponent<MeshFilter>()->getMeshes().at(0)->getMaterial()->addTexture(
             seedTexture, "material.albedo");
         SceneSnapshotBuilder builder;
@@ -850,14 +933,7 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
                   std::abs(scalarEdit->draws[0].parameters.factors.y - .27f) < 1e-6f,
               "Material scalar edit failed or unnecessarily rebuilt image payload");
         auto replacement = std::make_shared<Texture>();
-        replacement->width = replacement->height = 1;
-        replacement->channels = 4;
-        replacement->format = GL_RGBA;
-        replacement->data = static_cast<unsigned char *>(std::malloc(4));
-        replacement->data[0] = 7;
-        replacement->data[1] = 11;
-        replacement->data[2] = 19;
-        replacement->data[3] = 255;
+        replacement->setPixels(1,1,4,{7,11,19,255});
         material->addTexture(replacement, "material.albedo");
         auto imageEdit = builder.capture(scene, 4, 64, 64);
         check(imageEdit->draws[0].material != scalarEdit->draws[0].material &&
@@ -867,6 +943,21 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
                   imageEdit->draws[0].material->images[0]->pixels[0] == 7 &&
                   scalarEdit->draws[0].material->images[0]->width == 4,
               "Texture replacement failed to rebuild immutable payload or modified earlier frame");
+        replacement->setPixels(1,1,4,{23,29,31,255});
+        auto pixelEdit=builder.capture(scene,5,64,64);
+        check(pixelEdit->draws[0].material!=imageEdit->draws[0].material &&
+              pixelEdit->draws[0].material->images[0]->pixels[0]==23 && imageEdit->draws[0].material->images[0]->pixels[0]==7,
+              "In-place Texture replacement missed material revision or aliased old snapshot");
+        auto pixelRevision=replacement->revision();bool pixelRejected=false;
+        try{replacement->setPixels(2,2,4,{1});}catch(const std::invalid_argument&){pixelRejected=true;}
+        check(pixelRejected && replacement->revision()==pixelRevision && replacement->pixels()[0]==23,"Invalid Texture partially committed");
+        auto textureDenied=std::async(std::launch::async,[&]{try{replacement->snapshot();return false;}catch(const std::logic_error&){return true;}});
+        check(textureDenied.get(),"Mutable Texture admitted foreign-thread access");
+        auto frozen=std::make_shared<Texture>();frozen->setPixels(1,1,4,{3,5,7,255});frozen->freeze();
+        auto frozenRead=std::async(std::launch::async,[frozen]{return frozen->snapshot().data()[0]==3;});
+        check(frozenRead.get(),"Immutable decoded Texture cannot cross threads");
+        pixelRejected=false;try{frozen->setPixels(1,1,4,{0,0,0,0});}catch(const std::logic_error&){pixelRejected=true;}
+        check(pixelRejected && frozen->pixels()[0]==3,"Decoded cache Texture remained mutable");
         auto foreign = std::async(std::launch::async, [&] {
             try {
                 scene->addObject(std::make_shared<GameObject>());
@@ -938,6 +1029,29 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
             io.BackendFlags &= ~ImGuiBackendFlags_RendererHasVtxOffset;
             ImGui::DestroyContext();
             {
+                engine::RenderRuntime runtime(device,{},1);runtime.submit({first,{},{}});
+                auto pump=[&](engine::ScenePreparationTicket& ticket) {
+                    const auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(10);
+                    while(ticket.ready.wait_for(std::chrono::seconds(0))!=std::future_status::ready && std::chrono::steady_clock::now()<deadline)
+                        runtime.submit({first,{},{}});
+                    check(ticket.ready.wait_for(std::chrono::seconds(0))==std::future_status::ready,"GPU scene preparation stalled");
+                };
+                auto ticket=runtime.prepareScene(first);pump(ticket);ticket.ready.get();
+                runtime.activatePrepared(ticket.token);runtime.submit({first,{},{}});
+                auto cancelled=std::make_shared<std::atomic<bool>>(true);
+                auto cancelTicket=runtime.prepareScene(first,cancelled);pump(cancelTicket);
+                bool denied=false;try{cancelTicket.ready.get();}catch(const std::runtime_error&){denied=true;}
+                check(denied,"Cancelled GPU preparation was acknowledged");
+                auto invalid=std::make_shared<RenderWorldSnapshot>(*first);
+                invalid->frame.viewportWidth=0;
+                auto rejected=runtime.prepareScene(invalid);pump(rejected);
+                denied=false;try{rejected.ready.get();}catch(const std::exception&){denied=true;}
+                check(denied,"Invalid candidate silently published");
+                auto retry=runtime.prepareScene(first);pump(retry);retry.ready.get();
+                runtime.activatePrepared(retry.token);runtime.submit({first,{},{}});runtime.finish();
+                check(runtime.framesRendered()>2,"Preparation stopped the old world's rendering or recovery");
+            }
+            {
                 engine::RenderRuntime runtime(device, {}, 1);
                 runtime.notifySurfaceExtent(0, 0);
                 runtime.submit({first, {}, {}});
@@ -1008,6 +1122,28 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
                       "Failed publication overwrote prior pixels/extent or valid scene did not resume");
                 std::filesystem::remove_all(directory);
             }
+            {
+                const auto before=device->resourceMemory();device->setResourceBudget(before.usedBytes()+128*1024*1024);
+                {
+                    engine::RenderRuntime runtime(device,{},1);runtime.notifySurfaceExtent(64,64);
+                    auto awaitFrame=[&](uint64_t count){auto until=std::chrono::steady_clock::now()+std::chrono::seconds(15);while(runtime.framesRendered()<count && std::chrono::steady_clock::now()<until){runtime.rethrowFailure();std::this_thread::sleep_for(std::chrono::milliseconds(1));}check(runtime.framesRendered()>=count,"Automatic quality stopped rendering");};
+                    runtime.submit({first,{},{}});awaitFrame(1);
+                    auto pressure=std::make_shared<RenderWorldSnapshot>(*first);pressure->automaticQuality=true;
+                    OceanSurfaceSettings ocean;ocean.spectrum.size=2048;pressure->frame.oceans.push_back(ocean);
+                    for(uint64_t i=2;i<=5;++i){runtime.submit({pressure,{},{}});awaitFrame(i);std::this_thread::sleep_for(std::chrono::milliseconds(260));}
+                    runtime.finish();check(runtime.qualityLevel()>0 && runtime.rejectedPublications()>0 && runtime.rejectedPublications()<4 && pressure->frame.oceans[0].spectrum.size==2048,
+                                          "Automatic quality did not recover bounded FFT allocation or mutated the CPU settings");
+                }
+                // Cold start must retry the same packet rather than silently dropping it.
+                {
+                    engine::RenderRuntime runtime(device,{},1);runtime.notifySurfaceExtent(64,64);
+                    auto pressure=std::make_shared<RenderWorldSnapshot>(*first);pressure->automaticQuality=true;
+                    OceanSurfaceSettings ocean;ocean.spectrum.size=2048;pressure->frame.oceans.push_back(ocean);
+                    runtime.submit({pressure,{},{}});runtime.finish();
+                    check(runtime.framesRendered()==1 && runtime.qualityLevel()>0,"Cold-start quality recovery dropped the initial packet");
+                }
+                device->setResourceBudget(before.budgetBytes);
+            }
             bool propagated = false;
             try {
                 engine::RenderRuntime runtime(device, {}, 1);
@@ -1020,6 +1156,19 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
             }
             check(propagated, "Render worker failure did not reach logic thread");
             device->checkThread();
+            auto timing=device->gpuTimingStats();if(timing.supported)check(timing.samples>0 && std::isfinite(timing.peakMilliseconds) && timing.peakMilliseconds>=0,"Native GPU timings were not collected");
+            device->savePipelineDiskCache();auto disk=device->pipelineDiskCacheStats();
+            if(disk.supported && !disk.path.empty()) {
+                check(disk.saved && disk.bytes>0 && std::filesystem::exists(disk.path),"Native pipeline cache was not persisted");
+                std::shared_ptr<rhi::GraphicsDevice> fresh;
+#ifdef SCENERENDERER_METAL
+                if(device->backend()==rhi::Backend::Metal)fresh=rhi::makeMetalDevice();
+#endif
+#ifdef SCENERENDERER_HAS_VULKAN
+                if(device->backend()==rhi::Backend::Vulkan)fresh=rhi::makeVulkanDevice();
+#endif
+                check(fresh && fresh->pipelineDiskCacheStats().loaded,"Compatible persisted pipeline cache was not loaded");fresh->close();
+            }
         }
     }
     if (device->computeLimits().maxStorageImages) {
@@ -1027,9 +1176,7 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
         scene->setCamera(std::make_shared<Camera>(glm::vec3(0, 6, 12)));
         auto object = std::make_shared<Terrain>();
         auto terrain = std::make_shared<TerrainComponent>();
-        terrain->heightWidth = terrain->heightHeight = 32;
-        terrain->heightData = new float[32 * 32];
-        std::fill_n(terrain->heightData, 32 * 32, .25f);
+        terrain->setHeightData(32,32,std::vector<float>(32*32,.25f));
         object->addComponent(terrain);
         scene->addTerrain(object);
         SceneAdapter adapter(device);
@@ -1038,7 +1185,7 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
         MeshVertex vertex;
         device->readBuffer(oldMesh->vertexBuffer(), 0, sizeof(vertex), &vertex);
         check(std::abs(vertex.position.y - .25f) < 1e-6f, "Terrain scene did not use initial source");
-        std::fill_n(terrain->heightData, 32 * 32, .75f);
+        terrain->setHeightData(32,32,std::vector<float>(32*32,.75f));
         terrain->invalidateHeight();
         auto next = adapter.collect(scene, 0);
         check(next.packets.at(0).mesh != oldMesh && next.frame.historyKey != first.frame.historyKey,

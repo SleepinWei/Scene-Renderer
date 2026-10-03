@@ -166,33 +166,16 @@ void Camera::updateCameraVectors() {
     Right = glm::normalize(right);
     Up = glm::normalize(glm::cross(Right, Front));
 }
-void Camera::tick() {
-    checkLogicThread();
-    if (fixed)
-        return;
-    auto input = InputManager::GetInstance();
-    float multiplier = 1;
-    if (input->getKeyStatus(ALT_PRESSED) == PRESSED)
-        multiplier = .3f;
-    if (input->getKeyStatus(SHIFT_PRESSED) == PRESSED)
-        multiplier = 5;
-    const auto dt = multiplier * input->deltaFrame;
-    if (input->getKeyStatus(W_PRESSED) == PRESSED)
-        ProcessKeyboard(Camera_Movement::FORWARD, dt);
-    if (input->getKeyStatus(S_PRESSED) == PRESSED)
-        ProcessKeyboard(Camera_Movement::BACKWARD, dt);
-    if (input->getKeyStatus(A_PRESSED) == PRESSED)
-        ProcessKeyboard(Camera_Movement::LEFT, dt);
-    if (input->getKeyStatus(D_PRESSED) == PRESSED)
-        ProcessKeyboard(Camera_Movement::RIGHT, dt);
-    if (input->getKeyStatus(E_PRESSED) == PRESSED)
-        ProcessKeyboard(Camera_Movement::UP, dt);
-    if (input->getKeyStatus(Q_PRESSED) == PRESSED)
-        ProcessKeyboard(Camera_Movement::DOWN, dt);
-    if (input->scrollMove && input->getKeyStatus(MOUSE_SCROLL) == PRESSED)
-        ProcessMouseScroll(input->mouseScrollY);
-    if (!input->cursorEnbaled && input->mouseMove)
-        ProcessMouseMovement(input->deltaX, input->deltaY);
-    if (input->viewPortChange && input->width > 0 && input->height > 0)
-        setAspect(float(input->width) / input->height);
+void Camera::tick(float fixedStep,bool pointerInput) {
+    auto input=InputManager::GetInstance();applyInput(input->capture(),fixedStep<0?input->deltaFrame:fixedStep,pointerInput);
+}
+void Camera::applyInput(const engine::InputFrame& input,float step,bool pointerInput) {
+    checkLogicThread();finite(step);finite(input.movementScale);finite(input.mouseX);finite(input.mouseY);finite(input.scrollY);
+    if(step<0 || input.movementScale<0)throw std::invalid_argument("Invalid input timestep or movement scale");
+    if(fixed)return;
+    const Camera_Movement directions[6]={Camera_Movement::FORWARD,Camera_Movement::BACKWARD,Camera_Movement::LEFT,Camera_Movement::RIGHT,Camera_Movement::UP,Camera_Movement::DOWN};
+    for(int i=0;i<6;++i)if(input.movement[i])ProcessKeyboard(directions[i],step*input.movementScale);
+    if(pointerInput && input.scrolled)ProcessMouseScroll(input.scrollY);
+    if(pointerInput && input.mouseMoved)ProcessMouseMovement(input.mouseX,input.mouseY);
+    if(input.viewportChanged && input.width && input.height)setAspect(float(input.width)/input.height);
 }

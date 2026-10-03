@@ -2,6 +2,8 @@
 #extension GL_GOOGLE_include_directive : require
 layout(local_size_x=16,local_size_y=16,local_size_z=1)in;
 layout(set=0,binding=0,std140) uniform GrassParameters {mat4 terrainModel;ivec4 heightDimensions;vec4 grassSettings;};
+layout(set=0,binding=1,std140) uniform GrassSurface {mat4 surfaceView;mat4 surfaceVP;vec4 surfaceScreen;};
+layout(set=1,binding=4,rgba32f) readonly uniform image2D lodMap;
 layout(set=1,binding=0,std140) readonly buffer FinalNodeList {uint finalNodeCnt;uint one;uint one_;uvec3 finalNode[];};
 layout(set=1,binding=1,std430) writeonly buffer OutPose {mat4 outPose[];};
 layout(set=1,binding=2,std430) buffer GrassIndirect {uint indexCount;uint instanceCount;uint firstIndex;int baseVertex;uint firstInstance;};
@@ -9,14 +11,28 @@ layout(set=1,binding=3,std430) readonly buffer GrassCandidates {uint candidateCo
 layout(set=1,binding=6) uniform sampler2D heightAtlas;
 layout(set=1,binding=7) uniform sampler2D heightPageTable;
 #include "virtual-texture.glsl"
-float heightAt(vec2 uv){return virtualSampleLevel(heightAtlas,heightPageTable,uv,0).r;}
+float sampleHeight(vec2 uv){return virtualSampleLevel(heightAtlas,heightPageTable,uv,0).r;}
+#include "terrain-surface.glsl"
+float heightAt(vec2 uv){return sampleHeight(uv);}
+float cross2(vec2 a,vec2 b){return a.x*b.y-a.y*b.x;}
+bool attachTriangle(vec2 point,vec3 a,vec3 b,vec3 c,out float height){
+    float area=cross2(b.xz-a.xz,c.xz-a.xz);if(abs(area)<1e-12)return false;
+    float wb=cross2(point-a.xz,c.xz-a.xz)/area,wc=cross2(b.xz-a.xz,point-a.xz)/area;
+    if(wb<-.0001 || wc<-.0001 || wb+wc>1.0001)return false;
+    height=a.y*(1.-wb-wc)+b.y*wb+c.y*wc;return true;
+}
 float random(vec3 seed,float i){return fract(sin(dot(vec4(seed,i),vec4(12.9898,78.233,45.164,94.673)))*43758.5453);}
 void main(){
     uint leaf=gl_WorkGroupID.x;if(leaf>=finalNodeCnt)return;uvec3 node=finalNode[leaf];if(node.z>1)return;
     uvec2 cell=gl_LocalInvocationID.xy/2;vec2 blade=vec2(gl_LocalInvocationID.xy%2)/2.,uv=vec2(node.xy)/float(5u<<(5-node.z)),step=vec2(float(1u<<node.z)/1280.);
     vec2 lower=uv+vec2(cell)*step;vec3 seed=vec3(lower.x*2-1,heightAt(lower),lower.y*2-1);
     vec2 offset=vec2(random(seed,.1*blade.x),random(seed+vec3(step.x*2,0,step.y*2),.1*blade.y))*.5;
-    vec2 at=lower+(blade+offset)*step;float density=candidateCount<=uint(grassSettings.y)?1.:.9*grassSettings.y/float(candidateCount);if(random(vec3(at,1),.731)>density)return;vec3 position=(terrainModel*vec4(at.x*2-1,heightAt(at),at.y*2-1,1)).xyz;
+    vec2 at=lower+(blade+offset)*step;float density=candidateCount<=uint(grassSettings.y)?1.:.9*grassSettings.y/float(candidateCount);if(random(vec3(at,1),.731)>density)return;int interval=int(1u<<node.z);ivec2 grid=(ivec2(node.xy)*8+ivec2(cell))*interval;
+    vec3 corners[4];ivec2 offsets[4]={ivec2(0,0),ivec2(1,0),ivec2(1,1),ivec2(0,1)};
+    for(int i=0;i<4;i++)corners[i]=terrainVertex(grid+offsets[i]*interval,interval,terrainModel,surfaceView,surfaceVP,surfaceScreen);
+    float attachedHeight;vec2 point=at*2.-1.;
+    if(!attachTriangle(point,corners[0],corners[2],corners[1],attachedHeight) && !attachTriangle(point,corners[0],corners[3],corners[2],attachedHeight))return;
+    vec3 position=(terrainModel*vec4(point.x,attachedHeight,point.y,1)).xyz;
     float angle=1.5707963*random(seed,.3),c=cos(angle),s=sin(angle),bend=.04*sin(grassSettings.x+position.x*.3+position.z*.2);
     mat4 model=mat4(c,0,-s,0,bend,1,0,0,s,0,c,0,position,1);
     uint index=atomicAdd(instanceCount,1),capacity=uint(grassSettings.y);if(index>=capacity){atomicMin(instanceCount,capacity);return;}outPose[index]=model;

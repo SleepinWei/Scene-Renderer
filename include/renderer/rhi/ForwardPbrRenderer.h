@@ -39,6 +39,7 @@ struct DrawPacket {
     glm::mat4 model{1};
     uint64_t id=0;
     bool wireframe=false;
+    bool reliableGeneratedHistory=false;
 };
 enum class PbrPath { Forward, Deferred, Scene };
 class ShadowRenderer;
@@ -50,6 +51,9 @@ public:
     void resetTemporal(); // Start an independent capture or comparison.
     void render(const FrameData&, const std::vector<DrawPacket>&, float exposure = 1, float gamma = 2.2f);
     rhi::TextureHandle output() const;
+    rhi::TextureViewHandle depthView() const;
+    std::vector<glm::mat4> shadowVisibilityViews() const;
+    glm::mat4 renderedViewProjection() const {return renderedVP_;}
     std::vector<float> readHDR();
     std::vector<uint8_t> readOutput();
     std::vector<float> readBackDepth();
@@ -71,6 +75,7 @@ private:
     rhi::PipelineHandle motionPipeline_,motionInstanced_,backDepthPipeline_,transparentPipeline_,transparentInstanced_;
     rhi::BindingLayout motionLayout_,transparentLayout_;
     std::map<uint64_t,glm::mat4> previousModels_;
+    glm::mat4 renderedVP_{1};
     glm::vec3 previousCamera_{0};glm::mat4 previousProjection_{1};uint64_t historyKey_=0;bool previousTaa_=false,temporalOutput_=false;
     rhi::BufferHandle skyParameters_;rhi::TextureViewHandle skyView_,irradianceView_;
     rhi::BufferHandle effects_;

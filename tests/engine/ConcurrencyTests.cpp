@@ -1,7 +1,10 @@
 #include "engine/AssetCache.h"
+#include "engine/AssetPath.h"
 #include "engine/BoundedQueue.h"
 #include "engine/JobSystem.h"
 #include "engine/RenderGraph.h"
+#include "engine/FixedStepClock.h"
+#include "engine/QualityPolicy.h"
 #include "engine/CommandInbox.h"
 #include "engine/LogicAsset.h"
 #include <atomic>
@@ -15,6 +18,60 @@ static void check(bool value, const char *message) {
 }
 int main() {
     try {
+        {
+            BoundedQueue<int> queue(2);check(queue.tryPush(1) && queue.tryPush(2) && !queue.tryPush(3),"Nonblocking render queue exceeded capacity");
+            check(queue.pop()==1 && queue.tryPush(4) && queue.pop()==2 && queue.pop()==4,"Skipped snapshot changed accepted ordering");
+            queue.close();check(!queue.tryPush(5) && !queue.pop(),"Closed nonblocking queue accepted data or failed to drain");
+        }
+        {
+            QualityPolicy quality;check(!quality.onPressure() && quality.fft(2048)==2048,"Quality policy changed requested settings by default");
+            quality.setEnabled(true);check(quality.onPressure() && quality.fft(1024)==512 && quality.terrainLeaves(2048)==1024,"Quality policy did not reduce resource allocations");
+            quality.onPressure();quality.onPressure();check(!quality.onPressure() && quality.level()==3 && quality.virtualColumns(8)==2,"Quality tiers are unbounded");
+            quality.setEnabled(false);check(quality.level()==0 && quality.oceanMesh(257)==257,"Disabling automatic quality did not restore requested settings");
+        }
+        {
+            auto cancelled=std::make_shared<std::atomic<bool>>(true);
+            {CancellationScope scope(cancelled);
+             bool rejected=false;try{CancellationScope::check();}catch(const std::runtime_error&){rejected=true;}
+             check(rejected,"Cancelled decode continued");
+             {CancellationScope nested({});check(!CancellationScope::cancelled(),"Nested cancellation scope lost isolation");}
+             check(CancellationScope::cancelled(),"Nested cancellation scope did not restore previous flag");
+             check(!std::async(std::launch::async,[]{return CancellationScope::cancelled();}).get(),"Cancellation leaked between worker threads");}
+            check(!CancellationScope::cancelled(),"Cancellation scope leaked after job completion");
+        }
+        {
+            FixedStepClock a,b;unsigned ticks=0;
+            a.advance(.1,[&](double dt){check(std::abs(dt-1.0/60)<1e-12,"Variable logic step");++ticks;});
+            for(int i=0;i<10;++i)b.advance(.01,[](double){});
+            check(ticks==6 && std::abs(a.seconds()-b.seconds())<1e-12,"Logic depends on render partition");
+            a.setPaused(true);a.advance(100,[](double){throw std::runtime_error("Paused clock ticked");});
+            a.setPaused(false);check(a.advance(10,[](double){})==8 && a.droppedSeconds()>9,"Slow GPU causes unbounded logic catch-up");
+            auto before=b.seconds();b.setSpeed(2);b.advance(.05,[](double){});
+            check(std::abs(b.seconds()-before-.1)<1e-12,"Simulation speed changes the fixed timestep");
+        }
+        {
+            RenderGraph graph;graph.describe("mips",{2,2,false,{}});
+            graph.add("mip0",{{"mips",RenderGraph::Access::Write,{0,1,0,2}}},[]{});
+            graph.add("mip1",{{"mips",RenderGraph::Access::Read,{0,1,0,2}},
+                              {"mips",RenderGraph::Access::Write,{1,1,0,2}}},[]{});
+            auto plan=graph.compile();check(plan.dependencies[1].count(0),"Graph omitted subresource hazard");
+            graph.add("bad-layer",{{"mips",RenderGraph::Access::Read,{1,1,2,1}}},[]{});
+            bool denied=false;try{graph.validate();}catch(const std::out_of_range&){denied=true;}
+            check(denied,"Graph accepted an invalid texture layer");
+            RenderGraph uninitialized;uninitialized.describe("mips",{2,1,false,{}});
+            uninitialized.import("mips",{0,1,0,1});
+            uninitialized.add("read-other-mip",{{"mips",RenderGraph::Access::Read,{1,1,0,1}}},[]{});
+            denied=false;try{uninitialized.validate();}catch(const std::logic_error&){denied=true;}
+            check(denied,"Importing one mip initialized another");
+            RenderGraph transient;
+            for(auto name:{"a","b","c"})transient.describe(name,{1,1,true,"rgba16-64x64"});
+            transient.add("first",{{"a",RenderGraph::Access::Write},{"c",RenderGraph::Access::Write}},[]{});
+            transient.add("consume",{{"a",RenderGraph::Access::Read}},[]{});
+            transient.add("second",{{"b",RenderGraph::Access::Write},{"c",RenderGraph::Access::Read}},[]{});
+            auto aliases=transient.compile();size_t slotA=SIZE_MAX,slotB=SIZE_MAX,slotC=SIZE_MAX;
+            for(auto& life:aliases.lifetimes){if(life.resource=="a")slotA=life.aliasSlot;if(life.resource=="b")slotB=life.aliasSlot;if(life.resource=="c")slotC=life.aliasSlot;}
+            check(slotA==slotB && slotA!=slotC,"Transient plan aliases overlapping lifetimes or misses reuse");
+        }
         {
             LogicAsset asset;
             const auto revision=asset.getContentRevision();asset.invalidate();

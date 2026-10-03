@@ -1,3 +1,5 @@
+#include "engine/AssetPath.h"
+#include <assimp/ProgressHandler.hpp>
 #include "component/Model.h"
 #include "component/Mesh_Filter.h"
 #include "component/Model.h"
@@ -38,10 +40,13 @@ std::shared_ptr<Mesh> AssimpLoader::combineMesh(const std::vector<std::shared_pt
 	return resultMesh;
 }
 
-vector<shared_ptr<Mesh>> AssimpLoader::loadModel(const std::string &path, bool flipUV)
+vector<shared_ptr<Mesh>> AssimpLoader::loadModel(const std::string &input, bool flipUV)
 {
+    const auto path=engine::AssetPath::resolve(input);
 	std::vector<std::shared_ptr<Mesh>> meshes;
-	Assimp::Importer importer;
+    class Progress:public Assimp::ProgressHandler {bool Update(float)override{return !engine::CancellationScope::cancelled();}};
+    engine::CancellationScope::check();
+	Assimp::Importer importer;importer.SetProgressHandler(new Progress());
 	unsigned int pFlags = aiProcess_JoinIdenticalVertices | aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace;
 	if (flipUV)
 		pFlags |= aiProcess_FlipUVs;
@@ -49,7 +54,8 @@ vector<shared_ptr<Mesh>> AssimpLoader::loadModel(const std::string &path, bool f
 	if (!scene) //|| scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
 	{
 		LOG_ERROR("ERROR::ASSIMP:: Failed to load file: " << path);
-		return {};
+        engine::CancellationScope::check();
+        throw engine::AssetLoadError("import",path,importer.GetErrorString());
 	}
 
 	// process ASSIMP's root node recursively
@@ -61,6 +67,7 @@ vector<shared_ptr<Mesh>> AssimpLoader::loadModel(const std::string &path, bool f
 
 void AssimpLoader::processNode(std::vector<std::shared_ptr<Mesh>> &meshes, aiNode *node, const aiScene *scene)
 {
+    engine::CancellationScope::check();
 	// process each mesh located at the current node
 	for (unsigned int i = 0; i < node->mNumMeshes; i++)
 	{
@@ -78,6 +85,7 @@ void AssimpLoader::processNode(std::vector<std::shared_ptr<Mesh>> &meshes, aiNod
 
 std::shared_ptr<Mesh> AssimpLoader::processMesh(aiMesh *mesh, const aiScene *scene)
 {
+    engine::CancellationScope::check();
 	// data to fill
 	std::vector<Vertex> vertices;
 	std::vector<unsigned int> indices;

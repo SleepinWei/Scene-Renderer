@@ -18,6 +18,7 @@ struct SceneFrame {
     size_t uploadBytes = 0;
     uint32_t assetUploads = 0, assetsPending = 0;
     GpuImageCacheStats gpuImages;
+    size_t imageUploadBytes=0;uint32_t imageUploadChunks=0;
     size_t meshUploadBytes = 0;
     uint32_t meshUploadChunks = 0, meshUploadsPending = 0;
     double resolveCpuMilliseconds = 0; // Whole resolve, not a GPU upload timestamp.
@@ -34,6 +35,7 @@ class SceneAdapter {
     void beginPublication();
     void commitPublication();
     void rollbackPublication();
+    void recordVirtualFeedback(const FrameData&,rhi::TextureViewHandle,const std::vector<glm::mat4>& auxiliaryViews={});
     void invalidateAssets(); // Call after changing cached CPU geometry/images.
   private:
     struct Cache;

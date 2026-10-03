@@ -1,4 +1,5 @@
 #include "engine/RenderRuntime.h"
+#include "engine/QualityPolicy.h"
 #include "renderer/rhi/SceneAdapter.h"
 #include "rhi/ShaderAssets.h"
 #include <chrono>
@@ -56,7 +57,35 @@ void RenderRuntime::run(std::unique_ptr<render::GuiRenderer> gui) {
             renderP99Milliseconds_ = sorted[size_t(std::ceil(count * .99)) - 1];
         };
         try {
-            render::SceneAdapter adapter(device_);
+            auto adapter=std::make_unique<render::SceneAdapter>(device_);
+            QualityPolicy quality;
+            std::shared_ptr<const render::TerrainPayload> originalTerrain,qualityTerrain;
+            uint32_t terrainQuality=0;
+            auto adaptQuality=[&](const render::RenderWorldSnapshot& original) {
+                auto result=original;
+                if(!quality.level())return result;
+                result.frame.historyKey^=uint64_t(quality.level())*0x517cc1b727220a95ull;
+                for(auto& ocean:result.frame.oceans){ocean.spectrum.size=quality.fft(ocean.spectrum.size);ocean.meshSize=quality.oceanMesh(ocean.meshSize);}
+                if(result.terrain) {
+                    if(originalTerrain!=result.terrain->source || terrainQuality!=quality.level()) {
+                        originalTerrain=result.terrain->source;terrainQuality=quality.level();
+                        auto reduced=std::make_shared<render::TerrainPayload>(*originalTerrain);
+                        reduced->capacity=quality.terrainLeaves(reduced->capacity);reduced->virtualColumns=quality.virtualColumns(reduced->virtualColumns);
+                        qualityTerrain=std::move(reduced);
+                    }
+                    result.terrain->source=qualityTerrain;
+                }return result;
+            };
+            struct Candidate {
+                std::shared_ptr<ScenePreparation> request;
+                std::shared_ptr<const render::RenderWorldSnapshot> world;
+                std::unique_ptr<render::SceneAdapter> adapter;
+                std::unique_ptr<render::ForwardPbrRenderer> renderer;
+                bool ready=false,settled=false;
+                void reject(std::exception_ptr error) {if(!settled){request->completion->set_exception(error);settled=true;}}
+                ~Candidate(){if(!settled)reject(std::make_exception_ptr(std::runtime_error("Scene preparation cancelled or renderer stopped")));}
+            };
+            std::unique_ptr<Candidate> candidate;
             std::unique_ptr<render::ForwardPbrRenderer> renderer;
             std::unique_ptr<PublishedImage> published;
             uint32_t rendererWidth = 0, rendererHeight = 0;
@@ -65,6 +94,20 @@ void RenderRuntime::run(std::unique_ptr<render::GuiRenderer> gui) {
 #ifdef __APPLE__
                 @autoreleasepool {
 #endif
+                    if(packet->prepare) {
+                        candidate.reset();
+                        candidate=std::make_unique<Candidate>();candidate->request=packet->prepare;candidate->world=packet->world;
+                        continue;
+                    }
+                    if(packet->activatePrepared) {
+                        if(!candidate || !candidate->ready || candidate->request->cancelled->load() ||
+                           candidate->request->token!=packet->activatePrepared)
+                            throw std::logic_error("Stale or unprepared scene activation");
+                        adapter=std::move(candidate->adapter);renderer=std::move(candidate->renderer);
+                        rendererWidth=candidate->world->frame.viewportWidth;rendererHeight=candidate->world->frame.viewportHeight;
+                        candidate.reset();nextAttempt=std::chrono::steady_clock::time_point::min();
+                        continue;
+                    }
                     if(packet->atmosphereCapture) {
                         auto request=packet->atmosphereCapture;
                         try {request->completion.set_value(render::bakeAtmosphere(device_,request->frame));}
@@ -72,15 +115,33 @@ void RenderRuntime::run(std::unique_ptr<render::GuiRenderer> gui) {
                         continue;
                     }
                     const auto started = std::chrono::steady_clock::now();
-                    const auto &snapshot = *packet->world;
+                    quality.setEnabled(packet->world->automaticQuality);qualityLevel_=quality.level();
+                    auto snapshot=adaptQuality(*packet->world);
                     auto width = snapshot.frame.viewportWidth, height = snapshot.frame.viewportHeight;
                     const auto surface = surfaceExtent_.load();
                     device_->setPresentationExtent(surface == UINT64_MAX ? width : uint32_t(surface >> 32),
                                                    surface == UINT64_MAX ? height : uint32_t(surface));
                     device_->beginFrame();
+                    if(candidate) {
+                        if(candidate->request->cancelled->load())candidate.reset();
+                        else if(!candidate->ready)try {
+                            if(!candidate->adapter)candidate->adapter=std::make_unique<render::SceneAdapter>(device_);
+                            auto frame=candidate->adapter->resolve(*candidate->world);
+                            if(!frame.assetsPending) {
+                                candidate->renderer=std::make_unique<render::ForwardPbrRenderer>(device_,rhi::defaultShaderDirectory(),
+                                    frame.frame.viewportWidth,frame.frame.viewportHeight,render::PbrPath::Scene);
+                                candidate->renderer->render(frame.frame,frame.packets,frame.exposure);
+                                device_->waitIdle(); // Acknowledge actual GPU preparation before the CPU world changes.
+                                candidate->ready=true;candidate->settled=true;candidate->request->completion->set_value();
+                            }
+                        } catch(...) {candidate->reject(std::current_exception());candidate.reset();device_->waitIdle();}
+                    }
                     bool fallback = published && started < nextAttempt;
                     if (!fallback) {
-                        adapter.beginPublication();
+                        bool retryCold=false;
+                        do {
+                        retryCold=false;
+                        adapter->beginPublication();
                         bool rendering = false;
                         std::unique_ptr<PublishedImage> replacement;
                         try {
@@ -95,7 +156,7 @@ void RenderRuntime::run(std::unique_ptr<render::GuiRenderer> gui) {
                             renderer->resize(width, height);
                             rendererWidth = width;
                             rendererHeight = height;
-                            auto frame = adapter.resolve(snapshot);
+                            auto frame = adapter->resolve(snapshot);
                             meshUploadBytes_ += frame.meshUploadBytes;
                             meshUploadChunks_ += frame.meshUploadChunks;
                             pendingMeshUploads_ = frame.meshUploadsPending;
@@ -104,18 +165,20 @@ void RenderRuntime::run(std::unique_ptr<render::GuiRenderer> gui) {
                             imageCacheHits_ = frame.gpuImages.hits;
                             rendering = true;
                             renderer->render(frame.frame, frame.packets, frame.exposure);
+                            auto feedbackFrame=frame.frame;feedbackFrame.viewProjection=renderer->renderedViewProjection();
+                            adapter->recordVirtualFeedback(feedbackFrame,renderer->depthView(),renderer->shadowVisibilityViews());
                             if (gui)
                                 gui->render(packet->gui, renderer->output());
                             auto &target = replacement ? *replacement : *published;
                             auto copy = device_->createCommandList();
                             copy.copyTexture(renderer->output(), target.texture);
                             device_->submit(copy);
-                            adapter.commitPublication();
+                            adapter->commitPublication();
                             if (replacement)
                                 published = std::move(replacement);
                             nextAttempt = std::chrono::steady_clock::time_point::min();
                         } catch (const rhi::ResourceBudgetExceeded &error) {
-                            adapter.rollbackPublication();
+                            adapter->rollbackPublication();
                             replacement.reset();
                             // If candidate rendering mutated effects, rebuild them on the next attempt.
                             if (rendering || (published && (rendererWidth != published->width ||
@@ -126,8 +189,15 @@ void RenderRuntime::run(std::unique_ptr<render::GuiRenderer> gui) {
                             auto images = render::GpuImageCache::forDevice(device_);
                             images->releaseIdle();
                             device_->waitIdle(); // Complete candidate work and retirement before retry.
-                            if (!published)
-                                throw; // Cold start has no valid image to retain.
+                            const bool reduced=quality.onPressure();
+                            if(reduced) {
+                                qualityLevel_=quality.level();renderer.reset();adapter->invalidateAssets();images->releaseIdle();device_->waitIdle();
+                                snapshot=adaptQuality(*packet->world);
+                            }
+                            if(!published) {
+                                if(!reduced)throw;
+                                retryCold=true;continue; // At most three smaller tiers; retry this same packet.
+                            }
                             ++rejectedPublications_;
                             {
                                 std::lock_guard<std::mutex> lock(failureMutex_);
@@ -140,6 +210,7 @@ void RenderRuntime::run(std::unique_ptr<render::GuiRenderer> gui) {
                             // Avoid uploading the same oversized candidate on every UI tick.
                             nextAttempt = std::chrono::steady_clock::now() + std::chrono::milliseconds(250);
                         }
+                        } while(retryCold);
                     }
                     if (fallback)
                         ++fallbackFrames_;
@@ -158,11 +229,21 @@ void RenderRuntime::run(std::unique_ptr<render::GuiRenderer> gui) {
                             throw std::runtime_error("Cannot write render screenshot");
                     }
                     device_->copyToBackbuffer(published->texture);
+                    const auto sampledAt=packet->sampledAt;
+                    device_->checkpoint([this,sampledAt]{
+                        if(sampledAt!=std::chrono::steady_clock::time_point{}) {
+                            const double elapsed=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-sampledAt).count();
+                            peakCompletionLatency_=std::max(peakCompletionLatency_.load(),elapsed);
+                        }
+                    });
                     device_->present();
                     ++framesRendered_;
                     const auto memory = device_->resourceMemory();
                     peakResourceBytes_ = uint64_t(memory.peakBytes);
                     memoryPressureEvents_ = memory.pressureEvents;
+                    const auto timing=device_->gpuTimingStats();if(timing.supported)peakGpuMilliseconds_=std::max(peakGpuMilliseconds_.load(),timing.peakMilliseconds);
+                    const auto native=device_->nativeMemoryStats();
+                    if(native.supported){nativeMemorySupported_=true;peakNativeBytes_=std::max(peakNativeBytes_.load(),native.usedBytes);}
                     const auto pipelines = device_->pipelineCacheStats();
                     pipelineBuilds_ = pipelines.graphicsBuilds + pipelines.computeBuilds;
                     pipelineCacheHits_ = pipelines.hits;
@@ -200,10 +281,19 @@ void RenderRuntime::run(std::unique_ptr<render::GuiRenderer> gui) {
     }
 #endif
 }
+bool RenderRuntime::trySubmitFrame(RenderPacket packet) {
+    rethrowFailure();
+    if(!packet.world || packet.prepare || packet.activatePrepared || packet.atmosphereCapture)
+        throw std::invalid_argument("Nonblocking submission accepts ordinary frame snapshots only");
+    if(packet.sampledAt==std::chrono::steady_clock::time_point{})packet.sampledAt=std::chrono::steady_clock::now();
+    const bool accepted=queue_.tryPush(std::move(packet));if(!accepted)++skippedSnapshots_;
+    rethrowFailure();return accepted;
+}
 bool RenderRuntime::submit(RenderPacket packet) {
     rethrowFailure();
-    if (!packet.world)
+    if (!packet.world && !packet.activatePrepared)
         throw std::invalid_argument("Render packet needs an immutable world");
+    if(packet.sampledAt==std::chrono::steady_clock::time_point{})packet.sampledAt=std::chrono::steady_clock::now();
     const auto started = std::chrono::steady_clock::now();
     bool accepted = queue_.push(std::move(packet));
     const double waited =
@@ -211,6 +301,23 @@ bool RenderRuntime::submit(RenderPacket packet) {
     peakQueueWaitMilliseconds_ = std::max(peakQueueWaitMilliseconds_.load(), waited);
     rethrowFailure();
     return accepted;
+}
+ScenePreparationTicket RenderRuntime::prepareScene(std::shared_ptr<const render::RenderWorldSnapshot> world,
+                                                        std::shared_ptr<std::atomic<bool>> cancelled) {
+    if(!world)throw std::invalid_argument("Scene preparation needs a detached world");
+    auto request=std::make_shared<ScenePreparation>();request->token=++nextPreparation_;
+    request->cancelled=cancelled?std::move(cancelled):std::make_shared<std::atomic<bool>>(false);
+    request->completion=std::make_shared<std::promise<void>>();
+    ScenePreparationTicket ticket{request->token,request->completion->get_future(),request->cancelled};
+    auto snapshot=std::make_shared<render::RenderWorldSnapshot>(*world);snapshot->asynchronousStreaming=true;
+    RenderPacket packet;packet.world=std::move(snapshot);packet.prepare=request;
+    if(!submit(std::move(packet)))throw std::runtime_error("Renderer closed during scene preparation");
+    return ticket;
+}
+void RenderRuntime::activatePrepared(uint64_t token) {
+    if(!token)throw std::invalid_argument("Empty prepared scene token");
+    RenderPacket packet;packet.activatePrepared=token;
+    if(!submit(std::move(packet)))throw std::runtime_error("Renderer closed during scene activation");
 }
 render::BakedAtmosphere RenderRuntime::captureAtmosphere(const render::FrameData &frame) {
     if(std::this_thread::get_id()==thread_.get_id())throw std::logic_error("Atmosphere capture cannot block its own GPU thread");

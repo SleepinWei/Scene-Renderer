@@ -1,0 +1,19 @@
+#version 450
+layout(local_size_x=8,local_size_y=8,local_size_z=1) in;
+layout(set=0,binding=0,std140) uniform FeedbackParameters {mat4 inverseVP;mat4 inverseModel;vec4 feedbackGrid;vec4 feedbackInfo;};
+layout(set=0,binding=1) uniform sampler2D feedbackDepth;
+layout(set=0,binding=2,rgba32f) writeonly uniform image2D feedbackPages;
+vec3 localAt(vec2 uv,float depth){vec4 world=inverseVP*vec4(uv*vec2(2,-2)+vec2(-1,1),depth,1);return (inverseModel*vec4(world.xyz/world.w,1)).xyz;}
+void main(){
+    ivec2 pixel=ivec2(gl_GlobalInvocationID.xy),size=imageSize(feedbackPages);if(any(greaterThanEqual(pixel,size)))return;
+    vec2 uv=(vec2(pixel)+.5)/vec2(size);float depth=textureLod(feedbackDepth,uv,0).r;
+    vec3 local=localAt(uv,depth);vec2 terrainUV=local.xz*.5+.5;
+    if(depth>=.999999 || any(lessThan(terrainUV,vec2(0))) || any(greaterThanEqual(terrainUV,vec2(1))) || local.y<feedbackInfo.z-.01 || local.y>feedbackInfo.w+.01){imageStore(feedbackPages,pixel,vec4(0));return;}
+    vec2 neighbor=min(uv+vec2(1./feedbackGrid.x,0),vec2(1));float neighborDepth=textureLod(feedbackDepth,neighbor,0).r;
+    vec2 vertical=min(uv+vec2(0,1./feedbackGrid.y),vec2(1));float verticalDepth=textureLod(feedbackDepth,vertical,0).r;
+    float footprint=max(length((localAt(neighbor,neighborDepth).xz-local.xz)*.5),length((localAt(vertical,verticalDepth).xz-local.xz)*.5))*feedbackInfo.x;
+    uint mip=uint(clamp(floor(log2(max(footprint,1.))),0.,feedbackGrid.w));
+    if(feedbackInfo.y>0)terrainUV.y=1.-terrainUV.y;
+    uint pages=uint(feedbackGrid.z)>>mip;uvec2 page=min(uvec2(terrainUV*pages),uvec2(pages-1));
+    imageStore(feedbackPages,pixel,vec4(vec2(page),float(mip),1));
+}

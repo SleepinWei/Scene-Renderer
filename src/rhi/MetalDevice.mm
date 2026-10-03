@@ -1,5 +1,6 @@
 #include "rhi/GraphicsDevice.h"
 #include "rhi/ShaderAssets.h"
+#include "rhi/PipelineDiskCache.h"
 #include <Metal/Metal.h>
 #include <Cocoa/Cocoa.h>
 #include <QuartzCore/CAMetalLayer.h>
@@ -24,7 +25,17 @@ struct NativeState{
 };
 class MetalDevice final : public rhi::GraphicsDevice {
 public:
-    explicit MetalDevice(NativeState state) : GraphicsDevice({size_t(state.device.maxBufferLength),65536,256,32},{16384,16,3,8,8}),state_(std::move(state)) {}
+    explicit MetalDevice(NativeState state) : GraphicsDevice({size_t(state.device.maxBufferLength),65536,256,32},{16384,16,3,8,8}),state_(std::move(state)) {
+        if(@available(macOS 11.0,*)) {
+            auto version=[NSProcessInfo processInfo].operatingSystemVersion;
+            cachePath_=pipelineDiskPath("metal-"+std::to_string(state_.device.registryID)+"-"+std::to_string(version.majorVersion)+"-"+std::to_string(version.minorVersion)+"-"+std::to_string(version.patchVersion)+".archive");
+            NSError* error=nil;auto desc=[MTLBinaryArchiveDescriptor new];
+            const auto bytes=readPipelineDisk(cachePath_);if(!bytes.empty())desc.url=[NSURL fileURLWithPath:[NSString stringWithUTF8String:cachePath_.c_str()]];
+            archive_=[state_.device newBinaryArchiveWithDescriptor:desc error:&error];const bool loaded=archive_ && desc.url;
+            if(!archive_){desc.url=nil;archive_=[state_.device newBinaryArchiveWithDescriptor:desc error:&error];}
+            diskStats_={archive_!=nil,loaded,false,loaded?bytes.size():0,cachePath_.string()};
+        }
+    }
     ~MetalDevice() override {try{close();}catch(...){}}
     bool supportsWireframe() const override { return true; }
     rhi::ComputeLimits computeLimits() const override {
@@ -53,8 +64,26 @@ protected:
     static MTLPixelFormat format(rhi::Format value) {
         return value==rhi::Format::RGBA8UNorm?MTLPixelFormatRGBA8Unorm:value==rhi::Format::RGBA16Float?MTLPixelFormatRGBA16Float:value==rhi::Format::RGBA32Float?MTLPixelFormatRGBA32Float:MTLPixelFormatDepth32Float;
     }
+    PipelineDiskCacheStats pipelineDiskCacheStatsImpl() const override {return diskStats_;}
+    void savePipelineDiskCacheImpl() override {
+        if(!archive_ || cachePath_.empty())return;
+        std::filesystem::path temporary;
+        try {
+            std::filesystem::create_directories(cachePath_.parent_path());temporary=pipelineDiskTemporary(cachePath_);
+            NSError* error=nil;auto url=[NSURL fileURLWithPath:[NSString stringWithUTF8String:temporary.c_str()]];
+            if(![archive_ serializeToURL:url error:&error])throw std::runtime_error("Metal archive serialization failed");
+            auto bytes=std::filesystem::file_size(temporary);if(bytes>64*1024*1024)throw std::runtime_error("Metal archive exceeds cache limit");
+            std::filesystem::rename(temporary,cachePath_);diskStats_.saved=true;diskStats_.bytes=bytes;
+        }catch(...){std::error_code error;std::filesystem::remove(temporary,error);}
+    }
+    bool supportsTextureSubresources() const override {return true;}
+    GpuTimingStats gpuTimingStatsImpl() const override {return gpuTiming_;}
+    NativeMemoryStats nativeMemoryStatsImpl() const override {
+        return {true,uint64_t(state_.device.currentAllocatedSize),uint64_t(state_.device.recommendedMaxWorkingSetSize),"Metal device allocations"};
+    }
     NativeObject createTextureImpl(const rhi::TextureDesc& desc) override {
         auto d=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:format(desc.format) width:desc.width height:desc.height mipmapped:NO];
+        d.mipmapLevelCount=desc.mipLevels;d.arrayLength=desc.arrayLayers;d.textureType=desc.arrayLayers>1?MTLTextureType2DArray:MTLTextureType2D;
         d.storageMode=MTLStorageModePrivate;d.usage=MTLTextureUsagePixelFormatView;
         if(rhi::hasUsage(desc.usage,rhi::TextureUsage::Storage))d.usage|=MTLTextureUsageShaderRead|MTLTextureUsageShaderWrite;
         if(rhi::hasUsage(desc.usage,rhi::TextureUsage::Sampled))d.usage|=MTLTextureUsageShaderRead;
@@ -62,8 +91,8 @@ protected:
         auto texture=[state_.device newTextureWithDescriptor:d];require(texture!=nil,"RHI texture allocation failed");
         texture.label=[NSString stringWithUTF8String:desc.label.c_str()];auto id=state_.next++;rhiTextures_[id]=texture;return id;
     }
-    NativeObject createTextureViewImpl(NativeObject id,const rhi::TextureDesc& desc) override {
-        auto view=[rhiTextures_.at(id) newTextureViewWithPixelFormat:format(desc.format)];require(view!=nil,"RHI texture view creation failed");
+    NativeObject createTextureViewImpl(NativeObject id,const rhi::TextureDesc& desc,const rhi::TextureViewDesc& selection) override {
+        auto view=[rhiTextures_.at(id) newTextureViewWithPixelFormat:format(desc.format) textureType:MTLTextureType2D levels:NSMakeRange(selection.range.firstMip,selection.range.mipCount) slices:NSMakeRange(selection.range.firstLayer,1)];require(view!=nil,"RHI texture view creation failed");
         auto handle=state_.next++;rhiViews_[handle]=view;return handle;
     }
     NativeObject createSamplerImpl(const rhi::SamplerDesc& desc) override {
@@ -76,7 +105,10 @@ protected:
         rhi::validateComputeShaderLayout(desc);NSError* error=nil;
         auto lib=[state_.device newLibraryWithURL:[NSURL fileURLWithPath:[NSString stringWithUTF8String:desc.shader.metallibPath.c_str()]] error:&error];require(lib!=nil,"RHI compute library: "+errorText(error));
         auto function=[lib newFunctionWithName:[NSString stringWithUTF8String:desc.shader.entryPoint.c_str()]];require(function!=nil,"RHI compute entry point missing");
-        auto pipeline=[state_.device newComputePipelineStateWithFunction:function error:&error];require(pipeline!=nil,"RHI compute pipeline: "+errorText(error));
+        auto d=[MTLComputePipelineDescriptor new];d.computeFunction=function;
+        if(archive_){d.binaryArchives=@[archive_];[archive_ addComputePipelineFunctionsWithDescriptor:d error:&error];}
+        auto pipeline=[state_.device newComputePipelineStateWithDescriptor:d options:MTLPipelineOptionNone reflection:nil error:&error];
+        if(!pipeline && archive_){d.binaryArchives=nil;pipeline=[state_.device newComputePipelineStateWithDescriptor:d options:MTLPipelineOptionNone reflection:nil error:&error];}require(pipeline!=nil,"RHI compute pipeline: "+errorText(error));
         const uint64_t threads=uint64_t(desc.threads[0])*desc.threads[1]*desc.threads[2];require(threads<=pipeline.maxTotalThreadsPerThreadgroup,"RHI compute pipeline workgroup exceeds limit");
         auto id=state_.next++;rhiComputePipelines_[id]={pipeline,textureSlots(desc.shader)};return id;
     }
@@ -103,7 +135,9 @@ protected:
             a.sourceAlphaBlendFactor=MTLBlendFactorOne;a.destinationAlphaBlendFactor=MTLBlendFactorOneMinusSourceAlpha;
         }
         if(desc.depthAttachment)d.depthAttachmentPixelFormat=MTLPixelFormatDepth32Float;
-        NSError* error=nil;auto pipeline=[state_.device newRenderPipelineStateWithDescriptor:d error:&error];require(pipeline!=nil,"RHI pipeline: "+errorText(error));
+        NSError* error=nil;if(archive_){d.binaryArchives=@[archive_];[archive_ addRenderPipelineFunctionsWithDescriptor:d error:&error];}
+        auto pipeline=[state_.device newRenderPipelineStateWithDescriptor:d error:&error];
+        if(!pipeline && archive_){d.binaryArchives=nil;pipeline=[state_.device newRenderPipelineStateWithDescriptor:d error:&error];}require(pipeline!=nil,"RHI pipeline: "+errorText(error));
         auto depth=[MTLDepthStencilDescriptor new];depth.depthCompareFunction=!desc.depthTest?MTLCompareFunctionAlways:desc.depthCompare==rhi::DepthCompare::Less?MTLCompareFunctionLess:desc.depthCompare==rhi::DepthCompare::LessEqual?MTLCompareFunctionLessEqual:desc.depthCompare==rhi::DepthCompare::Greater?MTLCompareFunctionGreater:MTLCompareFunctionAlways;depth.depthWriteEnabled=desc.depthWrite;
         auto depthState=[state_.device newDepthStencilStateWithDescriptor:depth];require(depthState!=nil,"RHI depth state creation failed");
         auto id=state_.next++;rhiPipelines_[id]={pipeline,depthState,textureSlots(desc.vertex),textureSlots(desc.fragment)};return id;
@@ -119,7 +153,7 @@ protected:
         for(size_t y=0;y<r.height;++y)memcpy(static_cast<uint8_t*>(buffer.contents)+y*row,static_cast<const uint8_t*>(pixels)+y*r.width*pixelBytes,r.width*pixelBytes);
         endEncoders();command();auto e=[state_.command blitCommandEncoder];
         [e copyFromBuffer:buffer sourceOffset:0 sourceBytesPerRow:row sourceBytesPerImage:row*r.height sourceSize:MTLSizeMake(r.width,r.height,1)
-               toTexture:rhiTextures_.at(id) destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(r.x,r.y,0)];[e endEncoding];
+               toTexture:rhiTextures_.at(id) destinationSlice:r.layer destinationLevel:r.mip destinationOrigin:MTLOriginMake(r.x,r.y,0)];[e endEncoding];
     }
     void writeTextureImpl(NativeObject id,const rhi::TextureDesc& desc,const void* pixels,size_t bytes) override {writeTextureRegionImpl(id,desc,{0,0,desc.width,desc.height},pixels,bytes);}
     void writeTextureFloatImpl(NativeObject id,const rhi::TextureDesc& desc,const float* pixels,size_t bytes) override {writeTextureRegionImpl(id,desc,{0,0,desc.width,desc.height},pixels,bytes);}
@@ -132,9 +166,9 @@ protected:
         std::vector<uint8_t> result(size_t(desc.width)*desc.height*pixelBytes);
         for(size_t y=0;y<desc.height;++y)memcpy(result.data()+y*desc.width*pixelBytes,static_cast<uint8_t*>(buffer.contents)+y*row,desc.width*pixelBytes);return result;
     }
-    std::function<void()> queueTextureReadbackImpl(NativeObject id,const rhi::TextureDesc& desc,std::shared_ptr<std::vector<uint8_t>> output) override {
+    std::function<void()> queueTextureReadbackImpl(NativeObject id,const rhi::TextureDesc& desc,std::shared_ptr<std::vector<uint8_t>> output,rhi::TextureSubresource level) override {
         const size_t pixelBytes=desc.format==rhi::Format::RGBA8UNorm || desc.format==rhi::Format::Depth32Float?4:desc.format==rhi::Format::RGBA16Float?8:16,row=(size_t(desc.width)*pixelBytes+255)&~size_t(255);
-        auto buffer=[state_.device newBufferWithLength:row*desc.height options:MTLResourceStorageModeShared];require(buffer!=nil,"RHI async staging allocation failed");endEncoders();command();auto e=[state_.command blitCommandEncoder];[e copyFromTexture:rhiTextures_.at(id) sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0,0,0) sourceSize:MTLSizeMake(desc.width,desc.height,1) toBuffer:buffer destinationOffset:0 destinationBytesPerRow:row destinationBytesPerImage:row*desc.height];[e endEncoding];
+        auto buffer=[state_.device newBufferWithLength:row*desc.height options:MTLResourceStorageModeShared];require(buffer!=nil,"RHI async staging allocation failed");endEncoders();command();auto e=[state_.command blitCommandEncoder];[e copyFromTexture:rhiTextures_.at(id) sourceSlice:level.layer sourceLevel:level.mip sourceOrigin:MTLOriginMake(0,0,0) sourceSize:MTLSizeMake(desc.width,desc.height,1) toBuffer:buffer destinationOffset:0 destinationBytesPerRow:row destinationBytesPerImage:row*desc.height];[e endEncoding];
         return [buffer,row,pixelBytes,desc,output]{output->resize(size_t(desc.width)*desc.height*pixelBytes);for(size_t y=0;y<desc.height;++y)memcpy(output->data()+y*desc.width*pixelBytes,static_cast<const uint8_t*>(buffer.contents)+y*row,desc.width*pixelBytes);};
     }
     std::vector<uint8_t> readTextureImpl(NativeObject id,const rhi::TextureDesc& desc) override {return readPixels(id,desc,4);}
@@ -170,12 +204,12 @@ fragment float4 rhiPresentFragment(float4 position [[position]],texture2d<float>
         auto store=[](rhi::StoreOp value) {return value==rhi::StoreOp::Store?MTLStoreActionStore:MTLStoreActionDontCare;};
         for(const auto& pass:passes) {
             if(pass.copy) {
-                const auto& desc=textureDesc(pass.copySource);auto e=[state_.command blitCommandEncoder];
-                [e copyFromTexture:rhiTextures_.at(textureObject(pass.copySource)) sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0,0,0) sourceSize:MTLSizeMake(desc.width,desc.height,1) toTexture:rhiTextures_.at(textureObject(pass.copyDestination)) destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0,0,0)];[e endEncoding];continue;
+                const auto& desc=textureDesc(pass.copySource);auto e=[state_.command blitCommandEncoder];e.label=[NSString stringWithUTF8String:pass.label.c_str()];
+                [e copyFromTexture:rhiTextures_.at(textureObject(pass.copySource)) sourceSlice:pass.sourceSubresource.layer sourceLevel:pass.sourceSubresource.mip sourceOrigin:MTLOriginMake(0,0,0) sourceSize:MTLSizeMake(std::max(1u,desc.width>>pass.sourceSubresource.mip),std::max(1u,desc.height>>pass.sourceSubresource.mip),1) toTexture:rhiTextures_.at(textureObject(pass.copyDestination)) destinationSlice:pass.destinationSubresource.layer destinationLevel:pass.destinationSubresource.mip destinationOrigin:MTLOriginMake(0,0,0)];[e endEncoding];continue;
             }
             if(pass.compute) {
                 const auto& dispatch=pass.dispatch;const auto& desc=computePipelineDesc(dispatch.pipeline);
-                auto e=[state_.command computeCommandEncoder];require(e!=nil,"RHI compute encoder creation failed");
+                auto e=[state_.command computeCommandEncoder];require(e!=nil,"RHI compute encoder creation failed");e.label=[NSString stringWithUTF8String:pass.label.c_str()];
                 const auto& pipeline=rhiComputePipelines_.at(computePipelineObject(dispatch.pipeline));[e setComputePipelineState:pipeline.pipeline];
                 for(auto set:dispatch.bindings)for(const auto& b:resolvedBindings(set)) {
                     if(b.buffer)[e setBuffer:state_.buffers.at(b.buffer).gpu offset:b.offset atIndex:b.layout.binding];
@@ -194,7 +228,7 @@ fragment float4 rhiPresentFragment(float4 position [[position]],texture2d<float>
             }
             if(pass.desc.depth) {d.depthAttachment.texture=rhiViews_.at(textureViewObject(pass.desc.depth));d.depthAttachment.loadAction=load(pass.desc.depthLoad);
                 d.depthAttachment.storeAction=store(pass.desc.depthStore);d.depthAttachment.clearDepth=pass.desc.clearDepth;}
-            auto e=[state_.command renderCommandEncoderWithDescriptor:d];require(e!=nil,"RHI render encoder creation failed");
+            auto e=[state_.command renderCommandEncoderWithDescriptor:d];require(e!=nil,"RHI render encoder creation failed");e.label=[NSString stringWithUTF8String:pass.label.c_str()];
             const auto v=pass.desc.viewport.width?pass.desc.viewport:rhi::Viewport{0,0,desc.width,desc.height};
             [e setViewport:MTLViewport{double(v.x),double(v.y),double(v.width),double(v.height),0,1}];const auto clip=pass.desc.scissor.width?pass.desc.scissor:v;[e setScissorRect:MTLScissorRect{clip.x,clip.y,clip.width,clip.height}];[e setFrontFacingWinding:MTLWindingCounterClockwise];[e setCullMode:MTLCullModeNone];[e setTriangleFillMode:MTLTriangleFillModeFill];
             for(const auto& draw:pass.draws) {
@@ -268,18 +302,21 @@ fragment float4 rhiPresentFragment(float4 position [[position]],texture2d<float>
     }
     bool completionReadyImpl(uint64_t serial) override {
         auto it=pending_.find(serial);if(it==pending_.end())return true;auto cmd=it->second;
-        if(cmd.status<MTLCommandBufferStatusCompleted)return false;require(cmd.status!=MTLCommandBufferStatusError,errorText(cmd.error));pending_.erase(it);return true;
+        if(cmd.status<MTLCommandBufferStatusCompleted)return false;require(cmd.status!=MTLCommandBufferStatusError,errorText(cmd.error));recordTiming(cmd);pending_.erase(it);return true;
     }
     void waitCompletionImpl(uint64_t serial) override {
         auto it=pending_.find(serial);if(it!=pending_.end()){[it->second waitUntilCompleted];completionReadyImpl(serial);}
     }
     void waitIdleImpl() override { finish();while(!pending_.empty())waitCompletionImpl(pending_.begin()->first); }
-    void closeImpl() override {rhiPresentPipeline_=nil;state_=NativeState{};}
+    void closeImpl() override {savePipelineDiskCacheImpl();archive_=nil;rhiPresentPipeline_=nil;state_=NativeState{};}
 private:
+    GpuTimingStats gpuTiming_{true,0,0,"Metal command buffer"};
+    void recordTiming(id<MTLCommandBuffer> command){if(command.GPUEndTime>=command.GPUStartTime && command.GPUStartTime>0){gpuTiming_.milliseconds=(command.GPUEndTime-command.GPUStartTime)*1000;gpuTiming_.peakMilliseconds=std::max(gpuTiming_.peakMilliseconds,gpuTiming_.milliseconds);++gpuTiming_.samples;}}
     NativeState state_;
+    id<MTLBinaryArchive> archive_=nil;std::filesystem::path cachePath_;PipelineDiskCacheStats diskStats_;
     void endEncoders(){} // Native encoders are scoped and ended in each recorded pass.
     void command(){if(!state_.command)state_.command=[state_.queue commandBuffer];}
-    void finish(){if(state_.command){[state_.command commit];[state_.command waitUntilCompleted];require(state_.command.status!=MTLCommandBufferStatusError,errorText(state_.command.error));state_.command=nil;}}
+    void finish(){if(state_.command){[state_.command commit];[state_.command waitUntilCompleted];require(state_.command.status!=MTLCommandBufferStatusError,errorText(state_.command.error));recordTiming(state_.command);state_.command=nil;}}
     uint64_t submitted_=0;std::map<uint64_t,id<MTLCommandBuffer>> pending_;
     id<MTLRenderPipelineState> rhiPresentPipeline_=nil;
     struct RHIPipeline {id<MTLRenderPipelineState> pipeline;id<MTLDepthStencilState> depth;std::unordered_map<uint32_t,uint32_t> vertexTextures,fragmentTextures;};

@@ -1,3 +1,4 @@
+#include "engine/AssetPath.h"
 #include "system/Loader.h"
 #include "renderer/RenderScene.h"
 #include "component/GameObject.h"
@@ -9,11 +10,28 @@
 #include <fstream>
 #include <stdexcept>
 namespace {
-json readJson(const std::string &path) {
-    std::ifstream file(path);
-    if (!file)
-        throw std::runtime_error("Cannot open scene resource: " + path);
-    return json::parse(file);
+void resolveDocumentPaths(json& value,const std::filesystem::path& document,const std::string& parent={}) {
+    if(value.is_object())for(auto& entry:value.items()) {
+        const auto& key=entry.key();auto& item=entry.value();
+        const bool pathKey=key=="mesh" || key=="heightMap" || key=="heightVT" || key=="materialVT" || key=="skybox" || key=="sky" || key=="terrain";
+        const bool pathMap=parent=="objects" || parent=="textures" || (parent=="material" && key.find("material.")==0);
+        if(item.is_string() && (pathKey || pathMap))item=engine::AssetPath::resolve(item.get<std::string>(),document);
+        else resolveDocumentPaths(item,document,key);
+    }
+    else if(value.is_array())for(auto& item:value)resolveDocumentPaths(item,document,parent);
+}
+json readJson(const std::string &input) {
+    auto path=engine::AssetPath::resolve(input);
+    std::ifstream file(path,std::ios::binary);
+    if(!file)throw engine::AssetLoadError("read",path,"Cannot open scene resource");
+    std::string bytes;char chunk[32768];
+    while(file) {
+        engine::CancellationScope::check();file.read(chunk,sizeof(chunk));bytes.append(chunk,size_t(file.gcount()));
+        if(bytes.size()>64*1024*1024)throw engine::AssetLoadError("read",path,"JSON exceeds 64 MiB");
+    }
+    if(file.bad())throw engine::AssetLoadError("read",path,"Incomplete scene document");
+    try{auto result=json::parse(bytes);resolveDocumentPaths(result,path);return result;}
+    catch(const json::exception& error){throw engine::AssetLoadError("parse",path,error.what());}
 }
 void checkCancelled(const std::shared_ptr<std::atomic<bool>> &cancelled) {
     if (cancelled->load())
@@ -55,6 +73,7 @@ SceneLoadRequest Loader::buildScene(const std::string &filename) {
     }
     auto task = std::make_shared<std::packaged_task<std::shared_ptr<RenderScene>()>>(
         [this, filename, cancelled, completed, total] {
+            engine::CancellationScope cancellation(cancelled);
             checkCancelled(cancelled);
             auto data = readJson(filename);
             auto staging = std::make_shared<RenderScene>();
@@ -70,6 +89,7 @@ SceneLoadRequest Loader::buildScene(const std::string &filename) {
                     for (const auto &entry : data.at("objects").items()) {
                         auto path = entry.value().get<std::string>();
                         objects.push_back(decode_.submit([path, cancelled, completed] {
+                            engine::CancellationScope cancellation(cancelled);
                             checkCancelled(cancelled);
                             auto json = readJson(path);
                             auto object = std::make_shared<GameObject>();
@@ -85,6 +105,7 @@ SceneLoadRequest Loader::buildScene(const std::string &filename) {
                     total->fetch_add(1);
                     auto path = data.at("sky").get<std::string>();
                     sky = decode_.submit([path, cancelled, completed] {
+                            engine::CancellationScope cancellation(cancelled);
                         checkCancelled(cancelled);
                         auto json = readJson(path);
                         auto object = std::make_shared<Sky>();
@@ -99,6 +120,7 @@ SceneLoadRequest Loader::buildScene(const std::string &filename) {
                     total->fetch_add(1);
                     auto path = data.at("terrain").get<std::string>();
                     terrain = decode_.submit([path, cancelled, completed] {
+                            engine::CancellationScope cancellation(cancelled);
                         checkCancelled(cancelled);
                         auto json = readJson(path);
                         auto object = std::make_shared<Terrain>();

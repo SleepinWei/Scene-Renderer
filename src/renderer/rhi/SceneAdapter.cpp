@@ -26,6 +26,8 @@ struct SceneAdapter::Cache {
         std::shared_ptr<GpuMaterial> gpu;
         MaterialParameters parameters;
         MaterialExtension extension;
+        std::shared_ptr<const MaterialPayload> uploading;
+        std::vector<std::shared_ptr<GpuImage>> imageUploads;
     };
     std::map<uint64_t, MeshRecord> meshes;
     using MaterialKey = std::pair<uint64_t, uint32_t>;
@@ -44,6 +46,7 @@ struct SceneAdapter::Cache {
         std::shared_ptr<GpuMaterial> material, grassMaterial;
         uint64_t epoch = 0;
         MaterialParameters parameters;
+        glm::mat4 feedbackModel{1};
     };
     std::unique_ptr<TerrainRecord> terrain;
     uint64_t terrainEpoch = 0, uploadEpoch = 0;
@@ -161,10 +164,11 @@ SceneFrame SceneAdapter::resolveCandidate(const RenderWorldSnapshot &snapshot) {
             record->source = source;
             record->epoch = ++cache_->terrainEpoch;
             record->gpu = std::make_shared<GpuTerrain>(device_, rhi::defaultShaderDirectory(), source->height,
-                                                       source->capacity);
+                                                       source->capacity,source->virtualColumns);
             if (snapshot.asynchronousStreaming)
                 record->gpu->heightTexture()->enableAsync();
-            record->virtualMaterial = std::make_shared<GpuVirtualTexture>(device_, source->material);
+            auto materialSource=source->material;materialSource.minimum=source->height.minimum;materialSource.maximum=source->height.maximum;
+            record->virtualMaterial = std::make_shared<GpuVirtualTexture>(device_, std::move(materialSource),source->virtualColumns);
             if (snapshot.asynchronousStreaming)
                 record->virtualMaterial->enableAsync();
             MaterialDesc material;
@@ -184,6 +188,7 @@ SceneFrame SceneAdapter::resolveCandidate(const RenderWorldSnapshot &snapshot) {
             cache_->terrain = std::move(record);
         }
         auto &record = *cache_->terrain;
+        record.feedbackModel=terrain.model;
         record.gpu->update(result.frame, terrain.model);
         record.virtualMaterial->prepare(result.frame.viewProjection, terrain.model,
                                         result.frame.viewportWidth, result.frame.viewportHeight, true);
@@ -195,7 +200,7 @@ SceneFrame SceneAdapter::resolveCandidate(const RenderWorldSnapshot &snapshot) {
         }
         result.frame.historyKey ^= record.gpu->heightTexture()->version() * 0x9e3779b97f4a7c15ull ^
                                    record.virtualMaterial->version() ^ (record.epoch * 0xd1b54a32d192ed03ull);
-        result.packets.push_back({record.gpu->mesh(), record.material, terrain.model, 0, terrain.wireframe});
+        result.packets.push_back({record.gpu->mesh(), record.material, terrain.model, record.epoch*0xd1b54a32d192ed03ull, terrain.wireframe,record.gpu->geometryStable()});
         if (record.grass) {
             record.grass->update(terrain.model, result.frame.timeSeconds);
             result.packets.push_back({record.grass->mesh(), record.grassMaterial, glm::mat4(1)});
@@ -285,6 +290,9 @@ SceneFrame SceneAdapter::resolveCandidate(const RenderWorldSnapshot &snapshot) {
             usedMaterials.insert(key);
             auto &cached = cache_->materials[key];
             const bool imagesChanged = cached.source != draw.material;
+            if(!imagesChanged && cached.uploading) {
+                cached.uploading.reset();cached.imageUploads.clear();
+            }
             if (imagesChanged || !same(cached.parameters, draw.parameters) ||
                 !same(cached.extension, draw.extension)) {
                 MaterialDesc desc;
@@ -292,13 +300,42 @@ SceneFrame SceneAdapter::resolveCandidate(const RenderWorldSnapshot &snapshot) {
                 desc.extension = draw.extension;
                 desc.sharedImages = draw.material->images;
                 desc.sharedSpecial = draw.material->special;
-                if (imagesChanged && !admit(GpuMaterial::imageUploadBytes(device_, desc)))
-                    continue;
+                bool finishMaterial=true;
+                if(imagesChanged && snapshot.asynchronousStreaming) {
+                    if(cached.uploading!=draw.material) {
+                        if(!admit(0,false))continue;
+                        cached.uploading=draw.material;cached.imageUploads.clear();
+                    }
+                    std::vector<std::shared_ptr<const ImageRGBA8>> sources;
+                    for(const auto& image:desc.sharedImages)if(image)sources.push_back(image);
+                    if(desc.sharedSpecial)sources.push_back(desc.sharedSpecial);
+                    bool ready=true;
+                    for(size_t index=0;index<sources.size();++index) {
+                        if(index==cached.imageUploads.size()) {
+                            auto gpu=cache_->images->acquire(sources[index],true);
+                            if(!gpu){ready=false;break;}
+                            cached.imageUploads.push_back(std::move(gpu));
+                        }
+                        auto& image=cached.imageUploads[index];
+                        while(!image->ready() && result.imageUploadBytes<8*1024*1024) {
+                            if(result.imageUploadChunks && elapsed()>=meshUploadBudget_.cpuMilliseconds)break;
+                            const auto bytes=cache_->images->upload(image,std::min(size_t(256*1024),size_t(8*1024*1024-result.imageUploadBytes)));
+                            if(!bytes)break;
+                            result.imageUploadBytes+=bytes;result.uploadBytes+=bytes;++result.imageUploadChunks;
+                        }
+                        if(!image->ready()){ready=false;break;}
+                    }
+                    if(!ready){++result.assetsPending;if(!cached.gpu)continue;finishMaterial=false;}
+                    else ++cache_->uploadEpoch;
+                } else if (imagesChanged && !admit(GpuMaterial::imageUploadBytes(device_, desc)))continue;
+                if(finishMaterial){
                 auto uploaded = std::make_shared<GpuMaterial>(device_, desc);
                 cached.source = draw.material;
                 cached.gpu = std::move(uploaded);
                 cached.parameters = draw.parameters;
                 cached.extension = draw.extension;
+                cached.uploading.reset();cached.imageUploads.clear();
+                }
             }
             material = cached.gpu;
         }
@@ -350,3 +387,16 @@ SceneFrame SceneAdapter::resolveCandidate(const RenderWorldSnapshot &snapshot) {
     return result;
 }
 } // namespace render
+
+namespace render {
+void SceneAdapter::recordVirtualFeedback(const FrameData& frame,rhi::TextureViewHandle depth,const std::vector<glm::mat4>& auxiliaryViews) {
+    device_->checkThread();if(!cache_->terrain)return;
+    auto& record=*cache_->terrain;const auto height=record.gpu->heightTexture();
+    std::vector<GpuVirtualTexture::VisibilityView> views;for(const auto& vp:auxiliaryViews)views.push_back({vp,128,128});
+    height->setAuxiliaryViews(views);record.virtualMaterial->setAuxiliaryViews(std::move(views));
+    // Model is supplied by the current terrain packet, not by a mutable Component.
+    auto model=record.feedbackModel;
+    height->recordFeedback(depth,glm::inverse(frame.viewProjection),model,frame.viewportWidth,frame.viewportHeight,height->minimum(),height->maximum());
+    record.virtualMaterial->recordFeedback(depth,glm::inverse(frame.viewProjection),model,frame.viewportWidth,frame.viewportHeight,height->minimum(),height->maximum(),true);
+}
+}

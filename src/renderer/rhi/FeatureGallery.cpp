@@ -56,17 +56,17 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
                 if(name=="ocean" || name=="ocean-clear") {
                     auto ocean=std::static_pointer_cast<Ocean>(scene->terrain()->GetComponent("Ocean"));
                     if(name=="ocean") {
-                        const bool detail=ocean->detailWaves;ocean->detailWaves=false;capture("-no-detail",false,false,true,true);ocean->detailWaves=detail;
-                        const float scattering=ocean->subsurfaceStrength;ocean->subsurfaceStrength=0;capture("-no-scattering",false,false,true,true);ocean->subsurfaceStrength=scattering;
+                        const bool detail=ocean->settings().detailWaves;ocean->updateSettings([&](auto& value){value.detailWaves=false;});capture("-no-detail",false,false,true,true);ocean->updateSettings([&](auto& value){value.detailWaves=detail;});
+                        const float scattering=ocean->settings().subsurfaceStrength;ocean->updateSettings([&](auto& value){value.subsurfaceStrength=0;});capture("-no-scattering",false,false,true,true);ocean->updateSettings([&](auto& value){value.subsurfaceStrength=scattering;});
                     } else {
-                        const bool refract=ocean->refraction;const float scattering=ocean->subsurfaceStrength;
-                        ocean->refraction=false;ocean->subsurfaceStrength=0;capture("-opaque",false,false,true,true);ocean->refraction=refract;ocean->subsurfaceStrength=scattering;
+                        const bool refract=ocean->settings().refraction;const float scattering=ocean->settings().subsurfaceStrength;
+                        ocean->updateSettings([&](auto& value){value.refraction=false;});ocean->updateSettings([&](auto& value){value.subsurfaceStrength=0;});capture("-opaque",false,false,true,true);ocean->updateSettings([&](auto& value){value.refraction=refract;});ocean->updateSettings([&](auto& value){value.subsurfaceStrength=scattering;});
                     }
                 }
                 if(name=="sky") {
                     auto atmo=std::static_pointer_cast<Atmosphere>(scene->sky()->GetComponent("Atmosphere"));
                     auto pointSun=[&](float elevation,float fov,float pitch) {
-                        atmo->sunAngle=elevation;scene->setCamera(std::make_shared<Camera>(glm::vec3(0,2,0),glm::vec3(0,1,0),-90,pitch,float(width)/height));
+                        atmo->updateSettings([&](auto& value){value.sunAngle=elevation;});scene->setCamera(std::make_shared<Camera>(glm::vec3(0,2,0),glm::vec3(0,1,0),-90,pitch,float(width)/height));
                         scene->mainCamera()->setZoom(fov);scene->mainCamera()->setExposure(1);
                     };
                     pointSun(30,10,30);capture("-sun-closeup",false,false,true,true);

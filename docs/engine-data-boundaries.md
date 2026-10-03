@@ -1,5 +1,7 @@
 # Engine 可变数据边界与资产移交
 
+> 本文保留对应批次的实现与验收。后续 Texture／联合加载／图片上传／RHI 子资源／VT／LOD 等当前状态见 [Engine 后续实施记录](engine-runtime-completion.md)。
+
 2026-10-03，按 Engine 审查建议完成第一阶段：收紧核心世界数据与 CPU 资产的访问入口。主线程仍拥有可变世界，渲染线程消费不可变快照；这次把这条约定落实到 Transform、Light、Camera、Mesh、Material 和 MeshRenderer 的接口，而不是仅在文档中约定调用方自律。
 
 ## 原问题与修改

@@ -24,7 +24,7 @@ GpuMesh::GpuMesh(std::shared_ptr<rhi::GraphicsDevice> device, const std::vector<
 }
 GpuMesh::GpuMesh(std::shared_ptr<rhi::GraphicsDevice> device,uint32_t vertices,uint32_t indices,glm::vec3 minimum,glm::vec3 maximum):resources_(std::move(device)),boundsMin_(minimum),boundsMax_(maximum){
     using namespace rhi;if(!vertices || !indices || !resources_.device->computeLimits().supported)throw std::invalid_argument("Generated mesh requires compute and positive capacities");
-    vertices_=resources_.buffer({size_t(vertices)*sizeof(MeshVertex),BufferUsage::Vertex|BufferUsage::Storage|BufferUsage::CopySource,"Generated mesh vertices"});indices_=resources_.buffer({size_t(indices)*4,BufferUsage::Index|BufferUsage::Storage|BufferUsage::CopySource,"Generated mesh indices"});
+    vertices_=resources_.buffer({size_t(vertices)*sizeof(MeshVertex),BufferUsage::Vertex|BufferUsage::Storage|BufferUsage::CopySource|BufferUsage::CopyDestination,"Generated mesh vertices",BufferInitialization::Uninitialized});indices_=resources_.buffer({size_t(indices)*4,BufferUsage::Index|BufferUsage::Storage|BufferUsage::CopySource|BufferUsage::CopyDestination,"Generated mesh indices",BufferInitialization::Uninitialized});
     const DrawIndexedIndirectArguments args{0,1,0,0,0};indirect_=resources_.buffer({sizeof(args),BufferUsage::Storage|BufferUsage::Indirect|BufferUsage::CopySource|BufferUsage::CopyDestination,"Generated indexed arguments"},&args);count_=indices;
 }
 GpuMesh::GpuMesh(std::shared_ptr<rhi::GraphicsDevice> d,const std::vector<MeshVertex>& v,const std::vector<uint32_t>& i,uint32_t cap,glm::vec3 minimum,glm::vec3 maximum):GpuMesh(d,v,i){

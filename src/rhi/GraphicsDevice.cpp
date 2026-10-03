@@ -6,6 +6,9 @@
 #include <limits>
 #include <stdexcept>
 #include <unordered_set>
+#include <map>
+#include <set>
+#include <tuple>
 #include <filesystem>
 #include <fstream>
 
@@ -80,7 +83,13 @@ size_t texturePayloadBytes(const TextureDesc& desc) {
             "RHI: texture dimensions overflow payload size");
     const size_t pixels=size_t(desc.width)*desc.height;
     require(pixels<=std::numeric_limits<size_t>::max()/stride,"RHI: texture bytes overflow payload size");
-    return pixels*stride;
+    size_t total=0;
+    for(uint32_t mip=0;mip<desc.mipLevels;++mip) {
+        const size_t bytes=size_t(std::max(1u,desc.width>>mip))*std::max(1u,desc.height>>mip)*stride;
+        require(bytes<=std::numeric_limits<size_t>::max()-total,"RHI: mip bytes overflow");total+=bytes;
+    }
+    require(desc.arrayLayers && total<=std::numeric_limits<size_t>::max()/desc.arrayLayers,"RHI: layer bytes overflow");
+    return total*desc.arrayLayers;
 }
 uint32_t attributeBytes(VertexFormat format) {
     switch (format) {
@@ -138,6 +147,10 @@ TextureHandle GraphicsDevice::createTexture(const TextureDesc& desc) {
     require(desc.width && desc.height && desc.width <= graphicsLimits_.maxTextureDimension2D &&
             desc.height <= graphicsLimits_.maxTextureDimension2D && supportsTexture(desc.format, desc.usage),
             "RHI: unsupported texture descriptor");
+    uint32_t levels=1;for(auto size=std::max(desc.width,desc.height);size>1;size>>=1)++levels;
+    require(desc.mipLevels && desc.mipLevels<=levels && desc.arrayLayers && desc.arrayLayers<=2048,
+            "RHI: invalid mip/layer extent");
+    require(supportsTextureSubresources() || (desc.mipLevels==1 && desc.arrayLayers==1),"RHI: mip/layer storage unsupported on this backend");
     const auto bytes=texturePayloadBytes(desc);checkResourceAllocation(bytes,desc.label);
     auto native = createTextureImpl(desc);TextureHandle h{nextObject++};
     try { textures_.emplace(h.value, TextureRecord{desc, native}); }
@@ -147,8 +160,13 @@ TextureViewHandle GraphicsDevice::createTextureView(const TextureViewDesc& desc)
     const auto& t = texture(desc.texture);
     require(hasUsage(t.desc.usage, TextureUsage::Sampled) || hasUsage(t.desc.usage, TextureUsage::ColorAttachment) ||
         (hasUsage(t.desc.usage, TextureUsage::DepthAttachment) || hasUsage(t.desc.usage,TextureUsage::Storage)), "RHI: copy-only textures do not support views");
-    auto native = createTextureViewImpl(t.native, t.desc);TextureViewHandle h{nextObject++};
-    try { views_.emplace(h.value, ViewRecord{desc, native}); }
+    const auto& range=desc.range;
+    require(range.mipCount && range.firstMip<t.desc.mipLevels && range.mipCount<=t.desc.mipLevels-range.firstMip &&
+            range.layerCount==1 && range.firstLayer<t.desc.arrayLayers,"RHI: invalid 2D texture view range");
+    auto selected=t.desc;selected.width=std::max(1u,selected.width>>range.firstMip);selected.height=std::max(1u,selected.height>>range.firstMip);
+    selected.mipLevels=range.mipCount;selected.arrayLayers=range.layerCount;
+    auto native = createTextureViewImpl(t.native, t.desc,desc);TextureViewHandle h{nextObject++};
+    try { views_.emplace(h.value, ViewRecord{desc, native,selected}); }
     catch (...) { destroyTextureViewImpl(native);throw; }return h;
 }
 SamplerHandle GraphicsDevice::createSampler(const SamplerDesc& desc) {
@@ -225,7 +243,8 @@ void GraphicsDevice::validateBindings(const BindingSetDesc& desc) const {
         } else if (isStorageTexture(e->type)) {
             const auto& texture = viewTextureDesc(b.texture);
             require(e->stage == ShaderStage::Compute && computeLimits().maxStorageImages && !b.buffer && !b.offset && !b.size && !b.sampler &&
-                hasUsage(texture.usage, TextureUsage::Storage) && texture.format == e->imageFormat, "RHI: invalid storage texture binding");
+                hasUsage(texture.usage, TextureUsage::Storage) && texture.mipLevels == 1 && texture.arrayLayers == 1 &&
+                texture.format == e->imageFormat, "RHI: storage texture binding requires one mip and one layer");
         } else {
             require(!b.buffer && !b.offset && !b.size && hasUsage(viewTextureDesc(b.texture).usage, TextureUsage::Sampled),
                     "RHI: invalid sampled texture binding");
@@ -298,7 +317,8 @@ void GraphicsDevice::destroySampler(SamplerHandle h) { checkThread();
 void GraphicsDevice::writeTextureRegion(TextureHandle h, TextureRegion r, const void* data, size_t bytes) {
     const auto& t=texture(h);const uint32_t bpp=t.desc.format==Format::RGBA8UNorm?4:t.desc.format==Format::RGBA32Float?16:0;
     require(bpp && hasUsage(t.desc.usage,TextureUsage::CopyDestination) && data && r.width && r.height &&
-        uint64_t(r.x)+r.width<=t.desc.width && uint64_t(r.y)+r.height<=t.desc.height &&
+        r.mip<t.desc.mipLevels && r.layer<t.desc.arrayLayers &&
+        uint64_t(r.x)+r.width<=std::max(1u,t.desc.width>>r.mip) && uint64_t(r.y)+r.height<=std::max(1u,t.desc.height>>r.mip) &&
         uint64_t(r.width)*r.height*bpp==bytes,"RHI: invalid texture region upload");
     writeTextureRegionImpl(t.native,t.desc,r,data,bytes);
 }
@@ -309,10 +329,18 @@ void GraphicsDevice::writeTexture(TextureHandle h, const void* rgba, size_t byte
         uint64_t(t.desc.width) * t.desc.height * 4 == bytes, "RHI: invalid RGBA8 texture upload");
     writeTextureImpl(t.native, t.desc, rgba, bytes);
 }
-ReadbackTicket GraphicsDevice::requestTextureReadback(TextureHandle handle){
-    const auto& record=texture(handle);require(hasUsage(record.desc.usage,TextureUsage::CopySource),"RHI: readback requires CopySource");auto bytes=std::make_shared<std::vector<uint8_t>>();auto callback=queueTextureReadbackImpl(record.native,record.desc,bytes);return {checkpoint(std::move(callback)),bytes};
+ReadbackTicket GraphicsDevice::requestTextureReadback(TextureHandle handle,TextureSubresource subresource){
+    const auto& record=texture(handle);require(hasUsage(record.desc.usage,TextureUsage::CopySource),"RHI: readback requires CopySource");
+    require(subresource.mip<record.desc.mipLevels && subresource.layer<record.desc.arrayLayers,"RHI: invalid readback subresource");
+    auto selected=record.desc;selected.width=std::max(1u,selected.width>>subresource.mip);selected.height=std::max(1u,selected.height>>subresource.mip);
+    auto bytes=std::make_shared<std::vector<uint8_t>>();auto callback=queueTextureReadbackImpl(record.native,selected,bytes,subresource);
+    return {checkpoint(std::move(callback)),bytes};
 }
-std::function<void()> GraphicsDevice::queueTextureReadbackImpl(NativeObject id,const TextureDesc& desc,std::shared_ptr<std::vector<uint8_t>> output){
+std::vector<uint8_t> GraphicsDevice::readTextureSubresource(TextureHandle handle,TextureSubresource subresource) {
+    auto ticket=requestTextureReadback(handle,subresource);wait(ticket.completion);return *ticket.bytes;
+}
+std::function<void()> GraphicsDevice::queueTextureReadbackImpl(NativeObject id,const TextureDesc& desc,std::shared_ptr<std::vector<uint8_t>> output,TextureSubresource level){
+    require(!level.mip && !level.layer,"RHI: subresource readback unavailable on this backend");
     require(desc.format==Format::RGBA8UNorm,"RHI: async float readback unavailable on this backend");*output=readTextureImpl(id,desc);return {};
 }
 std::vector<uint8_t> GraphicsDevice::readTexture(TextureHandle h) {
@@ -352,11 +380,13 @@ std::vector<float> decodeHalfPixels(const std::vector<uint8_t>& bytes) {
 GraphicsDevice::NativeObject GraphicsDevice::textureObject(TextureHandle h) const { return texture(h).native; }
 const TextureDesc& GraphicsDevice::textureDesc(TextureHandle h) const { return texture(h).desc; }
 GraphicsDevice::NativeObject GraphicsDevice::textureViewObject(TextureViewHandle h) const { return view(h).native; }
-const TextureDesc& GraphicsDevice::viewTextureDesc(TextureViewHandle h) const { return texture(view(h).desc.texture).desc; }
+const TextureDesc& GraphicsDevice::viewTextureDesc(TextureViewHandle h) const { return view(h).selected; }
 GraphicsDevice::NativeObject GraphicsDevice::pipelineObject(PipelineHandle h) const { return pipeline(h).native; }
 const GraphicsPipelineDesc& GraphicsDevice::pipelineDesc(PipelineHandle h) const { return pipeline(h).desc; }
 std::vector<GraphicsDevice::NativeBinding> GraphicsDevice::resolvedBindings(BindingSetHandle h) const {
-    const auto& d = bindingSet(h);validateBindings(d);std::vector<NativeBinding> result;
+    // Layout/ranges are immutable and checked on creation and pass validation.
+    // The handle lookups below still reject resources retired since creation.
+    const auto& d = bindingSet(h);std::vector<NativeBinding> result;
     for (const auto& e : d.layout.entries) {
         const auto& b = *std::find_if(d.entries.begin(), d.entries.end(), [&](const auto& v) { return v.binding == e.binding; });
         NativeBinding n{e};
@@ -411,26 +441,40 @@ const ComputePipelineDesc& GraphicsDevice::computePipelineDesc(ComputePipelineHa
     checkOpen();const auto it = computePipelines_.find(h.value);require(it != computePipelines_.end(),"RHI: stale or foreign compute pipeline");return it->second.desc;
 }
 void GraphicsDevice::validatePass(const RecordedPass& pass) const {
+    using Cell=std::tuple<uint64_t,uint32_t,uint32_t>;
+    auto cells=[&](TextureViewHandle handle) {
+        std::vector<Cell> result;const auto& v=view(handle).desc;
+        for(uint32_t mip=v.range.firstMip;mip<v.range.firstMip+v.range.mipCount;++mip)
+            result.emplace_back(v.texture.value,mip,v.range.firstLayer);
+        return result;
+    };
     if(pass.copy) {
         const auto& source=texture(pass.copySource).desc;const auto& destination=texture(pass.copyDestination).desc;
-        require(pass.copySource.value!=pass.copyDestination.value && source.format!=Format::Depth32Float && source.format==destination.format && source.width==destination.width && source.height==destination.height && hasUsage(source.usage,TextureUsage::CopySource) && hasUsage(destination.usage,TextureUsage::CopyDestination),"RHI: incompatible texture copy");return;
+        const auto a=pass.sourceSubresource,b=pass.destinationSubresource;
+        require(a.mip<source.mipLevels && a.layer<source.arrayLayers && b.mip<destination.mipLevels && b.layer<destination.arrayLayers,"RHI: invalid copy subresource");
+        require((pass.copySource.value!=pass.copyDestination.value || a.mip!=b.mip || a.layer!=b.layer) && source.format!=Format::Depth32Float && source.format==destination.format &&
+                std::max(1u,source.width>>a.mip)==std::max(1u,destination.width>>b.mip) && std::max(1u,source.height>>a.mip)==std::max(1u,destination.height>>b.mip) &&
+                hasUsage(source.usage,TextureUsage::CopySource) && hasUsage(destination.usage,TextureUsage::CopyDestination),"RHI: incompatible texture copy");return;
     }
     if (pass.compute) {
         const auto& dispatch = pass.dispatch;const auto& p = computePipelineDesc(dispatch.pipeline);const auto limits = computeLimits();
         if(dispatch.indirect){nativeBuffer(dispatch.indirect,BufferUsage::Indirect);const auto& args=bufferDesc(dispatch.indirect);require(!(dispatch.indirectOffset%4) && dispatch.indirectOffset<=args.size && 12<=args.size-dispatch.indirectOffset,"RHI: invalid indirect dispatch range");}
         else for (size_t i=0;i<3;++i) require(dispatch.groups[i] && dispatch.groups[i] <= limits.maxGroups[i],"RHI: compute dispatch exceeds limit");
         require(dispatch.bindings.size() == p.bindings.size(),"RHI: missing or extra compute binding groups");
-        std::unordered_map<uint64_t,BindingType> uses, textureUses;
+        std::unordered_map<uint64_t,BindingType> uses;std::map<Cell,BindingType> textureUses;
         for (const auto& l : p.bindings) {
             auto b = std::find_if(dispatch.bindings.begin(),dispatch.bindings.end(),[&](auto h) { return bindingSet(h).layout.group == l.group; });
             require(b != dispatch.bindings.end() && sameLayout(l,bindingSet(*b).layout),"RHI: incompatible compute binding layout");validateBindings(bindingSet(*b));
             for (const auto& entry : bindingSet(*b).entries) {
                 const auto& layout = *std::find_if(l.entries.begin(),l.entries.end(),[&](const auto& e) { return e.binding == entry.binding; });
                 const auto readOnly = [](BindingType t) { return t == BindingType::UniformBuffer || t == BindingType::StorageRead || t == BindingType::SampledTexture || t == BindingType::StorageTextureRead; };
-                auto& resources = entry.texture ? textureUses : uses;
-                const auto resource = entry.texture ? view(entry.texture).desc.texture.value : entry.buffer.value;
-                auto previous = resources.find(resource);
-                require(previous == resources.end() || (readOnly(previous->second) && readOnly(layout.type) && (!entry.texture || previous->second == layout.type)),"RHI: writable resource aliases in one dispatch");resources[resource] = layout.type;
+                auto add=[&](auto& resources,auto resource) {
+                    auto previous=resources.find(resource);
+                    require(previous==resources.end() || (readOnly(previous->second) && readOnly(layout.type) && (!entry.texture || previous->second==layout.type)),
+                            "RHI: writable resource aliases in one dispatch");resources[resource]=layout.type;
+                };
+                if(entry.texture)for(const auto& cell:cells(entry.texture))add(textureUses,cell);
+                else add(uses,entry.buffer.value);
             }
         }return;
     }
@@ -447,21 +491,23 @@ void GraphicsDevice::validatePass(const RecordedPass& pass) const {
     require((!clip.width && !clip.height && !clip.x && !clip.y) || (clip.width && clip.height && clip.x<=color.width && clip.width<=color.width-clip.x && clip.y<=color.height && clip.height<=color.height-clip.y),"RHI: scissor exceeds attachment");
     const auto colors = colorAttachments(pass.desc);
     require(colors.size() <= graphicsLimits_.maxColorAttachments, "RHI: color attachment count exceeds limit");
-    std::unordered_set<uint64_t> attachmentTextures;
+    std::set<Cell> attachmentTextures;
     for (const auto& attachment : colors) {
         const auto& desc = viewTextureDesc(attachment.view);
-        require(hasUsage(desc.usage, TextureUsage::ColorAttachment) && desc.width == color.width && desc.height == color.height,
+        require(desc.mipLevels==1 && hasUsage(desc.usage, TextureUsage::ColorAttachment) && desc.width == color.width && desc.height == color.height,
             "RHI: incompatible color attachment");
         require(validLoad(attachment.load) && validStore(attachment.store), "RHI: invalid color attachment operation");
-        require(attachmentTextures.insert(view(attachment.view).desc.texture.value).second, "RHI: duplicate color attachment texture");
+        for(const auto& cell:cells(attachment.view))require(attachmentTextures.insert(cell).second,"RHI: duplicate color attachment subresource");
         for (float v : attachment.clear) require(std::isfinite(v), "RHI: nonfinite clear color");
     }
     if (pass.desc.depth) {
+        for(const auto& cell:cells(pass.desc.depth))require(attachmentTextures.insert(cell).second,"RHI: duplicate depth attachment subresource");
         const auto& depth = viewTextureDesc(pass.desc.depth);
-        require(hasUsage(depth.usage, TextureUsage::DepthAttachment) && depth.width == color.width && depth.height == color.height,
+        require(depth.mipLevels==1 && hasUsage(depth.usage, TextureUsage::DepthAttachment) && depth.width == color.width && depth.height == color.height,
                 "RHI: incompatible depth attachment");
         require(std::isfinite(pass.desc.clearDepth) && pass.desc.clearDepth >= 0 && pass.desc.clearDepth <= 1, "RHI: invalid clear depth");
     }
+    std::unordered_set<uint64_t> checkedBindings;
     for (const auto& draw : pass.draws) {
         const auto& p = pipelineDesc(draw.pipeline);
         const auto formats = colorFormats(p);
@@ -489,11 +535,13 @@ void GraphicsDevice::validatePass(const RecordedPass& pass) const {
         for (const auto& l : p.bindings) {
             auto b = std::find_if(draw.bindings.begin(), draw.bindings.end(), [&](auto h) { return bindingSet(h).layout.group == l.group; });
             require(b != draw.bindings.end() && sameLayout(l, bindingSet(*b).layout), "RHI: incompatible binding layout");
+            // Reused frame/material sets need resource checks once per pass.
+            // Keep the layout compatibility check for every pipeline/draw.
+            if(!checkedBindings.insert(b->value).second)continue;
             validateBindings(bindingSet(*b));
             for (const auto& entry : bindingSet(*b).entries) if (entry.texture) {
-                const auto parent = view(entry.texture).desc.texture.value;
-                require(!attachmentTextures.count(parent) &&
-                    (!pass.desc.depth || parent != view(pass.desc.depth).desc.texture.value), "RHI: attachment sampling feedback is unsupported");
+                for(const auto& cell:cells(entry.texture))
+                    require(!attachmentTextures.count(cell),"RHI: attachment sampling feedback is unsupported");
             }
         }
     }
@@ -504,23 +552,36 @@ void GraphicsDevice::submit(CommandList& list) {
     for (const auto& pass : list.passes_) validatePass(pass); // Validate entire list before any native work.
     // Compile pass dependencies from declared attachment/binding/buffer uses.
     // Native backends currently lower these boundaries conservatively; submissions
-    // remain synchronous, so no resource can be concurrently recycled by the CPU.
-    std::unordered_map<uint64_t,ResourceAccess> previousBuffers, previousTextures;
-    std::unordered_map<uint64_t,ResourceStage> previousBufferStages, previousTextureStages;
+    // are single-queue and resources remain alive until native completion.
+    using Cell=std::tuple<uint64_t,uint32_t,uint32_t>;
+    std::unordered_map<uint64_t,ResourceAccess> previousBuffers;
+    std::unordered_map<uint64_t,ResourceStage> previousBufferStages;
+    std::map<Cell,ResourceAccess> previousTextures;
+    std::map<Cell,ResourceStage> previousTextureStages;
     const auto writable = [](ResourceAccess access) { return uint32_t(access)&(uint32_t(ResourceAccess::ShaderWrite)|uint32_t(ResourceAccess::AttachmentWrite)|uint32_t(ResourceAccess::CopyWrite)); };
     for (auto& pass : list.passes_) {
-        std::unordered_map<uint64_t,ResourceAccess> buffers, textures;
-        std::unordered_map<uint64_t,ResourceStage> bufferStages, textureStages;
+        std::unordered_map<uint64_t,ResourceAccess> buffers;
+        std::unordered_map<uint64_t,ResourceStage> bufferStages;
+        std::map<Cell,ResourceAccess> textures;
+        std::map<Cell,ResourceStage> textureStages;
+        auto useTexture=[&](TextureViewHandle handle,ResourceAccess access,ResourceStage stage) {
+            const auto& v=view(handle).desc;
+            for(uint32_t mip=v.range.firstMip;mip<v.range.firstMip+v.range.mipCount;++mip) {
+                Cell cell{v.texture.value,mip,v.range.firstLayer};
+                textures[cell]=textures[cell]|access;textureStages[cell]=textureStages[cell]|stage;
+            }
+        };
+        std::unordered_set<uint64_t> collectedBindings;
         auto bindings = [&](const std::vector<BindingSetHandle>& sets) {
             for (auto set : sets) {
+                if(!collectedBindings.insert(set.value).second)continue;
                 const auto& desc = bindingSet(set);
                 for (const auto& entry : desc.entries) {
                     const auto& layout = *std::find_if(desc.layout.entries.begin(),desc.layout.entries.end(),[&](const auto& e) { return e.binding == entry.binding; });
                     const auto stage = layout.stage == ShaderStage::Vertex ? ResourceStage::Vertex : layout.stage == ShaderStage::Fragment ? ResourceStage::Fragment : ResourceStage::Compute;
                     if (entry.texture) {
-                        const auto texture = view(entry.texture).desc.texture.value;
                         auto access = layout.type == BindingType::StorageTextureWrite ? ResourceAccess::ShaderWrite : layout.type == BindingType::StorageTextureReadWrite ? ResourceAccess::ShaderRead | ResourceAccess::ShaderWrite : ResourceAccess::ShaderRead;
-                        textures[texture] = textures[texture] | access;textureStages[texture] = textureStages[texture] | stage;
+                        useTexture(entry.texture,access,stage);
                     }
                     else {
                         auto access = layout.type == BindingType::UniformBuffer ? ResourceAccess::UniformRead : layout.type == BindingType::StorageRead ? ResourceAccess::ShaderRead : layout.type == BindingType::StorageWrite ? ResourceAccess::ShaderWrite : ResourceAccess::ShaderRead | ResourceAccess::ShaderWrite;
@@ -530,12 +591,14 @@ void GraphicsDevice::submit(CommandList& list) {
             }
         };
         if(pass.copy) {
-            textures[pass.copySource.value]=ResourceAccess::CopyRead;textures[pass.copyDestination.value]=ResourceAccess::CopyWrite;
-            textureStages[pass.copySource.value]=textureStages[pass.copyDestination.value]=ResourceStage::Transfer;
+            const Cell a{pass.copySource.value,pass.sourceSubresource.mip,pass.sourceSubresource.layer},
+                       b{pass.copyDestination.value,pass.destinationSubresource.mip,pass.destinationSubresource.layer};
+            textures[a]=ResourceAccess::CopyRead;textures[b]=ResourceAccess::CopyWrite;
+            textureStages[a]=textureStages[b]=ResourceStage::Transfer;
         } else if (pass.compute) {bindings(pass.dispatch.bindings);if(pass.dispatch.indirect){buffers[pass.dispatch.indirect.value]=buffers[pass.dispatch.indirect.value]|ResourceAccess::IndirectRead;bufferStages[pass.dispatch.indirect.value]=bufferStages[pass.dispatch.indirect.value]|ResourceStage::DrawIndirect;}}
         else {
-            for (const auto& color : colorAttachments(pass.desc)) { const auto texture=view(color.view).desc.texture.value;textures[texture] = ResourceAccess::AttachmentWrite | (color.load == LoadOp::Load ? ResourceAccess::AttachmentRead : ResourceAccess::None);textureStages[texture] = ResourceStage::ColorOutput; }
-            if (pass.desc.depth) { const auto texture=view(pass.desc.depth).desc.texture.value;textures[texture] = ResourceAccess::AttachmentRead | ResourceAccess::AttachmentWrite;textureStages[texture]=ResourceStage::DepthTest; }
+            for(const auto& color:colorAttachments(pass.desc))useTexture(color.view,ResourceAccess::AttachmentWrite|(color.load==LoadOp::Load?ResourceAccess::AttachmentRead:ResourceAccess::None),ResourceStage::ColorOutput);
+            if(pass.desc.depth)useTexture(pass.desc.depth,ResourceAccess::AttachmentRead|ResourceAccess::AttachmentWrite,ResourceStage::DepthTest);
             for (const auto& draw : pass.draws) {
                 buffers[draw.vertices.value] = buffers[draw.vertices.value] | ResourceAccess::VertexRead;bufferStages[draw.vertices.value]=bufferStages[draw.vertices.value]|ResourceStage::VertexInput;
                 if (draw.indexed) { buffers[draw.indices.value] = buffers[draw.indices.value] | ResourceAccess::IndexRead;bufferStages[draw.indices.value]=bufferStages[draw.indices.value]|ResourceStage::VertexInput; }
@@ -552,7 +615,7 @@ void GraphicsDevice::submit(CommandList& list) {
         }
         for (const auto& use : textures) {
             auto previous = previousTextures.find(use.first);
-            if (previous != previousTextures.end() && (writable(previous->second) || writable(use.second))) pass.dependencies.push_back({{},{use.first},previous->second,use.second,previousTextureStages[use.first],textureStages[use.first]});
+            if (previous != previousTextures.end() && (writable(previous->second) || writable(use.second))) pass.dependencies.push_back({{},{std::get<0>(use.first)},previous->second,use.second,previousTextureStages[use.first],textureStages[use.first],{std::get<1>(use.first),1,std::get<2>(use.first),1}});
             previousTextureStages[use.first] = previous != previousTextures.end() && !writable(previous->second) && !writable(use.second) ? previousTextureStages[use.first] | textureStages[use.first] : textureStages[use.first];
             previousTextures[use.first] = previous != previousTextures.end() && !writable(previous->second) && !writable(use.second) ? previous->second | use.second : use.second;
         }
@@ -578,7 +641,7 @@ CommandList::CommandList(std::shared_ptr<GraphicsDevice> owner) : owner_(std::mo
 void CommandList::requirePass() const { require(owner_ && owner_->isOpen() && inPass_ && !submitted_, "RHI: no active render pass"); }
 void CommandList::beginRenderPass(const RenderPassDesc& desc) {
     require(owner_ && owner_->isOpen() && !inPass_ && !submitted_, "RHI: cannot begin render pass");
-    passes_.push_back({desc, {}});state_ = {};inPass_ = true;
+    passes_.push_back({desc, {}});passes_.back().label=label_;state_ = {};inPass_ = true;
 }
 void CommandList::bindPipeline(PipelineHandle pipeline) { requirePass();state_.pipeline = pipeline; }
 void CommandList::bindBindingSet(BindingSetHandle set) {
@@ -604,16 +667,20 @@ void CommandList::drawIndexedIndirect(BufferHandle arguments, size_t offset) {
     requirePass();require(state_.pipeline && state_.vertices && state_.indices && arguments,"RHI: incomplete indexed indirect draw");
     auto draw = state_;draw.indirect = arguments;draw.indirectOffset = offset;draw.indexed = true;passes_.back().draws.push_back(std::move(draw));
 }
-void CommandList::copyTexture(TextureHandle source,TextureHandle destination) {
+void CommandList::setPassLabel(const std::string& label) {
+    if(submitted_ || passes_.empty())throw std::logic_error("RHI: no recorded pass to label");
+    passes_.back().label=label;
+}
+void CommandList::copyTexture(TextureHandle source,TextureHandle destination,TextureSubresource a,TextureSubresource b) {
     require(owner_ && owner_->isOpen() && !submitted_ && !inPass_,"RHI: texture copy must be outside a render pass");
-    RecordedPass pass;pass.copy=true;pass.copySource=source;pass.copyDestination=destination;passes_.push_back(std::move(pass));
+    RecordedPass pass;pass.label=label_;pass.copy=true;pass.copySource=source;pass.copyDestination=destination;pass.sourceSubresource=a;pass.destinationSubresource=b;passes_.push_back(std::move(pass));
 }
 void CommandList::dispatch(ComputePipelineHandle pipeline, const std::vector<BindingSetHandle>& bindings, std::array<uint32_t,3> groups) {
     require(owner_ && owner_->isOpen() && !submitted_ && !inPass_,"RHI: dispatch must be outside a render pass");
-    RecordedPass pass;pass.compute = true;pass.dispatch = {pipeline,bindings,groups};passes_.push_back(std::move(pass));
+    RecordedPass pass;pass.label=label_.empty()?"compute":label_;pass.compute = true;pass.dispatch = {pipeline,bindings,groups};passes_.push_back(std::move(pass));
 }
 void CommandList::dispatchIndirect(ComputePipelineHandle pipeline,const std::vector<BindingSetHandle>& bindings,BufferHandle args,size_t offset){
-    require(owner_ && owner_->isOpen() && !submitted_ && !inPass_ && args,"RHI: indirect dispatch must be outside a render pass");RecordedPass pass;pass.compute=true;pass.dispatch.pipeline=pipeline;pass.dispatch.bindings=bindings;pass.dispatch.indirect=args;pass.dispatch.indirectOffset=offset;passes_.push_back(std::move(pass));
+    require(owner_ && owner_->isOpen() && !submitted_ && !inPass_ && args,"RHI: indirect dispatch must be outside a render pass");RecordedPass pass;pass.label=label_.empty()?"compute":label_;pass.compute=true;pass.dispatch.pipeline=pipeline;pass.dispatch.bindings=bindings;pass.dispatch.indirect=args;pass.dispatch.indirectOffset=offset;passes_.push_back(std::move(pass));
 }
 void CommandList::endRenderPass() { requirePass();inPass_ = false; }
 } // namespace rhi

@@ -48,7 +48,7 @@ cmake --build build -j 8
 ./build/Scene-Renderer --demo --backend Vulkan
 ```
 
-原生编辑器默认主逻辑／渲染双线程，`--single-thread` 可切换同步对照。`--forward` 使用完整场景的前向光照；`--frames N` 有界运行，`--time 8` 固定海洋/草时间，`--size 800x450` 与 `--resize 640x360` 用于窗口回归，`--frames-in-flight 1` 可对照默认的 3 个在途提交。`--screenshot path.ppm` 保存包括 UI 的最后一帧。`--render-gallery directory core` 保存无 UI 的经典场景 PNG。本机 Metal 回归启用 API／Shader Validation；Vulkan／MoltenVK 通过 GPU 数值测试验证。本机没有 Khronos validation layer，不能把这些结果视为 Vulkan layer 验证；对 MoltenVK 开启 MetalTools 的已知阻塞组合由 CTest 单独关闭。
+原生编辑器默认主逻辑／渲染双线程，逻辑使用 60 Hz 固定步长，支持暂停及速度控制；普通帧队列满时跳过快照，主线程继续处理输入和模拟。`--single-thread` 可切换同步对照。`--asset-root DIR` 指定模型及场景资源根目录；JSON 内资源优先相对该文档解析。`--auto-quality` 显式启用配额压力下的效果品质降级。`--forward` 使用完整场景的前向光照；`--frames N` 有界运行，`--time 8` 固定海洋/草时间，`--size 800x450` 与 `--resize 640x360` 用于窗口回归，`--frames-in-flight 1` 可对照默认的 3 个在途提交。`--screenshot path.ppm` 保存包括 UI 的最后一帧。`--render-gallery directory core` 保存无 UI 的经典场景 PNG。本机 Metal 回归启用 API／Shader Validation；Vulkan／MoltenVK 通过 GPU 数值测试验证。本机没有 Khronos validation layer，不能把这些结果视为 Vulkan layer 验证；对 MoltenVK 开启 MetalTools 的已知阻塞组合由 CTest 单独关闭。
 
 ### 示例资源
 
@@ -173,7 +173,7 @@ GUI 可修改太阳仰角、方位、角半径、多次散射强度、地面反�
 
 地形高度图和五层 PBR 材质使用软件 **Virtual Texture**：固定物理 tile 缓存、mip 页表、祖先回退、边框过滤和区域上传。高度生成与草共用页采样；旧 float32 高度文件可直接按页读取，大场景可使用离线 pack，使高度和材质均无需在运行时完整解码。
 
-GPU 四叉树有固定叶节点预算，耗尽时保留父节点。公共整数网格处理不同 LOD 的接缝，边界法线按实际差分跨度计算。默认网格从约 237.5 MiB 降至 19 MiB；8192² 虚拟尺寸下，网格与两套默认 VT 资源合计约 30.16 MiB，不包含草、阴影和其他渲染目标。
+GPU 四叉树按分块高度界、FOV、分辨率和距离估计屏幕误差，叶节点预算耗尽时保留父节点。公共整数网格与高度 morph 保持不同 LOD 的接缝一致，草附着于同一变形后的三角形表面，边界法线按实际差分跨度计算。默认网格从约 237.5 MiB 降至 19 MiB；8192² 虚拟尺寸下，网格与两套默认 VT 资源合计约 30.16 MiB，不包含草、阴影和其他渲染目标。
 
 ![Metal 虚拟纹理地形与草](img/metal/terrain.png)
 
@@ -182,7 +182,7 @@ GPU 四叉树有固定叶节点预算，耗尽时保留父节点。公共整数�
 ./build/Scene-Renderer --render-gallery img/metal terrain
 ```
 
-示例由程序生成 1024² 高度与底色，无需额外下载；默认请求由 CPU 保守视锥预测，每帧限制页读取／上传数量。原生双线程编辑器已使用有界后台 IO；当前尚未加入 GPU 屏幕反馈或高度 morph，快速移动时可暂时回退到粗 mip。离线分页命令、配置、修复记录与验证见 [地形 Virtual Texture 说明](docs/terrain-virtual-texture.md)。
+示例由程序生成 1024² 高度与底色，无需额外下载。请求结合真实渲染深度的异步 GPU feedback、CPU 保守视锥预测，以及上一帧阴影／RSM 的辅助视图；每帧限制页读取／上传数量。原生双线程编辑器使用有界后台 IO，快速移动时可暂时回退到粗 mip。离线分页命令、配置、修复记录与验证见 [地形 Virtual Texture 说明](docs/terrain-virtual-texture.md)。
 
 <details>
 <summary>查看同一视角的 LOD 网格</summary>
@@ -195,7 +195,7 @@ GPU 四叉树有固定叶节点预算，耗尽时保留父节点。公共整数�
 
 新 RHI 的完整场景渲染默认启用 TSAA，前向／延迟着色共用后处理。它使用 16 点 Halton 子像素抖动，在 HDR 色调映射前重投影并累积历史颜色。线性深度检查、YCoCg 邻域裁剪和自适应权重减少残影；海面使用前后两帧 FFT 位移生成运动信息，处理波浪自身运动。
 
-GUI 的 `Enable TSAA` 可关闭此效果。场景切换、窗口尺寸、明显相机跳变以及太阳／大气参数变化会重置历史。当前 Metal 效果图均已重新生成，每张图运行 16 帧，静态表面累积 TSAA，各开关对照单独清空历史；当前动态地形／草使用 reactive 标记，不累积相关像素的历史；历史图片仍保留历史标记。具体设计、测试与边界见 [TSAA 实现说明](docs/tsaa.md)。
+GUI 的 `Enable TSAA` 可关闭此效果。场景切换、窗口尺寸、明显相机跳变以及太阳／大气参数变化会重置历史。当前 Metal 效果图均已重新生成，每张图运行 16 帧，静态表面累积 TSAA，各开关对照单独清空历史；地形视图、模型及驻留页稳定时复用确切生成几何并允许历史累积；LOD／页发生变化的地形及动态草使用 reactive 标记；历史图片仍保留历史标记。具体设计、测试与边界见 [TSAA 实现说明](docs/tsaa.md)。
 
 ## 整体系统设计
 
@@ -231,9 +231,13 @@ flowchart TD
 5. 拷贝不透明 HDR 场景，绘制排序透明材质与折射／吸收／散射水面，并生成物体和海面的运动信息。
 6. TSAA 在 HDR 中检查深度、重投影与裁剪历史，然后统一曝光、色调映射，绘制 ImGui 并呈现。
 
-组件通过 weak owner 避免对象引用环，网格／材质／组件使用稳定 ID 与内容版本。RenderScene 结构、组件注册表与 owner 私有，具体类型查询采用索引；增删组件自动维护灯光索引。Transform／Light／Camera 的核心参数、Mesh／Material 的容器与 MeshRenderer 设置均通过检查接口访问；几何及贴图槽修改自动更新内容版本，材质标量复用图片缓存。后台任务只提交 ID／值命令，由主线程限量执行，场景替换使旧入口失效。
+组件通过 weak owner 避免对象引用环，网格／材质／组件使用稳定 ID 与内容版本。RenderScene 结构、组件注册表与 owner 私有，具体类型查询采用索引；增删组件自动维护灯光索引。Transform／Light／Camera 的核心参数、Mesh／Material／Texture 的 CPU 数据、MeshRenderer 设置及大气／海洋／地形配置通过检查接口访问；配置以整组校验后提交。几何及共享图片修改自动更新内容版本，材质快照保留独立只读像素，材质标量复用图片缓存。后台任务只提交 ID／值命令，由主线程限量执行，场景替换使旧入口失效。
 
-资源缓存合并同 key 的解码；同设备普通 GPU 图片按内容共享，空闲 LRU 默认 64 MiB，sampler 独立。异步静态网格按 8 MiB／帧、256 KiB／块与 2 ms 软目标分段上传，最多四个已分配的未完成任务；完整写入后才发布。每设备 graphics／compute 管线共享 native 对象，每个调用拥有独立 handle，空闲 LRU 合计默认保留 64 项；首次编译仍同步。实现及限制见 [分段上传与管线缓存](docs/engine-streaming-and-pipeline-cache.md)。Loader 后台构建并验证完整 staging，经封存／future 移交后在主线程一次发布，CPU 构建失败保留旧场景。RHI buffer／texture 支持可选统一逻辑负载配额及逐次分配峰值统计；压力时回收空闲图片并等待退役资源。原生双线程编辑器在候选 GPU 帧超限时恢复缓存、保留上一张成功画面，并定时重试。VT 页通过有界 IO jobs 准备后由渲染线程上传，未完成页保持粗 mip 回退；有序 render graph 在记录前检查初始化及读写声明。线程归属、取消／退出、上传预算、单线程对照和剩余边界见 [Engine 多线程说明](docs/engine-multithreading.md) 与 [设计审查](docs/engine-design-review.md)。
+资源缓存合并同 key 的解码；同设备普通 GPU 图片按内容共享，空闲 LRU 默认 64 MiB，sampler 独立。静态网格与材质图片按每帧 8 MiB、每块 256 KiB 及共享 2 ms CPU 软目标增量上传，分别限制四个已分配的未完成任务；完整写入后才发布。每设备管线共享 native 对象，调用持有独立 handle，空闲 LRU 默认 64 项；Metal Binary Archive／Vulkan Pipeline Cache 支持磁盘复用，首次 cache miss 编译仍同步。
+
+Loader 后台构建并封存 CPU staging，渲染线程准备独立 GPU 缓存和试绘。GPU ready 后才替换 CPU 世界并按 token 激活缓存；加载失败、取消或过期候选保留旧世界。RHI buffer／texture 可配置统一逻辑字节配额，超限保留上一张成功画面并重试；显式开启自动品质策略可降低 FFT、海洋网格、地形叶子及 VT 缓存规格，原始 CPU 参数不变。统计区分 RHI 逻辑字节与驱动内存，记录 CPU p95／p99、GPU 提交时间和输入采样到完成确认的延迟。
+
+大气、海洋、阴影／RSM 进入有序 RenderGraph；编译检查逐 mip／layer 初始化、读写依赖和 transient 生命周期。Metal／Vulkan 支持指定纹理子资源上传、复制与异步读回；SSS 临时深度与场景深度在不重叠区间共用物理纹理。当前图按声明顺序执行，尚未自动重排或实现多队列调度。全部实施、验收及剩余边界见 [Engine 后续计划实施](docs/engine-runtime-completion.md)，线程协议见 [多线程说明](docs/engine-multithreading.md)，评价见 [设计审查](docs/engine-design-review.md)。
 
 `--forward` 在同一场景调度中改用前向材质光照，保留阴影、环境光、水体和后处理。核心实现见 [ForwardPbrRenderer.cpp](src/renderer/rhi/ForwardPbrRenderer.cpp)、[SceneAdapter.cpp](src/renderer/rhi/SceneAdapter.cpp) 与 [RenderManager.cpp](src/system/RenderManager.cpp)。
 
@@ -263,7 +267,7 @@ flowchart LR
 | RSM | 太阳方向正交投影；太阳辐照度＋大气天空漫反射 LUT；每纹素反射功率、显式采样 PDF、G-buffer 全屏合成；支持聚光灯回退 | 单个投影仅记录最近表面，天空入射未计算遮蔽；局部一次漫反射反弹，可能漏光、有采样噪声 |
 | 大气与 IBL | 共享太阳状态、相机海拔、解析太阳盘；Rayleigh／Mie／臭氧、透射率、高阶散射近似、天空与 E/π 卷积 LUT | RGB 模型；太阳盘 HDR 上限 65000；未实现完整场景反射探针或环境遮挡 |
 | FFT 海洋与水体 | 共轭 Phillips 频谱、归一化二维 IFFT、主波与短波叠加、法线与 Jacobian 泡沫；深度折射、RGB 消光、近似单次散射与 HDR 光照 | 周期有限海面；折射限于屏幕空间，散射厚度是近似；不是流体求解器 |
-| 地形与草 | 高度／五层材质 VT、固定页缓存与祖先 mip 回退、有预算 GPU 四叉树、跨 LOD 拼接、间接实例草 | CPU 预测请求与有界异步 IO（原生编辑器）；无 GPU feedback／高度 morph；动态地形仍使用 reactive 时域路径 |
+| 地形与草 | 高度／五层材质 VT、深度 feedback／多视图预测、有预算屏幕误差 LOD、拼接与高度 morph、附着草 | feedback 可能带入包围范围内其他几何；页／LOD 变化时 reactive，尚无逐顶点前帧变形历史 |
 | 模型导入 | Assimp、glTF；GI 示例增加 OBJ/MTL 材质、透明遮罩与高度图转法线 | OBJ 的传统材质参数近似转换为 PBR，玻璃／水不做真实折射 |
 | CPU 路径追踪 | 冻结物体快照、纹理 PBR、alpha/法线图、扁平 SAH BVH、天空/太阳/发光面 NEE + MIS、确定性多线程；Sponza/San Miguel 256 spp 输出 | 静态 mesh 路径；程序化地形/海洋及特殊材质 lobe 未进入 CPU 求交，尚无 GPU tracing/denoiser |
 
@@ -344,6 +348,7 @@ CPU 路径支持静态 mesh 和基础 PBR；程序化地形／草、FFT 海面�
 | `docs/sky-and-sun-review.md` | 历史天空问题、新 RHI 太阳／大气修复、能量与 GPU 回归 |
 | `docs/engine-multithreading.md`、`docs/engine-design-review.md`、`docs/engine-followup-fixes.md` | 主逻辑／渲染分离、资源事务与快照、GPU 图片共享与修复、设计评价及下一步 |
 | `docs/engine-world-commands.md` | 私有组件注册表、线程封存移交、后台值命令与 RHI 统一资源配额 |
+| `docs/engine-runtime-completion.md` | 联合世界加载、图片增量上传、固定逻辑时钟、mip／layer、transient 复用、GPU feedback、磁盘管线缓存、降级与验收 |
 | `docs/engine-data-boundaries.md` | 核心数据私有化、资产移交、自动版本失效、参数校验与剩余边界 |
 | `docs/engine-gpu-publication.md` | 内存压力回收、候选 GPU 缓存事务、失败画面保留与恢复、成本与验收 |
 | `docs/engine-streaming-and-pipeline-cache.md` | 静态网格跨帧上传、字节／用时预算、管线独立句柄与共享 native、LRU 与验收 |
@@ -362,7 +367,9 @@ CPU 路径支持静态 mesh 和基础 PBR；程序化地形／草、FFT 海面�
 | `--render-gallery <目录> gi` | 生成两个 GI 场景、RSM 开关对照及纯间接光／太阳／天空贡献图 |
 | `--render-gallery <目录> <场景名>` | 仅生成指定场景 |
 | `--render-gallery <目录>` | 默认生成三个基础示例 |
-| `--gpu-resource-budget-mib <N>` | 原生编辑器的 RHI buffer／texture 逻辑负载配额；默认 0 不限额；双线程编辑器超限保留成功画面并重试，冷启动失败仍报错；不含 driver heap 等隐式开销 |
+| `--gpu-resource-budget-mib <N>` | 原生编辑器的 RHI buffer／texture 逻辑负载配额；默认 0 不限额；双线程编辑器超限保留成功画面并重试，无法恢复的冷启动报错；不含 driver heap 等隐式开销 |
+| `--auto-quality` | 显式允许配额失败时最多降低三个效果品质等级；默认关闭，关闭后恢复请求规格 |
+| `--asset-root <DIR>` | 指定模型／纹理／JSON 资源根目录；JSON 子资源优先相对文档解析 |
 | `--single-thread` | 原生编辑器同步对照；默认 Metal／Vulkan 使用独立渲染线程 |
 | `--rhi-self-test` | 所选 RHI 后端的 GPU 正确性自检 |
 | `--path-trace <场景名>` | CPU 路径追踪，默认 Sponza；使用 `--pt-size`、`--pt-samples`、`--pt-bounces` 等设置输出 |
@@ -401,7 +408,7 @@ GPU 验证覆盖上传/异步读回、延迟释放、MRT、前向/延迟 PBR、S
 
 2026-10-03 CPU Path Tracing 在 Apple M4/macOS 验收：包含新增 PT 回归的完整 CTest 为 Metal **14/14**、Vulkan/MoltenVK **15/15**；CPU 测试通过 AddressSanitizer 和 UndefinedBehaviorSanitizer。覆盖 BVH 与暴力求交对照、材质／alpha／法线贴图、环境 PDF、GGX 数值积分、MIS、遮挡与发光面、确定性多线程、渐进累加和输出格式；另验证 Cornell 场景入口及设备线程上的天空烘焙。两个大型场景均输出 256 spp 图像，非有限样本为 0；完整记录见 [CPU Path Tracing 说明](docs/path-tracing-cpu.md)。
 
-2026-10-03 Engine 多线程回归在 Apple M4/macOS 验收：Metal **11/11**、Vulkan/MoltenVK **12/12**；有界 CPU cache／job／帧队列、世界命令与 graph 测试在 ThreadSanitizer 下通过。本轮后续修复同时通过 OpenGL 兼容路径 **8/8**。包括主逻辑／渲染分离、加载事务、快照／GUI 隔离、场景结构／组件自动灯光索引、封存移交、旧世界／旧组件命令失效、混合 RHI 资源配额、GPU 图片共享／LRU 与 CPU 地址复用、上传等待保留资产、异步地形、窗口缩放与单线程对照；新增核心数据边界回归包含错误线程访问、非法参数保留、Camera／Mesh／Material 移交和材质标量／图片版本隔离，结果仍为 Metal 11/11、Vulkan 12/12、OpenGL 8/8。内存压力与 GPU 发布回归也通过以上三个后端；新增空闲图片回收、候选缓存回滚、窗口／海洋超限时像素保持及后续恢复验证，CPU RHI 压力回调测试通过 TSan。分段上传／管线缓存继续通过三后端全部回归，新增 30 万顶点跨帧上传与逐字节 GPU 读回、待上传任务上限、取消／回滚、管线独立句柄／LRU／shader 内容失效，以及 renderer 共享管线后的像素一致性；CPU buffer／graphics 契约另通过 TSan。完整应用没有在 ThreadSanitizer 下验收。
+2026-10-04 Engine 后续回归在 Apple M4/macOS 验收：Metal **11/11**、Vulkan/MoltenVK **12/12**、OpenGL **8/8**。覆盖线程归属／封存移交、CPU/GPU 联合加载与失败回退、增量 mesh／图片上传、磁盘管线缓存、纹理子资源隔离、transient 复用、真实深度 VT feedback、高度 morph／草附着，以及冷启动和已有画面下的自动降级。CPU 并发与 RHI graphics 契约分别通过 ThreadSanitizer；隔离本轮提交的全量 Metal 构建及完整 CTest **14/14**（含既有 PT 测试）通过。完整应用未在 TSan 下验收。经典大型场景持续运行、命令、预算及统计口径见 [本轮实施与验收](docs/engine-runtime-completion.md)。
 
 2026-10-03 天空修复在 Apple M4/macOS 验收：Metal **8/8**、Vulkan/MoltenVK **9/9**，包含太阳角半径／能量、地平线及几何遮挡、控制同步、观察高度与极限参数。OpenGL 4.1 的历史 RHI 验收为 7/7，本轮未重复运行。Metal 开启 API/Shader Validation；本机没有 Khronos validation layer，Windows/Linux 与 OpenGL 4.3+ 尚未实机验收。Metal/Vulkan 使用单队列、最多三帧并行提交；单次吞吐测量和算法边界见 [RHI 重构计划](docs/rhi-refactor-plan.md)。大规模 OBJ 导入仍需较多 CPU 内存与启动时间。
 

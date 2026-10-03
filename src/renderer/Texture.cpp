@@ -1,6 +1,8 @@
 #include<glad/glad.h>
 #include "rhi/Device.h"
+#include "engine/AssetPath.h"
 #include <cstdlib>
+#include <cstring>
 #include <algorithm>
 #include"renderer/Texture.h"
 #include<libdds/libdds_opengl.h>
@@ -35,7 +37,8 @@ Texture::~Texture() {
 //	name = dir.substr(index+1,dir.length()-index-1)+"_" + tex->type;  // name 用于统一区分
 //	return name; 
 //}
-std::shared_ptr<Texture> Texture::loadFromFileAsync(const std::string& filename,int desired_channels) {
+std::shared_ptr<Texture> Texture::loadFromFileAsync(const std::string& input,int desired_channels) {
+    engine::CancellationScope::check();const auto filename=engine::AssetPath::resolve(input);
 	std::shared_ptr<Texture> tex = std::make_shared<Texture>(); 
 	tex->name = filename;
 
@@ -81,10 +84,13 @@ std::shared_ptr<Texture> Texture::loadFromFileAsync(const std::string& filename,
 		}
 	}
 
+    engine::CancellationScope::check();
+	tex->freeze();
 	return tex; 
 }
 
-std::shared_ptr<Texture> Texture::loadFromFile(const std::string& file_path,int desired_channels) {
+std::shared_ptr<Texture> Texture::loadFromFile(const std::string& input,int desired_channels) {
+    const auto file_path=engine::AssetPath::resolve(input);
     if(rhi::usesNativeRenderer())return loadFromFileAsync(file_path,desired_channels);
 	std::shared_ptr<Texture> tex = std::make_shared<Texture>(); 
 
@@ -144,6 +150,7 @@ std::shared_ptr<Texture> Texture::loadFromFile(const std::string& file_path,int 
 //}
 
 std::shared_ptr<Texture> Texture::genTexture(unsigned int internalformat,unsigned int format,int width, int height) {
+    checkRead();rhi::device()->checkThread();if(immutable_)throw std::logic_error("Cannot resize immutable decoded Texture");
 	//if (id)
 		//glDeleteTextures(1, &id);
 	this->width = width;
@@ -202,6 +209,7 @@ std::shared_ptr<Texture> Texture::genTexture(unsigned int internalformat,unsigne
 	glTexImage2D(GL_TEXTURE_2D, 0, internalformat, width, height, 0, format,
 		dType, NULL);
 
+    invalidate();
 	return shared_from_this();
 }
 
@@ -212,6 +220,7 @@ std::shared_ptr<Texture> Texture::genTextureAsync(unsigned int DataType, unsigne
 }
 
 std::shared_ptr<Texture> Texture::genCubeMap(GLenum format, int width,int height) {
+    checkRead();rhi::device()->checkThread();if(immutable_)throw std::logic_error("Cannot resize immutable decoded Texture");
 	//if (id)
 		//return shared_from_this();
 	assert(id == 0);
@@ -231,6 +240,7 @@ std::shared_ptr<Texture> Texture::genCubeMap(GLenum format, int width,int height
 
 std::shared_ptr<Texture> Texture::genTextureArray(GLenum internalformat, GLenum format, GLenum type, int width, int height, int mipmap_level,int layers)
 {
+    checkRead();rhi::device()->checkThread();if(immutable_)throw std::logic_error("Cannot resize immutable decoded Texture");
 	//if (this->id)
 		//return shared_from_this();
 	assert(id == 0);
@@ -251,7 +261,47 @@ std::shared_ptr<Texture> Texture::genTextureArray(GLenum internalformat, GLenum 
 }
 
 void Texture::bind(unsigned int target, int binding) {
+    checkRead();rhi::device()->checkThread();
 	glActiveTexture(GL_TEXTURE0 + binding);
 	assert(id != 0);
 	glBindTexture(target, this->id);
+}
+TextureSnapshot Texture::snapshot() const {
+    checkRead();
+    TextureSnapshot result{width,height,channels,format,internalformat,name,{}};
+    if(data && width>0 && height>0 && channels>=1 && channels<=4 &&
+       (format==GL_RED || format==GL_RG || format==GL_RGB || format==GL_RGBA) &&
+       internalformat!=GL_COMPRESSED_RGB_S3TC_DXT1_EXT) {
+        const size_t bytes=size_t(width)*height*channels;
+        result.pixels=std::make_shared<const std::vector<unsigned char>>(data,data+bytes);
+    }
+    return result;
+}
+void Texture::setPixels(int w,int h,int c,std::vector<unsigned char> bytes) {
+    checkLogicThread();
+    if(immutable_)throw std::logic_error("Cached Texture is immutable; create a replacement");
+    if(w<=0 || h<=0 || w>16384 || h>16384 || c<1 || c>4 || bytes.size()!=size_t(w)*h*c)
+        throw std::invalid_argument("Invalid Texture pixel extent or byte count");
+    if(id)rhi::device()->checkThread();
+    auto* candidate=static_cast<unsigned char*>(std::malloc(bytes.size()));
+    if(!candidate)throw std::bad_alloc();
+    std::memcpy(candidate,bytes.data(),bytes.size());
+    if(id){glDeleteTextures(1,&id);id=0;}
+    std::free(data);data=candidate;width=w;height=h;channels=c;
+    static const GLenum formats[]={GL_RED,GL_RG,GL_RGB,GL_RGBA};format=internalformat=formats[c-1];
+    name.clear();num_mipmaps=1;invalidate();
+}
+void Texture::freeze() {checkLogicThread();immutable_=true;}
+unsigned int Texture::gpuId() const {checkRead();if(id)rhi::device()->checkThread();return id;}
+void Texture::swapGpuStorage(Texture& other) {
+    rhi::device()->checkThread();checkRead();other.checkRead();
+    if(width!=other.width || height!=other.height || format!=other.format || internalformat!=other.internalformat)
+        throw std::invalid_argument("Incompatible Texture GPU storage swap");
+    std::swap(id,other.id);
+}
+
+void Texture::setStorageDescriptor(int w,int h,unsigned int internal,unsigned int channelFormat) {
+    checkLogicThread();if(immutable_ || id || data || w<=0 || h<=0 || w>16384 || h>16384)
+        throw std::invalid_argument("Storage descriptor requires a mutable, empty Texture and valid extent");
+    width=w;height=h;internalformat=internal;format=channelFormat;invalidate();
 }

@@ -193,8 +193,8 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
     InputManager::GetInstance()->mouseMove = true;
     //if (clicked) {
-	InputManager::GetInstance()->deltaX = xpos - InputManager::GetInstance()->lastX;
-	InputManager::GetInstance()->deltaY = InputManager::GetInstance()->lastY - ypos; // reversed since y-coordinates go from bottom to top
+	InputManager::GetInstance()->deltaX += xpos - InputManager::GetInstance()->lastX;
+	InputManager::GetInstance()->deltaY += InputManager::GetInstance()->lastY - ypos; // reversed since y-coordinates go from bottom to top
 	InputManager::GetInstance()->lastX = xpos;
 	InputManager::GetInstance()->lastY = ypos;
 
@@ -203,8 +203,9 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 }
 void mouse_button_callback(GLFWwindow* window, int key, int action,int mods){
     if(key == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS){
-        double xpos, ypos; 
-        //glfwGetCursorPos(window, &xpos, &ypos);
+        double xpos,ypos;glfwGetCursorPos(window,&xpos,&ypos);
+        InputManager::GetInstance()->setMousePos(float(xpos),float(ypos));
+        InputManager::GetInstance()->deltaX=InputManager::GetInstance()->deltaY=0;
         clicked = true;
         //InputManager::GetInstance()->lastX = xpos;
         //InputManager::GetInstance()->lastY = ypos;
@@ -224,8 +225,8 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     InputManager::GetInstance()->scrollMove = true;
     InputManager::GetInstance()->keyStatus[MOUSE_SCROLL] = PRESSED;
-    InputManager::GetInstance()->mouseScrollX = xoffset;
-    InputManager::GetInstance()->mouseScrollY = yoffset;
+    InputManager::GetInstance()->mouseScrollX += xoffset;
+    InputManager::GetInstance()->mouseScrollY += yoffset;
     //camera.ProcessMouseScroll(yoffset);
 }
 
