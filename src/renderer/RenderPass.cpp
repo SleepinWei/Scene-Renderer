@@ -33,7 +33,7 @@ void BasePass::render(const std::shared_ptr<RenderScene> &scene, const std::shar
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
 	glCheckError();
-	for (auto &object : scene->objects)
+	for (auto &object : scene->objects())
 	{
 		std::shared_ptr<MeshRenderer> &&renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
 		if (renderer && renderer->shader)
@@ -44,7 +44,7 @@ void BasePass::render(const std::shared_ptr<RenderScene> &scene, const std::shar
 	glCheckError();
 
 	// render Terrain
-	std::shared_ptr<Terrain> &terrain = scene->terrain;
+	const auto &terrain = scene->terrain();
 	if (terrain)
 	{
 		// terrain->shader->use();
@@ -53,7 +53,7 @@ void BasePass::render(const std::shared_ptr<RenderScene> &scene, const std::shar
 		glCheckError();
 	}
 
-	std::shared_ptr<Sky> &sky = scene->sky;
+	const auto &sky = scene->sky();
 	if (sky)
 	{
 		sky->render(outShader);
@@ -165,7 +165,7 @@ void ShadowPass::render(const std::shared_ptr<RenderScene> &scene)
 void ShadowPass::pointLightShadow(const std::shared_ptr<RenderScene> &scene)
 {
 	// TODO:
-	auto &plights = scene->pointLights;
+	auto &plights = scene->pointLights();
 	unsigned int num_point_lights = plights.size();
 	for (unsigned int i = 0; i < num_point_lights; i++)
 	{
@@ -190,8 +190,8 @@ void ShadowPass::pointLightShadow(const std::shared_ptr<RenderScene> &scene)
 		// glReadBuffer(GL_NONE);
 		//
 		//  start to render
-		float near_plane = scene->main_camera->zNear;
-		float far_plane = scene->main_camera->zFar;
+		float near_plane = scene->mainCamera()->zNear;
+		float far_plane = scene->mainCamera()->zFar;
 
 		glm::mat4 proj = glm::perspective(glm::radians(90.0f), (float)cube_map_resolution / cube_map_resolution, near_plane, far_plane);
 
@@ -218,7 +218,7 @@ void ShadowPass::pointLightShadow(const std::shared_ptr<RenderScene> &scene)
 		shadowShader_point->setFloat("far_plane", far_plane);
 		shadowShader_point->setVec3("lightPos", lightPos);
 
-		for (auto &object : scene->objects)
+		for (auto &object : scene->objects())
 		{
 			std::shared_ptr<MeshRenderer> &&renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
 			if (renderer && renderer->drawMode == GL_TRIANGLES)
@@ -237,7 +237,7 @@ void ShadowPass::simpleDirectionShadow(const std::shared_ptr<RenderScene> &scene
 void ShadowPass::directionLightShadow(const std::shared_ptr<RenderScene> &scene)
 {
 	// TODO:
-	auto &dLights = scene->directionLights;
+	auto &dLights = scene->directionLights();
 	unsigned int num_direction_lights = dLights.size();
 	if (!RenderManager::GetInstance()->setting.enableDirectional)
 	{
@@ -284,7 +284,7 @@ void ShadowPass::directionLightShadow(const std::shared_ptr<RenderScene> &scene)
 
 		// rendering
 
-		for (auto object : scene->objects)
+		for (auto object : scene->objects())
 		{
 			std::shared_ptr<MeshRenderer> &&renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
 			if (renderer && renderer->drawMode == GL_TRIANGLES)
@@ -301,7 +301,7 @@ void ShadowPass::directionLightShadow(const std::shared_ptr<RenderScene> &scene)
 std::vector<glm::vec4> ShadowPass::get_frustum_points(const float nearplane, const float farplane, const std::shared_ptr<RenderScene> &scene)
 {
 	std::vector<glm::vec4> re;
-	const auto &camera = scene->main_camera;
+	const auto &camera = scene->mainCamera();
 	glm::mat4 perspective = glm::perspective(glm::radians(camera->Zoom), camera->aspect_ratio, nearplane, farplane);
 	glm::mat4 view = camera->GetViewMatrix();
 
@@ -360,7 +360,7 @@ glm::mat4 ShadowPass::get_stratified_matrix(const std::vector<glm::vec4> &points
 std::vector<glm::mat4> ShadowPass::get_stratified_matrices(const std::shared_ptr<RenderScene> &scene, const std::shared_ptr<DirectionLight> light)
 {
 	std::vector<glm::mat4> re;
-	float camera_near = scene->main_camera->zNear, camera_far = scene->main_camera->zFar;
+	float camera_near = scene->mainCamera()->zNear, camera_far = scene->mainCamera()->zFar;
 	shadow_limiter.at(0) = camera_far / 50.0;
 	shadow_limiter.at(1) = camera_far / 25.0;
 	shadow_limiter.at(2) = camera_far / 10.0;
@@ -380,10 +380,10 @@ std::vector<glm::mat4> ShadowPass::get_stratified_matrices(const std::shared_ptr
 
 void ShadowPass::init_framebuffers(const std::shared_ptr<RenderScene> &scene)
 {
-	unsigned int num_direction_lights = scene->directionLights.size();
-	unsigned int num_point_lights = scene->pointLights.size();
+	unsigned int num_direction_lights = scene->directionLights().size();
+	unsigned int num_point_lights = scene->pointLights().size();
 
-	for (const auto &light : scene->directionLights)
+	for (const auto &light : scene->directionLights())
 	{
 		light->shadowTex->genTextureArray(
 			GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT, cascaded_map_resolution, cascaded_map_resolution, 0, cascaded_layers);
@@ -397,7 +397,7 @@ void ShadowPass::init_framebuffers(const std::shared_ptr<RenderScene> &scene)
 		// add to vectors
 		frameBuffer_dirs.emplace_back(new_framebuffer);
 	}
-	for (const auto &light : scene->pointLights)
+	for (const auto &light : scene->pointLights())
 	{
 		light->shadowTex->genCubeMap(GL_DEPTH_COMPONENT, cube_map_resolution, cube_map_resolution);
 		auto new_framebuffer = std::make_shared<FrameBuffer>();
@@ -464,7 +464,7 @@ void DepthPass::render(const std::shared_ptr<RenderScene> &scene)
 		dirty = false;
 	}
 
-	// glm::mat4 projection_ = glm::perspective(glm::radians(scene->main_camera->Zoom),
+	// glm::mat4 projection_ = glm::perspective(glm::radians(scene->mainCamera()->Zoom),
 	// InputManager::GetInstance()->width * 1.0f / InputManager::GetInstance()->height,
 	// 0.5f, 5.0f);
 
@@ -478,7 +478,7 @@ void DepthPass::render(const std::shared_ptr<RenderScene> &scene)
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // black
 
 	glCullFace(GL_BACK);
-	for (auto &object : scene->objects)
+	for (auto &object : scene->objects())
 	{
 		std::shared_ptr<MeshRenderer> &&renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
 		if (renderer && renderer->shader)
@@ -491,7 +491,7 @@ void DepthPass::render(const std::shared_ptr<RenderScene> &scene)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // black
 	glCullFace(GL_FRONT);
-	for (auto &object : scene->objects)
+	for (auto &object : scene->objects())
 	{
 		std::shared_ptr<MeshRenderer> &&renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
 		if (renderer && renderer->shader)
@@ -608,9 +608,9 @@ void DeferredPass::renderGbuffer(const std::shared_ptr<RenderScene> &scene)
 
 	gBufferShader->use();
 
-	for (int i = 0; i < scene->objects.size(); i++)
+	for (int i = 0; i < scene->objects().size(); i++)
 	{
-		auto &object = scene->objects[i];
+		auto &object = scene->objects()[i];
 		// only render deferred objects in gbuffer phase
 		if (object->isDeferred())
 		{
@@ -622,7 +622,7 @@ void DeferredPass::renderGbuffer(const std::shared_ptr<RenderScene> &scene)
 		}
 	}
 
-	std::shared_ptr<Terrain> &terrain = scene->terrain;
+	const auto &terrain = scene->terrain();
 	if (terrain)
 	{
 		// terrain->shader->use();
@@ -665,8 +665,8 @@ void DeferredPass::render(const std::shared_ptr<RenderScene> &scene)
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glActiveTexture(GL_TEXTURE5);
 	glBindTexture(GL_TEXTURE_2D, 0);
-	if (scene->sky) {
-		auto atmosphere = std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));
+	if (scene->sky()) {
+		auto atmosphere = std::static_pointer_cast<Atmosphere>(scene->sky()->GetComponent("Atmosphere"));
 		if (atmosphere && atmosphere->convolutionTexture) {
 			atmosphere->convolutionTexture->bindBuffer(); // bind environment map
 		}
@@ -682,20 +682,20 @@ void DeferredPass::render(const std::shared_ptr<RenderScene> &scene)
 
 	// int i = 0;
 	int base = 8; // already 8 texture units occupied
-	for (int i = 0; i < scene->directionLights.size(); ++i)
+	for (int i = 0; i < scene->directionLights().size(); ++i)
 	{
 		int texture_unit_index = i + base;
 		glActiveTexture(GL_TEXTURE0 + texture_unit_index);
-		glBindTexture(GL_TEXTURE_2D_ARRAY, scene->directionLights.at(i)->shadowTex->id);
+		glBindTexture(GL_TEXTURE_2D_ARRAY, scene->directionLights().at(i)->shadowTex->id);
 		lightingShader->setInt("shadow_maps[" + std::to_string(i) + "]", texture_unit_index);
 	}
 
-	base += scene->directionLights.size();
-	for (int i = 0; i < scene->pointLights.size(); ++i)
+	base += scene->directionLights().size();
+	for (int i = 0; i < scene->pointLights().size(); ++i)
 	{
 		int texture_unit_index = i + base;
 		glActiveTexture(GL_TEXTURE0 + texture_unit_index);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, scene->pointLights.at(i)->shadowTex->id);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, scene->pointLights().at(i)->shadowTex->id);
 		lightingShader->setInt("shadow_cubes[" + std::to_string(i) + "]", texture_unit_index);
 	}
 
@@ -706,7 +706,7 @@ void DeferredPass::render(const std::shared_ptr<RenderScene> &scene)
 
 	lightingShader->setBool("enableShadow", RenderManager::GetInstance()->setting.enableShadow);
 
-	lightingShader->setFloat("far_plane", scene->main_camera->zFar);
+	lightingShader->setFloat("far_plane", scene->mainCamera()->zFar);
 	lightingShader->setInt("cascaded_levels", 4);
 
 	lightingShader->setInt("environment", 5);
@@ -722,11 +722,11 @@ void DeferredPass::render(const std::shared_ptr<RenderScene> &scene)
 		lightingShader->setFloat("cascaded_distances[" + std::to_string(i) + "]", shadow_limiter[i]);
 
 	// set uniforms
-	if (scene->main_camera)
+	if (scene->mainCamera())
 	{
-		// lightingShader->setVec3("camPos", scene->main_camera->Position);
+		// lightingShader->setVec3("camPos", scene->mainCamera()->Position);
 
-		lightingShader->setFloat("far_plane", scene->main_camera->zFar);
+		lightingShader->setFloat("far_plane", scene->mainCamera()->zFar);
 		// lightingShader->setInt("cascaded_levels", 5);
 	}
 
@@ -748,7 +748,7 @@ void DeferredPass::render(const std::shared_ptr<RenderScene> &scene)
 	postBuffer->bindBuffer();
 
 	// forward rendering
-	for (auto &object : scene->objects)
+	for (auto &object : scene->objects())
 	{
 		if (!object->isDeferred())
 		{
@@ -763,9 +763,9 @@ void DeferredPass::render(const std::shared_ptr<RenderScene> &scene)
 	glCheckError();
 
 	// forward rendering : sky
-	if (scene->sky)
+	if (scene->sky())
 	{
-		scene->sky->render(nullptr);
+		scene->sky()->render(nullptr);
 	}
 
 	glCheckError();
@@ -779,11 +779,11 @@ void DeferredPass::renderAlphaObjects(const std::shared_ptr<RenderScene> &scene)
 	postBuffer->bindBuffer();
 
 	// postTexture = alphaTexture;
-	if (scene->terrain && scene->terrain->GetComponent("Ocean") != nullptr)
+	if (scene->terrain() && scene->terrain()->GetComponent("Ocean") != nullptr)
 	{
-		shared_ptr<Ocean> ocean = std::static_pointer_cast<Ocean>((scene->terrain->GetComponent("Ocean")));
+		shared_ptr<Ocean> ocean = std::static_pointer_cast<Ocean>((scene->terrain()->GetComponent("Ocean")));
 		shared_ptr<Shader> oceanShader = ocean->draw_shader;
-		std::static_pointer_cast<Ocean>((scene->terrain->GetComponent("Ocean")))->render();
+		std::static_pointer_cast<Ocean>((scene->terrain()->GetComponent("Ocean")))->render();
 	}
 }
 
@@ -796,7 +796,7 @@ void DeferredPass::postProcess(const std::shared_ptr<RenderScene> &scene)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glActiveTexture(GL_TEXTURE0);glBindTexture(GL_TEXTURE_2D,source);
 	postProcessShader->use();
-	postProcessShader->setFloat("exposure", scene->main_camera->exposure);
+	postProcessShader->setFloat("exposure", scene->mainCamera()->exposure);
 	postProcessShader->setInt("hdrBuffer", 0);
 
 	renderQuad();
@@ -888,13 +888,13 @@ void RSMPass::renderGbuffer(const std::shared_ptr<RenderScene> &scene)
 
     // Generation and gather share one cached projection. Outdoor scenes use
     // directional irradiance and the same diffuse sky LUT as deferred IBL.
-    auto atmosphere = scene->sky ? std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere")) : nullptr;
+    auto atmosphere = scene->sky() ? std::static_pointer_cast<Atmosphere>(scene->sky()->GetComponent("Atmosphere")) : nullptr;
     std::shared_ptr<DirectionLight> sun;
-    for (const auto& candidate : scene->directionLights)
+    for (const auto& candidate : scene->directionLights())
         if (candidate && candidate->enabled) { sun = candidate; break; }
     const bool outdoor = useSunSky && (sun || atmosphere);
     light.reset();
-    if (!outdoor) for (const auto& candidate : scene->spotLights)
+    if (!outdoor) for (const auto& candidate : scene->spotLights())
         if (candidate && candidate->enabled) { light = candidate; break; }
     sourceAvailable = outdoor || bool(light);
     rsmFBO->bindBuffer();
@@ -907,7 +907,7 @@ void RSMPass::renderGbuffer(const std::shared_ptr<RenderScene> &scene)
         const auto direction = sun ? glm::normalize(sun->data.direction) : glm::vec3(0,-1,0);
         const auto up = std::abs(direction.y) > .99f ? glm::vec3(0,0,1) : glm::vec3(0,1,0);
         const float radius = std::max(worldRadius, 1.0f);
-        glm::vec3 center = scene->main_camera->Position + scene->main_camera->Front * (radius * .5f);
+        glm::vec3 center = scene->mainCamera()->Position + scene->mainCamera()->Front * (radius * .5f);
         const auto right = glm::normalize(glm::cross(direction,up));
         const auto lightUp = glm::cross(right,direction);
         const float texelSize = 2 * radius / RSM_WIDTH;
@@ -939,9 +939,9 @@ void RSMPass::renderGbuffer(const std::shared_ptr<RenderScene> &scene)
     }
     RSMShader->setMat4("lightSpaceMatrix",lightSpaceMatrix);
 
-	for (int i = 0; i < scene->objects.size(); i++)
+	for (int i = 0; i < scene->objects().size(); i++)
 	{
-		auto &object = scene->objects[i];
+		auto &object = scene->objects()[i];
 		//// only render deferred objects in gbuffer phase
 		// if (object->isDeferred()) {
 		std::shared_ptr<MeshRenderer> &&renderer = std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
@@ -952,7 +952,7 @@ void RSMPass::renderGbuffer(const std::shared_ptr<RenderScene> &scene)
 		//}
 	}
 
-	// std::shared_ptr<Terrain>& terrain = scene->terrain;
+	// std::shared_ptr<Terrain>& terrain = scene->terrain();
 	// if (terrain) {
 	//	//terrain->shader->use();
 	//

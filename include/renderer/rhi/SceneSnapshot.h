@@ -12,7 +12,7 @@ struct MeshPayload {
 struct MaterialPayload {
     uint64_t id = 0, revision = 0;
     std::array<std::shared_ptr<const ImageRGBA8>, 5> images;
-    ImageRGBA8 special;
+    std::shared_ptr<const ImageRGBA8> special;
     std::shared_ptr<const ImageRGBA8> height;
 };
 struct SnapshotDraw {

@@ -8,6 +8,8 @@
 #include "component/Transform.h"
 #include "renderer/Material.h"
 #include "renderer/rhi/SceneSnapshot.h"
+#include "renderer/rhi/GpuImageCache.h"
+#include "component/Lights.h"
 #include "engine/RenderRuntime.h"
 #include "rhi/ShaderAssets.h"
 #include "object/Terrain.h"
@@ -21,12 +23,152 @@
 #include <algorithm>
 #include <cmath>
 #include <chrono>
+#include <type_traits>
+#include <new>
 namespace render {
 void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
     auto check = [](bool value, const char *reason) {
         if (!value)
             throw std::runtime_error(reason);
     };
+    {
+        auto cache = GpuImageCache::forDevice(device);
+        check(cache == GpuImageCache::forDevice(device), "Device created separate GPU image caches");
+        cache->setIdleBudget(0);
+        auto before = cache->stats();
+        auto image =
+            std::make_shared<const ImageRGBA8>(ImageRGBA8{2, 1, {17, 31, 67, 255, 79, 83, 101, 255}});
+        auto clone = std::make_shared<const ImageRGBA8>(*image);
+        auto a = cache->acquire(image), b = cache->acquire(image), c = cache->acquire(clone);
+        check(a == b && b == c && cache->stats().uploads == before.uploads + 1,
+              "Shared or equal images were uploaded more than once");
+        check(device->readTexture(a->texture()) == image->pixels, "Shared image changed uploaded pixels");
+        check(cache->missingBytes({image, clone}) == 0, "Image admission charged cached content twice");
+        auto changed = std::make_shared<ImageRGBA8>(*image);
+        changed->pixels[0]++;
+        auto d = cache->acquire(changed);
+        auto shape = std::make_shared<ImageRGBA8>(*image);
+        shape->width = 1;
+        shape->height = 2;
+        auto e = cache->acquire(shape);
+        check(d != a && e != a && cache->stats().uploads == before.uploads + 3,
+              "GPU image cache aliased different content or dimensions");
+        auto invalid = std::make_shared<ImageRGBA8>(*image);
+        invalid->pixels.pop_back();
+        bool rejected = false;
+        try {
+            cache->acquire(invalid);
+        } catch (const std::invalid_argument &) {
+            rejected = true;
+        }
+        check(rejected && cache->stats().uploads == before.uploads + 3, "Invalid image polluted GPU cache");
+        {
+            // An equal-content alias can die while the GPU entry retains a
+            // different source. Reuse that CPU address with new content.
+            using Storage = std::aligned_storage_t<sizeof(ImageRGBA8), alignof(ImageRGBA8)>;
+            auto storage = std::make_shared<Storage>();
+            auto makeAlias = [&](ImageRGBA8 value) {
+                auto pointer = new (storage.get()) ImageRGBA8(std::move(value));
+                return std::shared_ptr<const ImageRGBA8>(
+                    pointer, [storage](const ImageRGBA8 *p) { p->~ImageRGBA8(); });
+            };
+            auto alias = makeAlias(*image);
+            check(cache->acquire(alias) == a, "Equal-content alias failed to share its GPU image");
+            alias.reset();
+            auto different = *image;
+            different.pixels[2]++;
+            alias = makeAlias(std::move(different));
+            auto recycled = cache->acquire(alias);
+            check(recycled != a && device->readTexture(recycled->texture()) == alias->pixels,
+                  "Reused CPU address hit stale GPU image content");
+            recycled.reset();
+            alias.reset();
+            cache->trim();
+        }
+        auto foreign = std::async(std::launch::async, [&] {
+            try {
+                cache->acquire(image);
+            } catch (const std::logic_error &) {
+                return true;
+            }
+            return false;
+        });
+        check(foreign.get(), "GPU image cache accepted a foreign-thread upload");
+        cache->trim();
+        check(cache->stats().residentBytes >= 24 && cache->stats().idleBytes == 0,
+              "Budget evicted live GPU leases");
+        a.reset();
+        b.reset();
+        c.reset();
+        cache->setIdleBudget(8);
+        auto idle = cache->acquire(image);
+        idle.reset();
+        cache->trim();
+        check(cache->stats().idleBytes == 8, "Idle cache did not retain one budgeted image");
+        auto newest = std::make_shared<ImageRGBA8>(*image);
+        newest->pixels[1]++;
+        auto lease = cache->acquire(newest);
+        lease.reset();
+        cache->trim();
+        check(cache->stats().idleBytes == 8 && cache->missingBytes({image}) == 8 &&
+                  cache->missingBytes({newest}) == 0,
+              "Idle cache did not evict the least recently used image");
+        d.reset();
+        e.reset();
+        cache->setIdleBudget(0);
+        check(cache->stats().idleBytes == 0, "Zero idle budget retained unused GPU images");
+        {
+            MaterialDesc desc;
+            desc.sharedImages[0] = image;
+            auto first = std::make_shared<GpuMaterial>(device, desc);
+            const auto uploads = cache->stats().uploads;
+            desc.filter = rhi::Filter::Nearest;
+            auto second = std::make_shared<GpuMaterial>(device, desc);
+            check(cache->stats().uploads == uploads && GpuMaterial::imageUploadBytes(device, desc) == 0,
+                  "Material slots or sampler choice prevented GPU image sharing");
+        }
+        cache->trim();
+        device->waitIdle();
+        cache->setIdleBudget(64 * 1024 * 1024);
+    }
+    {
+        auto scene = std::make_shared<RenderScene>();
+        auto object = std::make_shared<GameObject>("structural light");
+        object->addComponent(std::make_shared<DirectionLight>());
+        scene->addObject(object);
+        const auto revision = scene->revision();
+        scene->addObject(object);
+        check(scene->objects().size() == 1 && scene->directionLights().size() == 1 &&
+                  scene->revision() == revision,
+              "Duplicate insertion duplicated world or light index");
+        auto foreign = std::async(std::launch::async, [&] {
+            bool read = false, write = false;
+            try {
+                scene->objects();
+            } catch (const std::logic_error &) {
+                read = true;
+            }
+            try {
+                scene->setCamera({});
+            } catch (const std::logic_error &) {
+                write = true;
+            }
+            return read && write;
+        });
+        check(foreign.get(), "Private scene structure bypassed its owner thread");
+        check(!scene->removeObject(object->assetId + 1000000) && scene->revision() == revision,
+              "Missing removal changed world version");
+        check(scene->removeObject(object->assetId) && scene->objects().empty() &&
+                  scene->directionLights().empty() && scene->revision() > revision,
+              "Object removal retained a stale light or world version");
+        scene->addObject(object);
+        scene->clearObjects();
+        check(scene->objects().empty() && scene->directionLights().empty(), "Clear retained ghost lights");
+        scene->addObject(object);
+        object->component_type_instance_map.erase("DirectionLight");
+        check(scene->refreshObject(object->assetId) && scene->directionLights().empty(),
+              "Component refresh retained a removed light");
+    }
     {
         Material material;
         Material copy = material;
@@ -99,8 +241,8 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
         loader->loadSceneAsync(scene, (base / "empty.json").string());
         auto sentinel = std::make_shared<GameObject>("keep on failure");
         scene->addObject(sentinel);
-        scene->main_camera = std::make_shared<Camera>();
-        auto camera = scene->main_camera;
+        scene->setCamera(std::make_shared<Camera>());
+        auto camera = scene->mainCamera();
         uint64_t revision = scene->revision();
         bool rejected = false;
         try {
@@ -117,7 +259,8 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
         }
         check(rejected && scene->revision() == revision,
               "Loader lost worker exception or published a partial scene");
-        check(scene->objects.size() == 1 && scene->objects[0] == sentinel && scene->main_camera == camera,
+        check(scene->objects().size() == 1 && scene->objects()[0] == sentinel &&
+                  scene->mainCamera() == camera,
               "Failed staging build modified the live scene");
         {
             std::ofstream missing(base / "missing.json");
@@ -129,15 +272,15 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
         } catch (const std::runtime_error &) {
             rejected = true;
         }
-        check(rejected && scene->objects.at(0) == sentinel && scene->revision() == revision,
+        check(rejected && scene->objects().at(0) == sentinel && scene->revision() == revision,
               "Missing child file was silently accepted or cleared the world");
         if (device->backend() != rhi::Backend::OpenGL) {
             auto request = loader->buildScene((base / "empty.json").string());
             auto built = request.result.get();
-            check(scene->objects.at(0) == sentinel && scene->revision() == revision,
+            check(scene->objects().at(0) == sentinel && scene->revision() == revision,
                   "Async build published before logic-thread commit");
             scene->replaceWith(*built);
-            check(scene->objects.empty() && scene->main_camera == camera && scene->revision() > revision,
+            check(scene->objects().empty() && scene->mainCamera() == camera && scene->revision() > revision,
                   "Successful commit lost camera or failed to replace world");
         }
         loader->loadSceneAsync(scene, (base / "empty.json").string());
@@ -149,10 +292,43 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
         SceneSnapshotBuilder builder;
         auto first = builder.capture(scene, 0, 64, 64);
         check(!first->draws.empty(), "Snapshot lost scene draws");
+        {
+            // Warm three independent records, then replace all three meshes under
+            // a two-asset budget. The deferred third draw must retain its material.
+            SceneAdapter streaming(device);
+            RenderWorldSnapshot seed = *first;
+            seed.draws.clear();
+            seed.terrain.reset();
+            for (uint64_t i = 0; i < 3; ++i) {
+                auto draw = first->draws[0];
+                draw.subdivision = false;
+                draw.objectId += 100000 + i;
+                auto mesh = std::make_shared<MeshPayload>(*draw.mesh);
+                mesh->id += 100000 + i;
+                draw.mesh = mesh;
+                auto material = std::make_shared<MaterialPayload>(*draw.material);
+                material->id += 100000 + i;
+                draw.material = material;
+                seed.draws.push_back(draw);
+            }
+            auto warm = streaming.resolve(seed);
+            auto pending = seed;
+            pending.asynchronousStreaming = true;
+            for (auto &draw : pending.draws) {
+                auto mesh = std::make_shared<MeshPayload>(*draw.mesh);
+                ++mesh->revision;
+                draw.mesh = mesh;
+            }
+            auto firstUpload = streaming.resolve(pending), secondUpload = streaming.resolve(pending);
+            check(firstUpload.packets.size() == 2 && secondUpload.packets.size() == 3 &&
+                      secondUpload.assetUploads == 1 &&
+                      secondUpload.packets[2].material == warm.packets[2].material,
+                  "Upload backpressure evicted a still-referenced material or blocked progress");
+        }
         auto unchanged = builder.capture(scene, 1, 64, 64);
         check(first->draws[0].mesh == unchanged->draws[0].mesh, "Unchanged geometry was recopied each frame");
         std::shared_ptr<GameObject> object;
-        for (const auto &candidate : scene->objects)
+        for (const auto &candidate : scene->objects())
             if (candidate->assetId == first->draws[0].objectId)
                 object = candidate;
         check(bool(object), "Snapshot object identity is not stable");
@@ -232,6 +408,10 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
                 runtime.finish();
                 check(runtime.framesRendered() == 2 && runtime.peakResourceBytes() > 0,
                       "Render worker lost packets or resource accounting");
+                check(runtime.renderP95Milliseconds() > 0 &&
+                          runtime.renderP99Milliseconds() >= runtime.renderP95Milliseconds() &&
+                          runtime.imageUploads() > 0,
+                      "Render worker omitted frame percentiles or GPU image cache statistics");
             }
             io.Fonts->SetTexID(nullptr);
             io.BackendRendererName = nullptr;
@@ -267,14 +447,14 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
     }
     if (device->computeLimits().maxStorageImages) {
         auto scene = std::make_shared<RenderScene>();
-        scene->main_camera = std::make_shared<Camera>(glm::vec3(0, 6, 12));
+        scene->setCamera(std::make_shared<Camera>(glm::vec3(0, 6, 12)));
         auto object = std::make_shared<Terrain>();
         auto terrain = std::make_shared<TerrainComponent>();
         terrain->heightWidth = terrain->heightHeight = 32;
         terrain->heightData = new float[32 * 32];
         std::fill_n(terrain->heightData, 32 * 32, .25f);
         object->addComponent(terrain);
-        scene->terrain = object;
+        scene->addTerrain(object);
         SceneAdapter adapter(device);
         auto first = adapter.collect(scene, 0);
         auto oldMesh = first.packets.at(0).mesh;

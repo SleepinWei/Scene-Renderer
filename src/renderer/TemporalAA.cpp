@@ -23,10 +23,10 @@ size_t signature(const std::shared_ptr<RenderScene>& scene) {
     auto add=[&](float x){hash^=std::hash<float>{}(x)+0x9e3779b9+(hash<<6)+(hash>>2);};
     auto s=manager->setting;for(bool x:{s.enableRSM,s.enableShadow,s.enableSSAO,s.enableDirectional})add(x);
     if(manager->rsmPass){auto r=manager->rsmPass;for(float x:{float(r->indirectOnly),float(r->sunBounce),float(r->skyBounce),r->intensity,r->sampleRadius,float(r->sampleCount),r->worldRadius,r->minDistance,float(r->useSunSky)})add(x);}
-    if(scene->sky){auto a=std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));if(a)add(a->sunAngle);}
-    for(auto light:scene->directionLights)if(light){add(light->enabled);for(int c=0;c<3;++c){add(light->data.color[c]);add(light->data.direction[c]);}}
-    if(scene->terrain) {
-        auto o=std::static_pointer_cast<Ocean>(scene->terrain->GetComponent("Ocean"));
+    if(scene->sky()){auto a=std::static_pointer_cast<Atmosphere>(scene->sky()->GetComponent("Atmosphere"));if(a)add(a->sunAngle);}
+    for(auto light:scene->directionLights())if(light){add(light->enabled);for(int c=0;c<3;++c){add(light->data.color[c]);add(light->data.direction[c]);}}
+    if(scene->terrain()) {
+        auto o=std::static_pointer_cast<Ocean>(scene->terrain()->GetComponent("Ocean"));
         if(o)for(float x:{float(o->seed),float(o->detailWaves),o->detailStrength,float(o->refraction),o->refractionStrength,o->subsurfaceStrength,o->HeightScale,o->Lambda,o->A,o->WindScale,o->WindAndSeed.x,o->WindAndSeed.y,o->seaLevel,o->absorption.x,o->absorption.y,o->absorption.z,o->scattering.x,o->scattering.y,o->scattering.z})add(x);
     }
     return hash;
@@ -52,8 +52,8 @@ void TemporalAA::allocate(int w,int h) {
     if(!shader)shader=std::make_shared<Shader>("./src/shader/post/tsaa.comp");
 }
 void TemporalAA::begin(const std::shared_ptr<RenderScene>& scene,bool enable) {
-    if(!enable || !scene || !scene->main_camera){enabled=false;reset();return;}
-    auto camera=scene->main_camera;auto input=InputManager::GetInstance();auto baseProjection=camera->GetPerspective();
+    if(!enable || !scene || !scene->mainCamera()){enabled=false;reset();return;}
+    auto camera=scene->mainCamera();auto input=InputManager::GetInstance();auto baseProjection=camera->GetPerspective();
     size_t state=signature(scene);bool changed=!enabled || lastScene.lock()!=scene || lastCamera!=camera.get() || state!=lastSignature;
     if(width!=input->width || height!=input->height)allocate(input->width,input->height);
     if(glm::length(camera->Position-lastPosition)>3 || glm::dot(camera->Front,lastFront)<.8f)changed=true;

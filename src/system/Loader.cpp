@@ -137,10 +137,10 @@ SceneLoadRequest Loader::buildScene(const std::string &filename) {
             if (rhi::usesNativeRenderer()) {
                 // Decode/validate every referenced native asset and VT bootstrap page
                 // before publication. Reuse those detached payloads on the logic thread.
-                staging->main_camera = std::make_shared<Camera>();
+                staging->setCamera(std::make_shared<Camera>());
                 render::SceneSnapshotBuilder prepare;
-                staging->preparedAssets = prepare.capture(staging, 0, 64, 64, true);
-                staging->main_camera.reset();
+                staging->setPreparedAssets(prepare.capture(staging, 0, 64, 64, true));
+                staging->setCamera({});
             }
             checkCancelled(cancelled);
             return staging;

@@ -196,8 +196,8 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
         throw std::invalid_argument("Snapshot viewport is empty");
     if (scene)
         scene->checkLogicThread();
-    if (scene && scene->preparedAssets && state_->primed.lock() != scene->preparedAssets) {
-        const auto &prepared = *scene->preparedAssets;
+    if (scene && scene->preparedAssets() && state_->primed.lock() != scene->preparedAssets()) {
+        const auto &prepared = *scene->preparedAssets();
         for (const auto &draw : prepared.draws) {
             if (draw.mesh) {
                 auto &record = state_->meshes[draw.mesh->id];
@@ -218,13 +218,12 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
             state_->terrain.value = prepared.terrain->source;
             state_->terrain.pending = {};
         }
-        state_->primed = scene->preparedAssets;
-        scene->preparedAssets
-            .reset(); // Cache now owns payloads; do not retain removed assets through the bootstrap snapshot.
+        state_->primed = scene->preparedAssets();
+        scene->setPreparedAssets({}); // Cache now owns payloads; do not retain removed assets through the bootstrap snapshot.
     }
-    if (!scene || !scene->main_camera)
+    if (!scene || !scene->mainCamera())
         throw std::invalid_argument("Renderer: scene needs a camera");
-    const auto &camera = *scene->main_camera;
+    const auto &camera = *scene->mainCamera();
     RenderWorldSnapshot result;
     glm::mat4 depthConversion(1);
     depthConversion[2][2] = .5f;
@@ -242,16 +241,15 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
     std::vector<std::shared_ptr<PointLight>> points;
     std::vector<std::shared_ptr<SpotLight>> spots;
     {
-        std::scoped_lock guard(scene->mtx, scene->lightMtx);
-        objects = scene->objects;
-        directional = scene->directionLights;
-        points = scene->pointLights;
-        spots = scene->spotLights;
+        objects = scene->objects();
+        directional = scene->directionLights();
+        points = scene->pointLights();
+        spots = scene->spotLights();
     }
-    if (scene->terrain && std::find(objects.begin(), objects.end(), scene->terrain) == objects.end())
-        objects.push_back(scene->terrain);
+    if (scene->terrain() && std::find(objects.begin(), objects.end(), scene->terrain()) == objects.end())
+        objects.push_back(scene->terrain());
     // DirectionLight is authoritative initially; subsequent angle controls update that same light.
-    auto atmo = scene->sky ? scene->sky->getComponent<Atmosphere>() : nullptr;
+    auto atmo = scene->sky() ? scene->sky()->getComponent<Atmosphere>() : nullptr;
     auto source =
         std::find_if(directional.begin(), directional.end(), [](const auto &l) { return l && l->enabled; });
     if (atmo && source != directional.end()) {
@@ -300,8 +298,8 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
     result.frame.timeSeconds = time;
     result.frame.taa = true;
     result.frame.historyKey = scene->assetId ^ (scene->revision() * 0x9e3779b97f4a7c15ull);
-    if (scene->sky) {
-        auto atmo = scene->sky->getComponent<Atmosphere>();
+    if (scene->sky()) {
+        auto atmo = scene->sky()->getComponent<Atmosphere>();
         if (atmo) {
             result.frame.sky = true;
             result.frame.sunAngle = atmo->sunAngle;
@@ -325,10 +323,10 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
     result.frame.historyKey ^= state_->epoch * 0xd1b54a32d192ed03ull;
     bool ready = true;
     std::unordered_set<uint64_t> usedMeshes, usedMaterials;
-    if (scene->terrain) {
-        auto component = scene->terrain->getComponent<TerrainComponent>();
+    if (scene->terrain()) {
+        auto component = scene->terrain()->getComponent<TerrainComponent>();
         if (component) {
-            bool grass = bool(scene->terrain->getComponent<Grass>());
+            bool grass = bool(scene->terrain()->getComponent<Grass>());
             uint64_t key = component->assetId;
             uint64_t revision = 0xcbf29ce484222325ull;
             auto mix = [&](uint64_t value) {
@@ -545,7 +543,7 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
                                 payload->revision = rev;
                                 for (size_t i = 0; i < 5; ++i)
                                     payload->images[i] = decodeShared(*detached, names[i]);
-                                payload->special = specialMaps(*detached);
+                                payload->special = std::make_shared<const ImageRGBA8>(specialMaps(*detached));
                                 payload->height = decodeShared(*detached, "material.height");
                                 return std::shared_ptr<const MaterialPayload>(payload);
                             },

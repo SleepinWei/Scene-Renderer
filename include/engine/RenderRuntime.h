@@ -23,6 +23,12 @@ class RenderRuntime {
     void finish(); // Drain, join and return device ownership to caller.
     uint64_t framesRendered() const { return framesRendered_.load(); }
     double renderMilliseconds() const { return renderMilliseconds_.load(); }
+    double renderP95Milliseconds() const { return renderP95Milliseconds_.load(); }
+    double renderP99Milliseconds() const { return renderP99Milliseconds_.load(); }
+    double peakQueueWaitMilliseconds() const { return peakQueueWaitMilliseconds_.load(); }
+    uint64_t imageBytes() const { return imageBytes_.load(); }
+    uint64_t imageUploads() const { return imageUploads_.load(); }
+    uint64_t imageCacheHits() const { return imageCacheHits_.load(); }
     uint64_t peakResourceBytes() const { return peakResourceBytes_.load(); }
 
   private:
@@ -34,6 +40,8 @@ class RenderRuntime {
     std::exception_ptr failure_;
     std::atomic<uint64_t> framesRendered_{0};
     std::atomic<double> renderMilliseconds_{0};
+    std::atomic<double> renderP95Milliseconds_{0}, renderP99Milliseconds_{0}, peakQueueWaitMilliseconds_{0};
+    std::atomic<uint64_t> imageBytes_{0}, imageUploads_{0}, imageCacheHits_{0};
     std::atomic<uint64_t> peakResourceBytes_{0};
     std::atomic<uint64_t> surfaceExtent_{UINT64_MAX};
 };

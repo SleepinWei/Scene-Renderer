@@ -93,7 +93,7 @@ void NativeRealTimeRun(GLFWwindow* window,shared_ptr<RenderScene>& scene){
             framebuffer_size_callback(window,width,height);
             gui.window(scene);InputManager::GetInstance()->tick();
             if(InputManager::GetInstance()->keyStatus[KEY_R]==PRESSED){Connector::GetInstance()->LaunchPathTracingWithRenderScene(scene);InputManager::GetInstance()->keyStatus[KEY_R]=RELEASED;}
-            if(scene->main_camera){scene->main_camera->aspect_ratio=float(width)/height;scene->main_camera->tick();}
+            if(scene->mainCamera()){scene->mainCamera()->aspect_ratio=float(width)/height;scene->mainCamera()->tick();}
             const auto settings=RenderManager::GetInstance()->setting;
             auto captured=snapshots.capture(scene,settings.timeOverride>=0?settings.timeOverride:float(glfwGetTime()),uint32_t(width),uint32_t(height),false);
             if(captured){
@@ -112,7 +112,7 @@ void NativeRealTimeRun(GLFWwindow* window,shared_ptr<RenderScene>& scene){
         auto error=std::current_exception();try{runtime.finish();}catch(...){}
         gui.destroy();RenderManager::GetInstance()->releaseNative();scene->destroy();scene.reset();rhi::shutdown();glfwDestroyWindow(window);glfwTerminate();std::rethrow_exception(error);
     }
-    std::cout<<"RHI threaded editor rendered "<<runtime.framesRendered()<<" frames in "<<std::chrono::duration<double>(std::chrono::steady_clock::now()-started).count()<<" seconds; last render "<<runtime.renderMilliseconds()<<" ms; peak RHI resource estimate "<<runtime.peakResourceBytes()/1048576.0<<" MiB; CPU queue 2, GPU frame limit "<<maxFramesInFlight<<"\n";
+    std::cout<<"RHI threaded editor rendered "<<runtime.framesRendered()<<" frames in "<<std::chrono::duration<double>(std::chrono::steady_clock::now()-started).count()<<" seconds; last render "<<runtime.renderMilliseconds()<<" ms; render CPU p95/p99 "<<runtime.renderP95Milliseconds()<<"/"<<runtime.renderP99Milliseconds()<<" ms; peak queue wait "<<runtime.peakQueueWaitMilliseconds()<<" ms; shared GPU images "<<runtime.imageBytes()/1048576.0<<" MiB / "<<runtime.imageUploads()<<" uploads / "<<runtime.imageCacheHits()<<" hits; peak RHI resource estimate "<<runtime.peakResourceBytes()/1048576.0<<" MiB; CPU queue 2, GPU frame limit "<<maxFramesInFlight<<"\n";
     gui.destroy();RenderManager::GetInstance()->releaseNative();scene->destroy();scene.reset();ResourceManager::GetInstance()->releaseUnused();rhi::shutdown();glfwDestroyWindow(window);glfwTerminate();
 }
 
@@ -145,8 +145,8 @@ void RealTimeRun(GLFWwindow* window, shared_ptr<RenderScene>& scene) {
 		}
 
 		// camera tick
-		if (scene->main_camera) {
-			scene->main_camera->tick();
+		if (scene->mainCamera()) {
+			scene->mainCamera()->tick();
 		}
 
 		RenderManager::GetInstance()->render(scene);
@@ -275,7 +275,7 @@ int main(int argc, char** argv) {
 	// Camera
 	{
 		std::shared_ptr<Camera> camera = std::make_shared<Camera>();
-		scene->main_camera = camera;
+		scene->setCamera(camera);
 	}
     if(!classicScene.empty())scene=render::makeClassicScene(classicScene);
     else if(forceDemo || !std::filesystem::exists(config->scene_file)) {

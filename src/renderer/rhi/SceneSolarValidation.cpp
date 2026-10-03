@@ -12,8 +12,8 @@ void validateSceneSolarControls(std::shared_ptr<rhi::GraphicsDevice> device) {
     // Verify source authority, GUI edits, and external light edits across real scene collection.
     {
         auto scene=makeClassicScene("sky");SceneAdapter adapter(device);
-        auto atmo=std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));
-        auto light=scene->directionLights.at(0);light->data.direction=glm::normalize(glm::vec3(-1,-1,0));
+        auto atmo=std::static_pointer_cast<Atmosphere>(scene->sky()->GetComponent("Atmosphere"));
+        auto light=scene->directionLights().at(0);light->data.direction=glm::normalize(glm::vec3(-1,-1,0));
         auto frame=adapter.collect(scene,0);
         check(std::abs(frame.frame.sunAngle-45)<.001f && std::abs(frame.frame.sunAzimuth-90)<.001f,"Initial sky did not adopt authored DirectionLight");
         auto color=light->data.color;atmo->sunAngle=20;atmo->sunAzimuth=-35;frame=adapter.collect(scene,0);

@@ -1,5 +1,6 @@
 #include "renderer/rhi/SceneAdapter.h"
 #include "renderer/rhi/GpuTerrain.h"
+#include "renderer/rhi/GpuImageCache.h"
 #include "renderer/rhi/GpuGrass.h"
 #include "renderer/rhi/GpuSubdivision.h"
 #include "rhi/ShaderAssets.h"
@@ -38,10 +39,12 @@ struct SceneAdapter::Cache {
     };
     std::unique_ptr<TerrainRecord> terrain;
     uint64_t terrainEpoch = 0, uploadEpoch = 0;
+    std::shared_ptr<GpuImageCache> images;
     std::shared_ptr<GpuMaterial> fallback;
 };
 SceneAdapter::SceneAdapter(std::shared_ptr<rhi::GraphicsDevice> device)
     : device_(std::move(device)), cache_(std::make_unique<Cache>()) {
+    cache_->images = GpuImageCache::forDevice(device_);
     MaterialDesc fallback;
     fallback.parameters.factors = {0, .5f, 1, 0};
     fallback.parameters.emissiveNormal.w = 0;
@@ -128,6 +131,12 @@ SceneFrame SceneAdapter::resolve(const RenderWorldSnapshot &snapshot) {
     std::set<Cache::MaterialKey> usedMaterials;
     std::set<std::pair<uint64_t, uint64_t>> usedSubdivisions;
     for (const auto &draw : snapshot.draws) {
+        // Mark every referenced record before admission. A pending mesh/material
+        // must not evict an already-uploaded dependent asset and starve forever.
+        if (draw.material)
+            usedMaterials.insert({draw.material->id, draw.shading});
+        if (draw.subdivision && draw.mesh)
+            usedSubdivisions.insert({draw.objectId, draw.mesh->id});
         const auto &source = draw.mesh;
         if (!source)
             throw std::invalid_argument("Snapshot contains pending mesh");
@@ -136,8 +145,9 @@ SceneFrame SceneAdapter::resolve(const RenderWorldSnapshot &snapshot) {
         if (mesh.source != source) {
             if (!admit(source->vertices.size() * sizeof(MeshVertex) + source->indices.size() * 4))
                 continue;
+            auto uploaded = std::make_shared<GpuMesh>(device_, source->vertices, source->indices);
             mesh.source = source;
-            mesh.gpu = std::make_shared<GpuMesh>(device_, source->vertices, source->indices);
+            mesh.gpu = std::move(uploaded);
         }
         auto material = cache_->fallback;
         if (draw.material) {
@@ -145,20 +155,16 @@ SceneFrame SceneAdapter::resolve(const RenderWorldSnapshot &snapshot) {
             usedMaterials.insert(key);
             auto &cached = cache_->materials[key];
             if (cached.source != draw.material) {
-                size_t bytes = draw.material->special.pixels.size();
-                for (const auto &image : draw.material->images)
-                    bytes += image ? image->pixels.size() : 0;
-                if (!admit(bytes))
-                    continue;
                 MaterialDesc desc;
                 desc.parameters = draw.parameters;
                 desc.extension = draw.extension;
-                for (size_t i = 0; i < 5; ++i)
-                    if (draw.material->images[i])
-                        desc.images[i] = *draw.material->images[i];
-                desc.special = draw.material->special;
+                desc.sharedImages = draw.material->images;
+                desc.sharedSpecial = draw.material->special;
+                if (!admit(GpuMaterial::imageUploadBytes(device_, desc)))
+                    continue;
+                auto uploaded = std::make_shared<GpuMaterial>(device_, desc);
                 cached.source = draw.material;
-                cached.gpu = std::make_shared<GpuMaterial>(device_, desc);
+                cached.gpu = std::move(uploaded);
             }
             material = cached.gpu;
             material->update(draw.parameters);
@@ -203,6 +209,8 @@ SceneFrame SceneAdapter::resolve(const RenderWorldSnapshot &snapshot) {
             it = cache_->subdivisions.erase(it);
         else
             ++it;
+    cache_->images->trim();
+    result.gpuImages = cache_->images->stats();
     result.frame.historyKey ^= cache_->uploadEpoch * 0x94d049bb133111ebull;
     return result;
 }

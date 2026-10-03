@@ -136,7 +136,7 @@ void atmosphere(const std::shared_ptr<RenderScene>& target) {
     sky->skybox->initDone = false; sky->skybox->addTexture(std::make_shared<Texture>(), "skybox");
     sky->width = sky->height = 4;
     for (int i = 0; i < 6; ++i) { sky->data[i] = static_cast<unsigned char*>(std::malloc(48)); std::fill(sky->data[i], sky->data[i]+48, 16); }
-    target->sky = sky;
+    target->addSky(sky);
 }
 void floor(const std::shared_ptr<RenderScene>& target) {
     addMeshes(target, "Gallery floor", {quad({glm::vec3(-30,0,30),{30,0,30},{30,0,-30},{-30,0,-30}}, {0,1,0})}, pbr({.32f,.36f,.41f}, .75f));
@@ -151,14 +151,14 @@ std::shared_ptr<RenderScene> makeMetalClassicScene(const std::string& name) {
     manager->shadowPass = std::make_shared<ShadowPass>();
     manager->rsmPass = std::make_shared<RSMPass>();
     if (name == "bunny") {
-        target->main_camera = std::make_shared<Camera>(glm::vec3(0,3.8f,12), glm::vec3(0,1,0), -90, -10);
+        target->setCamera(std::make_shared<Camera>(glm::vec3(0,3.8f,12), glm::vec3(0,1,0), -90, -10));
         const glm::vec3 colors[] = {{.78f,.83f,.86f},{.9f,.62f,.22f},{.25f,.56f,.72f}};
         for (int i = 0; i < 3; ++i)
             addMeshes(target, "Stanford Bunny " + std::to_string(i), imported("samples/assets/bunny/bun_zipper.ply", 3, true),
                       pbr(colors[i], i==1?.23f:.55f, i==1?1.f:0.f), {float(i-1)*3.1f,0,0}, glm::vec3(1), {0,15,0});
         floor(target); atmosphere(target); sun(target, {2.5f,2.4f,2.3f}, {-.5f,-1,-.4f}); point(target, {32,40,50}, {5,6,5});
     } else if (name == "helmet") {
-        target->main_camera = std::make_shared<Camera>(glm::vec3(4.2f,3.5f,7), glm::vec3(0,1,0), -121, -9);
+        target->setCamera(std::make_shared<Camera>(glm::vec3(4.2f,3.5f,7), glm::vec3(0,1,0), -121, -9));
         auto material = pbr(glm::vec3(1));
         const std::string folder = "samples/assets/damaged-helmet/";
         const std::pair<const char*,const char*> maps[] = {{"material.albedo","Default_albedo.jpg"},{"material.normal","Default_normal.jpg"},
@@ -175,7 +175,7 @@ std::shared_ptr<RenderScene> makeMetalClassicScene(const std::string& name) {
         floor(target); atmosphere(target); sun(target, {2.6f,2.5f,2.4f}, {-.5f,-1,-.7f}); point(target, {45,60,80}, {-4,4,4});
     } else if (name == "cornell") {
         // Original, normalized Cornell Box-style geometry, not measured Cornell reference data.
-        target->main_camera = std::make_shared<Camera>(glm::vec3(0,2.8f,9.5f), glm::vec3(0,1,0), -90, 0);
+        target->setCamera(std::make_shared<Camera>(glm::vec3(0,2.8f,9.5f), glm::vec3(0,1,0), -90, 0));
         auto white = pbr({.8f,.8f,.77f}, .8f);
         addMeshes(target,"Floor",{quad({glm::vec3(-2.8f,0,2.8f),{2.8f,0,2.8f},{2.8f,0,-2.8f},{-2.8f,0,-2.8f}}, {0,1,0})},white);
         addMeshes(target,"Ceiling",{quad({glm::vec3(-2.8f,5.6f,-2.8f),{2.8f,5.6f,-2.8f},{2.8f,5.6f,2.8f},{-2.8f,5.6f,2.8f}}, {0,-1,0})},white);
@@ -185,7 +185,7 @@ std::shared_ptr<RenderScene> makeMetalClassicScene(const std::string& name) {
         addMeshes(target,"Short box",box(),white, {-1.2f,.85f,.7f}, {.8f,.85f,.8f}, {0,-18,0});
         addMeshes(target,"Tall box",box(),white, {1.1f,1.65f,-.9f}, {.75f,1.65f,.75f}, {0,18,0});
         addMeshes(target,"Ceiling light panel",{quad({glm::vec3(-.7f,5.58f,-.5f),{.7f,5.58f,-.5f},{.7f,5.58f,.5f},{-.7f,5.58f,.5f}}, {0,-1,0})},white,glm::vec3(0),glm::vec3(1),glm::vec3(0),ShaderType::LIGHT);
-        auto panel = std::static_pointer_cast<MeshRenderer>(target->objects.back()->GetComponent("MeshRenderer"));
+        auto panel = std::static_pointer_cast<MeshRenderer>(target->objects().back()->GetComponent("MeshRenderer"));
         panel->shader = std::make_shared<Shader>("./src/shader/light.vs", "./src/shader/samples/emissive.fs");
         panel->shader->requireMat = false;
         panel->shader->setVec3("emissionColor", glm::vec3(10,9.5f,9));
@@ -212,10 +212,10 @@ std::shared_ptr<RenderScene> makeMetalClassicScene(const std::string& name) {
         auto renderer = std::make_shared<MeshRenderer>();renderer->shader = manager->getShader(ShaderType::PBR);
         object->addComponent(renderer);object->setDeferred(true);target->addObject(object);
         if (name == "sponza")
-            target->main_camera = std::make_shared<Camera>(glm::vec3(-8.5f,2.2f,0),glm::vec3(0,1,0),0,6);
+            target->setCamera(std::make_shared<Camera>(glm::vec3(-8.5f,2.2f,0),glm::vec3(0,1,0),0,6));
         else
-            target->main_camera = std::make_shared<Camera>(glm::vec3(7,2.4f,8),glm::vec3(0,1,0),-115,-3);
-        target->main_camera->Zoom = 58; target->main_camera->exposure = 1.1f;
+            target->setCamera(std::make_shared<Camera>(glm::vec3(7,2.4f,8),glm::vec3(0,1,0),-115,-3));
+        target->mainCamera()->Zoom = 58; target->mainCamera()->exposure = 1.1f;
         atmosphere(target);sun(target,{2.8f,2.6f,2.3f},{-.35f,-1,-.2f});
         manager->setting.enableRSM = true;
     } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose bunny, helmet, cornell, sponza, san-miguel, ocean or ocean-clear");
@@ -242,7 +242,7 @@ void renderMetalGallery(const std::string& directory, const std::string& selecte
         MetalBackend::FloatTexture direct{};
         scene = makeMetalClassicScene(name);
         manager->temporalAA->reset();
-        if(name=="ocean" || name=="ocean-clear") {auto water=std::static_pointer_cast<Ocean>(scene->terrain->GetComponent("Ocean"));water->animate=false;water->inner_time=8;}
+        if(name=="ocean" || name=="ocean-clear") {auto water=std::static_pointer_cast<Ocean>(scene->terrain()->GetComponent("Ocean"));water->animate=false;water->inner_time=8;}
         if (name == "sponza" || name == "san-miguel") {
             manager->setting.enableRSM = false;
             for (int frame=0;frame<accumulationFrames;++frame) {
@@ -265,8 +265,8 @@ void renderMetalGallery(const std::string& directory, const std::string& selecte
                 if (manager->setting.enableRSM)
                     MetalBackend::inspectTexture(manager->rsmPass->outTexture->id, ("build/metal-gallery-" + name + "-rsm.png").c_str());
                 if(name!="ocean" && name!="ocean-clear")MetalBackend::inspectTexture(manager->deferredPass->gNormal->id, ("build/metal-gallery-" + name + "-normal.png").c_str());
-                if (scene->sky) {
-                    auto sky = std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));
+                if (scene->sky()) {
+                    auto sky = std::static_pointer_cast<Atmosphere>(scene->sky()->GetComponent("Atmosphere"));
                     MetalBackend::inspectTexture(sky->skyViewTexture->tex->id, ("build/metal-gallery-" + name + "-sky.png").c_str());
                 }
                 if (!direct.rgba.empty()) {
@@ -292,7 +292,7 @@ void renderMetalGallery(const std::string& directory, const std::string& selecte
             if (captureGPU) { MetalBackend::endGPUCapture(); capturedGPU = true; }
         }
         if(name=="ocean" || name=="ocean-clear") {
-            auto water=std::static_pointer_cast<Ocean>(scene->terrain->GetComponent("Ocean"));
+            auto water=std::static_pointer_cast<Ocean>(scene->terrain()->GetComponent("Ocean"));
             // Report the main spectrum in metres so preset tuning can be compared objectively.
             auto displacement=MetalBackend::readFloatTexture(water->DisplaceRT_Texture->tex->id);
             double heightSum=0,heightSquaredSum=0;

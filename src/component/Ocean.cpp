@@ -155,7 +155,7 @@ void Ocean::Draw() {
     deferred->postBuffer->bindBuffer();glViewport(0,0,width,height);
     draw_shader->use();glm::vec3 sunDirection(0,-1,0),sunColor(0);
     if(scene && RenderManager::GetInstance()->setting.enableDirectional)
-        for(auto light : scene->directionLights)if(light && light->enabled){sunDirection=light->data.direction;sunColor=light->data.color;break;}
+        for(auto light : scene->directionLights())if(light && light->enabled){sunDirection=light->data.direction;sunColor=light->data.color;break;}
     draw_shader->setVec3("dirLight.direction",sunDirection);draw_shader->setVec3("dirLight.diffuse",sunColor);
     draw_shader->setVec3("dirLight.specular",sunColor);
     draw_shader->setFloat("outer_FresnelScale",outer_FresnelScale);
@@ -167,7 +167,7 @@ void Ocean::Draw() {
     NormalRT_Texture->tex->bind(GL_TEXTURE_2D,1);draw_shader->setInt("NormalRT",1);
     BubblesRT_Texture->tex->bind(GL_TEXTURE_2D,2);draw_shader->setInt("BubblesRT",2);
     glActiveTexture(GL_TEXTURE3);glBindTexture(GL_TEXTURE_2D,0);
-    auto atmosphere=scene && scene->sky ? std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere")) : nullptr;
+    auto atmosphere=scene && scene->sky() ? std::static_pointer_cast<Atmosphere>(scene->sky()->GetComponent("Atmosphere")) : nullptr;
     if(atmosphere && atmosphere->skyViewTexture)glBindTexture(GL_TEXTURE_2D,atmosphere->skyViewTexture->tex->id);
     draw_shader->setInt("hasSky",atmosphere && atmosphere->skyViewTexture ? 1:0);draw_shader->setInt("skyview",3);
     opaqueSceneColor->bind(GL_TEXTURE_2D,4);draw_shader->setInt("opaqueScene",4);

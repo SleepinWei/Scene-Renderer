@@ -74,7 +74,7 @@ void Connector::passDataToPTConfig(json &data)
 void Connector::buildPTSceneFromRenderScene(shared_ptr<PTScene> ptscene, const shared_ptr<RenderScene> renderScene)
 {
     // camera
-    auto &camera = renderScene->main_camera;
+    auto &camera = renderScene->mainCamera();
     ptscene->addCam(make_shared<PTCamera>(
         camera->Position,
         camera->Position + camera->Front,
@@ -86,10 +86,10 @@ void Connector::buildPTSceneFromRenderScene(shared_ptr<PTScene> ptscene, const s
     // objects
     shared_ptr<hittable_list> &pt_objects = ptscene->objects;
 
-    int num_thread = std::min((int)renderScene->objects.size(), (int)std::thread::hardware_concurrency());
+    int num_thread = std::min((int)renderScene->objects().size(), (int)std::thread::hardware_concurrency());
     // auto lambda = [=](int id)
     // {
-    int obj_num = renderScene->objects.size();
+    int obj_num = renderScene->objects().size();
     // int obj_per_thread = obj_num / num_thread;
     // int start =  obj_per_thread * id;
     // int end = start + obj_per_thread;
@@ -102,7 +102,7 @@ void Connector::buildPTSceneFromRenderScene(shared_ptr<PTScene> ptscene, const s
         // if(id == 0){
         LOG_INFO("Progress: " << i * 1.0f / obj_num * 100 << "%");
         // }
-        auto go = renderScene->objects[i];
+        auto go = renderScene->objects()[i];
         // for all game objects
         auto meshfilter = std::static_pointer_cast<MeshFilter>(go->GetComponent("MeshFilter"));
         if (!meshfilter || meshfilter->meshes.size() < 3)
@@ -131,13 +131,13 @@ void Connector::buildPTSceneFromRenderScene(shared_ptr<PTScene> ptscene, const s
     // };
 
     // lights
-    for (auto &light : renderScene->pointLights)
+    for (auto &light : renderScene->pointLights())
     {
         // point lights are spheres
         // todo:
     }
 
-    for (auto &light : renderScene->directionLights)
+    for (auto &light : renderScene->directionLights())
     {
         // directional lights have no bounding box
         shared_ptr<DiffuseLight> mat = make_shared<DiffuseLight>(vec3(1.0, 1.0, 1.0));

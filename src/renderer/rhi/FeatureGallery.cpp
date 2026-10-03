@@ -38,7 +38,7 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
         auto device=rhi::graphicsDevice();glfwGetFramebufferSize(window,&width,&height);framebuffer_size_callback(window,width,height);
         std::filesystem::create_directories(directory);auto manager=RenderManager::GetInstance();manager->init();
         for(const auto& name:names){
-            auto scene=makeClassicScene(name);scene->main_camera->aspect_ratio=float(width)/height;
+            auto scene=makeClassicScene(name);scene->mainCamera()->aspect_ratio=float(width)/height;
             {
                 SceneAdapter adapter(device);ForwardPbrRenderer renderer(device,rhi::defaultShaderDirectory(),width,height,PbrPath::Scene);
                 auto capture=[&](const std::string& suffix,bool rsm,bool only,bool sun,bool sky){
@@ -50,11 +50,11 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
                 };
                 const bool gi=manager->setting.enableRSM;if(gi)capture("-direct",false,false,true,true);capture("",gi,false,true,true);
                 if(name=="terrain"){
-                    auto terrain=std::static_pointer_cast<TerrainComponent>(scene->terrain->GetComponent("TerrainComponent"));
+                    auto terrain=std::static_pointer_cast<TerrainComponent>(scene->terrain()->GetComponent("TerrainComponent"));
                     terrain->setPolyMode(GL_LINE);capture("-wireframe",false,false,true,true);terrain->setPolyMode(GL_FILL);
                 }
                 if(name=="ocean" || name=="ocean-clear") {
-                    auto ocean=std::static_pointer_cast<Ocean>(scene->terrain->GetComponent("Ocean"));
+                    auto ocean=std::static_pointer_cast<Ocean>(scene->terrain()->GetComponent("Ocean"));
                     if(name=="ocean") {
                         const bool detail=ocean->detailWaves;ocean->detailWaves=false;capture("-no-detail",false,false,true,true);ocean->detailWaves=detail;
                         const float scattering=ocean->subsurfaceStrength;ocean->subsurfaceStrength=0;capture("-no-scattering",false,false,true,true);ocean->subsurfaceStrength=scattering;
@@ -64,10 +64,10 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
                     }
                 }
                 if(name=="sky") {
-                    auto atmo=std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));
+                    auto atmo=std::static_pointer_cast<Atmosphere>(scene->sky()->GetComponent("Atmosphere"));
                     auto pointSun=[&](float elevation,float fov,float pitch) {
-                        atmo->sunAngle=elevation;scene->main_camera=std::make_shared<Camera>(glm::vec3(0,2,0),glm::vec3(0,1,0),-90,pitch,float(width)/height);
-                        scene->main_camera->Zoom=fov;scene->main_camera->exposure=1;
+                        atmo->sunAngle=elevation;scene->setCamera(std::make_shared<Camera>(glm::vec3(0,2,0),glm::vec3(0,1,0),-90,pitch,float(width)/height));
+                        scene->mainCamera()->Zoom=fov;scene->mainCamera()->exposure=1;
                     };
                     pointSun(30,10,30);capture("-sun-closeup",false,false,true,true);
                     pointSun(45,60,25);capture("-day",false,false,true,true);

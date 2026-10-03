@@ -136,7 +136,7 @@ void atmosphere(const std::shared_ptr<RenderScene>& target) {
     sky->skybox->initDone = false; sky->skybox->addTexture(std::make_shared<Texture>(), "skybox");
     sky->width = sky->height = 4;
     for (int i = 0; i < 6; ++i) { sky->data[i] = static_cast<unsigned char*>(std::malloc(48)); std::fill(sky->data[i], sky->data[i]+48, 16); }
-    target->sky = sky;
+    target->addSky(sky);
 }
 void floor(const std::shared_ptr<RenderScene>& target) {
     addMeshes(target, "Gallery floor", {quad({glm::vec3(-30,0,30),{30,0,30},{30,0,-30},{-30,0,-30}}, {0,1,0})}, pbr({.32f,.36f,.41f}, .75f));
@@ -151,30 +151,30 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
 
 
     if (name == "terrain") {
-        target->main_camera=std::make_shared<Camera>(glm::vec3(0,10,32),glm::vec3(0,1,0),-90,-12);
-        target->main_camera->Zoom=60;target->main_camera->exposure=1;
+        target->setCamera(std::make_shared<Camera>(glm::vec3(0,10,32),glm::vec3(0,1,0),-90,-12));
+        target->mainCamera()->Zoom=60;target->mainCamera()->exposure=1;
         auto terrain=std::make_shared<Terrain>();auto component=std::make_shared<TerrainComponent>();component->heightWidth=component->heightHeight=1024;component->heightData=new float[1024*1024];
         auto elevation=[](float x,float z){float h=.28f*std::exp(-((x+.35f)*(x+.35f)*5+(z+.25f)*(z+.25f)*3))+.5f*std::exp(-((x-.45f)*(x-.45f)*9+(z+.4f)*(z+.4f)*4));return h+.035f*std::sin(x*18+z*13)*std::cos(z*16)*h;};
         for(uint32_t y=0;y<1024;y++)for(uint32_t x=0;x<1024;x++)component->heightData[y*1024+x]=elevation(x/1023.f*2-1,y/1023.f*2-1);
         component->model=glm::scale(glm::mat4(1),glm::vec3(30,22,30));component->maxLeaves=4096;
         component->material=pbr(glm::vec3(1),.85f);auto texture=std::make_shared<Texture>();texture->width=texture->height=1024;texture->channels=4;texture->format=GL_RGBA;texture->data=static_cast<unsigned char*>(std::malloc(1024*1024*4));
         for(uint32_t y=0;y<1024;y++)for(uint32_t x=0;x<1024;x++){float xx=x/1023.f*2-1,zz=y/1023.f*2-1,h=elevation(xx,zz),noise=.5f+.5f*std::sin(xx*140)*std::cos(zz*153);glm::vec3 color=glm::mix(glm::vec3(.20f,.31f,.11f),glm::vec3(.40f,.36f,.27f),glm::smoothstep(.15f,.38f,h));color*=.85f+.15f*noise;auto at=(y*1024+x)*4;texture->data[at]=uint8_t(color.r*255);texture->data[at+1]=uint8_t(color.g*255);texture->data[at+2]=uint8_t(color.b*255);texture->data[at+3]=255;}
-        component->material->textures["material.albedo"]=texture;terrain->addComponent(component);terrain->addComponent(std::make_shared<Grass>());target->terrain=terrain;
+        component->material->textures["material.albedo"]=texture;terrain->addComponent(component);terrain->addComponent(std::make_shared<Grass>());target->addTerrain(terrain);
         atmosphere(target);sun(target,glm::vec3(3),{-.5f,-1,-.4f});manager->setting.enableSSAO=true;
     } else if (name == "sky") {
-        target->main_camera=std::make_shared<Camera>(glm::vec3(0,2,0),glm::vec3(0,1,0),-90,10);
-        target->main_camera->Zoom=50;target->main_camera->exposure=1;
+        target->setCamera(std::make_shared<Camera>(glm::vec3(0,2,0),glm::vec3(0,1,0),-90,10));
+        target->mainCamera()->Zoom=50;target->mainCamera()->exposure=1;
         atmosphere(target);sun(target,glm::vec3(3),{0,-std::sin(glm::radians(10.f)),std::cos(glm::radians(10.f))});
         manager->setting.enableShadow=false;manager->setting.enableSSAO=false;
     } else if (name == "bunny") {
-        target->main_camera = std::make_shared<Camera>(glm::vec3(0,3.8f,12), glm::vec3(0,1,0), -90, -10);
+        target->setCamera(std::make_shared<Camera>(glm::vec3(0,3.8f,12), glm::vec3(0,1,0), -90, -10));
         const glm::vec3 colors[] = {{.78f,.83f,.86f},{.9f,.62f,.22f},{.25f,.56f,.72f}};
         for (int i = 0; i < 3; ++i)
             addMeshes(target, "Stanford Bunny " + std::to_string(i), imported("samples/assets/bunny/bun_zipper.ply", 3, true),
                       pbr(colors[i], i==1?.23f:.55f, i==1?1.f:0.f), {float(i-1)*3.1f,0,0}, glm::vec3(1), {0,15,0});
         floor(target); atmosphere(target); sun(target, {2.5f,2.4f,2.3f}, {-.5f,-1,-.4f}); point(target, {32,40,50}, {5,6,5});
     } else if (name == "helmet") {
-        target->main_camera = std::make_shared<Camera>(glm::vec3(4.2f,3.5f,7), glm::vec3(0,1,0), -121, -9);
+        target->setCamera(std::make_shared<Camera>(glm::vec3(4.2f,3.5f,7), glm::vec3(0,1,0), -121, -9));
         auto material = pbr(glm::vec3(1));
         const std::string folder = "samples/assets/damaged-helmet/";
         const std::pair<const char*,const char*> maps[] = {{"material.albedo","Default_albedo.jpg"},{"material.normal","Default_normal.jpg"},
@@ -191,7 +191,7 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
         floor(target); atmosphere(target); sun(target, {2.6f,2.5f,2.4f}, {-.5f,-1,-.7f}); point(target, {45,60,80}, {-4,4,4});
     } else if (name == "cornell") {
         // Original, normalized Cornell Box-style geometry, not measured Cornell reference data.
-        target->main_camera = std::make_shared<Camera>(glm::vec3(0,2.8f,9.5f), glm::vec3(0,1,0), -90, 0);
+        target->setCamera(std::make_shared<Camera>(glm::vec3(0,2.8f,9.5f), glm::vec3(0,1,0), -90, 0));
         auto white = pbr({.8f,.8f,.77f}, .8f);
         addMeshes(target,"Floor",{quad({glm::vec3(-2.8f,0,2.8f),{2.8f,0,2.8f},{2.8f,0,-2.8f},{-2.8f,0,-2.8f}}, {0,1,0})},white);
         addMeshes(target,"Ceiling",{quad({glm::vec3(-2.8f,5.6f,-2.8f),{2.8f,5.6f,-2.8f},{2.8f,5.6f,2.8f},{-2.8f,5.6f,2.8f}}, {0,-1,0})},white);
@@ -201,7 +201,7 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
         addMeshes(target,"Short box",box(),white, {-1.2f,.85f,.7f}, {.8f,.85f,.8f}, {0,-18,0});
         addMeshes(target,"Tall box",box(),white, {1.1f,1.65f,-.9f}, {.75f,1.65f,.75f}, {0,18,0});
         addMeshes(target,"Ceiling light panel",{quad({glm::vec3(-.7f,5.58f,-.5f),{.7f,5.58f,-.5f},{.7f,5.58f,.5f},{-.7f,5.58f,.5f}}, {0,-1,0})},white,glm::vec3(0),glm::vec3(1),glm::vec3(0),ShaderType::LIGHT);
-        auto panelFilter=std::static_pointer_cast<MeshFilter>(target->objects.back()->GetComponent("MeshFilter"));
+        auto panelFilter=std::static_pointer_cast<MeshFilter>(target->objects().back()->GetComponent("MeshFilter"));
         auto emissive=std::make_shared<Material>(*white);emissive->emissiveFactor={10,9.5f,9};
         panelFilter->meshes[0]->material=emissive;
         point(target, {90,85,75}, {0,5.2f,.2f});
@@ -227,10 +227,10 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
         auto renderer = std::make_shared<MeshRenderer>();renderer->shader = manager->getShader(ShaderType::PBR);
         object->addComponent(renderer);object->setDeferred(true);target->addObject(object);
         if (name == "sponza")
-            target->main_camera = std::make_shared<Camera>(glm::vec3(-8.5f,2.2f,0),glm::vec3(0,1,0),0,6);
+            target->setCamera(std::make_shared<Camera>(glm::vec3(-8.5f,2.2f,0),glm::vec3(0,1,0),0,6));
         else
-            target->main_camera = std::make_shared<Camera>(glm::vec3(7,2.4f,8),glm::vec3(0,1,0),-115,-3);
-        target->main_camera->Zoom = 58; target->main_camera->exposure = 1.1f;
+            target->setCamera(std::make_shared<Camera>(glm::vec3(7,2.4f,8),glm::vec3(0,1,0),-115,-3));
+        target->mainCamera()->Zoom = 58; target->mainCamera()->exposure = 1.1f;
         atmosphere(target);sun(target,{2.8f,2.6f,2.3f},{-.35f,-1,-.2f});
         manager->setting.enableRSM = true;
     } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose terrain, sky, bunny, helmet, cornell, sponza, san-miguel, ocean or ocean-clear");

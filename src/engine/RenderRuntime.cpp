@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
+#include <array>
+#include <cmath>
 namespace engine {
 RenderRuntime::RenderRuntime(std::shared_ptr<rhi::GraphicsDevice> device,
                              std::unique_ptr<render::GuiRenderer> gui, size_t capacity)
@@ -25,6 +27,17 @@ void RenderRuntime::run(std::unique_ptr<render::GuiRenderer> gui) {
     @autoreleasepool {
 #endif
         device_->adoptCurrentThread();
+        std::array<double, 256> timings{};
+        size_t samples = 0;
+        auto publishTimings = [&] {
+            const auto count = std::min(samples, timings.size());
+            if (!count)
+                return;
+            auto sorted = timings;
+            std::sort(sorted.begin(), sorted.begin() + count);
+            renderP95Milliseconds_ = sorted[size_t(std::ceil(count * .95)) - 1];
+            renderP99Milliseconds_ = sorted[size_t(std::ceil(count * .99)) - 1];
+        };
         try {
             render::SceneAdapter adapter(device_);
             std::unique_ptr<render::ForwardPbrRenderer> renderer;
@@ -44,6 +57,9 @@ void RenderRuntime::run(std::unique_ptr<render::GuiRenderer> gui) {
                             device_, rhi::defaultShaderDirectory(), width, height, render::PbrPath::Scene);
                     renderer->resize(width, height);
                     auto frame = adapter.resolve(snapshot);
+                    imageBytes_ = frame.gpuImages.residentBytes;
+                    imageUploads_ = frame.gpuImages.uploads;
+                    imageCacheHits_ = frame.gpuImages.hits;
                     renderer->render(frame.frame, frame.packets, frame.exposure);
                     if (gui)
                         gui->render(packet->gui, renderer->output());
@@ -68,6 +84,10 @@ void RenderRuntime::run(std::unique_ptr<render::GuiRenderer> gui) {
                     renderMilliseconds_ =
                         std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - started)
                             .count();
+                    timings[samples % timings.size()] = renderMilliseconds_.load();
+                    ++samples;
+                    if (samples % 32 == 0)
+                        publishTimings();
 #ifdef __APPLE__
                 }
 #endif
@@ -80,6 +100,7 @@ void RenderRuntime::run(std::unique_ptr<render::GuiRenderer> gui) {
             queue_.close();
         }
         // ImGui context stays on the UI thread; GPU backend destruction never touches it.
+        publishTimings();
         gui.reset();
         try {
             if (device_->frameActive())
@@ -98,7 +119,11 @@ bool RenderRuntime::submit(RenderPacket packet) {
     rethrowFailure();
     if (!packet.world)
         throw std::invalid_argument("Render packet needs an immutable world");
+    const auto started = std::chrono::steady_clock::now();
     bool accepted = queue_.push(std::move(packet));
+    const double waited =
+        std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - started).count();
+    peakQueueWaitMilliseconds_ = std::max(peakQueueWaitMilliseconds_.load(), waited);
     rethrowFailure();
     return accepted;
 }

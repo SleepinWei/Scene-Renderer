@@ -231,7 +231,7 @@ flowchart TD
 5. 拷贝不透明 HDR 场景，绘制排序透明材质与折射／吸收／散射水面，并生成物体和海面的运动信息。
 6. TSAA 在 HDR 中检查深度、重投影与裁剪历史，然后统一曝光、色调映射，绘制 ImGui 并呈现。
 
-组件通过 weak owner 避免对象引用环，网格／材质／组件使用稳定 ID 与内容版本。资源缓存合并同 key 的解码；Loader 后台构建并验证完整 staging，在主线程一次发布，失败保留旧场景。VT 页通过有界 IO jobs 准备后由渲染线程上传，未完成页保持粗 mip 回退；有序 render graph 在记录前检查初始化及读写声明。线程归属、取消／退出、上传预算、单线程对照和剩余边界见 [Engine 多线程说明](docs/engine-multithreading.md) 与 [设计审查](docs/engine-design-review.md)。
+组件通过 weak owner 避免对象引用环，网格／材质／组件使用稳定 ID 与内容版本。RenderScene 结构通过主线程接口修改，删除对象同步维护灯光索引。资源缓存合并同 key 的解码；同设备普通 GPU 图片按内容共享，空闲 LRU 默认 64 MiB，sampler 独立。Loader 后台构建并验证完整 staging，在主线程一次发布，失败保留旧场景。VT 页通过有界 IO jobs 准备后由渲染线程上传，未完成页保持粗 mip 回退；有序 render graph 在记录前检查初始化及读写声明。线程归属、取消／退出、上传预算、单线程对照和剩余边界见 [Engine 多线程说明](docs/engine-multithreading.md) 与 [设计审查](docs/engine-design-review.md)。
 
 `--forward` 在同一场景调度中改用前向材质光照，保留阴影、环境光、水体和后处理。核心实现见 [ForwardPbrRenderer.cpp](src/renderer/rhi/ForwardPbrRenderer.cpp)、[SceneAdapter.cpp](src/renderer/rhi/SceneAdapter.cpp) 与 [RenderManager.cpp](src/system/RenderManager.cpp)。
 
@@ -261,7 +261,7 @@ flowchart LR
 | RSM | 太阳方向正交投影；太阳辐照度＋大气天空漫反射 LUT；每纹素反射功率、显式采样 PDF、G-buffer 全屏合成；支持聚光灯回退 | 单个投影仅记录最近表面，天空入射未计算遮蔽；局部一次漫反射反弹，可能漏光、有采样噪声 |
 | 大气与 IBL | 共享太阳状态、相机海拔、解析太阳盘；Rayleigh／Mie／臭氧、透射率、高阶散射近似、天空与 E/π 卷积 LUT | RGB 模型；太阳盘 HDR 上限 65000；未实现完整场景反射探针或环境遮挡 |
 | FFT 海洋与水体 | 共轭 Phillips 频谱、归一化二维 IFFT、主波与短波叠加、法线与 Jacobian 泡沫；深度折射、RGB 消光、近似单次散射与 HDR 光照 | 周期有限海面；折射限于屏幕空间，散射厚度是近似；不是流体求解器 |
-| 地形与草 | 高度／五层材质 VT、固定页缓存与祖先 mip 回退、有预算 GPU 四叉树、跨 LOD 拼接、间接实例草 | CPU 预测请求与同步有界 IO；无 GPU feedback／高度 morph；动态地形仍使用 reactive 时域路径 |
+| 地形与草 | 高度／五层材质 VT、固定页缓存与祖先 mip 回退、有预算 GPU 四叉树、跨 LOD 拼接、间接实例草 | CPU 预测请求与有界异步 IO（原生编辑器）；无 GPU feedback／高度 morph；动态地形仍使用 reactive 时域路径 |
 | 模型导入 | Assimp、glTF；GI 示例增加 OBJ/MTL 材质、透明遮罩与高度图转法线 | OBJ 的传统材质参数近似转换为 PBR，玻璃／水不做真实折射 |
 | CPU 路径追踪 | 球、三角形、矩形、基础漫反射／金属／介质材质、BVH、重要性采样和多线程 | 实时场景转换仍不完整，网格材质转换为白色 Lambertian，不能作为实时 PBR 的完整参考解 |
 
@@ -292,7 +292,7 @@ flowchart LR
 | `samples/`、`img/metal/` | 示例资产与来源清单、本项目生成的截图 |
 | `doc/metal.md`、`doc/rsm.md` | 中文 Metal 迁移说明与太阳／天空 RSM 实现、验证说明 |
 | `docs/sky-and-sun-review.md` | 历史天空问题、新 RHI 太阳／大气修复、能量与 GPU 回归 |
-| `docs/engine-multithreading.md`、`docs/engine-design-review.md` | 主逻辑／渲染分离、资源事务与快照、设计评价及下一步 |
+| `docs/engine-multithreading.md`、`docs/engine-design-review.md`、`docs/engine-followup-fixes.md` | 主逻辑／渲染分离、资源事务与快照、GPU 图片共享与修复、设计评价及下一步 |
 | `docs/tsaa.md` | TSAA 重投影、海洋运动信息、历史处理与截图复现 |
 | `docs/ocean-fft-and-rendering-review.md` | 海洋 FFT、高清波纹、透明与散射的修复和验证记录 |
 
@@ -340,7 +340,7 @@ ctest --test-dir build/vulkan --output-on-failure
 
 GPU 验证覆盖上传/异步读回、延迟释放、MRT、前向/延迟 PBR、SSS 深度、透明排序、三类阴影、SSAO、太阳/天空 RSM、大气 LUT、完整海洋 IFFT、地形/草的 VT 区域上传、页淘汰与回退、流式高度、网格预算和闭合接缝、计算细分及 TSAA。CPU 数值参考和限定的像素比较用于检查结果；编辑器测试同时覆盖真实 resize、UI 与窗口呈现。画廊提供实际模型和贴图的视觉回归，不以历史截图作为物理参考图像。
 
-2026-10-03 Engine 多线程回归在 Apple M4/macOS 验收：Metal **11/11**、Vulkan/MoltenVK **12/12**；有界 CPU cache／job／帧队列与 graph 测试在 ThreadSanitizer 下通过。包括主逻辑／渲染分离、加载事务、快照／GUI 隔离、异步地形、窗口缩放与单线程对照；完整应用没有在 ThreadSanitizer 下验收。
+2026-10-03 Engine 多线程回归在 Apple M4/macOS 验收：Metal **11/11**、Vulkan/MoltenVK **12/12**；有界 CPU cache／job／帧队列与 graph 测试在 ThreadSanitizer 下通过。本轮后续修复同时通过 OpenGL 兼容路径 **8/8**。包括主逻辑／渲染分离、加载事务、快照／GUI 隔离、场景结构／灯光索引、GPU 图片共享／LRU 与 CPU 地址复用、上传等待保留资产、异步地形、窗口缩放与单线程对照；完整应用没有在 ThreadSanitizer 下验收。
 
 2026-10-03 天空修复在 Apple M4/macOS 验收：Metal **8/8**、Vulkan/MoltenVK **9/9**，包含太阳角半径／能量、地平线及几何遮挡、控制同步、观察高度与极限参数。OpenGL 4.1 的历史 RHI 验收为 7/7，本轮未重复运行。Metal 开启 API/Shader Validation；本机没有 Khronos validation layer，Windows/Linux 与 OpenGL 4.3+ 尚未实机验收。Metal/Vulkan 使用单队列、最多三帧并行提交；单次吞吐测量和算法边界见 [RHI 重构计划](docs/rhi-refactor-plan.md)。大规模 OBJ 导入仍需较多 CPU 内存与启动时间。
 

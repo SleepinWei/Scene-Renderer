@@ -108,7 +108,7 @@ RenderManager::~RenderManager() {
 }
 
 void RenderManager::prepareVPData(const std::shared_ptr<RenderScene>& renderScene) {
-	const std::shared_ptr<Camera>& camera = renderScene->main_camera;
+	const std::shared_ptr<Camera>& camera = renderScene->mainCamera();
 	if (camera == nullptr) {
 		return;
 	}
@@ -144,7 +144,7 @@ void RenderManager::prepareVPData(const std::shared_ptr<RenderScene>& renderScen
 	for (auto& shader : m_shader) {
 		if (shader) {
 			shader->use();
-			shader->setVec3("camPos", renderScene->main_camera->Position);
+			shader->setVec3("camPos", renderScene->mainCamera()->Position);
 		}
 	}
 }
@@ -162,10 +162,10 @@ void RenderManager::preparePointLightData(const std::shared_ptr<RenderScene>& sc
 	//	}
 	//}
 
-	int lightNum = scene->pointLights.size();
+	int lightNum = scene->pointLights().size();
 	int dataSize = 32; // data size for a single light (under std140 layout)
 	int index = 0;
-	for(auto& light :scene->pointLights){
+	for(auto& light :scene->pointLights()){
 		if (light) {
 			if (!light->dirty) {
 				// if not dirty, then pass
@@ -211,9 +211,9 @@ void RenderManager::prepareDirectionLightData(const std::shared_ptr<RenderScene>
 		return;
 	}
 
-	int lightNum = scene->directionLights.size();
+	int lightNum = scene->directionLights().size();
 	int index = 0;
-	for(auto& light : scene->directionLights){
+	for(auto& light : scene->directionLights()){
 		if (light) {
 			std::shared_ptr<Transform>&& transform = std::static_pointer_cast<Transform>(
 				light->owner()->GetComponent("Transform"));
@@ -253,10 +253,10 @@ void RenderManager::prepareSpotLightData(const std::shared_ptr<RenderScene>& sce
 	//	}
 	//}
 
-	int lightNum = scene->spotLights.size();
+	int lightNum = scene->spotLights().size();
 	int dataSize = 48; // data size for a single light (under std140 layout)
 	for (int i = 0; i < lightNum; i++) {
-		auto& light = scene->spotLights[i];
+		auto& light = scene->spotLights()[i];
 		if (light) {
 			std::shared_ptr<Transform>&& transform = std::static_pointer_cast<Transform>(
 				light->owner()->GetComponent("Transform"));
@@ -289,11 +289,11 @@ void RenderManager::prepareSpotLightData(const std::shared_ptr<RenderScene>& sce
 
 void RenderManager::prepareCompData(const std::shared_ptr<RenderScene>& scene) {
 	// compute terrain
-	if (scene->terrain) {
-		scene->terrain->constructCall();
+	if (scene->terrain()) {
+		scene->terrain()->constructCall();
 	}
-	if (scene->sky) {
-		auto&& atmosphere = std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));
+	if (scene->sky()) {
+		auto&& atmosphere = std::static_pointer_cast<Atmosphere>(scene->sky()->GetComponent("Atmosphere"));
 		atmosphere->constructCall();
 	}
 }
@@ -304,12 +304,12 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
     if(native_){
         const auto input=InputManager::GetInstance();if(input->width<=0 || input->height<=0)return;
         if(!renderer_)renderer_=std::make_unique<render::ForwardPbrRenderer>(rhi::graphicsDevice(),rhi::defaultShaderDirectory(),input->width,input->height,render::PbrPath::Scene);
-        renderer_->resize(input->width,input->height);if(scene->main_camera)scene->main_camera->aspect_ratio=float(input->width)/input->height;
+        renderer_->resize(input->width,input->height);if(scene->mainCamera())scene->mainCamera()->aspect_ratio=float(input->width)/input->height;
         if(!adapter_)adapter_=std::make_unique<render::SceneAdapter>(rhi::graphicsDevice());auto frame=adapter_->collect(scene,setting.timeOverride);frame.frame.shadows=setting.enableShadow;frame.frame.ssao=setting.enableSSAO;frame.frame.rsm=setting.enableRSM;frame.frame.taa=setting.enableTSAA;frame.frame.aoRadius=setting.aoRadius;frame.frame.aoBias=setting.aoBias;frame.frame.aoPower=setting.aoPower;frame.frame.toneMapping=setting.enableHDR;frame.frame.rsmSettings=setting.rsmSettings;frame.frame.directionalEnabled=setting.enableDirectional;frame.frame.forwardShading=!setting.useDefer;
         renderer_->render(frame.frame,frame.packets,frame.exposure);return;
     }
 	// Outdoor RSM uses the sun/sky; indoor scenes can fall back to a spotlight.
-	if (scene->spotLights.empty() && scene->directionLights.empty() && !scene->sky) setting.enableRSM = false;
+	if (scene->spotLights().empty() && scene->directionLights().empty() && !scene->sky()) setting.enableRSM = false;
     temporalAA->begin(scene,setting.enableTSAA && setting.useDefer);
 	prepareVPData(scene);
 	glCheckError();

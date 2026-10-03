@@ -21,13 +21,17 @@
 - `RenderManager::generateShader` 对不支持枚举明确抛错。
 - 地形源版本、预算、接缝、边界法线、草容量及包围盒修复见 [地形审查](terrain-virtual-texture.md)。
 
+## 本轮继续修复
+
+RenderScene 的结构与灯光索引改为私有并迁移全部调用方；重复插入去重，删除／清空／组件刷新保持索引一致。GpuImageCache 在同设备跨材质共享普通／默认／packed 图片，区分尺寸和完整内容，独立 sampler，空闲 LRU 64 MiB。上传接纳按实际缺失图片计费，等待帧不再清除仍被引用的下游资产。加入渲染 CPU p95／p99、队列等待和 GPU 图片统计。具体原因、验证和边界见 [后续修复记录](engine-followup-fixes.md)。
+
 ## 尚需推进的设计工作
 
 | 优先级 | 当前边界 | 下一步与验收 |
 | --- | --- | --- |
-| P1 | 历史组件、RenderScene、Mesh／Material 仍有公开可变字段，类型查询使用 dynamic cast | 私有世界写接口、实体／组件注册表和主线程命令队列；新模块不得跨线程直接写字段。删除或复用实体时有清晰 generation 规则 |
-| P1 | 同一普通材质图片可能仍创建多个 GPU texture；cache 回收不是全局字节预算 | CPU／GPU 资产状态分离并统一 GPU image cache、显存预算／统计；同一图共享上传与引用，压力下按策略释放 |
-| P1 | 大地形／细分／海洋和 pipeline 初建仍不可分割；队列背压会等待 | 分段 upload、pipeline cache、按用时接纳；测量大场景启动、95/99 分位帧时间、输入延迟及实际 native heap 峰值 |
+| P1 | RenderScene 结构已私有并检查读写线程；组件、Mesh／Material 内部仍公开，类型查询使用 dynamic cast | 继续收紧组件写接口、实体／组件注册表和主线程命令队列；新模块不得跨线程直接写字段。稳定 ID 不复用，后续 ECS 槽位需 generation |
+| P1 | 普通 GPU 图片已按设备／内容共享，空闲 LRU 默认 64 MiB；活资源不受此缓存上限约束 | 扩展为 mesh／VT／render target 的全局预算及压力策略；统计 native allocation、延迟释放和实际 heap，对大场景进行压力验收 |
+| P1 | 大地形／细分／海洋和 pipeline 初建仍不可分割；队列背压会等待 | 分段 upload、pipeline cache、按用时接纳；已有渲染 CPU p95／p99 和队列最大等待统计；继续测量大场景启动、GPU 时间、端到端输入延迟及实际 native heap 峰值 |
 | P2 | 场景取消不能中断正在执行的 Assimp／磁盘操作；路径仍沿用历史 cwd 约定 | 资产根目录、结构化诊断、分阶段取消与请求代际；失败／过期结果不发布 |
 | P2 | graph 是有序记录及校验，大气／阴影／海洋模拟仍在图前执行 | 将效果纳入资源图，增加 RHI mip/layer/subresource、transient 生命周期和 debug marker；再实现自动调度／资源复用 |
 | P2 | 相机与编辑器逻辑仍按主线程帧 tick，PT 启动接口会阻塞 | 输入消息与独立固定步长模拟；PT 任务状态／取消；验收暂停、慢 GPU、加载时逻辑时钟与交互行为 |
@@ -42,3 +46,5 @@ CPU cache／job／帧队列和 graph 契约有独立测试，并在 ThreadSaniti
 没有对完整应用及第三方 AppKit／GLFW 运行 ThreadSanitizer，也没有 Windows／Linux 实机多线程验收。Metal 使用 API／Shader Validation；Vulkan 使用 MoltenVK，本机没有 Khronos validation layer。
 
 2026-10-03 最终原生回归：Metal **11/11**、Vulkan/MoltenVK **12/12**，包含线程故障传播、GUI／世界快照隔离、真实 Texture 路径合并、异步地形缩放和单线程对照。
+
+后续 GPU 图片共享与世界结构回归：Metal **11/11**、Vulkan/MoltenVK **12/12**，新增地址复用 GPU 自检在两后端通过；OpenGL 兼容路径 **8/8**。

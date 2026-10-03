@@ -16,7 +16,7 @@
 #include <iostream>
 namespace render {
 std::shared_ptr<RenderScene> makeForwardDemoScene() {
-    auto scene = std::make_shared<RenderScene>();scene->main_camera = std::make_shared<Camera>(glm::vec3(0,2,8),glm::vec3(0,1,0),-90,-9);scene->main_camera->exposure = 1;
+    auto scene = std::make_shared<RenderScene>();scene->setCamera(std::make_shared<Camera>(glm::vec3(0,2,8),glm::vec3(0,1,0),-90,-9));scene->mainCamera()->exposure = 1;
     const glm::vec3 colors[] = {{.8f,.18f,.12f},{.18f,.65f,.95f},{.85f,.63f,.2f}};
     for (int i = 0; i < 3; ++i) {
         auto object = std::make_shared<GameObject>();object->name = "RHI sphere " + std::to_string(i);
@@ -67,7 +67,7 @@ void runForwardScene(int argc, char** argv) {
             if (gladInit() != 0) throw std::runtime_error("Forward scene: GLAD initialization failed");
         }
         auto device = rhi::graphicsDevice();auto scene = makeForwardDemoScene();
-        if(withSky){scene->sky=std::make_shared<Sky>();scene->sky->addComponent<Atmosphere>()->sunAngle=20;}
+        if(withSky){scene->addSky(std::make_shared<Sky>());scene->sky()->addComponent<Atmosphere>()->sunAngle=20;}
         if(withOcean){auto object=std::make_shared<GameObject>();auto ocean=object->addComponent<Ocean>();ocean->fft_size=256;ocean->MeshSize=129;ocean->MeshLength=32;ocean->seaLevel=-.5f;scene->addObject(object);}
         {
             SceneAdapter adapter(device);int width, height;glfwGetFramebufferSize(window,&width,&height);
@@ -76,7 +76,7 @@ void runForwardScene(int argc, char** argv) {
                 glfwPollEvents();glfwGetFramebufferSize(window,&width,&height);
                 if (width <= 0 || height <= 0) { glfwWaitEventsTimeout(.05);continue; }
                 if (glfwGetKey(window,GLFW_KEY_ESCAPE) == GLFW_PRESS) break;
-                scene->main_camera->aspect_ratio = float(width)/height;
+                scene->mainCamera()->aspect_ratio = float(width)/height;
                 device->beginFrame();renderer.resize(width,height);auto frame = adapter.collect(scene,fixedTime);if(std::string(argv[1])!="--rhi-scene"){frame.frame.sky=false;frame.frame.taa=false;frame.frame.oceans.clear();}if(fixedTime>=0)frame.frame.timeSeconds=fixedTime;renderer.render(frame.frame,frame.packets,frame.exposure);
                 device->copyToBackbuffer(renderer.output());device->present();++rendered;
                 if (frames > 0 && rendered >= frames) break;

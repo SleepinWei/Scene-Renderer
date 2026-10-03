@@ -23,7 +23,7 @@ flowchart LR
 
 CPU 队列与 GPU 在途帧分别限制：最多 2 个等待的帧包，GPU 默认最多 3 帧。队列满时主线程受背压，避免无限堆积输入到画面的延迟；已经接收的帧按 FIFO 执行，不悄悄丢帧。逻辑线程与渲染线程可以重叠处理相邻帧，但这不是无等待的固定频率模拟器。
 
-`Device::checkThread()` 检查设备归属。设备移交只能发生在启动／join 的静止边界，`adoptCurrentThread()` 不是并发锁。`RenderScene` 的修改接口和 snapshot capture 检查逻辑线程；历史公开容器仍用于兼容编辑器，**不得从后台线程直接修改**。后台工作只构建未发布对象或不可变 payload，完成结果由主线程应用。
+`Device::checkThread()` 检查设备归属。设备移交只能发生在启动／join 的静止边界，`adoptCurrentThread()` 不是并发锁。`RenderScene` 的结构容器、相机、sky／terrain 与 bootstrap payload 现已私有，读取和修改入口以及 snapshot capture 都检查逻辑线程。`objects()`／灯光列表返回 const 容器，插入去重，删除／清空同步维护灯光索引；活对象的组件变化后调用 `refreshObject(id)`。组件与 Camera 内部仍有历史公开字段，**不得从后台线程直接修改**。后台工作只构建未发布对象或不可变 payload，完成结果由主线程应用。
 
 ## 不可变快照与资产版本
 
@@ -49,9 +49,13 @@ GUI 轮询 future，在主线程调用 `RenderScene::replaceWith` 一次发布�
 
 根页在 CPU payload 准备时读取。替换资产时，旧任务只持有 CPU 源和 promise，不捕获 GPU VT 对象；旧 future 接收容器销毁后，结果不能写入新页表。离开视野的已完成页被丢弃。磁盘／页数据错误仍明确传给主线程，不能用不完整映射继续绘制。
 
-普通网格／材质在渲染线程按当前 snapshot 逐步创建：每帧最多接纳 2 个新资产，累计上传目标为 32 MiB。超过单帧目标的单个资源允许独占一次上传，避免大资源永远无法加载；这是接纳预算，不是硬性的帧时间保证。尚未就绪的对象暂时不进入 DrawPacket，上传完成会使 TSAA 历史失效。地形、细分、海洋和 pipeline 初始化仍有不可分割的分配／构建；后续应增加大 buffer 分段上传和 pipeline cache。
+普通材质图片通过同设备的 `GpuImageCache` 共用 texture／view，内容 hash 后再比较尺寸和完整字节，碰撞不会错误复用；sampler 独立于图片。默认图和 packed special 图也参与共享。不可变 shared 图片避免构造材质时再复制大数组，special payload 独立持有图片，不通过 alias 指针延长整个材质的 CPU 生命周期。
 
-运行日志输出帧数、最近一帧渲染线程 CPU 用时、RHI buffer／texture 峰值字节估算。该估算包含仍在 RHI 注册的资源，**不包含** driver heap 对齐、隐式 staging、交换链、pipeline 或所有已延迟释放的 native allocation，不能当作系统显存峰值。
+缓存默认保留最多 **64 MiB 空闲图片**，按 LRU 淘汰没有材质 lease 的条目，活图片不会被预算强行释放。该限制不是全局显存硬上限：活资源、VT、mesh、render target 和 driver allocation 仍独立。GPU lease 在材质 binding set 之后通过 completion retirement 释放；缓存只能在设备线程操作，启动／退出仍使用既有静止设备移交。
+
+普通网格／材质在渲染线程按当前 snapshot 逐步创建：每帧最多接纳 2 个新资产，累计上传目标为 32 MiB。超过单帧目标的单个资源允许独占一次上传，避免大资源永远无法加载；这是接纳预算，不是硬性的帧时间保证。材质接纳只计尚未缓存的图片字节；相同内容在单个材质中也不重复计费。尚未就绪的对象暂时不进入 DrawPacket，但其仍被引用的材质／细分记录不会因上游网格等待而被清除，避免反复重建。上传完成会使 TSAA 历史失效。地形、细分、海洋和 pipeline 初始化仍有不可分割的分配／构建；后续应增加大 buffer 分段上传和 pipeline cache。
+
+运行日志输出帧数、最近一帧渲染线程 CPU 用时、最近最多 256 帧的 CPU p95／p99（每 32 帧和退出时更新）、主线程提交队列的最大等待用时、共享 GPU 图片字节／上传／命中次数，以及 RHI buffer／texture 峰值字节估算。CPU 时间包含 worker 中的提交、呈现与必要等待，不是 GPU timestamp；队列最大等待也不是完整输入到画面的端到端延迟。该估算包含仍在 RHI 注册的资源，**不包含** driver heap 对齐、隐式 staging、交换链、pipeline 或所有已延迟释放的 native allocation，不能当作系统显存峰值。
 
 ## Render graph 与呈现
 
@@ -82,3 +86,5 @@ CPU 并发测试覆盖同 key 合并、不同 key、失败重试、释放、队�
 参考：[GLFW 线程约束](https://www.glfw.org/docs/latest/intro.html#thread_safety)、[Apple CAMetalLayer](https://developer.apple.com/documentation/quartzcore/cametallayer)。
 
 2026-10-03 在 Apple M4/macOS 上完成：Metal CTest **11/11**、Vulkan/MoltenVK CTest **12/12**；CPU 并发／graph 测试在 ThreadSanitizer 下通过。Metal 启用 API／Shader Validation，Vulkan 关闭本机已知会阻塞的 MetalTools 组合。
+
+后续结构、图片共享、LRU 和预算等待修复的原因与验收见 [Engine 后续修复记录](engine-followup-fixes.md)。

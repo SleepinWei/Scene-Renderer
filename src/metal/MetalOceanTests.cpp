@@ -136,14 +136,14 @@ void spectrumAndEvolution() {
 }
 void surfaceLighting() {
     auto manager=RenderManager::GetInstance();auto savedScene=scene;auto savedSettings=manager->setting;
-    scene=makeMetalOceanScene();scene->sky.reset();
-    auto water=std::static_pointer_cast<Ocean>(scene->terrain->GetComponent("Ocean"));
+    scene=makeMetalOceanScene();scene->addSky({});
+    auto water=std::static_pointer_cast<Ocean>(scene->terrain()->GetComponent("Ocean"));
     water->FFTPow=6;water->fft_size=64;water->MeshSize=65;water->animate=false;water->inner_time=8;
     auto frame=[&](){MetalBackend::beginFrame();manager->render(scene);auto raw=MetalBackend::readFloatTexture(manager->deferredPass->postTexture->id);MetalBackend::present();return raw;};
     manager->setting.enableDirectional=false;auto dark=frame();float darkMax=0;
     for(size_t i=0;i<dark.rgba.size();i+=4)for(int c=0;c<3;++c)darkMax=std::max(darkMax,std::abs(dark.rgba[i+c]));
     check(darkMax<1e-6,"no sky and disabled sun yields no stale or hardcoded lighting");
-    manager->setting.enableDirectional=true;scene->directionLights[0]->data.color={100,0,0};auto lit=frame();
+    manager->setting.enableDirectional=true;scene->directionLights()[0]->data.color={100,0,0};auto lit=frame();
     bool finite=true,onlyRed=true;float maxRed=0;
     for(size_t i=0;i<lit.rgba.size();i+=4){for(int c=0;c<4;++c)finite &= std::isfinite(lit.rgba[i+c]);maxRed=std::max(maxRed,lit.rgba[i]);onlyRed &= std::abs(lit.rgba[i+1])<1e-6 && std::abs(lit.rgba[i+2])<1e-6;}
     check(finite,"ocean shader output is finite without a sky");
@@ -159,9 +159,9 @@ void validateMetalOcean() {
 }
 std::shared_ptr<RenderScene> makeMetalOceanScene(bool clearWater) {
     auto result=makeMetalDemoScene();
-    if(!clearWater)result->objects.clear();
-    else for(size_t i=0;i<result->objects.size();++i) {
-        auto object=result->objects[i];
+    if(!clearWater) { auto all=result->objects();for(const auto& o:all)if(!o->getComponent<DirectionLight>())result->removeObject(o->assetId); }
+    else for(size_t i=0;i<result->objects().size();++i) {
+        auto object=result->objects()[i];
         auto renderer=std::static_pointer_cast<MeshRenderer>(object->GetComponent("MeshRenderer"));
         if(!renderer)continue;
         object->setDeferred(true);
@@ -169,9 +169,9 @@ std::shared_ptr<RenderScene> makeMetalOceanScene(bool clearWater) {
         trans->position={float(int(i)-2)*2.6f,-2.6f,-5};trans->scale=glm::vec3(1.4f);
         renderer->shader=RenderManager::GetInstance()->getShader(ShaderType::PBR);renderer->drawMode=GL_TRIANGLES;
     }
-    result->pointLights.clear();result->spotLights.clear();
-    result->main_camera=std::make_shared<Camera>(glm::vec3(0,7.5f,30),glm::vec3(0,1,0),-90,-10);result->main_camera->Zoom=58;result->main_camera->exposure=1;
-    if(!result->directionLights.empty())result->directionLights[0]->data.direction={0,-.17364818f,.98480775f};
+    {auto all=result->objects();for(const auto& o:all)if(o->getComponent<PointLight>() || o->getComponent<SpotLight>())result->removeObject(o->assetId);}
+    result->setCamera(std::make_shared<Camera>(glm::vec3(0,7.5f,30),glm::vec3(0,1,0),-90,-10));result->mainCamera()->Zoom=58;result->mainCamera()->exposure=1;
+    if(!result->directionLights().empty())result->directionLights()[0]->data.direction={0,-.17364818f,.98480775f};
     auto ocean=std::make_shared<Ocean>();ocean->FFTPow=10;ocean->fft_size=1024;ocean->MeshSize=513;
     ocean->MeshLength=256;ocean->seaLevel=0;
     // A rough deep-water preset: larger swell, steep crests and compression-driven whitecaps.
@@ -182,19 +182,19 @@ std::shared_ptr<RenderScene> makeMetalOceanScene(bool clearWater) {
         ocean->WindScale=9;ocean->A=.0005f;ocean->HeightScale=.6f;ocean->Lambda=.5f;ocean->refractionStrength=.35f;
         ocean->BubblesThreshold=.86f;ocean->BubblesScale=2;
         ocean->absorption={.08f,.025f,.012f};ocean->scattering={.01f,.02f,.025f};
-        result->main_camera=std::make_shared<Camera>(glm::vec3(0,9,13),glm::vec3(0,1,0),-90,-38);result->main_camera->Zoom=58;
-        result->directionLights[0]->data.direction={0,-.5735764f,.8191520f};
-        std::static_pointer_cast<Atmosphere>(result->sky->GetComponent("Atmosphere"))->sunAngle=35;
+        result->setCamera(std::make_shared<Camera>(glm::vec3(0,9,13),glm::vec3(0,1,0),-90,-38));result->mainCamera()->Zoom=58;
+        result->directionLights()[0]->data.direction={0,-.5735764f,.8191520f};
+        std::static_pointer_cast<Atmosphere>(result->sky()->GetComponent("Atmosphere"))->sunAngle=35;
         auto floor=std::make_shared<GameObject>();floor->name="Submerged sand";auto transform=std::make_shared<Transform>();floor->addComponent(transform);
         std::vector<Vertex> vertices(4);const glm::vec3 positions[]={{-45,-4,40},{45,-4,40},{45,-4,-50},{-45,-4,-50}};
         for(int i=0;i<4;++i){vertices[i]=Vertex{};vertices[i].Position=positions[i];vertices[i].Normal={0,1,0};vertices[i].TexCoords={float(i==1||i==2),float(i>=2)};}
         auto mesh=std::make_shared<Mesh>(vertices,std::vector<unsigned>{0,1,2,0,2,3});
-        auto sample=std::static_pointer_cast<MeshFilter>(result->objects[0]->GetComponent("MeshFilter"))->meshes[0]->material;
+        auto sample=std::static_pointer_cast<MeshFilter>(result->objects()[0]->GetComponent("MeshFilter"))->meshes[0]->material;
         auto mat=std::make_shared<Material>();mat->textures=sample->textures;mat->albedoFactor={2.4f,1.6f,.8f};mesh->material=mat;
         auto filter=std::make_shared<MeshFilter>();filter->addMesh(mesh);floor->addComponent(filter);
         auto renderer=std::make_shared<MeshRenderer>();renderer->shader=RenderManager::GetInstance()->getShader(ShaderType::PBR);floor->addComponent(renderer);floor->setDeferred(true);result->addObject(floor);
     }
-    result->terrain=std::make_shared<Terrain>();result->terrain->addComponent(ocean);
+    result->addTerrain(std::make_shared<Terrain>());result->terrain()->addComponent(ocean);
     auto manager=RenderManager::GetInstance();manager->setting.enableRSM=false;manager->setting.enableSSAO=false;
     manager->setting.useDefer=true;manager->setting.enableDirectional=true;
     return result;

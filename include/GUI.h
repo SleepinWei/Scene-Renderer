@@ -103,9 +103,9 @@ public:
 		}
 		ImGui::Separator();
 		if (ImGui::CollapsingHeader("Camera")) {
-			if (scene->main_camera) {
+			if (scene->mainCamera()) {
 				// exposure
-				ImGui::SliderFloat("exposure", &(scene->main_camera->exposure), 0.5f, 6.0f);
+				ImGui::SliderFloat("exposure", &(scene->mainCamera()->exposure), 0.5f, 6.0f);
 			}
 		}
 
@@ -145,7 +145,7 @@ public:
 
 		ImGui::Separator();
 		if (ImGui::CollapsingHeader("Point Light")) {
-			auto& lights = scene->pointLights;
+			auto& lights = scene->pointLights();
 			for (int i = 0; i < lights.size(); i++) {
 				char title[] = "Lighti Position";
 				title[5] = '0' + i;
@@ -159,7 +159,7 @@ public:
 			}
 		}
 		if(ImGui::CollapsingHeader("Direction Light")){
-			auto& dlights = scene->directionLights;
+			auto& dlights = scene->directionLights();
 			for (int i = 0; i < dlights.size(); i++) {
 				char title[] = "Direction Lighti";
 				title[15] = '0' + 0;
@@ -180,7 +180,7 @@ public:
 			}
 		}
 		if (ImGui::CollapsingHeader("Spot Light")) {
-			auto& slights = scene->spotLights;
+			auto& slights = scene->spotLights();
 			for (int i = 0; i < slights.size(); i++) {
 				char title[] = "Spot Lighti Position";
 				title[15] = '0' + 0;
@@ -203,10 +203,10 @@ public:
 		}
 
 		// sky 
-		if (scene->sky) {
+		if (scene->sky()) {
 			ImGui::Separator();
 			if (ImGui::CollapsingHeader("Atmosphere")) {
-				auto&& atmos = std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));
+				auto&& atmos = std::static_pointer_cast<Atmosphere>(scene->sky()->GetComponent("Atmosphere"));
 				auto& atmosParam = atmos->atmosphere;
 				auto& sunAngle = atmos->sunAngle;
 				ImGui::SliderFloat("Sun elevation", &sunAngle, -20.0f, 90.0f);
@@ -222,10 +222,10 @@ public:
 
 			//ImGui::SliderFloat("RayLeigh Scattering",0.0e-3,)
 		}
-		if (scene->terrain) {
+		if (scene->terrain()) {
 			ImGui::Separator();
 			if (ImGui::CollapsingHeader("Terrain")) {
-				auto&& terrainComp = std::static_pointer_cast<TerrainComponent>(scene->terrain->GetComponent("TerrainComponent"));
+				auto&& terrainComp = std::static_pointer_cast<TerrainComponent>(scene->terrain()->GetComponent("TerrainComponent"));
 				static bool useWireFrame = false;
 				ImGui::Toggle("Wire Frame mode", &useWireFrame);
 				if (useWireFrame) {
@@ -237,10 +237,10 @@ public:
 			}
 		}
 		// ocean
-		if (scene->terrain && scene->terrain->GetComponent("Ocean") != nullptr) {
+		if (scene->terrain() && scene->terrain()->GetComponent("Ocean") != nullptr) {
 			ImGui::Separator();
 			if (ImGui::CollapsingHeader("Ocean")) {
-				auto&& oceanComp = std::static_pointer_cast<Ocean>(scene->terrain->GetComponent("Ocean"));
+				auto&& oceanComp = std::static_pointer_cast<Ocean>(scene->terrain()->GetComponent("Ocean"));
 
 				ImGui::Checkbox("Animate waves", &oceanComp->animate);
                 ImGui::SliderFloat("Wind speed (m/s)", &oceanComp->WindScale, 0, 40);
@@ -277,13 +277,13 @@ public:
 		ImGui::Separator();
 		if (ImGui::CollapsingHeader("Game Objects")) {
 			ImGui::BeginChild("Scrolling");
-			for (auto& object : scene->objects) {
+			for (auto& object : scene->objects()) {
 				ImGui::Text("%s", object->name.c_str());
 			}
-			if (scene->sky) {
+			if (scene->sky()) {
 				ImGui::Text("sky");
 			}
-			if (scene->terrain) {
+			if (scene->terrain()) {
 				ImGui::Text("terrain");
 			}
 			ImGui::EndChild();
