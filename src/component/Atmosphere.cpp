@@ -170,7 +170,7 @@ void Atmosphere::renderDrawCall(const std::shared_ptr<Shader>& outShader) {
 		auto& skybox = std::static_pointer_cast<Sky>(Component::owner())->skybox;
 		if (skybox) {
 			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_CUBE_MAP,skybox->textures["skybox"]->id);
+			glBindTexture(GL_TEXTURE_CUBE_MAP,skybox->getTextures().at("skybox")->id);
 			shader->setInt("skybox", 1);
 
 			float time = glfwGetTime();

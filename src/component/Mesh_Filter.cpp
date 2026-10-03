@@ -1,3 +1,4 @@
+#include <cmath>
 #include<glad/glad.h>
 #include<glfw/glfw3.h>
 #include"component/Mesh_Filter.h"
@@ -14,8 +15,7 @@ Mesh::Mesh() {
 }
 
 Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices){
-	this->vertices = vertices;
-	this->indices = indices;
+	setGeometry(vertices,indices);
 	VAO = 0, VBO = 0, EBO = 0;
 	this->material = nullptr;  // 需要为 0，用于在导入时判断是否需要 candidate_mat 
 }
@@ -227,6 +227,7 @@ void MeshFilter::addShape(std::string type) {
 void MeshFilter::addMesh(std::shared_ptr<Mesh> mesh_) {
     checkLogicThread();
     if(!mesh_)throw std::invalid_argument("Cannot add null mesh");
+    mesh_->checkLogicThread();
 	meshes.push_back(mesh_);
     invalidate();
 }
@@ -234,7 +235,7 @@ void MeshFilter::addMesh(std::shared_ptr<Mesh> mesh_) {
 void MeshFilter::setMesh(const vector<shared_ptr<Mesh>> &meshes)
 {
     checkLogicThread();
-    for(const auto& mesh:meshes)if(!mesh)throw std::invalid_argument("Cannot assign null mesh");
+    for(const auto& mesh:meshes){if(!mesh)throw std::invalid_argument("Cannot assign null mesh");mesh->checkLogicThread();}
 	this->meshes = meshes;
     invalidate();
 }
@@ -260,9 +261,9 @@ void MeshFilter::loadFromJson(json& data) {
 
 			vector<shared_ptr<Mesh>> meshes = loader->loadModel(filename, true);
 			for(auto mesh : meshes){
-				mesh->name = iter.key();
-				if(mesh->material == nullptr){
-					mesh->material = candidate_mat;
+				mesh->setName(iter.key());
+				if(mesh->getMaterial() == nullptr){
+					mesh->setMaterial(candidate_mat);
 				}
 			}
 			// TODO: switch to add meshes, not mesh 
@@ -274,9 +275,16 @@ void MeshFilter::loadFromJson(json& data) {
 		}
 
 	}
+    for(const auto& mesh:meshes)if(!mesh->getMaterial())mesh->setMaterial(candidate_mat);
 }
 
 void Mesh::genVAO() {
+    checkLogicThread();
+    if(uploadedRevision_==getContentRevision() && VAO)return;
+    if(vertices.empty() || indices.empty())throw std::invalid_argument("Cannot upload empty mesh");
+    if(VAO)glDeleteVertexArrays(1,&VAO);if(VBO)glDeleteBuffers(1,&VBO);if(EBO)glDeleteBuffers(1,&EBO);
+    uploadedRevision_=getContentRevision();
+
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex),
@@ -311,3 +319,19 @@ void Mesh::genVAO() {
 
 }
 
+
+Mesh::Mesh(const Mesh& other):Mesh(other.getVertices(),other.getIndices()) {
+    material=other.getMaterial();name=other.getName();
+}
+void Mesh::setMaterial(std::shared_ptr<Material> value) {
+    checkLogicThread();if(value)value->checkLogicThread();material=std::move(value);
+}
+void Mesh::setGeometry(std::vector<Vertex> value,std::vector<unsigned> order) {
+    checkLogicThread();
+    for(auto index:order)if(index>=value.size())throw std::invalid_argument("Mesh index exceeds vertex count");
+    for(const auto& v:value) {
+        for(int i=0;i<3;i++)if(!std::isfinite(v.Position[i])||!std::isfinite(v.Normal[i]))throw std::invalid_argument("Mesh contains nonfinite vertex");
+        for(int i=0;i<2;i++)if(!std::isfinite(v.TexCoords[i]))throw std::invalid_argument("Mesh contains nonfinite UV");
+    }
+    vertices=std::move(value);indices=std::move(order);invalidate();
+}

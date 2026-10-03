@@ -1,5 +1,6 @@
 #include<glad/glad.h>
 #include "rhi/Device.h"
+#include <cmath>
 #include<memory>
 #include<assert.h>
 //#include<utility>
@@ -39,22 +40,28 @@ std::shared_ptr<Material> Material::loadTerrain(const std::string& folder){
 }
 
 std::shared_ptr<Material> Material::addTexture(std::shared_ptr<Texture> tex,std::string type) {
+    checkLogicThread();
 	//textures.push_back(tex);
-	this->textures.insert({ type,tex });
+	if(!tex || type.empty())throw std::invalid_argument("Null texture or empty material slot");
+    textures[type]=tex;texture_path.erase(type);initDone=false;invalidate();
 	//this->initDone= true;
 	return shared_from_this();
 }
 
 std::shared_ptr<Material> Material::addTextureAsync(std::string tex_path, std::string type) {
+    checkLogicThread();
 	auto&& tex = ResourceManager::GetInstance()->getResourceAsync(tex_path);
-	this->textures.insert({ type,tex });
+	if(!tex || type.empty())throw std::invalid_argument("Null texture or empty material slot");
+    textures[type]=tex;texture_path.erase(type);initDone=false;invalidate();
 	//this->initDone= true;
 	return shared_from_this();
 }
 
 std::shared_ptr<Material> Material::addTexture(std::string tex_path, std::string type) {
+    checkLogicThread();
 	auto&& tex = ResourceManager::GetInstance()->getResource(tex_path);
-	this->textures.insert({ type,tex });
+	if(!tex || type.empty())throw std::invalid_argument("Null texture or empty material slot");
+    textures[type]=tex;texture_path.erase(type);initDone=false;invalidate();
 	//this->initDone= true;
 	return shared_from_this();
 }
@@ -150,29 +157,31 @@ std::shared_ptr<Material> Material::loadCustomModel(const std::string& folder)
 }
 
 void Material::loadFromJson(json& data) {
-    if (data.contains("metallicFactor")) metallicFactor = data["metallicFactor"].get<float>();
-    if (data.contains("roughnessFactor")) roughnessFactor = data["roughnessFactor"].get<float>();
-    if (data.contains("occlusionStrength")) occlusionStrength = data["occlusionStrength"].get<float>();
-    if (data.contains("normalStrength")) normalStrength = data["normalStrength"].get<float>();
-    if (data.contains("opacityFactor")) opacityFactor = data["opacityFactor"].get<float>();
-    if (data.contains("alphaCutoff")) alphaCutoff = data["alphaCutoff"].get<float>();
+    checkLogicThread();auto candidate=properties();
+    if (data.contains("metallicFactor")) candidate.metallicFactor = data["metallicFactor"].get<float>();
+    if (data.contains("roughnessFactor")) candidate.roughnessFactor = data["roughnessFactor"].get<float>();
+    if (data.contains("occlusionStrength")) candidate.occlusionStrength = data["occlusionStrength"].get<float>();
+    if (data.contains("normalStrength")) candidate.normalStrength = data["normalStrength"].get<float>();
+    if (data.contains("opacityFactor")) candidate.opacityFactor = data["opacityFactor"].get<float>();
+    if (data.contains("alphaCutoff")) candidate.alphaCutoff = data["alphaCutoff"].get<float>();
     for (int i = 0; i < 3; ++i) {
-        if (data.contains("albedoFactor")) albedoFactor[i] = data["albedoFactor"].at(i).get<float>();
-        if (data.contains("emissiveFactor")) emissiveFactor[i] = data["emissiveFactor"].at(i).get<float>();
+        if (data.contains("albedoFactor")) candidate.albedoFactor[i] = data["albedoFactor"].at(i).get<float>();
+        if (data.contains("emissiveFactor")) candidate.emissiveFactor[i] = data["emissiveFactor"].at(i).get<float>();
     }
-	if (data.find("textures") != data.end()) {
-		auto& mat = data["textures"];
-		for (auto iter = mat.begin(); iter != mat.end(); ++iter) {
-			auto& mat_type = iter.key();
-			auto&& mat_path = iter.value().get<std::string>();
-			this->addTextureAsync(mat_path, mat_type);
-			//texture_path.insert({ mat_type,mat_path });
-		}
-		initDone= false;
-	}
 	if (data.find("hasSubSurface") != data.end()) {
-		this->hasSubSurface = data["hasSubSurface"].get<bool>();
+		candidate.hasSubSurface = data["hasSubSurface"].get<bool>();
 	}
+    validateProperties(candidate);
+    auto nextTextures=textures;auto nextPaths=texture_path;
+    if(data.contains("textures"))for(const auto& entry:data.at("textures").items()) {
+        const auto path=entry.value().get<std::string>();
+        if(entry.key().empty()||path.empty())throw std::invalid_argument("Texture path and slot must be nonempty");
+        auto texture=ResourceManager::GetInstance()->getResourceAsync(path);
+        if(!texture)throw std::invalid_argument("Texture load returned null");
+        nextTextures[entry.key()]=std::move(texture);nextPaths.erase(entry.key());
+    }
+    setProperties(candidate);
+    if(data.contains("textures")){textures=std::move(nextTextures);texture_path=std::move(nextPaths);initDone=false;invalidate();}
 }
 
 /// <summary>
@@ -181,6 +190,7 @@ void Material::loadFromJson(json& data) {
 /// this process is necessary because it is not allowed to operate Opengl objects in multi-thread style
 /// </summary>
 void Material::genTexture() {
+    checkLogicThread();
 	if (!initDone) {
 		initDone= true;
 		/*for (auto iter = texture_path.begin(); iter != texture_path.end(); ++iter) {
@@ -241,6 +251,7 @@ void Material::genTexture() {
 }
 
 void Material::genTextureFloat() {
+    checkLogicThread();
 	if (!initDone) {
 		initDone= true;
 		/*for (auto iter = texture_path.begin(); iter != texture_path.end(); ++iter) {
@@ -279,4 +290,66 @@ void Material::genTextureFloat() {
 			}
 		}
 	}
+}
+
+Material::Material(const Material& other):engine::LogicAsset(other) {
+    auto copy=other.snapshot();
+    hasSubSurface=copy.hasSubSurface;
+    alphaCutoff=copy.alphaCutoff;
+    twoSided=copy.twoSided;
+    albedoFactor=copy.albedoFactor;
+    metallicFactor=copy.metallicFactor;
+    roughnessFactor=copy.roughnessFactor;
+    occlusionStrength=copy.occlusionStrength;
+    normalStrength=copy.normalStrength;
+    opacityFactor=copy.opacityFactor;
+    emissiveFactor=copy.emissiveFactor;
+    textures=std::move(copy.textures);texture_path=std::move(copy.texture_path);initDone=copy.initDone;parameterRevision_=other.parameterRevision();
+}
+MaterialProperties Material::properties() const {checkLogicThread();MaterialProperties result;
+    result.hasSubSurface=hasSubSurface;
+    result.alphaCutoff=alphaCutoff;
+    result.twoSided=twoSided;
+    result.albedoFactor=albedoFactor;
+    result.metallicFactor=metallicFactor;
+    result.roughnessFactor=roughnessFactor;
+    result.occlusionStrength=occlusionStrength;
+    result.normalStrength=normalStrength;
+    result.opacityFactor=opacityFactor;
+    result.emissiveFactor=emissiveFactor;
+    return result;
+}
+MaterialData Material::snapshot() const {checkLogicThread();MaterialData result;static_cast<MaterialProperties&>(result)=properties();result.textures=textures;result.texture_path=texture_path;result.initDone=initDone;return result;}
+void Material::setProperties(const MaterialProperties& value) {
+    checkLogicThread();
+    validateProperties(value);
+    hasSubSurface=value.hasSubSurface;
+    alphaCutoff=value.alphaCutoff;
+    twoSided=value.twoSided;
+    albedoFactor=value.albedoFactor;
+    metallicFactor=value.metallicFactor;
+    roughnessFactor=value.roughnessFactor;
+    occlusionStrength=value.occlusionStrength;
+    normalStrength=value.normalStrength;
+    opacityFactor=value.opacityFactor;
+    emissiveFactor=value.emissiveFactor;
+    ++parameterRevision_;
+}
+void Material::setTexturePath(std::string type,std::string path) {
+    checkLogicThread();if(type.empty()||path.empty())throw std::invalid_argument("Texture path and slot must be nonempty");
+    texture_path[type]=std::move(path);textures.erase(type);initDone=false;invalidate();
+}
+bool Material::removeTexture(const std::string& type) {
+    checkLogicThread();auto removed=textures.erase(type)+texture_path.erase(type);if(removed){initDone=false;invalidate();}return removed!=0;
+}
+
+void Material::setTextures(std::unordered_map<std::string,std::shared_ptr<Texture>> value) {checkLogicThread();for(const auto& item:value)if(item.first.empty()||!item.second)throw std::invalid_argument("Null texture or empty slot");textures=std::move(value);texture_path.clear();initDone=false;invalidate();}
+
+void Material::validateProperties(const MaterialProperties& value) {
+    auto unit=[](float x){return std::isfinite(x)&&x>=0&&x<=1;};
+    auto nonnegative=[](float x){return std::isfinite(x)&&x>=0;};
+    if(!unit(value.alphaCutoff)||!unit(value.opacityFactor)||!unit(value.occlusionStrength)||
+       !nonnegative(value.normalStrength)||(value.metallicFactor&&!unit(*value.metallicFactor))||
+       (value.roughnessFactor&&!unit(*value.roughnessFactor)))throw std::invalid_argument("Invalid PBR material factors");
+    for(int i=0;i<3;i++)if(!nonnegative(value.albedoFactor[i])||!nonnegative(value.emissiveFactor[i]))throw std::invalid_argument("Material colors must be finite and nonnegative");
 }

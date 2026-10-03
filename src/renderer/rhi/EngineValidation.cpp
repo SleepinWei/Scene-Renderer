@@ -17,6 +17,7 @@
 #include "system/Loader.h"
 #include "system/ResourceManager.h"
 #include "renderer/Texture.h"
+#include <glad/glad.h>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -31,6 +32,121 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
         if (!value)
             throw std::runtime_error(reason);
     };
+    {
+        // Checked write boundaries reject before mutation and maintain independent versions.
+        Camera camera;
+        camera.setClipPlanes(.25f, 320.f);
+        auto projection = camera.GetPerspective();
+        check(std::abs(projection[2][2] - (-(320.f + .25f) / (320.f - .25f))) < 1e-6f,
+              "Camera projection ignored configured clip planes");
+        bool rejected = false;
+        try {
+            camera.setClipPlanes(20, 10);
+        } catch (const std::invalid_argument &) {
+            rejected = true;
+        }
+        check(rejected && camera.getNear() == .25f && camera.getFar() == 320.f,
+              "Invalid camera range partially committed");
+        camera.setFixed(true);
+        auto position = camera.getPosition();
+        camera.ProcessKeyboard(Camera_Movement::FORWARD, 1);
+        check(camera.getPosition() == position, "Fixed camera continued moving");
+        auto light = std::make_shared<DirectionLight>();
+        auto data = light->getData();
+        auto revision = light->getContentRevision();
+        light->setDirection({2, -2, 0});
+        check(std::abs(glm::length(light->getData().direction) - 1) < 1e-6f &&
+                  light->getContentRevision() > revision && light->isDirty(),
+              "Light setter did not normalize, invalidate or dirty the light");
+        rejected = false;
+        data.direction = {0, 0, 0};
+        try {
+            light->setData(data);
+        } catch (const std::invalid_argument &) {
+            rejected = true;
+        }
+        check(rejected && glm::length(light->getData().direction) > .99f,
+              "Invalid light partially committed");
+        auto spot = std::make_shared<SpotLight>();
+        auto cone = spot->getData();
+        rejected = false;
+        try {
+            spot->setCone(.5f, .6f);
+        } catch (const std::invalid_argument &) {
+            rejected = true;
+        }
+        check(rejected && spot->getData().cutOff == cone.cutOff, "Invalid cone partially committed");
+        auto mesh = Mesh::initPlane();
+        auto material = std::make_shared<Material>();
+        mesh->setMaterial(material);
+        auto old = mesh->getVertices();
+        revision = mesh->getContentRevision();
+        rejected = false;
+        try {
+            mesh->setGeometry(old, {UINT32_MAX});
+        } catch (const std::invalid_argument &) {
+            rejected = true;
+        }
+        check(rejected && mesh->getContentRevision() == revision && mesh->getVertices().size() == old.size(),
+              "Invalid geometry polluted mesh content or version");
+        auto parameters = material->properties();
+        auto scalarRevision = material->parameterRevision();
+        auto imageRevision = material->getContentRevision();
+        parameters.roughnessFactor = .2f;
+        material->setProperties(parameters);
+        check(material->parameterRevision() > scalarRevision &&
+                  material->getContentRevision() == imageRevision,
+              "Scalar material edit rebuilt texture content");
+        parameters.opacityFactor = std::numeric_limits<float>::quiet_NaN();
+        rejected = false;
+        try {
+            material->setProperties(parameters);
+        } catch (const std::invalid_argument &) {
+            rejected = true;
+        }
+        check(rejected && material->getOpacityFactor() == 1,
+              "Invalid material parameters partially committed");
+        auto first = std::make_shared<Texture>(), replacement = std::make_shared<Texture>();
+        material->addTexture(first, "material.albedo");
+        revision = material->getContentRevision();
+        material->addTexture(replacement, "material.albedo");
+        check(material->getTextures().at("material.albedo") == replacement &&
+                  material->getContentRevision() > revision,
+              "Replacing texture silently retained old content or version");
+        auto copy = std::make_shared<Material>(*material);
+        check(copy->assetId != material->assetId && copy->getTextures().at("material.albedo") == replacement,
+              "Asset copy lost distinct identity or source texture");
+        auto foreign = std::async(std::launch::async, [&] {
+            unsigned denied = 0;
+            try {
+                camera.setExposure(2);
+            } catch (const std::logic_error &) {
+                ++denied;
+            }
+            try {
+                light->setColor({2, 2, 2});
+            } catch (const std::logic_error &) {
+                ++denied;
+            }
+            try {
+                mesh->getVertices();
+            } catch (const std::logic_error &) {
+                ++denied;
+            }
+            try {
+                material->setRoughnessFactor(.7f);
+            } catch (const std::logic_error &) {
+                ++denied;
+            }
+            try {
+                Material illegal(*material);
+            } catch (const std::logic_error &) {
+                ++denied;
+            }
+            return denied == 5;
+        });
+        check(foreign.get(), "Private asset or camera API accepted foreign-thread access");
+    }
     {
         auto cache = GpuImageCache::forDevice(device);
         check(cache == GpuImageCache::forDevice(device), "Device created separate GPU image caches");
@@ -200,6 +316,11 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
         auto decoded = std::async(std::launch::async, [] {
                            auto object = std::make_shared<GameObject>("detached worker");
                            auto transform = object->addComponent<Transform>();
+                           auto filter = object->addComponent<MeshFilter>();
+                           filter->addShape(SHAPE::PLANE);
+                           auto mesh = filter->getMeshes()[0];
+                           auto material = std::make_shared<Material>();
+                           mesh->setMaterial(material);
                            object->sealForTransfer();
                            bool frozen = false;
                            try {
@@ -209,6 +330,14 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
                            }
                            if (!frozen)
                                throw std::runtime_error("Producer wrote a sealed object");
+                           frozen = false;
+                           try {
+                               material->setOpacityFactor(.5f);
+                           } catch (const std::logic_error &) {
+                               frozen = true;
+                           }
+                           if (!frozen)
+                               throw std::runtime_error("Producer wrote a sealed material");
                            return object;
                        }).get();
         auto unsafe = std::async(std::launch::async, [] {
@@ -233,17 +362,34 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
         check(refused && !localObject->getComponent<Transform>(),
               "Foreign component bypassed the sealed-object transfer boundary");
         scene->addObject(decoded);
+        auto adoptedMesh = decoded->getComponent<MeshFilter>()->getMeshes()[0];
+        adoptedMesh->setGeometry(adoptedMesh->getVertices(), adoptedMesh->getIndices());
+        adoptedMesh->getMaterial()->setOpacityFactor(.75f);
+        {
+            auto transferred=std::async(std::launch::async,[] {
+                auto world=std::make_shared<RenderScene>();auto camera=std::make_shared<Camera>();
+                camera->setClipPlanes(.2f,250.f);world->setCamera(camera);
+                auto object=std::make_shared<GameObject>();auto filter=object->addComponent<MeshFilter>();
+                filter->addShape(SHAPE::PLANE);auto material=std::make_shared<Material>();
+                filter->getMeshes()[0]->setMaterial(material);world->addObject(object);
+                world->sealForTransfer();return world;
+            }).get();
+            auto target=std::make_shared<RenderScene>();target->replaceWith(*transferred);
+            target->mainCamera()->setExposure(1.2f);
+            target->objects()[0]->getComponent<MeshFilter>()->getMeshes()[0]->getMaterial()->setRoughnessFactor(.4f);
+            check(target->mainCamera()->getFar()==250.f,"Sealed camera did not transfer to main thread");
+        }
         auto transform = decoded->getComponent<Transform>();
         transform->setTRS({1, 2, 3}, {0, 0, 0}, {1, 1, 1});
-        const auto original = transform->position;
+        const auto original = transform->getPosition();
         auto port = scene->commandPort();
         auto request =
             std::async(std::launch::async, [port, id = decoded->assetId, component = transform->assetId] {
                 return port.post(engine::SetTransform{id, component, {4, 5, 6}, {0, 10, 0}, {2, 2, 2}});
             }).get();
-        check(transform->position == original, "Background post mutated world before main-thread drain");
+        check(transform->getPosition() == original, "Background post mutated world before main-thread drain");
         check(scene->applyCommands(1) == 1 && request.result.get().status == engine::CommandStatus::Applied &&
-                  transform->position == glm::vec3(4, 5, 6),
+                  transform->getPosition() == glm::vec3(4, 5, 6),
               "Value command failed to update main-thread transform");
         auto foreign = std::async(std::launch::async, [decoded, transform] {
             bool query = false, write = false, owner = false;
@@ -271,7 +417,7 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
         cancelled.cancel();
         scene->applyCommands();
         check(invalid.result.get().status == engine::CommandStatus::Invalid &&
-                  transform->position == glm::vec3(4, 5, 6) &&
+                  transform->getPosition() == glm::vec3(4, 5, 6) &&
                   cancelled.result.get().status == engine::CommandStatus::Cancelled && decoded->isDeferred(),
               "Invalid or cancelled command partially modified an object");
         auto removed = port.post(engine::RemoveComponent{decoded->assetId, transform->assetId});
@@ -283,7 +429,7 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
             engine::SetTransform{decoded->assetId, transform->assetId, {7, 8, 9}, {0, 0, 0}, {1, 1, 1}});
         scene->applyCommands();
         check(staleComponent.result.get().status == engine::CommandStatus::MissingTarget &&
-                  next->position == glm::vec3(0),
+                  next->getPosition() == glm::vec3(0),
               "Old component ID modified a replacement component");
         auto pending = port.post(engine::SetDeferred{decoded->assetId, false});
         auto staging = std::make_shared<RenderScene>();
@@ -374,8 +520,11 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
             std::ofstream worker(base / "worker.json");
             worker << "{\"terrain\":\"" << (base / "terrain.json").string() << "\"}";
             std::ofstream object(base / "object.json");
-            object
-                << R"({"name":"worker object","components":{"Transform":{"position":[0,0,0],"rotation":[0,0,0],"scale":[1,1,1]}}})";
+            json objectData = json::parse(
+                R"({"name":"worker object","components":{"Transform":{"position":[0,0,0],"rotation":[0,0,0],"scale":[1,1,1]},"MeshFilter":{"shape":"plane","material":{"albedoFactor":[0.2,0.3,0.4]}}}})");
+            objectData["components"]["MeshFilter"]["material"]["textures"]["material.albedo"] =
+                (base / "shared.ppm").string();
+            object << objectData.dump();
             std::ofstream valid(base / "valid.json");
             valid << "{\"objects\":{\"one\":\"" << (base / "object.json").string() << "\"}}";
         }
@@ -429,6 +578,10 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
             auto builtObject = populated.result.get();
             scene->replaceWith(*builtObject);
             auto object = scene->objects().at(0);
+            auto loadedMaterial = object->getComponent<MeshFilter>()->getMeshes().at(0)->getMaterial();
+            check(loadedMaterial && loadedMaterial->getAlbedoFactor() == glm::vec3(.2f, .3f, .4f) &&
+                      loadedMaterial->getTextures().count("material.albedo") == 1,
+                  "Basic shape lost its JSON material during worker/main handoff");
             auto transform = object->getComponent<Transform>();
             transform->setTRS({1, 2, 3}, {0, 0, 0}, {1, 1, 1});
             check(transform->owner() == object && scene->findObject(object->assetId) == object,
@@ -440,6 +593,15 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
     }
     {
         auto scene = makeForwardDemoScene();
+        auto seedTexture = std::make_shared<Texture>();
+        seedTexture->width = 4;
+        seedTexture->height = 1;
+        seedTexture->channels = 4;
+        seedTexture->format = GL_RGBA;
+        seedTexture->data = static_cast<unsigned char *>(std::malloc(16));
+        std::fill(seedTexture->data, seedTexture->data + 16, 128);
+        scene->objects().at(0)->getComponent<MeshFilter>()->getMeshes().at(0)->getMaterial()->addTexture(
+            seedTexture, "material.albedo");
         SceneSnapshotBuilder builder;
         auto first = builder.capture(scene, 0, 64, 64);
         check(!first->draws.empty(), "Snapshot lost scene draws");
@@ -485,12 +647,13 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
         check(bool(object), "Snapshot object identity is not stable");
         auto filter = object->getComponent<MeshFilter>();
         auto transform = object->getComponent<Transform>();
-        auto mesh = filter->meshes[0];
+        auto mesh = filter->getMeshes()[0];
         auto oldPosition = first->draws[0].mesh->vertices[0].position;
-        transform->position.x += 10;
-        for (auto &vertex : mesh->vertices)
+        transform->setPosition(transform->getPosition() + glm::vec3(10, 0, 0));
+        auto vertices = mesh->getVertices();
+        for (auto &vertex : vertices)
             vertex.Position.x += 1;
-        mesh->invalidate();
+        mesh->setGeometry(std::move(vertices), mesh->getIndices());
         auto updated = builder.capture(scene, 2, 64, 64);
         check(first->draws[0].mesh->vertices[0].position == oldPosition &&
                   first->draws[0].model != updated->draws[0].model,
@@ -498,6 +661,30 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
         check(first->draws[0].mesh != updated->draws[0].mesh &&
                   first->draws[0].mesh->id == updated->draws[0].mesh->id,
               "Asset revision did not preserve ID and rebuild immutable payload");
+        auto material = mesh->getMaterial();
+        material->setRoughnessFactor(.27f);
+        auto scalarEdit = builder.capture(scene, 3, 64, 64);
+        check(scalarEdit->draws[0].material == updated->draws[0].material &&
+                  std::abs(scalarEdit->draws[0].parameters.factors.y - .27f) < 1e-6f,
+              "Material scalar edit failed or unnecessarily rebuilt image payload");
+        auto replacement = std::make_shared<Texture>();
+        replacement->width = replacement->height = 1;
+        replacement->channels = 4;
+        replacement->format = GL_RGBA;
+        replacement->data = static_cast<unsigned char *>(std::malloc(4));
+        replacement->data[0] = 7;
+        replacement->data[1] = 11;
+        replacement->data[2] = 19;
+        replacement->data[3] = 255;
+        material->addTexture(replacement, "material.albedo");
+        auto imageEdit = builder.capture(scene, 4, 64, 64);
+        check(imageEdit->draws[0].material != scalarEdit->draws[0].material &&
+                  imageEdit->draws[0].material->id == scalarEdit->draws[0].material->id &&
+                  imageEdit->draws[0].material->images[0] &&
+                  scalarEdit->draws[0].material->images[0] &&
+                  imageEdit->draws[0].material->images[0]->pixels[0] == 7 &&
+                  scalarEdit->draws[0].material->images[0]->width == 4,
+              "Texture replacement failed to rebuild immutable payload or modified earlier frame");
         auto foreign = std::async(std::launch::async, [&] {
             try {
                 scene->addObject(std::make_shared<GameObject>());

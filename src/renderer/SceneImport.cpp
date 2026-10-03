@@ -105,12 +105,12 @@ ImportedScene importOBJScene(const std::string& path,float height) {
     for (unsigned i=0;i<source->mNumMaterials;++i) {
         auto src=source->mMaterials[i]; auto material=std::make_shared<Material>();
         aiColor3D diffuse(1,1,1);src->Get(AI_MATKEY_COLOR_DIFFUSE,diffuse);
-        material->albedoFactor={diffuse.r,diffuse.g,diffuse.b};
+        material->setAlbedoFactor({diffuse.r,diffuse.g,diffuse.b});
         float shininess=16;src->Get(AI_MATKEY_SHININESS,shininess);
         const float roughness=std::clamp(std::sqrt(2.f/(shininess+2.f)),.35f,.95f);
         auto albedo=cache.albedo(texturePath(src,aiTextureType_DIFFUSE,directory),texturePath(src,aiTextureType_OPACITY,directory));
         if (albedo) for (size_t p=3;p<size_t(albedo->width)*albedo->height*4;p+=4) {
-            if (albedo->data[p]<250) { material->alphaCutoff=.45f;material->twoSided=true;break; }
+            if (albedo->data[p]<250) { material->setAlphaCutoff(.45f);material->setTwoSided(true);break; }
         }
         auto normal=cache.load(texturePath(src,aiTextureType_NORMALS,directory));
         if (!normal) normal=cache.bump(texturePath(src,aiTextureType_HEIGHT,directory));
@@ -125,10 +125,10 @@ ImportedScene importOBJScene(const std::string& path,float height) {
     for (unsigned m=0;m<source->mNumMeshes;++m) {
         auto src=source->mMeshes[m];
         if (!(src->mPrimitiveTypes&aiPrimitiveType_TRIANGLE)) continue;
-        auto mesh=std::make_shared<Mesh>();mesh->name=src->mName.C_Str();mesh->material=materials.at(src->mMaterialIndex);
-        mesh->vertices.resize(src->mNumVertices);mesh->indices.reserve(size_t(src->mNumFaces)*3);
+        auto mesh=std::make_shared<Mesh>();mesh->setName(src->mName.C_Str());mesh->setMaterial(materials.at(src->mMaterialIndex));
+        std::vector<Vertex> vertices(src->mNumVertices);std::vector<unsigned> indices;indices.reserve(size_t(src->mNumFaces)*3);
         for (unsigned i=0;i<src->mNumVertices;++i) {
-            auto& v=mesh->vertices[i];v=Vertex{};
+            auto& v=vertices[i];v=Vertex{};
             v.Position={src->mVertices[i].x,src->mVertices[i].y,src->mVertices[i].z};
             v.Normal=src->HasNormals()?glm::normalize(glm::vec3(src->mNormals[i].x,src->mNormals[i].y,src->mNormals[i].z)):glm::vec3(0,1,0);
             v.TexCoords=src->HasTextureCoords(0)?glm::vec2(src->mTextureCoords[0][i].x,src->mTextureCoords[0][i].y):glm::vec2(v.Position.x,v.Position.z);
@@ -138,14 +138,15 @@ ImportedScene importOBJScene(const std::string& path,float height) {
         }
         for (unsigned i=0;i<src->mNumFaces;++i) {
             auto& face=src->mFaces[i];if(face.mNumIndices!=3)continue;
-            mesh->indices.insert(mesh->indices.end(),face.mIndices,face.mIndices+3);
+            indices.insert(indices.end(),face.mIndices,face.mIndices+3);
         }
-        result.triangles+=mesh->indices.size()/3; result.meshes.push_back(mesh);
+        mesh->setGeometry(std::move(vertices),std::move(indices));
+        result.triangles+=mesh->getIndices().size()/3; result.meshes.push_back(mesh);
     }
     const float scale=height/(result.high.y-result.low.y);
     const auto origin=glm::vec3((result.low.x+result.high.x)/2,result.low.y,(result.low.z+result.high.z)/2);
     std::cout<<"Source bounds: "<<result.low.x<<","<<result.low.y<<","<<result.low.z<<" to "<<result.high.x<<","<<result.high.y<<","<<result.high.z<<std::endl;
-    for (const auto& mesh:result.meshes) for(auto& v:mesh->vertices)v.Position=(v.Position-origin)*scale;
+    for (const auto& mesh:result.meshes) {auto vertices=mesh->getVertices();for(auto& v:vertices)v.Position=(v.Position-origin)*scale;mesh->setGeometry(std::move(vertices),mesh->getIndices());}
     result.low=(result.low-origin)*scale; result.high=(result.high-origin)*scale;
     std::cout<<"Imported "<<result.meshes.size()<<" meshes, "<<result.triangles<<" triangles; height normalized to "<<height<<std::endl;
     return result;

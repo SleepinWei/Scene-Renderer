@@ -17,6 +17,7 @@ class Component : public engine::AssetIdentity {
     std::shared_ptr<GameObject> owner() const;
     bool hasOwner() const;
     void checkLogicThread() const;
+    uint64_t getContentRevision() const {checkLogicThread();return engine::AssetIdentity::getContentRevision();}
     void invalidate() {
         checkLogicThread();
         engine::AssetIdentity::invalidate();

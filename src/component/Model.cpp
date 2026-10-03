@@ -19,12 +19,13 @@ std::shared_ptr<Mesh> AssimpLoader::combineMesh(const std::vector<std::shared_pt
 	// TODO:
 	std::shared_ptr<Mesh> resultMesh = std::make_shared<Mesh>();
 	int beginIndex = 0;
+    std::vector<Vertex> resultVertices;std::vector<unsigned> resultIndices;
 	for (auto &submesh : meshes)
 	{
-		auto &resultVertices = resultMesh->vertices;
-		auto &resultIndices = resultMesh->indices;
-		auto &subVertices = submesh->vertices;
-		auto &subIndices = submesh->indices;
+
+
+		auto &subVertices = submesh->getVertices();
+		auto &subIndices = submesh->getIndices();
 		resultVertices.insert(resultVertices.end(), subVertices.begin(), subVertices.end());
 		// indices append
 		for (auto &index : subIndices)
@@ -33,6 +34,7 @@ std::shared_ptr<Mesh> AssimpLoader::combineMesh(const std::vector<std::shared_pt
 		}
 		beginIndex = resultVertices.size();
 	}
+    resultMesh->setGeometry(std::move(resultVertices),std::move(resultIndices));
 	return resultMesh;
 }
 
@@ -172,7 +174,7 @@ void AssimpLoader::loadMaterialTextures(aiMaterial *mat, aiTextureType type, std
 		std::string mat_path(str.C_Str());
 		const std::shared_ptr<Texture> &tex = ResourceManager::GetInstance()->getResource(mat_path);
 
-		material->textures.insert({texType, tex});
+		material->addTexture(tex,texType);
 	}
 }
 
@@ -292,7 +294,7 @@ std::shared_ptr<Mesh> GLTFLoader::buildMesh(const tinygltf::Model &model, unsign
 	}
 
 	auto mesh = std::make_shared<Mesh>(vertices, indices);
-	mesh->material = mesh_mat;
+	mesh->setMaterial(mesh_mat);
 	return mesh;
 }
 

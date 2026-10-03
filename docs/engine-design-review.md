@@ -27,11 +27,13 @@ RenderScene 的结构与灯光索引改为私有并迁移全部调用方；重�
 
 组件表与 owner 已私有，组件增删自动维护灯光索引；生产者通过封存与 future 明确移交对象。后台世界修改使用有界、绑定世界代际的值命令；RHI buffer／texture 可统一设定逻辑负载配额。实现、使用方式、回归与限制见[组件、命令与资源配额](engine-world-commands.md)。
 
+核心可变数据的第一阶段封装已完成：Transform、Light、Camera、Mesh／Material 与 MeshRenderer 的参数和容器使用检查接口；几何／图片修改自动失效，材质标量独立计版，Camera 与 CPU 资产参与封存移交。附带修复 JSON 基础形状材质、贴图替换及相机裁剪范围。具体接口、验收与剩余边界见 [可变数据边界](engine-data-boundaries.md)。
+
 ## 尚需推进的设计工作
 
 | 优先级 | 当前边界 | 下一步与验收 |
 | --- | --- | --- |
-| P1 | 世界结构、组件注册表与 owner 已私有；精确类型索引与代际值命令已落实，历史标量、Camera、Mesh／Material 内部仍公开 | 继续迁移字段写入口与内容失效检查；新模块使用检查过的 API／命令，不得跨线程直接写字段。稳定 ID 不复用，后续 ECS 槽位需 generation |
+| P1 | 世界结构、组件注册表与核心 Transform／Light／Camera／Mesh／Material 数据已私有；Texture 像素、部分效果配置与兼容字段仍公开 | 继续迁移历史 Texture 与效果配置，约束共享可变资产组移交；新模块使用检查过的 API／命令。稳定 ID 不复用，后续 ECS 槽位需 generation |
 | P1 | 图片空闲 LRU 64 MiB；所有 RHI buffer／texture 已有可选统一逻辑负载配额，含等待安全释放的资源 | 增加内存压力淘汰／降级、GPU 发布回滚与实际 native heap 统计；逻辑配额不覆盖隐式 staging／交换链／pipeline，继续大场景压力验收 |
 | P1 | 大地形／细分／海洋和 pipeline 初建仍不可分割；队列背压会等待 | 分段 upload、pipeline cache、按用时接纳；已有渲染 CPU p95／p99 和队列最大等待统计；继续测量大场景启动、GPU 时间、端到端输入延迟及实际 native heap 峰值 |
 | P2 | 场景取消不能中断正在执行的 Assimp／磁盘操作；路径仍沿用历史 cwd 约定 | 资产根目录、结构化诊断、分阶段取消与请求代际；失败／过期结果不发布 |
@@ -52,3 +54,5 @@ CPU cache／job／帧队列和 graph 契约有独立测试，并在 ThreadSaniti
 后续 GPU 图片共享与世界结构回归：Metal **11/11**、Vulkan/MoltenVK **12/12**，新增地址复用 GPU 自检在两后端通过；OpenGL 兼容路径 **8/8**。
 
 组件／世界命令／RHI 配额后续回归：Metal **11/11**、Vulkan/MoltenVK **12/12**、OpenGL **8/8**，CPU 命令队列再次通过 ThreadSanitizer；256 MiB 正常运行与 8 MiB 明确拒绝分配的编辑器路径通过。
+
+核心数据封装后续回归：Metal **11/11**、Vulkan/MoltenVK **12/12**、OpenGL **8/8**，CPU LogicAsset 错误线程访问／复制检查通过 ThreadSanitizer；详情见 [可变数据边界](engine-data-boundaries.md)。

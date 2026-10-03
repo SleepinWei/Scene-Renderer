@@ -22,8 +22,8 @@ shared_ptr<hittable_list> buildHittableFromMesh(const shared_ptr<Mesh> mesh,glm:
     auto inv_model = glm::inverse(model);
     glm::mat3 transpose_inv_model = glm::mat3(glm::transpose(inv_model));
 
-    auto vertices = mesh->vertices;
-    auto indices = mesh->indices;
+    auto vertices = mesh->getVertices();
+    auto indices = mesh->getIndices();
     shared_ptr<hittable_list> result = make_shared<hittable_list>();
     shared_ptr<PTMaterial> mat = make_shared<Lambertian>(vec3{1.0f, 1.0f, 1.0f});
     int triangle_cnt = indices.size() / 3;
@@ -76,10 +76,10 @@ void Connector::buildPTSceneFromRenderScene(shared_ptr<PTScene> ptscene, const s
     // camera
     auto &camera = renderScene->mainCamera();
     ptscene->addCam(make_shared<PTCamera>(
-        camera->Position,
-        camera->Position + camera->Front,
-        camera->WorldUp,
-        camera->Zoom,
+        camera->getPosition(),
+        camera->getPosition() + camera->getFront(),
+        camera->getWorldUp(),
+        camera->getZoom(),
         InputManager::GetInstance()->width / 2,
         InputManager::GetInstance()->height / 2));
 
@@ -105,21 +105,21 @@ void Connector::buildPTSceneFromRenderScene(shared_ptr<PTScene> ptscene, const s
         auto go = renderScene->objects()[i];
         // for all game objects
         auto meshfilter = std::static_pointer_cast<MeshFilter>(go->GetComponent("MeshFilter"));
-        if (!meshfilter || meshfilter->meshes.size() < 3)
+        if (!meshfilter || meshfilter->getMeshes().size() < 3)
         {
             continue;
         }
 
         auto transform = std::static_pointer_cast<Transform>(go->GetComponent("Transform"));
 
-        glm::mat4 trans = glm::translate(transform->position);
-        auto rotation = transform->rotation;
+        glm::mat4 trans = glm::translate(transform->getPosition());
+        auto rotation = transform->getRotation();
         glm::mat4 eulerAngleYXZ = glm::eulerAngleYXZ(glm::radians(rotation.y), glm::radians(rotation.x), glm::radians(rotation.z));
-        glm::mat4 scale = glm::scale(transform->scale); // 缩放;
+        glm::mat4 scale = glm::scale(transform->getScale()); // 缩放;
         glm::mat4 model = trans * scale * eulerAngleYXZ;
 
 
-        auto meshes = meshfilter->meshes;
+        auto meshes = meshfilter->getMeshes();
         for (auto mesh : meshes)
         {
             // 这里处理model的策略是对每个 vertex 都乘以 model，而不是构建一个 TransHittable.
@@ -141,7 +141,7 @@ void Connector::buildPTSceneFromRenderScene(shared_ptr<PTScene> ptscene, const s
     {
         // directional lights have no bounding box
         shared_ptr<DiffuseLight> mat = make_shared<DiffuseLight>(vec3(1.0, 1.0, 1.0));
-        auto pt_object = make_shared<Directional>(light->data.direction, mat);
+        auto pt_object = make_shared<Directional>(light->getData().direction, mat);
         ptscene->other_objects->add(pt_object);
     }
 

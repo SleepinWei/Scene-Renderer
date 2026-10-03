@@ -94,7 +94,7 @@ void NativeRealTimeRun(GLFWwindow* window,shared_ptr<RenderScene>& scene){
             framebuffer_size_callback(window,width,height);
             gui.window(scene);InputManager::GetInstance()->tick();
             if(InputManager::GetInstance()->keyStatus[KEY_R]==PRESSED){Connector::GetInstance()->LaunchPathTracingWithRenderScene(scene);InputManager::GetInstance()->keyStatus[KEY_R]=RELEASED;}
-            if(scene->mainCamera()){scene->mainCamera()->aspect_ratio=float(width)/height;scene->mainCamera()->tick();}
+            if(scene->mainCamera()){scene->mainCamera()->setAspect(float(width)/height);scene->mainCamera()->tick();}
             const auto settings=RenderManager::GetInstance()->setting;
             auto captured=snapshots.capture(scene,settings.timeOverride>=0?settings.timeOverride:float(glfwGetTime()),uint32_t(width),uint32_t(height),false);
             if(captured){

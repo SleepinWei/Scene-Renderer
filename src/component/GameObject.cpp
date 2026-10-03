@@ -1,6 +1,11 @@
 #include "component/GameObject.h"
 #include "renderer/RenderScene.h"
 #include "system/meta_register.h"
+#include "component/Mesh_Filter.h"
+#include "component/TerrainComponent.h"
+#include "object/SkyBox.h"
+#include "renderer/Material.h"
+#include <unordered_set>
 GameObject::GameObject() = default;
 GameObject::GameObject(std::string value) : name(std::move(value)) {}
 GameObject::~GameObject() = default;
@@ -13,6 +18,7 @@ void GameObject::sealForTransfer(const RenderScene *previous) {
     checkLogicThread();
     if (auto scene = scene_.lock(); scene && scene.get() != previous)
         throw std::logic_error("Published object must transfer through its world");
+    transferAssets(true);
     sealed_ = true;
     for (const auto &entry : components_)
         entry.second->logicThread_ = std::thread::id{};
@@ -23,6 +29,7 @@ void GameObject::bindScene(const std::shared_ptr<RenderScene> &scene, const Rend
         throw std::logic_error("Object already published in another world");
     if (logicThread_ != std::this_thread::get_id() && !sealed_)
         throw std::logic_error("Foreign object must be sealed before ownership handoff");
+    transferAssets(false);
     logicThread_ = std::this_thread::get_id();
     sealed_ = false;
     scene_ = scene;
@@ -109,4 +116,37 @@ void GameObject::setDeferred(bool value) {
         deferred_ = value;
         componentsChanged();
     }
+}
+
+void GameObject::transferAssets(bool seal) {
+    std::unordered_set<engine::LogicAsset *> assets;
+    auto material = [&](const std::shared_ptr<Material> &value) {
+        if (value)
+            assets.insert(value.get());
+    };
+    for (const auto &entry : components_) {
+        if (auto filter = std::dynamic_pointer_cast<MeshFilter>(entry.second))
+            for (const auto &mesh : filter->meshes)
+                if (mesh) {
+                    assets.insert(mesh.get());
+                    material(mesh->material);
+                }
+        if (auto terrain = std::dynamic_pointer_cast<TerrainComponent>(entry.second)) {
+            material(terrain->material);
+            material(terrain->terrainMaterial);
+        }
+    }
+    if (auto sky = dynamic_cast<Sky *>(this))
+        material(sky->skybox);
+    if (auto sky = dynamic_cast<SkyBox *>(this))
+        material(sky->material);
+    // Validate the complete group before changing ownership. Shared assets are visited once.
+    for (auto asset : assets)
+        if (!asset->sealed_)
+            asset->checkLogicThread();
+    for (auto asset : assets)
+        if (seal)
+            asset->sealOwnership();
+        else
+            asset->adoptOwnership();
 }

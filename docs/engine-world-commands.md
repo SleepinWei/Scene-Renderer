@@ -88,3 +88,7 @@ Buffer 按 descriptor 字节数计费；RGBA8／Depth32、RGBA16、RGBA32 textur
 - Metal 原生 Cornell 编辑器在 256 MiB 配额下完成 8 帧并排空退出，逻辑负载峰值约 134.12 MiB；8 MiB 下在阴影 atlas 分配前报告请求与可用字节，返回错误退出。该运行是配额行为验收，不是性能基准。
 
 完整图形应用与第三方 AppKit／GLFW 未运行 TSan；Windows／Linux 未实机验收。下一步继续收紧历史标量／Mesh／Material 的写入口，补充内存压力策略、实际 native heap 统计、大 buffer 分段上传和 pipeline cache，再扩展 RHI 子资源图及 VT feedback。
+
+## 后续核心数据封装
+
+Transform／Light／Camera 核心参数、Mesh／Material 容器及 MeshRenderer 设置现已迁移到检查接口，CPU 资产参与封存移交，几何与贴图槽修改自动更新内容版本。此更新收紧了前述历史字段边界；Texture 原地像素和部分效果配置仍待迁移。详见 [可变数据边界与资产移交](engine-data-boundaries.md)。

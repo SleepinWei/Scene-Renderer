@@ -25,7 +25,7 @@ flowchart LR
 
 CPU 队列与 GPU 在途帧分别限制：最多 2 个等待的帧包，GPU 默认最多 3 帧。队列满时主线程受背压，避免无限堆积输入到画面的延迟；已经接收的帧按 FIFO 执行，不悄悄丢帧。逻辑线程与渲染线程可以重叠处理相邻帧，但这不是无等待的固定频率模拟器。
 
-`Device::checkThread()` 检查设备归属。设备移交只能发生在启动／join 的静止边界，`adoptCurrentThread()` 不是并发锁。`RenderScene` 的结构容器、相机、sky／terrain 与 bootstrap payload 现已私有，读取和修改入口以及 snapshot capture 都检查逻辑线程。`objects()`／灯光列表返回 const 容器，插入去重，删除／清空同步维护灯光索引；活对象增删组件通过私有注册表自动通知世界并维护灯光索引。后台任务通过容量 256 的值命令队列提交 ID／参数，主循环限量消费 64 条；旧世界入口在替换时失效。组件与 Camera 内部仍有历史公开字段，**不得从后台线程直接修改**。后台工作只构建未发布对象或不可变 payload，完成结果由主线程应用。
+`Device::checkThread()` 检查设备归属。设备移交只能发生在启动／join 的静止边界，`adoptCurrentThread()` 不是并发锁。`RenderScene` 的结构容器、相机、sky／terrain 与 bootstrap payload 现已私有，读取和修改入口以及 snapshot capture 都检查逻辑线程。`objects()`／灯光列表返回 const 容器，插入去重，删除／清空同步维护灯光索引；活对象增删组件通过私有注册表自动通知世界并维护灯光索引。后台任务通过容量 256 的值命令队列提交 ID／参数，主循环限量消费 64 条；旧世界入口在替换时失效。Transform／Light／Camera 核心参数及 Mesh／Material 容器已私有，getter／setter 也检查归属；部分效果配置与历史 Texture 字段仍公开，**不得从后台线程直接修改**。后台工作只构建未发布对象或不可变 payload，完成结果由主线程应用。
 
 ## 不可变快照与资产版本
 
@@ -33,13 +33,13 @@ CPU 队列与 GPU 在途帧分别限制：最多 2 个等待的帧包，GPU 默�
 
 `GuiFrame` 深拷贝 ImGui 顶点、索引和命令。渲染器不访问下一帧 ImGui 的内部缓冲区，也不在析构中访问 UI context。当前支持字体与已登记纹理；自定义 ImGui draw callback 不允许跨线程，必须先转成独立渲染消息。字体及原生 GUI pipeline 在启动阶段建立。
 
-对象、组件、Mesh 和 Material 使用单调递增 ID，地址不再作为这些 cache 的身份；复制 Mesh／Material 资产会分配新 ID；GameObject／Component 禁止复制。`Mesh::invalidate()` 与 `Material::invalidate()` 更新内容版本，修改 CPU 几何／图片后必须调用；变换与材质标量本身不需要重建图片。地形继续使用 `invalidateHeight()`，并检查组件身份、路径、尺寸、预算、材质版本和草状态。`getComponent<T>()` 对精确类型使用 `type_index` 索引，基类查询保留确定顺序的动态转换；旧字符串接口保留给历史 JSON／反射。
+对象、组件、Mesh 和 Material 使用单调递增 ID，地址不再作为这些 cache 的身份；复制 Mesh／Material 资产会分配新 ID；GameObject／Component 禁止复制。`Mesh::setGeometry()` 与 Material 的纹理槽 API 自动更新内容版本，材质标量独立记录参数版本，不重建图片。历史 Texture 原地像素修改仍需在逻辑线程调用 `Material::invalidate()`；不允许把 getter 返回的 const 引用跨线程使用。地形继续使用 `invalidateHeight()`，并检查组件身份、路径、尺寸、预算、材质版本和草状态。`getComponent<T>()` 对精确类型使用 `type_index` 索引，基类查询保留确定顺序的动态转换；旧字符串接口保留给历史 JSON／反射。
 
 原生图片解码缓存按规范化路径、mtime 和文件长度合并请求，payload 共享 const 图片。普通 Texture cache 封装容器并合并同路径进行中的 future；锁只保护索引，解码不占用索引锁。失败不会永久污染 key，未被外部使用的条目可以释放。共享图片 cache 在快照收集时回收无引用条目，Texture cache 在编辑器周期／退出时回收。
 
 ## 场景加载事务与取消
 
-`Loader::buildScene(path)` 返回 `SceneLoadRequest`，包含 future、取消标记和进度。独立协调线程分发解码任务，按 JSON 对象键的确定顺序收集结果，避免 worker 完成先后改变场景顺序。每个解码对象先封存再经 future 交给协调线程接管，完整 staging 在资产准备后再次封存，主线程接管时重新指定组件归属。未封存外线程对象及单独外线程组件不能直接挂入世界。子 JSON、网格、材质图片及 VT bootstrap 验证成功后才返回 staging；准备的 const CPU payload 在主线程第一次 capture 时被接管，避免重复准备。
+`Loader::buildScene(path)` 返回 `SceneLoadRequest`，包含 future、取消标记和进度。独立协调线程分发解码任务，按 JSON 对象键的确定顺序收集结果，避免 worker 完成先后改变场景顺序。每个解码对象先封存再经 future 交给协调线程接管，完整 staging 在资产准备后再次封存，主线程接管时重新指定组件与 CPU 资产归属；Camera、Mesh 和引用的 Material 一并参与。可变资产组必须整体移交，不支持不同线程同时使用跨世界共享的可变 Material。未封存外线程对象及单独外线程组件不能直接挂入世界。子 JSON、网格、材质图片及 VT bootstrap 验证成功后才返回 staging；准备的 const CPU payload 在主线程第一次 capture 时被接管，避免重复准备。
 
 GUI 轮询 future，在主线程调用 `RenderScene::replaceWith` 一次发布，保留已有相机。解析失败、缺少子文件、解码失败或取消都保留原场景。事务保证 CPU 侧构建与资产准备；GPU 分配、设备能力及 GPU 专用参数校验失败仍由渲染线程上报，尚未实现 GPU 阶段的回滚。重新选择文件先取消旧请求，旧结果不会覆盖新选择。取消在任务边界和发布前检查，不强制中断正在进行的文件读取／Assimp 导入。满载的协调队列返回明确失败，不阻塞 UI 等待空位。
 
@@ -94,3 +94,5 @@ CPU 并发测试覆盖同 key 合并、不同 key、失败重试、释放、队�
 2026-10-03 在 Apple M4/macOS 上完成：Metal CTest **11/11**、Vulkan/MoltenVK CTest **12/12**；CPU 并发／graph 测试在 ThreadSanitizer 下通过。Metal 启用 API／Shader Validation，Vulkan 关闭本机已知会阻塞的 MetalTools 组合。
 
 后续结构、图片共享、LRU 和预算等待修复的原因与验收见 [Engine 后续修复记录](engine-followup-fixes.md)。
+
+核心参数私有化、自动版本失效、MaterialData worker 输入与资产移交的接口及最新验收见 [可变数据边界](engine-data-boundaries.md)。

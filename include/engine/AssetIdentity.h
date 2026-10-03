@@ -10,9 +10,14 @@ inline uint64_t nextIdentity() {
 // is a distinct object. Snapshot payloads carry the original ID explicitly.
 struct AssetIdentity {
     AssetIdentity() = default;
-    AssetIdentity(const AssetIdentity &other) : contentRevision(other.contentRevision) {}
+    AssetIdentity(const AssetIdentity &other) : contentRevision_(other.contentRevision_) {}
     const uint64_t assetId = nextIdentity();
-    uint64_t contentRevision = 1;
-    void invalidate() { ++contentRevision; }
+    uint64_t getContentRevision() const { return contentRevision_; }
+
+  protected:
+    void invalidate() { ++contentRevision_; }
+
+  private:
+    uint64_t contentRevision_ = 1;
 };
 } // namespace engine

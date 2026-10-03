@@ -89,7 +89,7 @@ void SkyBox::render()const {
 
 	glBindVertexArray(VAO);
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, material->textures[0]->id);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, material->getTextures().at("skybox")->id);
 	shader->setInt("skybox", 0);
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 	glBindVertexArray(0);
@@ -108,10 +108,10 @@ Sky::~Sky() {
 
 void Sky::initSkyBoxTexture() {
 	// init skybox texture
-	if (skybox && !skybox->initDone) {
-		skybox->initDone = true;
+	if (skybox && !skybox->isInitialized()) {
+		skybox->setInitialized(true);
 
-		auto& textureID = skybox->textures["skybox"]->id;
+		auto& textureID = skybox->getTextures().at("skybox")->id;
 		glGenTextures(1, &textureID);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
 
@@ -187,7 +187,7 @@ void Sky::loadSkyBox(const std::string& folder_path) {
 	tex->name = folder_path; 
 	skybox = std::make_shared<Material>();
 	skybox->addTexture(tex,"skybox");
-	skybox->initDone= false;
+	skybox->setInitialized(false);
 }
 
 void Sky::loadFromJson(json& data) {

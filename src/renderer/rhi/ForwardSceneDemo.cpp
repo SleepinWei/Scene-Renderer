@@ -16,19 +16,19 @@
 #include <iostream>
 namespace render {
 std::shared_ptr<RenderScene> makeForwardDemoScene() {
-    auto scene = std::make_shared<RenderScene>();scene->setCamera(std::make_shared<Camera>(glm::vec3(0,2,8),glm::vec3(0,1,0),-90,-9));scene->mainCamera()->exposure = 1;
+    auto scene = std::make_shared<RenderScene>();scene->setCamera(std::make_shared<Camera>(glm::vec3(0,2,8),glm::vec3(0,1,0),-90,-9));scene->mainCamera()->setExposure(1);
     const glm::vec3 colors[] = {{.8f,.18f,.12f},{.18f,.65f,.95f},{.85f,.63f,.2f}};
     for (int i = 0; i < 3; ++i) {
         auto object = std::make_shared<GameObject>();object->name = "RHI sphere " + std::to_string(i);
-        auto transform = object->addComponent<Transform>();transform->position = {float(i-1)*2.4f,0,0};
-        auto filter = object->addComponent<MeshFilter>();auto mesh = Mesh::initSphere(48);mesh->material = std::make_shared<Material>();
-        mesh->material->albedoFactor = colors[i];mesh->material->metallicFactor = i == 2 ? 1.f : 0.f;mesh->material->roughnessFactor = i == 2 ? .25f : .55f;
+        auto transform = object->addComponent<Transform>();transform->setPosition({float(i-1)*2.4f,0,0});
+        auto filter = object->addComponent<MeshFilter>();auto mesh = Mesh::initSphere(48);mesh->setMaterial(std::make_shared<Material>());
+        mesh->getMaterial()->setAlbedoFactor(colors[i]);mesh->getMaterial()->setMetallicFactor(i == 2 ? 1.f : 0.f);mesh->getMaterial()->setRoughnessFactor(i == 2 ? .25f : .55f);
         filter->addMesh(mesh);scene->addObject(object);
     }
-    auto floor = std::make_shared<GameObject>();floor->name = "RHI floor";auto transform = floor->addComponent<Transform>();transform->position.y = -1.1f;transform->scale = {5,1,5};
-    auto mesh = Mesh::initPlane();mesh->material = std::make_shared<Material>();mesh->material->albedoFactor = {.42f,.44f,.48f};
+    auto floor = std::make_shared<GameObject>();floor->name = "RHI floor";auto transform = floor->addComponent<Transform>();transform->setPosition({0,-1.1f,0});transform->setScale({5,1,5});
+    auto mesh = Mesh::initPlane();mesh->setMaterial(std::make_shared<Material>());mesh->getMaterial()->setAlbedoFactor({.42f,.44f,.48f});
     floor->addComponent<MeshFilter>()->addMesh(mesh);scene->addObject(floor);
-    auto sun = std::make_shared<GameObject>();sun->addComponent<Transform>();auto light = sun->addComponent<DirectionLight>();light->data.color = {4,3.8f,3.6f};light->data.direction = {-.4f,-.8f,-1};scene->addObject(sun);
+    auto sun = std::make_shared<GameObject>();sun->addComponent<Transform>();auto light = sun->addComponent<DirectionLight>();light->setColor({4,3.8f,3.6f});light->setDirection({-.4f,-.8f,-1});scene->addObject(sun);
     return scene;
 }
 void runForwardScene(int argc, char** argv) {
@@ -76,7 +76,7 @@ void runForwardScene(int argc, char** argv) {
                 glfwPollEvents();glfwGetFramebufferSize(window,&width,&height);
                 if (width <= 0 || height <= 0) { glfwWaitEventsTimeout(.05);continue; }
                 if (glfwGetKey(window,GLFW_KEY_ESCAPE) == GLFW_PRESS) break;
-                scene->mainCamera()->aspect_ratio = float(width)/height;
+                scene->mainCamera()->setAspect(float(width)/height);
                 device->beginFrame();renderer.resize(width,height);auto frame = adapter.collect(scene,fixedTime);if(std::string(argv[1])!="--rhi-scene"){frame.frame.sky=false;frame.frame.taa=false;frame.frame.oceans.clear();}if(fixedTime>=0)frame.frame.timeSeconds=fixedTime;renderer.render(frame.frame,frame.packets,frame.exposure);
                 device->copyToBackbuffer(renderer.output());device->present();++rendered;
                 if (frames > 0 && rendered >= frames) break;

@@ -38,7 +38,7 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
         auto device=rhi::graphicsDevice();glfwGetFramebufferSize(window,&width,&height);framebuffer_size_callback(window,width,height);
         std::filesystem::create_directories(directory);auto manager=RenderManager::GetInstance();manager->init();
         for(const auto& name:names){
-            auto scene=makeClassicScene(name);scene->mainCamera()->aspect_ratio=float(width)/height;
+            auto scene=makeClassicScene(name);scene->mainCamera()->setAspect(float(width)/height);
             {
                 SceneAdapter adapter(device);ForwardPbrRenderer renderer(device,rhi::defaultShaderDirectory(),width,height,PbrPath::Scene);
                 auto capture=[&](const std::string& suffix,bool rsm,bool only,bool sun,bool sky){
@@ -67,7 +67,7 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
                     auto atmo=std::static_pointer_cast<Atmosphere>(scene->sky()->GetComponent("Atmosphere"));
                     auto pointSun=[&](float elevation,float fov,float pitch) {
                         atmo->sunAngle=elevation;scene->setCamera(std::make_shared<Camera>(glm::vec3(0,2,0),glm::vec3(0,1,0),-90,pitch,float(width)/height));
-                        scene->mainCamera()->Zoom=fov;scene->mainCamera()->exposure=1;
+                        scene->mainCamera()->setZoom(fov);scene->mainCamera()->setExposure(1);
                     };
                     pointSun(30,10,30);capture("-sun-closeup",false,false,true,true);
                     pointSun(45,60,25);capture("-day",false,false,true,true);

@@ -24,6 +24,13 @@ protected:
 	void SetParentTransform(std::shared_ptr<Transform> parent);
 
 public:
+    const glm::vec3& getPosition() const { checkLogicThread(); return position; }
+    const glm::vec3& getRotation() const { checkLogicThread(); return rotation; }
+    const glm::vec3& getScale() const { checkLogicThread(); return scale; }
+    void setPosition(const glm::vec3& value) { setTRS(value, getRotation(), getScale()); }
+    void setRotation(const glm::vec3& value) { setTRS(getPosition(), value, getScale()); }
+    void setScale(const glm::vec3& value) { setTRS(getPosition(), getRotation(), value); }
+private:
 	glm::vec3 position;
 	glm::vec3 rotation;
 	glm::vec3 scale; 

@@ -6,6 +6,7 @@
 #include <fstream>
 #include <algorithm>
 #include "component/Transform.h"
+#include "utils/Camera.h"
 #include <type_traits>
 RenderScene::RenderScene() = default;
 void RenderScene::checkLogicThread() const {
@@ -116,6 +117,8 @@ std::shared_ptr<RenderScene> RenderScene::addSky(std::shared_ptr<Sky> value) {
 }
 void RenderScene::setCamera(std::shared_ptr<Camera> value) {
     checkLogicThread();
+    if (value)
+        value->checkLogicThread();
     camera_ = std::move(value);
     ++revision_;
 }
@@ -139,8 +142,10 @@ void RenderScene::replaceWith(RenderScene &staging) {
     sky_ = std::move(staging.sky_);
     terrain_ = std::move(staging.terrain_);
     preparedAssets_ = std::move(staging.preparedAssets_);
-    if (staging.camera_)
+    if (staging.camera_) {
+        staging.camera_->adoptOwnership();
         camera_ = std::move(staging.camera_);
+    }
     auto self = shared_from_this();
     for (const auto &object : objects_)
         object->bindScene(self, &staging);
@@ -157,6 +162,8 @@ void RenderScene::sealForTransfer() {
     std::lock_guard<std::mutex> lock(structureMutex_);
     for (const auto &entry : objectIndex_)
         entry.second->sealForTransfer(this);
+    if (camera_)
+        camera_->sealOwnership();
     commands_->close();
     transferSealed_ = true;
 }

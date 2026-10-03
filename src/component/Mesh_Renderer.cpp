@@ -22,16 +22,28 @@ MeshRenderer::~MeshRenderer() {
 
 }
 
+std::shared_ptr<MeshRenderer> MeshRenderer::setLegacyShader(std::shared_ptr<Shader> value) {
+    checkLogicThread();
+    if (!value) throw std::invalid_argument("Custom shader cannot be null");
+    shader = std::move(value);
+    invalidate();
+    return shared_from_this();
+}
+
 std::shared_ptr<MeshRenderer> MeshRenderer::setShader(ShaderType type) {
     checkLogicThread();
-	shaderType=type;shader = RenderManager::GetInstance()->getShader(type);
+	if(int(type)<0 || type>=ShaderType::KIND_COUNT)throw std::invalid_argument("Invalid shader type");
+    auto selected=RenderManager::GetInstance()->getShader(type);shaderType=type;shader=std::move(selected);invalidate();
 	return shared_from_this();
 }
 
 std::shared_ptr<MeshRenderer> MeshRenderer::setShader(std::string type) {
     checkLogicThread();
 	ShaderType shadertype = ShaderType::SIMPLE;
-	if (type == "pbr") {
+	if(type=="simple")shadertype=ShaderType::SIMPLE;
+    else if(type=="hdr")shadertype=ShaderType::HDR;
+    else if(type=="depth")shadertype=ShaderType::DEPTH;
+    else if (type == "pbr") {
 		shadertype = ShaderType::PBR;
 	}
 	else if (type == "pbr_tess") {
@@ -61,10 +73,9 @@ std::shared_ptr<MeshRenderer> MeshRenderer::setShader(std::string type) {
 	else if (type == "skybox") {
 		shadertype = ShaderType::SKYBOX;
 	}
-	//
+	else throw std::invalid_argument("Unknown shader name: "+type);
 
-	shaderType=shadertype;shader = RenderManager::GetInstance()->getShader(shadertype);
-	return shared_from_this();
+	return setShader(shadertype);
 }
 
 
@@ -75,13 +86,15 @@ std::shared_ptr<MeshRenderer> MeshRenderer::setShader(std::string type) {
 
 std::shared_ptr<MeshRenderer> MeshRenderer::setDrawMode(GLenum drawMode_) {
     checkLogicThread();
-	drawMode = drawMode_;
+if(drawMode_!=GL_TRIANGLES && drawMode_!=GL_PATCHES && drawMode_!=GL_POINTS && drawMode_!=GL_LINES)throw std::invalid_argument("Invalid draw mode");
+	drawMode = drawMode_;invalidate();
 	return shared_from_this();
 }
 
 std::shared_ptr<MeshRenderer> MeshRenderer::setPolyMode(GLenum ployMode_) {
     checkLogicThread();
-	polyMode = ployMode_;
+if(ployMode_!=GL_FILL && ployMode_!=GL_LINE && ployMode_!=GL_POINT)throw std::invalid_argument("Invalid polygon mode");
+	polyMode = ployMode_;invalidate();
 	return shared_from_this();
 }
 
@@ -101,6 +114,7 @@ MeshRenderer::MeshRenderer():drawMode(GL_TRIANGLES),polyMode(GL_FILL) {
 /// </summary>
 /// <param name="useShader"></param>
 void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
+    checkLogicThread();
 	glCheckError();
 	const std::shared_ptr<Transform>& transform = std::static_pointer_cast<Transform>(owner()->GetComponent("Transform"));
 
@@ -108,10 +122,10 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 		return;
 	}
 
-	glm::mat4 trans = glm::translate(transform->position);
-	auto rotation = transform->rotation;
+	glm::mat4 trans = glm::translate(transform->getPosition());
+	auto rotation = transform->getRotation();
 	glm::mat4 eulerAngleYXZ = glm::eulerAngleYXZ(glm::radians(rotation.y), glm::radians(rotation.x), glm::radians(rotation.z));
-	glm::mat4 scale = glm::scale(transform->scale); //缩放;
+	glm::mat4 scale = glm::scale(transform->getScale()); //缩放;
 	glm::mat4 model = trans * scale * eulerAngleYXZ;
 	//glm::mat4 mvp = projection * view * model;
 
@@ -123,29 +137,27 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 
 	auto actualShader = (outShader == nullptr) ? shader : outShader;
 
-	for (auto& mesh : mesh_filter->meshes) {
-		unsigned int& VAO = mesh->VAO;
-		unsigned int& VBO = mesh->VBO;
-		unsigned int& EBO = mesh->EBO;
-		auto& vertices = mesh->vertices;
-		auto& indices = mesh->indices;
-		auto &material = mesh->material; 
+	for (auto& mesh : mesh_filter->getMeshes()) {
+		mesh->genVAO();
+        const auto VAO = mesh->getVAO();
 
-		if (VAO == 0) {
-			mesh->genVAO();
-			glCheckError();
-		}
+		const auto EBO = mesh->getEBO();
+		auto& vertices = mesh->getVertices();
+		auto& indices = mesh->getIndices();
+		auto material = mesh->getMaterial();
+
+		glCheckError();
 
 		actualShader->use();
 		glCheckError();
 
 		actualShader->setMat4("model", model);
-		actualShader->setFloat("alphaCutoff", material ? material->alphaCutoff : 0.0f);
-		actualShader->setVec3("albedoFactor", material ? material->albedoFactor : glm::vec3(1.0f));
-		if (material && material->alphaCutoff > 0.0f) {
+		actualShader->setFloat("alphaCutoff", material ? material->getAlphaCutoff() : 0.0f);
+		actualShader->setVec3("albedoFactor", material ? material->getAlbedoFactor() : glm::vec3(1.0f));
+		if (material && material->getAlphaCutoff() > 0.0f) {
 			material->genTexture();
 			glActiveTexture(GL_TEXTURE31);
-			glBindTexture(GL_TEXTURE_2D, material->textures.at("material.albedo")->id);
+			glBindTexture(GL_TEXTURE_2D, material->getTextures().at("material.albedo")->id);
 			actualShader->setInt("alphaTexture", 31);
 		}
 
@@ -158,7 +170,7 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 
 			// bind textures 
 			if (material) {
-				auto& textures = material->textures; // a hash map
+				auto& textures = material->getTextures(); // a hash map
 				int texture_index = 0;
 				for (auto iterator = textures.begin(); iterator != textures.end(); ++iterator) {
 					//激活纹理单元0
@@ -171,14 +183,14 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 				}
 				glCheckError();
 
-				if (material->hasSubSurface) {
+				if (material->getHasSubSurface()) {
 					// 
 				}
 			}
 		}
 
 		
-		if (material && material->twoSided) glDisable(GL_CULL_FACE);
+		if (material && material->getTwoSided()) glDisable(GL_CULL_FACE);
 		glBindVertexArray(VAO);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 		assert(VAO > 0);
@@ -197,7 +209,7 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 #endif
 			glCheckError();
 
-			if (material && material->twoSided) glEnable(GL_CULL_FACE);
+			if (material && material->getTwoSided()) glEnable(GL_CULL_FACE);
 			if (polyMode == GL_LINE) {
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			}

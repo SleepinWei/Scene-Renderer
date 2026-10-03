@@ -24,7 +24,7 @@ size_t signature(const std::shared_ptr<RenderScene>& scene) {
     auto s=manager->setting;for(bool x:{s.enableRSM,s.enableShadow,s.enableSSAO,s.enableDirectional})add(x);
     if(manager->rsmPass){auto r=manager->rsmPass;for(float x:{float(r->indirectOnly),float(r->sunBounce),float(r->skyBounce),r->intensity,r->sampleRadius,float(r->sampleCount),r->worldRadius,r->minDistance,float(r->useSunSky)})add(x);}
     if(scene->sky()){auto a=std::static_pointer_cast<Atmosphere>(scene->sky()->GetComponent("Atmosphere"));if(a)add(a->sunAngle);}
-    for(auto light:scene->directionLights())if(light){add(light->enabled);for(int c=0;c<3;++c){add(light->data.color[c]);add(light->data.direction[c]);}}
+    for(auto light:scene->directionLights())if(light){add(light->isEnabled());for(int c=0;c<3;++c){add(light->getData().color[c]);add(light->getData().direction[c]);}}
     if(scene->terrain()) {
         auto o=std::static_pointer_cast<Ocean>(scene->terrain()->GetComponent("Ocean"));
         if(o)for(float x:{float(o->seed),float(o->detailWaves),o->detailStrength,float(o->refraction),o->refractionStrength,o->subsurfaceStrength,o->HeightScale,o->Lambda,o->A,o->WindScale,o->WindAndSeed.x,o->WindAndSeed.y,o->seaLevel,o->absorption.x,o->absorption.y,o->absorption.z,o->scattering.x,o->scattering.y,o->scattering.z})add(x);
@@ -56,10 +56,10 @@ void TemporalAA::begin(const std::shared_ptr<RenderScene>& scene,bool enable) {
     auto camera=scene->mainCamera();auto input=InputManager::GetInstance();auto baseProjection=camera->GetPerspective();
     size_t state=signature(scene);bool changed=!enabled || lastScene.lock()!=scene || lastCamera!=camera.get() || state!=lastSignature;
     if(width!=input->width || height!=input->height)allocate(input->width,input->height);
-    if(glm::length(camera->Position-lastPosition)>3 || glm::dot(camera->Front,lastFront)<.8f)changed=true;
+    if(glm::length(camera->getPosition()-lastPosition)>3 || glm::dot(camera->getFront(),lastFront)<.8f)changed=true;
     for(int c=0;c<4;++c)for(int r=0;r<4;++r)changed |= std::abs(baseProjection[c][r]-lastProjection[c][r])>1e-5;
     if(changed)reset();enabled=true;lastScene=scene;lastCamera=camera.get();lastSignature=state;
-    lastPosition=camera->Position;lastFront=camera->Front;lastProjection=baseProjection;
+    lastPosition=camera->getPosition();lastFront=camera->getFront();lastProjection=baseProjection;
     projection=baseProjection;view=camera->GetViewMatrix();auto jitter=jitterSample(samples);
     projection[2][0]-=2*jitter.x/width;projection[2][1]-=2*jitter.y/height;currentVP=projection*view;
     if(!valid){previousVP=currentVP;previousView=view;}

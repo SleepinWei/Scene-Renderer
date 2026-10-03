@@ -97,7 +97,7 @@ void lifecycleAndOcean() {
     expected=(TemporalAA::jitterSample(1)-TemporalAA::jitterSample(2))/glm::vec2(width,height);double displacement=0;
     for(size_t i=0;i<motion.rgba.size();i+=4)if(motion.rgba[i+3]>.5)displacement+=std::abs(motion.rgba[i]-expected.x)+std::abs(motion.rgba[i+1]-expected.y);
     check(displacement>1e-4,"animated FFT displacement generates surface motion beyond camera jitter");
-    scene->mainCamera()->Position.x+=10;manager->temporalAA->begin(scene,true);check(!manager->temporalAA->historyValid() && manager->temporalAA->frameCount()==0,"camera cut invalidates history");frame();
+    scene->mainCamera()->setPosition(scene->mainCamera()->getPosition()+glm::vec3(10,0,0));manager->temporalAA->begin(scene,true);check(!manager->temporalAA->historyValid() && manager->temporalAA->frameCount()==0,"camera cut invalidates history");frame();
     manager->setting.enableSSAO=!manager->setting.enableSSAO;frame();check(manager->temporalAA->frameCount()==1,"lighting/settings changes start fresh history");
     input->width=width/2;input->height=height/2;manager->temporalAA->begin(scene,true);check(!manager->temporalAA->historyValid(),"resize reallocates and resets history");input->width=width;input->height=height;
     manager->setting.enableTSAA=false;frame();check(!manager->temporalAA->active() && manager->temporalAA->outputTexture()==0,"disabled TSAA bypasses history and jitter");

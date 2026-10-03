@@ -203,8 +203,8 @@ void TerrainComponent::tessDrawCall(){
 	shader->setFloat("yShift", yShift);
 	shader->setFloat("yScale", yScale);
 
-	auto& textures = material->textures;
-	//auto textures = material->textures;
+	auto textures = material->getTextures();
+	//auto textures = material->getTextures();
 	int texture_index = 0;
 	for (auto iterator = textures.begin(); iterator!=textures.end(); ++iterator) {
 		//激活纹理单元0
@@ -217,7 +217,7 @@ void TerrainComponent::tessDrawCall(){
 	}
 	int beginIndex = textures.size();
 	texture_index = 0;
-	textures = terrainMaterial->textures;
+	textures = terrainMaterial->getTextures();
 	for (auto iterator = textures.begin(); iterator !=textures.end(); ++texture_index) {
 		glActiveTexture(GL_TEXTURE0 + texture_index + beginIndex);
 		//将加载的图片纹理句柄，绑定到纹理单元0的Texture2D上。
@@ -319,13 +319,13 @@ void TerrainComponent::prepareData() {
 		init();
 
 		//init heightMap
-		if (!terrainMaterial->initDone) {
-			terrainMaterial->initDone= true;
-			auto& mat = terrainMaterial->textures;
+		if (!terrainMaterial->isInitialized()) {
+			terrainMaterial->setInitialized(true);
+			const auto& mat = terrainMaterial->getTextures();
 			if (mat.find("heightMap") == mat.end()) {
 				return;
 			}
-			auto& tex = mat["heightMap"];
+			auto& tex = mat.at("heightMap");
 			if (!tex->id) {
 				glGenTextures(1, &tex->id);
 				//glActiveTexture(GL_TEXTURE0);
@@ -403,7 +403,7 @@ void TerrainComponent::prepareData() {
 	//computeShader->setFloat("yShift", yShift);
 	//computeShader->setFloat("yScale", yScale);
 	int beginIndex = 0;
-	auto& textures = terrainMaterial->textures; // heightMap + normalMap
+	auto& textures = terrainMaterial->getTextures(); // heightMap + normalMap
 	int texture_index = 0;
 	for (auto iterator = textures.begin(); iterator!=textures.end(); ++iterator) {
 		glActiveTexture(GL_TEXTURE0 + texture_index + beginIndex);
@@ -526,13 +526,13 @@ void TerrainComponent::renderCall(const std::shared_ptr<Shader>& outShader) {
 	actualShader->use();
 	actualShader->setMat4("model", model);
 	// bind normal map
-	//auto& normalTex = terrainMaterial->textures["normalMap"];
+	//auto& normalTex = terrainMaterial->getTextures().at("normalMap");
 	//glActiveTexture(GL_TEXTURE1);
 	//glBindTexture(GL_TEXTURE_2D, normalTex->id);
 	//bind pbr textures
 	int beginIndex = 2;  // heightMap, normalMap
 	if (actualShader->requireMat==true && material) {
-		auto& textures = material->textures;
+		auto textures = material->getTextures();
 		int texture_index = 0;
 		for (auto iterator = textures.begin(); iterator != textures.end(); ++iterator) {
 			//激活纹理单元0
@@ -606,7 +606,7 @@ void TerrainComponent::loadFromJson(json& data) {
 		for (auto iter = mat.begin(); iter != mat.end(); ++iter) {
 			std::string mat_type = iter.key();
 			std::string mat_path = iter.value().get < std::string>();
-			if(materialVirtualTexture.empty())this->material->addTextureAsync(mat_path, mat_type);else this->material->texture_path[mat_type]=mat_path;
+			if(materialVirtualTexture.empty())this->material->addTextureAsync(mat_path, mat_type);else this->material->setTexturePath(mat_type,mat_path);
 		}
 	}
 }

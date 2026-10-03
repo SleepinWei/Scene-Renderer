@@ -155,7 +155,7 @@ void Ocean::Draw() {
     deferred->postBuffer->bindBuffer();glViewport(0,0,width,height);
     draw_shader->use();glm::vec3 sunDirection(0,-1,0),sunColor(0);
     if(scene && RenderManager::GetInstance()->setting.enableDirectional)
-        for(auto light : scene->directionLights())if(light && light->enabled){sunDirection=light->data.direction;sunColor=light->data.color;break;}
+        for(auto light : scene->directionLights())if(light && light->isEnabled()){sunDirection=light->getData().direction;sunColor=light->getData().color;break;}
     draw_shader->setVec3("dirLight.direction",sunDirection);draw_shader->setVec3("dirLight.diffuse",sunColor);
     draw_shader->setVec3("dirLight.specular",sunColor);
     draw_shader->setFloat("outer_FresnelScale",outer_FresnelScale);

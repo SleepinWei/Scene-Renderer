@@ -34,18 +34,19 @@ namespace {
 const char *names[] = {"material.albedo", "material.normal", "material.metallic", "material.roughness",
                        "material.ao"};
 bool hasImage(const Material &m, const char *name) {
-    return m.texture_path.count(name) || (m.textures.count(name) && m.textures.at(name));
+    return m.getTexturePaths().count(name) || (m.getTextures().count(name) && m.getTextures().at(name));
 }
 MaterialParameters parameters(const Material &m) {
     MaterialParameters p;
-    p.albedoAlpha = glm::vec4(m.albedoFactor, m.opacityFactor);
-    p.factors = {m.metallicFactor.value_or(hasImage(m, names[2]) ? 1.f : 0.f),
-                 m.roughnessFactor.value_or(hasImage(m, names[3]) ? 1.f : .5f), m.occlusionStrength,
-                 m.alphaCutoff};
-    p.emissiveNormal = glm::vec4(m.emissiveFactor, hasImage(m, names[1]) ? m.normalStrength : 0.f);
+    const auto props = m.properties();
+    p.albedoAlpha = glm::vec4(props.albedoFactor, props.opacityFactor);
+    p.factors = {props.metallicFactor.value_or(hasImage(m, names[2]) ? 1.f : 0.f),
+                 props.roughnessFactor.value_or(hasImage(m, names[3]) ? 1.f : .5f), props.occlusionStrength,
+                 props.alphaCutoff};
+    p.emissiveNormal = glm::vec4(props.emissiveFactor, hasImage(m, names[1]) ? props.normalStrength : 0.f);
     return p;
 }
-std::shared_ptr<const ImageRGBA8> decodeShared(const Material &m, const char *name) {
+std::shared_ptr<const ImageRGBA8> decodeShared(const MaterialData &m, const char *name) {
     auto path = m.texture_path.find(name);
     if (path != m.texture_path.end())
         return ImageRGBA8::loadShared(path->second);
@@ -71,11 +72,11 @@ std::shared_ptr<const ImageRGBA8> decodeShared(const Material &m, const char *na
         }
     return std::make_shared<const ImageRGBA8>(std::move(image));
 }
-ImageRGBA8 decode(const Material &m, const char *name) {
+ImageRGBA8 decode(const MaterialData &m, const char *name) {
     auto image = decodeShared(m, name);
     return image ? *image : ImageRGBA8{};
 }
-MaterialExtension extension(ShaderType type, const Material &material) {
+MaterialExtension extension(ShaderType type, const MaterialProperties &material) {
     MaterialExtension e;
     e.settings.w = material.twoSided ? 1.f : 0.f;
     if (type == ShaderType::PBR_CLEARCOAT)
@@ -88,7 +89,7 @@ MaterialExtension extension(ShaderType type, const Material &material) {
         e.settings.z = 1;
     return e;
 }
-ImageRGBA8 specialMaps(const Material &m) {
+ImageRGBA8 specialMaps(const MaterialData &m) {
     const char *maps[] = {"material.clearCoatRoughness", "material.anisotropy", "material.height",
                           "material.thickness"};
     std::array<ImageRGBA8, 4> source;
@@ -122,8 +123,8 @@ template <class T> struct PendingPayload {
 };
 // Copy mutable in-memory texture bytes before dispatching to workers. File paths
 // need no pixel copy and are read by the decoder job.
-Material detachMaterial(const Material &material) {
-    Material copy = material;
+MaterialData detachMaterial(const Material &material) {
+    MaterialData copy = material.snapshot();
     for (auto &entry : copy.textures) {
         if (!entry.second || copy.texture_path.count(entry.first) ||
             (!entry.second->name.empty() && std::filesystem::is_regular_file(entry.second->name)))
@@ -219,7 +220,8 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
             state_->terrain.pending = {};
         }
         state_->primed = scene->preparedAssets();
-        scene->setPreparedAssets({}); // Cache now owns payloads; do not retain removed assets through the bootstrap snapshot.
+        scene->setPreparedAssets(
+            {}); // Cache now owns payloads; do not retain removed assets through the bootstrap snapshot.
     }
     if (!scene || !scene->mainCamera())
         throw std::invalid_argument("Renderer: scene needs a camera");
@@ -229,11 +231,11 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
     depthConversion[2][2] = .5f;
     depthConversion[3][2] = .5f;
     result.frame.viewProjection = depthConversion * camera.GetPerspective() * camera.GetViewMatrix();
-    result.frame.cameraPosition = camera.Position;
+    result.frame.cameraPosition = camera.getPosition();
     result.frame.view = camera.GetViewMatrix();
-    result.frame.nearPlane = camera.zNear;
-    result.frame.farPlane = camera.zFar;
-    result.exposure = camera.exposure;
+    result.frame.nearPlane = camera.getNear();
+    result.frame.farPlane = camera.getFar();
+    result.exposure = camera.getExposure();
     result.frame.viewportWidth = width;
     result.frame.viewportHeight = height;
     std::vector<std::shared_ptr<GameObject>> objects;
@@ -250,19 +252,19 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
         objects.push_back(scene->terrain());
     // DirectionLight is authoritative initially; subsequent angle controls update that same light.
     auto atmo = scene->sky() ? scene->sky()->getComponent<Atmosphere>() : nullptr;
-    auto source =
-        std::find_if(directional.begin(), directional.end(), [](const auto &l) { return l && l->enabled; });
+    auto source = std::find_if(directional.begin(), directional.end(),
+                               [](const auto &l) { return l && l->isEnabled(); });
     if (atmo && source != directional.end()) {
         auto light = *source;
         if (state_->sunAtmosphere.lock() == atmo &&
             (atmo->sunAngle != state_->lastSunAngle || atmo->sunAzimuth != state_->lastSunAzimuth)) {
             float elevation = glm::radians(atmo->sunAngle), azimuth = glm::radians(atmo->sunAzimuth);
-            light->data.direction = -glm::vec3(std::cos(elevation) * std::sin(azimuth), std::sin(elevation),
-                                               -std::cos(elevation) * std::cos(azimuth));
+            light->setDirection(-glm::vec3(std::cos(elevation) * std::sin(azimuth), std::sin(elevation),
+                                           -std::cos(elevation) * std::cos(azimuth)));
         } else {
-            if (glm::dot(light->data.direction, light->data.direction) < 1e-10f)
+            if (glm::dot(light->getData().direction, light->getData().direction) < 1e-10f)
                 throw std::invalid_argument("Sun needs a nonzero direction");
-            auto sun = -glm::normalize(light->data.direction);
+            auto sun = -glm::normalize(light->getData().direction);
             atmo->sunAngle = glm::degrees(std::asin(glm::clamp(sun.y, -1.f, 1.f)));
             atmo->sunAzimuth = glm::dot(glm::vec2(sun.x, sun.z), glm::vec2(sun.x, sun.z)) < 1e-10f
                                    ? atmo->sunAzimuth
@@ -273,25 +275,25 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
         state_->lastSunAzimuth = atmo->sunAzimuth;
     }
     for (const auto &l : directional)
-        if (l && l->enabled)
+        if (l && l->isEnabled())
             result.frame.lights.push_back(
-                {{0, 0, 0, 0}, glm::vec4(l->data.color, 0), glm::vec4(l->data.direction, 0)});
+                {{0, 0, 0, 0}, glm::vec4(l->getData().color, 0), glm::vec4(l->getData().direction, 0)});
     for (const auto &l : points)
-        if (l && l->enabled) {
+        if (l && l->isEnabled()) {
             auto t = l->owner()->getComponent<Transform>();
             if (!t)
                 throw std::invalid_argument("Renderer: light needs transform");
             result.frame.lights.push_back(
-                {glm::vec4(t->position, 1), glm::vec4(l->data.color, 0), {0, 0, 0, 0}});
+                {glm::vec4(t->getPosition(), 1), glm::vec4(l->getData().color, 0), {0, 0, 0, 0}});
         }
     for (const auto &l : spots)
-        if (l && l->enabled) {
+        if (l && l->isEnabled()) {
             auto t = l->owner()->getComponent<Transform>();
             if (!t)
                 throw std::invalid_argument("Renderer: light needs transform");
-            result.frame.lights.push_back({glm::vec4(t->position, 2),
-                                           glm::vec4(l->data.color, l->data.cutOff),
-                                           glm::vec4(l->data.direction, l->data.outerCutOff)});
+            result.frame.lights.push_back({glm::vec4(t->getPosition(), 2),
+                                           glm::vec4(l->getData().color, l->getData().cutOff),
+                                           glm::vec4(l->getData().direction, l->getData().outerCutOff)});
         }
     result.frame.shadows = result.frame.ssao = result.frame.rsm = true;
     result.frame.inverseSquareLocalLights = true;
@@ -344,7 +346,7 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
             mix(reinterpret_cast<uintptr_t>(component->heightData));
             if (component->material) {
                 mix(component->material->assetId);
-                mix(component->material->contentRevision);
+                mix(component->material->getContentRevision());
             }
             if (state_->terrainKey != key) {
                 state_->terrain = {};
@@ -357,13 +359,13 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
             auto capacity = component->maxLeaves;
             if (!w || !h) {
                 auto material = component->terrainMaterial;
-                if (!material || !material->textures.count("heightMap"))
+                if (!material || !material->getTextures().count("heightMap"))
                     throw std::invalid_argument("Terrain lacks height metadata");
-                w = material->textures.at("heightMap")->width;
-                h = material->textures.at("heightMap")->height;
+                w = material->getTextures().at("heightMap")->width;
+                h = material->getTextures().at("heightMap")->height;
             }
             std::vector<float> heights;
-            std::shared_ptr<Material> material;
+            std::shared_ptr<MaterialData> material;
             const bool needsBuild = (!state_->terrain.pending.valid() && !state_->terrain.value) ||
                                     state_->terrain.revision != revision;
             if (needsBuild) {
@@ -373,7 +375,7 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
                     heights.assign(component->heightData, component->heightData + size_t(w) * h);
                 }
                 if (component->material)
-                    material = std::make_shared<Material>(detachMaterial(*component->material));
+                    material = std::make_shared<MaterialData>(detachMaterial(*component->material));
             }
             auto source = requestPayload(
                 state_->terrain, revision,
@@ -419,9 +421,9 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
             if (component->material) {
                 terrain.parameters = parameters(*component->material);
                 if (!materialVT.empty()) {
-                    terrain.parameters.emissiveNormal.w = component->material->normalStrength;
-                    terrain.parameters.factors.x = component->material->metallicFactor.value_or(1.f);
-                    terrain.parameters.factors.y = component->material->roughnessFactor.value_or(1.f);
+                    terrain.parameters.emissiveNormal.w = component->material->getNormalStrength();
+                    terrain.parameters.factors.x = component->material->getMetallicFactor().value_or(1.f);
+                    terrain.parameters.factors.y = component->material->getRoughnessFactor().value_or(1.f);
                 }
             }
             if (!source)
@@ -477,28 +479,29 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
             if (!filter || !transform)
                 continue;
             auto renderer = object->getComponent<MeshRenderer>();
-            if (renderer && ((renderer->drawMode != GL_TRIANGLES && renderer->drawMode != GL_PATCHES) ||
-                             (renderer->polyMode != GL_FILL && renderer->polyMode != GL_LINE)))
+            if (renderer &&
+                ((renderer->getDrawMode() != GL_TRIANGLES && renderer->getDrawMode() != GL_PATCHES) ||
+                 (renderer->getPolyMode() != GL_FILL && renderer->getPolyMode() != GL_LINE)))
                 throw std::invalid_argument("Native renderer needs triangles or subdivision patches");
-            auto model =
-                glm::translate(glm::mat4(1), transform->position) *
-                glm::scale(glm::mat4(1), transform->scale) *
-                glm::eulerAngleYXZ(glm::radians(transform->rotation.y), glm::radians(transform->rotation.x),
-                                   glm::radians(transform->rotation.z));
-            for (const auto &mesh : filter->meshes)
+            auto model = glm::translate(glm::mat4(1), transform->getPosition()) *
+                         glm::scale(glm::mat4(1), transform->getScale()) *
+                         glm::eulerAngleYXZ(glm::radians(transform->getRotation().y),
+                                            glm::radians(transform->getRotation().x),
+                                            glm::radians(transform->getRotation().z));
+            for (const auto &mesh : filter->getMeshes())
                 if (mesh) {
                     auto &record = state_->meshes[mesh->assetId];
                     usedMeshes.insert(mesh->assetId);
                     std::vector<Vertex> vertices;
                     std::vector<unsigned> indices;
                     if ((!record.pending.valid() && !record.value) ||
-                        record.revision != mesh->contentRevision) {
-                        vertices = mesh->vertices;
-                        indices = mesh->indices;
+                        record.revision != mesh->getContentRevision()) {
+                        vertices = mesh->getVertices();
+                        indices = mesh->getIndices();
                     }
                     auto payload = requestPayload(
-                        record, mesh->contentRevision,
-                        [id = mesh->assetId, rev = mesh->contentRevision, vertices = std::move(vertices),
+                        record, mesh->getContentRevision(),
+                        [id = mesh->assetId, rev = mesh->getContentRevision(), vertices = std::move(vertices),
                          indices = std::move(indices)] {
                             auto result = std::make_shared<MeshPayload>();
                             result->id = id;
@@ -521,23 +524,23 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
                         },
                         wait);
                     SnapshotDraw draw;
-                    draw.shading = uint32_t(renderer ? renderer->shaderType : ShaderType::PBR);
+                    draw.shading = uint32_t(renderer ? renderer->getShaderType() : ShaderType::PBR);
                     draw.objectId = object->assetId;
                     draw.mesh = payload;
                     draw.model = model;
-                    draw.wireframe = renderer && renderer->polyMode == GL_LINE;
-                    draw.subdivision = renderer && renderer->shaderType == ShaderType::PBR_TESS;
-                    if (mesh->material) {
-                        auto material = mesh->material;
+                    draw.wireframe = renderer && renderer->getPolyMode() == GL_LINE;
+                    draw.subdivision = renderer && renderer->getShaderType() == ShaderType::PBR_TESS;
+                    if (mesh->getMaterial()) {
+                        auto material = mesh->getMaterial();
                         auto &materialRecord = state_->materials[material->assetId];
                         usedMaterials.insert(material->assetId);
-                        std::shared_ptr<Material> detached;
+                        std::shared_ptr<MaterialData> detached;
                         if ((!materialRecord.pending.valid() && !materialRecord.value) ||
-                            materialRecord.revision != material->contentRevision)
-                            detached = std::make_shared<Material>(detachMaterial(*material));
+                            materialRecord.revision != material->getContentRevision())
+                            detached = std::make_shared<MaterialData>(detachMaterial(*material));
                         draw.material = requestPayload(
-                            materialRecord, material->contentRevision,
-                            [detached, id = material->assetId, rev = material->contentRevision] {
+                            materialRecord, material->getContentRevision(),
+                            [detached, id = material->assetId, rev = material->getContentRevision()] {
                                 auto payload = std::make_shared<MaterialPayload>();
                                 payload->id = id;
                                 payload->revision = rev;
@@ -549,8 +552,8 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
                             },
                             wait);
                         draw.parameters = parameters(*material);
-                        draw.extension =
-                            extension(renderer ? renderer->shaderType : ShaderType::PBR, *material);
+                        draw.extension = extension(renderer ? renderer->getShaderType() : ShaderType::PBR,
+                                                   material->properties());
                         if (!draw.material)
                             ready = false;
                     } else {

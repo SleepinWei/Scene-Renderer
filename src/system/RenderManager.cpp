@@ -115,7 +115,7 @@ void RenderManager::prepareVPData(const std::shared_ptr<RenderScene>& renderScen
 
 	const glm::mat4 projection = temporalAA && temporalAA->active() ? temporalAA->projection : camera->GetPerspective();
 	const glm::mat4& view = camera->GetViewMatrix();
-	const glm::vec3& pos = camera->Position;
+	const glm::vec3& pos = camera->getPosition();
 	//glm::mat4 skyboxView = glm::mat4(glm::mat3(view));
 
 	// update every frame
@@ -144,7 +144,7 @@ void RenderManager::prepareVPData(const std::shared_ptr<RenderScene>& renderScen
 	for (auto& shader : m_shader) {
 		if (shader) {
 			shader->use();
-			shader->setVec3("camPos", renderScene->mainCamera()->Position);
+			shader->setVec3("camPos", renderScene->mainCamera()->getPosition());
 		}
 	}
 }
@@ -167,11 +167,11 @@ void RenderManager::preparePointLightData(const std::shared_ptr<RenderScene>& sc
 	int index = 0;
 	for(auto& light :scene->pointLights()){
 		if (light) {
-			if (!light->dirty) {
+			if (!light->isDirty()) {
 				// if not dirty, then pass
 				continue;
 			}
-			PointLightData& data = light->data;
+			const PointLightData data = light->getData();
 			std::shared_ptr<Transform>&& transform = std::static_pointer_cast<Transform>(
 				light->owner()->GetComponent("Transform"));
 			if (transform) {
@@ -180,7 +180,7 @@ void RenderManager::preparePointLightData(const std::shared_ptr<RenderScene>& sc
 					sizeof(glm::vec3), glm::value_ptr(data.color)); //color
 				uniformPointLightBuffer->write(
 					16 + index * dataSize,
-					sizeof(glm::vec3), glm::value_ptr(transform->position)); //position
+					sizeof(glm::vec3), glm::value_ptr(transform->getPosition())); //position
 			}
 			++index;
 			light->setDirtyFlag(false); // ?
@@ -218,16 +218,16 @@ void RenderManager::prepareDirectionLightData(const std::shared_ptr<RenderScene>
 			std::shared_ptr<Transform>&& transform = std::static_pointer_cast<Transform>(
 				light->owner()->GetComponent("Transform"));
 
-			if (!light->dirty) {
+			if (!light->isDirty()) {
 				continue;
 			}
-			DirectionLightData& data = light->data;
+			const DirectionLightData data = light->getData();
 			uniformDirectionLightBuffer->write(
 				0 + index * dataSize,
 				sizeof(glm::vec3), glm::value_ptr(data.color)); // ambient
 			uniformDirectionLightBuffer->write(
 				16 + index * dataSize,
-				sizeof(glm::vec3), glm::value_ptr(transform->position)); //
+				sizeof(glm::vec3), glm::value_ptr(transform->getPosition())); //
 			uniformDirectionLightBuffer->write(
 				32 + index * dataSize,
 				sizeof(glm::vec3), glm::value_ptr(data.direction));
@@ -261,10 +261,10 @@ void RenderManager::prepareSpotLightData(const std::shared_ptr<RenderScene>& sce
 			std::shared_ptr<Transform>&& transform = std::static_pointer_cast<Transform>(
 				light->owner()->GetComponent("Transform"));
 
-			if (!light->dirty) {
+			if (!light->isDirty()) {
 				continue;
 			}
-			SpotLightData& data = light->data;
+			const SpotLightData data = light->getData();
 			uniformSpotLightBuffer->write(
 				0 + i * dataSize,
 				sizeof(glm::vec3), glm::value_ptr(data.color)); // ambient
@@ -273,7 +273,7 @@ void RenderManager::prepareSpotLightData(const std::shared_ptr<RenderScene>& sce
 				sizeof(float), &data.cutOff);
 			uniformSpotLightBuffer->write(
 				16 + i * dataSize,
-				sizeof(glm::vec3), glm::value_ptr(transform->position)); //
+				sizeof(glm::vec3), glm::value_ptr(transform->getPosition())); //
 			uniformSpotLightBuffer->write(
 				28 + i * dataSize,
 				sizeof(float), &data.outerCutOff);
@@ -304,7 +304,7 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
     if(native_){
         const auto input=InputManager::GetInstance();if(input->width<=0 || input->height<=0)return;
         if(!renderer_)renderer_=std::make_unique<render::ForwardPbrRenderer>(rhi::graphicsDevice(),rhi::defaultShaderDirectory(),input->width,input->height,render::PbrPath::Scene);
-        renderer_->resize(input->width,input->height);if(scene->mainCamera())scene->mainCamera()->aspect_ratio=float(input->width)/input->height;
+        renderer_->resize(input->width,input->height);if(scene->mainCamera())scene->mainCamera()->setAspect(float(input->width)/input->height);
         if(!adapter_)adapter_=std::make_unique<render::SceneAdapter>(rhi::graphicsDevice());auto frame=adapter_->collect(scene,setting.timeOverride);frame.frame.shadows=setting.enableShadow;frame.frame.ssao=setting.enableSSAO;frame.frame.rsm=setting.enableRSM;frame.frame.taa=setting.enableTSAA;frame.frame.aoRadius=setting.aoRadius;frame.frame.aoBias=setting.aoBias;frame.frame.aoPower=setting.aoPower;frame.frame.toneMapping=setting.enableHDR;frame.frame.rsmSettings=setting.rsmSettings;frame.frame.directionalEnabled=setting.enableDirectional;frame.frame.forwardShading=!setting.useDefer;
         renderer_->render(frame.frame,frame.packets,frame.exposure);return;
     }

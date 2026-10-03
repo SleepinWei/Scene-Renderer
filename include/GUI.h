@@ -105,7 +105,8 @@ public:
 		if (ImGui::CollapsingHeader("Camera")) {
 			if (scene->mainCamera()) {
 				// exposure
-				ImGui::SliderFloat("exposure", &(scene->mainCamera()->exposure), 0.5f, 6.0f);
+				float exposure=scene->mainCamera()->getExposure();
+                if(ImGui::SliderFloat("exposure", &exposure, 0.5f, 6.0f))scene->mainCamera()->setExposure(exposure);
 			}
 		}
 
@@ -153,9 +154,11 @@ public:
 				//auto& light = lights[0]; 
 				auto&& lightTrans = std::static_pointer_cast<Transform>(
 					lights[i]->owner()->GetComponent("Transform"));
-				if (ImGui::SliderFloat3("Position", (float*)&lightTrans->position, -10.0f, 10.0f))
-					lights[i]->setDirtyFlag(true);
-				//ImGui::Text("Light Position: (%f,%f,%f)", lightTrans->position.x, lightTrans->position.y, lightTrans->position.z);
+				auto position=lightTrans->getPosition();
+                if (ImGui::SliderFloat3("Position", &position.x, -10.0f, 10.0f)) {
+                    lightTrans->setPosition(position);lights[i]->setDirtyFlag(true);
+                }
+				//ImGui::Text("Light Position: (%f,%f,%f)", lightTrans->getPosition().x, lightTrans->getPosition().y, lightTrans->getPosition().z);
 			}
 		}
 		if(ImGui::CollapsingHeader("Direction Light")){
@@ -167,15 +170,15 @@ public:
 				//auto& light = lights[0]; 
 				auto&& lightTrans = std::static_pointer_cast<Transform>(
 					dlights[i]->owner()->GetComponent("Transform"));
-				auto& lightData = dlights[i]->data;
-				//bool change1 = ImGui::SliderFloat3("Position", (float*)&lightTrans->position, -10.0f, 1.0f);
+				auto lightData = dlights[i]->getData();
+				//bool change1 = ImGui::SliderFloat3("Position", (float*)&lightTrans->getPosition(), -10.0f, 1.0f);
 				bool change1 = false; 
 				bool change2 = ImGui::SliderFloat3("Direction", (float*)&lightData.direction, -1.0f, 1.0f);
-				// ImGui::Text("Light Position: (%f,%f,%f)", lightTrans->position.x, lightTrans->position.y, lightTrans->position.z);
+				// ImGui::Text("Light Position: (%f,%f,%f)", lightTrans->getPosition().x, lightTrans->getPosition().y, lightTrans->getPosition().z);
 				// ImGui::Text("Light Direction: (%f,%f,%f)", lightData.direction.x, lightData.direction.y, lightData.direction.z);
 			
 				if (change1 || change2) {
-					dlights[i]->setDirtyFlag(true);
+					if(glm::dot(lightData.direction,lightData.direction)>1e-10f)dlights[i]->setData(lightData);
 				}
 			}
 		}
@@ -188,10 +191,10 @@ public:
 				//auto& light = lights[0]; 
 				auto&& lightTrans = std::static_pointer_cast<Transform>(
 					slights[i]->owner()->GetComponent("Transform"));
-				auto&& lightData = slights[i]->data;
-				//bool change1 = ImGui::SliderFloat3("Position", (float*)&lightTrans->position, -10.0f, 1.0f);
+				auto&& lightData = slights[i]->getData();
+				//bool change1 = ImGui::SliderFloat3("Position", (float*)&lightTrans->getPosition(), -10.0f, 1.0f);
 				//bool change2 = ImGui::SliderFloat3("Direction", (float*)&lightData.direction, -1.0f, 1.0f);
-				ImGui::Text("Light Position: (%f,%f,%f)", lightTrans->position.x, lightTrans->position.y, lightTrans->position.z);
+				ImGui::Text("Light Position: (%f,%f,%f)", lightTrans->getPosition().x, lightTrans->getPosition().y, lightTrans->getPosition().z);
 				ImGui::Text("Light Direction: (%f,%f,%f)", lightData.direction.x, lightData.direction.y, lightData.direction.z);
 			
 				ImGui::Text("CutOff: %f", lightData.cutOff);

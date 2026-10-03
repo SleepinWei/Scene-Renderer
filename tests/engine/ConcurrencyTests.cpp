@@ -3,6 +3,7 @@
 #include "engine/JobSystem.h"
 #include "engine/RenderGraph.h"
 #include "engine/CommandInbox.h"
+#include "engine/LogicAsset.h"
 #include <atomic>
 #include <iostream>
 #include <stdexcept>
@@ -14,6 +15,22 @@ static void check(bool value, const char *message) {
 }
 int main() {
     try {
+        {
+            LogicAsset asset;
+            const auto revision=asset.getContentRevision();asset.invalidate();
+            LogicAsset copy(asset);
+            check(copy.assetId!=asset.assetId && copy.getContentRevision()==revision+1,
+                  "Logic asset copy reused identity or lost content version");
+            auto wrong=std::async(std::launch::async,[&] {
+                unsigned denied=0;
+                try {asset.invalidate();} catch(const std::logic_error&) {++denied;}
+                try {asset.getContentRevision();} catch(const std::logic_error&) {++denied;}
+                try {LogicAsset copy(asset);} catch(const std::logic_error&) {++denied;}
+                return denied==3;
+            });
+            check(wrong.get() && asset.getContentRevision()==revision+1,
+                  "Foreign asset API accessed or mutated live state");
+        }
         {
             AssetCache<int> cache;
             std::atomic<int> decoded{0};

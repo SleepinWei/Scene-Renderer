@@ -58,6 +58,7 @@ class GameObject : public engine::AssetIdentity, public std::enable_shared_from_
     void bindScene(const std::shared_ptr<RenderScene> &, const RenderScene *previous = nullptr);
     void unbindScene(const RenderScene *);
     void componentsChanged();
+    void transferAssets(bool seal);
     void sealForTransfer(const RenderScene *);
     std::map<std::string, std::shared_ptr<Component>> components_;
     std::unordered_map<std::type_index, std::shared_ptr<Component>> types_;

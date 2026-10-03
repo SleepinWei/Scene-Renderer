@@ -87,53 +87,53 @@ void addMeshes(const std::shared_ptr<RenderScene>& target, const std::string& na
                glm::vec3 rotation = glm::vec3(0), ShaderType shader = ShaderType::PBR) {
     auto object = std::make_shared<GameObject>(); object->name = name;
     auto transform = std::make_shared<Transform>();
-    transform->position = position; transform->scale = scale; transform->rotation = rotation;
+    transform->setPosition(position); transform->setScale(scale); transform->setRotation(rotation);
     object->addComponent(transform);
     auto filter = std::make_shared<MeshFilter>();
-    for (const auto& mesh : meshes) { mesh->material = material; filter->addMesh(mesh); }
+    for (const auto& mesh : meshes) { mesh->setMaterial(material); filter->addMesh(mesh); }
     object->addComponent(filter);
-    auto renderer = std::make_shared<MeshRenderer>(); renderer->shader = RenderManager::GetInstance()->getShader(shader);
+    auto renderer = std::make_shared<MeshRenderer>(); renderer->setShader(shader);
     object->addComponent(renderer); object->setDeferred(shader == ShaderType::PBR); target->addObject(object);
 }
 std::vector<std::shared_ptr<Mesh>> imported(const std::string& path, float height, bool generateUV, glm::mat4 transform = glm::mat4(1)) {
     AssimpLoader loader;
     auto meshes = loader.loadModel(path, true);
     if (meshes.empty()) throw std::runtime_error("Cannot import " + path + "; run python3 tools/fetch_classic_assets.py");
-    for (const auto& mesh : meshes) for (auto& v : mesh->vertices) {
+    for (const auto& mesh : meshes) {auto vertices=mesh->getVertices();for (auto& v : vertices) {
         v.Position = glm::vec3(transform * glm::vec4(v.Position, 1));
         v.Normal = glm::normalize(glm::mat3(transform) * v.Normal);
-    }
+    }mesh->setGeometry(std::move(vertices),mesh->getIndices());}
     glm::vec3 low(std::numeric_limits<float>::max()), high(-std::numeric_limits<float>::max());
-    for (const auto& mesh : meshes) for (const auto& v : mesh->vertices) {
+    for (const auto& mesh : meshes) for (const auto& v : mesh->getVertices()) {
         low = glm::min(low, v.Position); high = glm::max(high, v.Position);
     }
     float scale = height / (high.y - low.y);
     auto center = glm::vec3((low.x+high.x)/2, low.y, (low.z+high.z)/2);
-    for (const auto& mesh : meshes) for (auto& v : mesh->vertices) {
+    for (const auto& mesh : meshes) {auto vertices=mesh->getVertices();for (auto& v : vertices) {
         // PLY scans have no UVs. Planar UVs keep the derivative normal-map basis defined.
         if (generateUV) v.TexCoords = {v.Position.x * 12, v.Position.z * 12};
         v.Position = (v.Position - center) * scale;
         glm::vec3 axis = std::abs(v.Normal.y) < .95f ? glm::vec3(0,1,0) : glm::vec3(1,0,0);
         v.Tangent = glm::normalize(glm::cross(axis, v.Normal));
         v.Bitangent = glm::cross(v.Normal, v.Tangent);
-    }
+    }mesh->setGeometry(std::move(vertices),mesh->getIndices());}
     return meshes;
 }
 void sun(const std::shared_ptr<RenderScene>& target, glm::vec3 color, glm::vec3 direction) {
     auto object = std::make_shared<GameObject>(); object->name = "Gallery sun";
     object->addComponent(std::make_shared<Transform>());
-    auto light = std::make_shared<DirectionLight>(); light->data.color = color; light->data.direction = glm::normalize(direction);
+    auto light = std::make_shared<DirectionLight>(); light->setColor(color); light->setDirection(glm::normalize(direction));
     object->addComponent(light); target->addObject(object);
 }
 void point(const std::shared_ptr<RenderScene>& target, glm::vec3 color, glm::vec3 position) {
     auto object = std::make_shared<GameObject>(); object->name = "Gallery point light";
-    auto transform = std::make_shared<Transform>(); transform->position = position; object->addComponent(transform);
-    auto light = std::make_shared<PointLight>(); light->data.color = color;
+    auto transform = std::make_shared<Transform>(); transform->setPosition(position); object->addComponent(transform);
+    auto light = std::make_shared<PointLight>(); light->setColor(color);
     object->addComponent(light); target->addObject(object);
 }
 void atmosphere(const std::shared_ptr<RenderScene>& target) {
     auto sky = std::make_shared<Sky>(); sky->addComponent(std::make_shared<Atmosphere>());
-    sky->skybox->initDone = false; sky->skybox->addTexture(std::make_shared<Texture>(), "skybox");
+    sky->skybox->setInitialized(false); sky->skybox->addTexture(std::make_shared<Texture>(), "skybox");
     sky->width = sky->height = 4;
     for (int i = 0; i < 6; ++i) { sky->data[i] = static_cast<unsigned char*>(std::malloc(48)); std::fill(sky->data[i], sky->data[i]+48, 16); }
     target->addSky(sky);
@@ -166,7 +166,7 @@ std::shared_ptr<RenderScene> makeMetalClassicScene(const std::string& name) {
         for (const auto& map : maps) {
             auto texture = Texture::loadFromFileAsync(folder + map.second);
             if (!texture->data) throw std::runtime_error("Missing helmet texture: " + folder + map.second);
-            material->textures[map.first] = texture;
+            material->addTexture(texture,map.first);
         }
         // AssimpLoader exposes mesh-local coordinates; the glTF node rotates +90 degrees about X.
         auto meshes = imported(folder + "DamagedHelmet.gltf", 3.1f, false, glm::rotate(glm::mat4(1), glm::radians(90.f), glm::vec3(1,0,0)));
@@ -186,16 +186,16 @@ std::shared_ptr<RenderScene> makeMetalClassicScene(const std::string& name) {
         addMeshes(target,"Tall box",box(),white, {1.1f,1.65f,-.9f}, {.75f,1.65f,.75f}, {0,18,0});
         addMeshes(target,"Ceiling light panel",{quad({glm::vec3(-.7f,5.58f,-.5f),{.7f,5.58f,-.5f},{.7f,5.58f,.5f},{-.7f,5.58f,.5f}}, {0,-1,0})},white,glm::vec3(0),glm::vec3(1),glm::vec3(0),ShaderType::LIGHT);
         auto panel = std::static_pointer_cast<MeshRenderer>(target->objects().back()->GetComponent("MeshRenderer"));
-        panel->shader = std::make_shared<Shader>("./src/shader/light.vs", "./src/shader/samples/emissive.fs");
-        panel->shader->requireMat = false;
-        panel->shader->setVec3("emissionColor", glm::vec3(10,9.5f,9));
+        panel->setLegacyShader(std::make_shared<Shader>("./src/shader/light.vs", "./src/shader/samples/emissive.fs"));
+        panel->getShader()->requireMat = false;
+        panel->getShader()->setVec3("emissionColor", glm::vec3(10,9.5f,9));
         point(target, {90,85,75}, {0,5.2f,.2f});
         point(target, {6,7,8}, {0,3.2f,4.8f});
         auto spotObject = std::make_shared<GameObject>(); spotObject->name = "S0";
-        auto spotTransform = std::make_shared<Transform>(); spotTransform->position = {0,5.2f,.2f}; spotObject->addComponent(spotTransform);
-        auto spotLight = std::make_shared<SpotLight>(); spotLight->data.color = {12,11,10};
-        spotLight->data.direction = glm::normalize(glm::vec3(0,-1,-.15f));
-        spotLight->data.cutOff = std::cos(glm::radians(45.f)); spotLight->data.outerCutOff = std::cos(glm::radians(50.f));
+        auto spotTransform = std::make_shared<Transform>(); spotTransform->setPosition({0,5.2f,.2f}); spotObject->addComponent(spotTransform);
+        auto spotLight = std::make_shared<SpotLight>(); spotLight->setColor({12,11,10});
+        spotLight->setDirection(glm::normalize(glm::vec3(0,-1,-.15f)));
+        spotLight->setCone(std::cos(glm::radians(45.f)),std::cos(glm::radians(50.f)));
         spotObject->addComponent(spotLight); target->addObject(spotObject);
         manager->setting.enableRSM = true;
 
@@ -209,13 +209,13 @@ std::shared_ptr<RenderScene> makeMetalClassicScene(const std::string& name) {
         auto filter = std::make_shared<MeshFilter>();
         for (const auto& mesh : importedScene.meshes) filter->addMesh(mesh);
         object->addComponent(filter);
-        auto renderer = std::make_shared<MeshRenderer>();renderer->shader = manager->getShader(ShaderType::PBR);
+        auto renderer = std::make_shared<MeshRenderer>();renderer->setShader(ShaderType::PBR);
         object->addComponent(renderer);object->setDeferred(true);target->addObject(object);
         if (name == "sponza")
             target->setCamera(std::make_shared<Camera>(glm::vec3(-8.5f,2.2f,0),glm::vec3(0,1,0),0,6));
         else
             target->setCamera(std::make_shared<Camera>(glm::vec3(7,2.4f,8),glm::vec3(0,1,0),-115,-3));
-        target->mainCamera()->Zoom = 58; target->mainCamera()->exposure = 1.1f;
+        target->mainCamera()->setZoom(58); target->mainCamera()->setExposure(1.1f);
         atmosphere(target);sun(target,{2.8f,2.6f,2.3f},{-.35f,-1,-.2f});
         manager->setting.enableRSM = true;
     } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose bunny, helmet, cornell, sponza, san-miguel, ocean or ocean-clear");
