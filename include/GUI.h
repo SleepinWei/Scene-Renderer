@@ -198,8 +198,14 @@ public:
 				auto&& atmos = std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));
 				auto& atmosParam = atmos->atmosphere;
 				auto& sunAngle = atmos->sunAngle;
-				ImGui::SliderFloat("sunAngle", &sunAngle, -10.0f, 90.0f);
-				ImGui::SliderFloat("mie_g", &atmosParam.mie_g, 0.0f, 1.0f);
+				ImGui::SliderFloat("Sun elevation", &sunAngle, -20.0f, 90.0f);
+                ImGui::SliderFloat("Sun azimuth", &atmos->sunAzimuth, -180.0f, 180.0f);
+                float radiusDegrees=glm::degrees(atmosParam.sun_angular_radius);
+                if(ImGui::SliderFloat("Sun angular radius (degrees)",&radiusDegrees,.05f,2.f))atmosParam.sun_angular_radius=glm::radians(radiusDegrees);
+                ImGui::SliderFloat("Multiple scattering", &atmos->multipleScattering, 0, 2);
+                ImGui::SliderFloat("Ground albedo", &atmos->groundAlbedo, 0, 1);
+                ImGui::InputFloat("Sea level (m)", &atmos->seaLevelMeters);
+				ImGui::SliderFloat("mie_g", &atmosParam.mie_g, 0.0f, .99f);
 				ImGui::SliderFloat3("rayleigh_scattering", (float*)&atmosParam.rayleigh_scattering, 0.0f, 1.0f);
 			}
 

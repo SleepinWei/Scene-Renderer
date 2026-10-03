@@ -306,7 +306,6 @@ void RenderManager::render(const std::shared_ptr<RenderScene>& scene) {
         if(!renderer_)renderer_=std::make_unique<render::ForwardPbrRenderer>(rhi::graphicsDevice(),rhi::defaultShaderDirectory(),input->width,input->height,render::PbrPath::Scene);
         renderer_->resize(input->width,input->height);if(scene->main_camera)scene->main_camera->aspect_ratio=float(input->width)/input->height;
         auto frame=adapter_->collect(scene,setting.timeOverride);frame.frame.shadows=setting.enableShadow;frame.frame.ssao=setting.enableSSAO;frame.frame.rsm=setting.enableRSM;frame.frame.taa=setting.enableTSAA;frame.frame.aoRadius=setting.aoRadius;frame.frame.aoBias=setting.aoBias;frame.frame.aoPower=setting.aoPower;frame.frame.toneMapping=setting.enableHDR;frame.frame.rsmSettings=setting.rsmSettings;frame.frame.directionalEnabled=setting.enableDirectional;frame.frame.forwardShading=!setting.useDefer;
-        if(!setting.enableDirectional)for(auto& light:frame.frame.lights)if(light.positionType.w==0)light.colorInner=glm::vec4(0);
         renderer_->render(frame.frame,frame.packets,frame.exposure);return;
     }
 	// Outdoor RSM uses the sun/sky; indoor scenes can fall back to a spotlight.

@@ -5,12 +5,14 @@
 #include <json/json.hpp>
 #include <cmath>
 #include <algorithm>
+#include <cstring>
 #include <stdexcept>
 namespace render {
 namespace {
 struct alignas(16) LightingBlock { glm::vec4 cameraAmbient;glm::ivec4 counts;std::array<LightData, 30> lights{}; };
-struct alignas(16) SkyBlock {glm::mat4 inverseVP;glm::vec4 camera,settings;};
+struct alignas(16) SkyBlock {glm::mat4 inverseVP;glm::vec4 camera,settings,sunDirectionRadius,sunRadiance;};
 struct alignas(16) EffectsBlock {glm::mat4 view,projection;glm::vec4 settings;};
+static_assert(sizeof(SkyBlock)==128,"Sky display ABI");
 static_assert(sizeof(EffectsBlock)==144,"Effects ABI");
 struct alignas(16) ObjectBlock { glm::mat4 model, normalMatrix; };
 static_assert(sizeof(LightData) == 48 && offsetof(LightData, colorInner) == 16 && offsetof(LightData, directionOuter) == 32, "Light std140 ABI changed");
@@ -71,7 +73,7 @@ struct ForwardPbrRenderer::Targets {
             BindingLayout lights{0,{{2,BindingType::UniformBuffer,ShaderStage::Fragment,"SceneLighting",1472}}};std::vector<BindingEntry> lightEntries{{2,lighting,0,1472,{},{}}};
             if(path==PbrPath::Scene){
                 lights.entries.push_back({0,BindingType::SampledTexture,ShaderStage::Fragment,"skyRadianceLut",0});lightEntries.push_back({0,{},0,0,sky,skySampler});
-                lights.entries.push_back({1,BindingType::UniformBuffer,ShaderStage::Fragment,"SkyData",96});lightEntries.push_back({1,skyParams,0,96,{},{}});
+                lights.entries.push_back({1,BindingType::UniformBuffer,ShaderStage::Fragment,"SkyData",128});lightEntries.push_back({1,skyParams,0,128,{},{}});
                 lights.entries.push_back({6,BindingType::SampledTexture,ShaderStage::Fragment,"skyIrradianceLut",0});lightEntries.push_back({6,{},0,0,irradiance,skySampler});
                 lights.entries.push_back({3,BindingType::UniformBuffer,ShaderStage::Fragment,"ShadowData",sizeof(ShadowParameters)});lightEntries.push_back({3,shadow->parameters(),0,sizeof(ShadowParameters),{},{}});
                 for(uint32_t i=0;i<2;++i){lights.entries.push_back({4+i,BindingType::SampledTexture,ShaderStage::Fragment,i==0?"rsmPosition":"rsmNormal",0});lightEntries.push_back({4+i,{},0,0,shadow->rsmSourceView(i+1),sampler});}}
@@ -108,11 +110,11 @@ ForwardPbrRenderer::ForwardPbrRenderer(std::shared_ptr<rhi::GraphicsDevice> devi
     tone_ = resources_.buffer({16,BufferUsage::Uniform | BufferUsage::CopyDestination,"PBR exposure"});
     const float quad[] = {-1,-1,0,1, 1,-1,1,1, 1,1,1,0, -1,-1,0,1, 1,1,1,0, -1,1,0,0};
     quad_ = resources_.buffer({sizeof(quad),BufferUsage::Vertex,"Tone map fullscreen"},quad);
-    hdrSampler_ = resources_.sampler({Filter::Nearest,AddressMode::ClampToEdge});skySampler_=resources_.sampler({Filter::Linear,AddressMode::ClampToEdge});
+    hdrSampler_ = resources_.sampler({Filter::Nearest,AddressMode::ClampToEdge});skySampler_=resources_.sampler({Filter::Linear,AddressMode::Repeat});
     if(path_==PbrPath::Scene){
         if(resources_.device->computeLimits().maxStorageImages){atmosphere_=std::make_unique<GpuAtmosphere>(resources_.device,directory);atmosphere_->update({},10);skyView_=atmosphere_->sky();irradianceView_=atmosphere_->irradiance();}
         else {auto black=resources_.texture({1,1,Format::RGBA8UNorm,TextureUsage::Sampled|TextureUsage::CopyDestination,"Unavailable atmosphere fallback"});const uint8_t data[]={0,0,0,255};resources_.device->writeTexture(black,data,4);skyView_=irradianceView_=resources_.view(black);}
-        skyParameters_=resources_.buffer({96,BufferUsage::Uniform|BufferUsage::CopyDestination,"Sky display parameters"});
+        skyParameters_=resources_.buffer({128,BufferUsage::Uniform|BufferUsage::CopyDestination,"Sky display parameters"});
         shadows_=std::make_unique<ShadowRenderer>(resources_.device,directory,128,irradianceView_);
         effects_=resources_.buffer({144,BufferUsage::Uniform|BufferUsage::CopyDestination,"SSAO parameters"});
         p={};p.vertex=shader(directory,"tonemap.vert");p.fragment=shader(directory,"ssao.frag");p.vertexStride=16;p.attributes={{0,VertexFormat::Float2,0},{1,VertexFormat::Float2,8}};p.colorFormat=Format::RGBA16Float;
@@ -125,7 +127,7 @@ ForwardPbrRenderer::ForwardPbrRenderer(std::shared_ptr<rhi::GraphicsDevice> devi
         p.vertex=shader(directory,"motion-instanced.vert");p.bindings[0].entries.push_back({3,BindingType::StorageRead,ShaderStage::Vertex,"OutPose",64});motionInstanced_=resources_.pipeline(p);
     }
     if(path_==PbrPath::Scene){
-        transparentLayout_={2,{{0,BindingType::UniformBuffer,ShaderStage::Fragment,"SkyData",96},{1,BindingType::UniformBuffer,ShaderStage::Fragment,"ShadowData",sizeof(ShadowParameters)},{2,BindingType::SampledTexture,ShaderStage::Fragment,"skyRadianceLut",0},{3,BindingType::SampledTexture,ShaderStage::Fragment,"skyIrradianceLut",0},{4,BindingType::SampledTexture,ShaderStage::Fragment,"shadowAtlas",0}}};
+        transparentLayout_={2,{{0,BindingType::UniformBuffer,ShaderStage::Fragment,"SkyData",128},{1,BindingType::UniformBuffer,ShaderStage::Fragment,"ShadowData",sizeof(ShadowParameters)},{2,BindingType::SampledTexture,ShaderStage::Fragment,"skyRadianceLut",0},{3,BindingType::SampledTexture,ShaderStage::Fragment,"skyIrradianceLut",0},{4,BindingType::SampledTexture,ShaderStage::Fragment,"shadowAtlas",0}}};
         p={};p.vertex=shader(directory,"forward.vert");p.fragment=shader(directory,"transparent.frag");p.vertexStride=32;p.attributes=GpuMesh::attributes();p.bindings={frameLayout(),GpuMaterial::layout(),transparentLayout_};p.colorFormat=Format::RGBA16Float;p.additionalColorFormats={Format::RGBA16Float};p.attachmentBlend={true,false};p.depthAttachment=p.depthTest=true;p.depthWrite=false;transparentPipeline_=resources_.pipeline(p);
         if(resources_.device->computeLimits().supported){p.vertex=shader(directory,"instanced.vert");p.bindings[0].entries.push_back({3,BindingType::StorageRead,ShaderStage::Vertex,"OutPose",64});transparentInstanced_=resources_.pipeline(p);}
     }
@@ -142,8 +144,8 @@ ForwardPbrRenderer::ForwardPbrRenderer(std::shared_ptr<rhi::GraphicsDevice> devi
         const char* names[] = {"positionBuffer","normalBuffer","albedoBuffer","emissiveBuffer"};
         for (uint32_t i=0;i<4;++i) p.bindings[1].entries.push_back({i+1,BindingType::SampledTexture,ShaderStage::Fragment,names[i],0});
         if(path_==PbrPath::Scene){p.fragment=shader(directory,"scene-light.frag");p.bindings.push_back({2,{{0,BindingType::SampledTexture,ShaderStage::Fragment,"materialEffectsBuffer",0},{1,BindingType::SampledTexture,ShaderStage::Fragment,"tangentBuffer",0},{2,BindingType::SampledTexture,ShaderStage::Fragment,"backDepthBuffer",0}}});
-            p.bindings[0].entries.push_back({0,BindingType::SampledTexture,ShaderStage::Fragment,"skyRadianceLut",0});p.bindings[0].entries.push_back({1,BindingType::UniformBuffer,ShaderStage::Fragment,"SkyData",96});p.bindings[0].entries.push_back({6,BindingType::SampledTexture,ShaderStage::Fragment,"skyIrradianceLut",0});
-            checkBlock(p.fragment,"SkyData",{{"inverseViewProjection",0},{"skyCamera",64},{"skySettings",80}},96);p.bindings[0].entries.push_back({3,BindingType::UniformBuffer,ShaderStage::Fragment,"ShadowData",sizeof(ShadowParameters)});
+            p.bindings[0].entries.push_back({0,BindingType::SampledTexture,ShaderStage::Fragment,"skyRadianceLut",0});p.bindings[0].entries.push_back({1,BindingType::UniformBuffer,ShaderStage::Fragment,"SkyData",128});p.bindings[0].entries.push_back({6,BindingType::SampledTexture,ShaderStage::Fragment,"skyIrradianceLut",0});
+            checkBlock(p.fragment,"SkyData",{{"inverseViewProjection",0},{"skyCamera",64},{"skySettings",80},{"sunDirectionRadius",96},{"sunRadiance",112}},128);p.bindings[0].entries.push_back({3,BindingType::UniformBuffer,ShaderStage::Fragment,"ShadowData",sizeof(ShadowParameters)});
             p.bindings[0].entries.push_back({4,BindingType::SampledTexture,ShaderStage::Fragment,"rsmPosition",0});p.bindings[0].entries.push_back({5,BindingType::SampledTexture,ShaderStage::Fragment,"rsmNormal",0});
             p.bindings[1].entries.push_back({5,BindingType::SampledTexture,ShaderStage::Fragment,"shadowAtlas",0});p.bindings[1].entries.push_back({6,BindingType::SampledTexture,ShaderStage::Fragment,"aoBuffer",0});p.bindings[1].entries.push_back({7,BindingType::SampledTexture,ShaderStage::Fragment,"rsmFlux",0});
             checkBlock(p.fragment,"ShadowData",{{"shadowCameraView",0},{"shadowMatrices",64},{"shadowRects",11584},{"shadowLights",14464},{"shadowSplits",14944},{"shadowSettings",15424}},sizeof(ShadowParameters));
@@ -155,17 +157,44 @@ void ForwardPbrRenderer::resize(uint32_t width, uint32_t height) {
     if (targets_ && targets_->width == width && targets_->height == height) return;
     auto targets = std::make_unique<Targets>(resources_.device,width,height,tone_,hdrSampler_,lighting_,path_,shadows_.get(),effects_,skyParameters_,skyView_,irradianceView_,skySampler_);if(temporal_)temporal_->resize(width,height);targets_.swap(targets);previousModels_.clear();temporalOutput_=false;
 }
+void ForwardPbrRenderer::resetTemporal() {
+    if(temporal_)temporal_->reset();previousModels_.clear();previousTaa_=false;temporalOutput_=false;
+}
 void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawPacket>& packets, float exposure, float gamma) {
     FrameData frame=source;
+    SunState solar;
+    if (!std::isfinite(exposure) || exposure < 0 || !std::isfinite(gamma) || gamma <= 0 || !std::isfinite(frame.ambient) || frame.ambient < 0 || frame.lights.size() > 30)
+        throw std::invalid_argument("Renderer: invalid frame parameters");
+    finiteMatrix(frame.viewProjection);
+    for (int i = 0; i < 3; ++i) if (!std::isfinite(frame.cameraPosition[i])) throw std::invalid_argument("Renderer: invalid camera position");
+    if(frame.sky) {
+        const float atmosphereHeight=frame.atmosphere.radii.z-frame.atmosphere.radii.w;
+        if(!std::isfinite(atmosphereHeight) || atmosphereHeight<=.002f || !std::isfinite(frame.seaLevelMeters))throw std::invalid_argument("Atmosphere invalid height/sea level");
+        float elevation=glm::radians(frame.sunAngle),azimuth=glm::radians(frame.sunAzimuth);
+        solar.direction={std::cos(elevation)*std::sin(azimuth),std::sin(elevation),-std::cos(elevation)*std::cos(azimuth)};
+        solar.irradiance=glm::vec3(frame.atmosphere.radii.x);
+        solar.observerHeightKm=std::clamp((frame.cameraPosition.y-frame.seaLevelMeters)*.001f,.001f,atmosphereHeight-.001f);
+        solar.multipleScattering=frame.multipleScattering;solar.groundAlbedo=frame.groundAlbedo;
+        auto sun=std::find_if(frame.lights.begin(),frame.lights.end(),[](const auto& l){return l.positionType.w==0;});
+        if(sun!=frame.lights.end()) {
+            if(glm::dot(glm::vec3(sun->directionOuter),glm::vec3(sun->directionOuter))<1e-10f)throw std::invalid_argument("Sun needs a nonzero direction");
+            solar.direction=-glm::normalize(glm::vec3(sun->directionOuter));solar.irradiance=glm::vec3(sun->colorInner);
+        }
+        // Update validates solar/atmospheric domains before any integration or draw.
+        if(!atmosphere_)throw std::invalid_argument("Atmosphere compute unavailable on this renderer path/backend");
+        atmosphere_->update(frame.atmosphere,solar);
+        if(sun!=frame.lights.end())sun->colorInner=glm::vec4(solar.irradiance*solarTransmittance(frame.atmosphere,solar),sun->colorInner.w);
+        // Invalidate temporal color when lighting changes, while preserving normal camera reprojection.
+        auto hash=[&](float x){uint32_t bits;std::memcpy(&bits,&x,4);frame.historyKey^=uint64_t(bits)+0x9e3779b97f4a7c15ull+(frame.historyKey<<6)+(frame.historyKey>>2);};
+        for(float x:{solar.direction.x,solar.direction.y,solar.direction.z,solar.irradiance.x,solar.irradiance.y,solar.irradiance.z,solar.multipleScattering,solar.groundAlbedo})hash(x);
+        const auto* parameters=reinterpret_cast<const float*>(&frame.atmosphere);for(size_t i=0;i<24;++i)hash(parameters[i]);
+    }
+    if(!frame.directionalEnabled)for(auto& light:frame.lights)if(light.positionType.w==0)light.colorInner=glm::vec4(0);
     if(frame.taa && !temporal_)throw std::invalid_argument("Temporal compute unavailable on this path/backend");
     if(temporal_){const auto projection=frame.viewProjection*glm::inverse(frame.view);float difference=0;for(int c=0;c<4;++c)for(int r=0;r<4;++r)difference=std::max(difference,std::abs(projection[c][r]-previousProjection_[c][r]));
         if(!frame.taa || !previousTaa_ || historyKey_!=frame.historyKey || difference>1e-4f || glm::length(frame.cameraPosition-previousCamera_)>2) {temporal_->reset();previousModels_.clear();}
         if(frame.taa){const auto j=GpuTemporal::jitter(temporal_->samples());glm::mat4 shift(1);shift[3].x=j.x*2/targets_->width;shift[3].y=-j.y*2/targets_->height;frame.viewProjection=shift*frame.viewProjection;}
     }
-    if (!std::isfinite(exposure) || exposure < 0 || !std::isfinite(gamma) || gamma <= 0 || !std::isfinite(frame.ambient) || frame.ambient < 0 || frame.lights.size() > 30)
-        throw std::invalid_argument("Renderer: invalid frame parameters");
-    finiteMatrix(frame.viewProjection);
-    for (int i = 0; i < 3; ++i) if (!std::isfinite(frame.cameraPosition[i])) throw std::invalid_argument("Renderer: invalid camera position");
     LightingBlock lighting{};lighting.cameraAmbient = glm::vec4(frame.cameraPosition,frame.ambient);lighting.counts.x = int(frame.lights.size());lighting.counts.y=frame.inverseSquareLocalLights?1:0;
     for (size_t i = 0; i < frame.lights.size(); ++i) {
         auto light = frame.lights[i];for (const auto& v : {light.positionType,light.colorInner,light.directionOuter}) for (int c = 0; c < 4; ++c)
@@ -188,13 +217,14 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
     }
     if(frame.sky && !atmosphere_)throw std::invalid_argument("Atmosphere compute unavailable on this renderer path/backend");
     if(!frame.oceans.empty() && path_!=PbrPath::Scene)throw std::invalid_argument("Ocean surface requires scene renderer");
-    if(frame.sky)atmosphere_->update(frame.atmosphere,frame.sunAngle);
     std::map<uint64_t,bool> used;
     for(const auto& ocean:frame.oceans){if(!ocean.id || used.count(ocean.id))throw std::invalid_argument("Duplicate ocean identifier");used[ocean.id]=true;auto& surface=oceans_[ocean.id];if(!surface || !surface->compatible(ocean))surface=std::make_unique<OceanSurface>(resources_.device,directory_,ocean);surface->simulate(frame.timeSeconds,ocean);}
     for(auto it=oceans_.begin();it!=oceans_.end();)if(!used.count(it->first))it=oceans_.erase(it);else ++it;
     if(shadows_)shadows_->render(frame,packets);
     auto& device = *resources_.device;
-    if(shadows_){SkyBlock sky{glm::inverse(frame.viewProjection),glm::vec4(frame.cameraPosition,0),{frame.sky?1.f:0.f,frame.forwardShading?1.f:0.f,0,0}};device.writeBuffer(skyParameters_,0,sizeof(sky),&sky);finiteMatrix(frame.view);EffectsBlock effects{frame.view,frame.viewProjection*glm::inverse(frame.view),{frame.aoRadius,frame.aoBias,frame.aoPower,frame.ssao?1.f:0.f}};device.writeBuffer(effects_,0,sizeof(effects),&effects);}
+    if(shadows_){const auto transmission=frame.sky?solarTransmittance(frame.atmosphere,solar,false):glm::vec3(0);
+        const float diskArea=3.14159265359f*std::pow(std::sin(frame.atmosphere.radii.y),2);
+        SkyBlock sky{glm::inverse(frame.viewProjection),glm::vec4(frame.cameraPosition,0),{frame.sky?1.f:0.f,frame.forwardShading?1.f:0.f,frame.sky?atmosphereHorizon(frame.atmosphere,solar.observerHeightKm):0,1},glm::vec4(solar.direction,frame.atmosphere.radii.y),glm::vec4(solar.irradiance*transmission/std::max(diskArea,1e-8f),0)};device.writeBuffer(skyParameters_,0,sizeof(sky),&sky);finiteMatrix(frame.view);EffectsBlock effects{frame.view,frame.viewProjection*glm::inverse(frame.view),{frame.aoRadius,frame.aoBias,frame.aoPower,frame.ssao?1.f:0.f}};device.writeBuffer(effects_,0,sizeof(effects),&effects);}
     device.writeBuffer(camera_,0,64,&frame.viewProjection);device.writeBuffer(lighting_,0,sizeof(lighting),&lighting);
     const glm::vec4 tone(exposure,gamma,frame.toneMapping?0.f:1.f,0);device.writeBuffer(tone_,0,16,&tone);
     while (objects_.size() < packets.size()) {
@@ -227,7 +257,7 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
     }
     if(frame.forwardShading && path_==PbrPath::Scene && !(frame.rsm && frame.rsmSettings.indirectOnly)){
         commands.copyTexture(targets_->hdr,targets_->opaque);
-        auto environment=frameResources.bindings({sceneForwardLayout_,{{0,skyParameters_,0,96,{},{}},{1,shadows_->parameters(),0,sizeof(ShadowParameters),{},{}},{2,{},0,0,skyView_,skySampler_},{3,{},0,0,irradianceView_,skySampler_},{4,{},0,0,shadows_->view(),hdrSampler_},{5,{},0,0,targets_->opaqueView,hdrSampler_},{6,{},0,0,targets_->aoView,hdrSampler_},{7,{},0,0,targets_->backDepthView,hdrSampler_}}});
+        auto environment=frameResources.bindings({sceneForwardLayout_,{{0,skyParameters_,0,128,{},{}},{1,shadows_->parameters(),0,sizeof(ShadowParameters),{},{}},{2,{},0,0,skyView_,skySampler_},{3,{},0,0,irradianceView_,skySampler_},{4,{},0,0,shadows_->view(),hdrSampler_},{5,{},0,0,targets_->opaqueView,hdrSampler_},{6,{},0,0,targets_->aoView,hdrSampler_},{7,{},0,0,targets_->backDepthView,hdrSampler_}}});
         pass={};pass.color=targets_->hdrView;pass.colorLoad=rhi::LoadOp::Load;pass.depth=targets_->depthView;pass.depthLoad=rhi::LoadOp::Load;commands.beginRenderPass(pass);
         for(size_t i=0;i<packets.size();++i){auto& packet=packets[i];if(packet.material->transparent())continue;auto layout=frameLayout();std::vector<rhi::BindingEntry> entries{{0,camera_,0,64,{},{}},{1,objects_[i].data,0,128,{},{}},{2,lighting_,0,1472,{},{}}};
             if(packet.mesh->instances()){layout.entries.push_back({3,rhi::BindingType::StorageRead,rhi::ShaderStage::Vertex,"OutPose",64});entries.push_back({3,packet.mesh->instances(),0,size_t(packet.mesh->instanceCapacity())*64,{},{}});commands.bindPipeline(packet.wireframe?sceneForwardWireInstanced_:sceneForwardInstanced_);}else commands.bindPipeline(packet.wireframe?sceneForwardWire_:sceneForward_);
@@ -251,7 +281,7 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
         std::vector<size_t> sorted;for(size_t i=0;i<packets.size();++i)if(packets[i].material->transparent())sorted.push_back(i);
         std::stable_sort(sorted.begin(),sorted.end(),[&](size_t a,size_t b){auto center=[&](size_t i){return frame.view*packets[i].model*glm::vec4((packets[i].mesh->boundsMin()+packets[i].mesh->boundsMax())*.5f,1);};return center(a).z<center(b).z;});
         if(!sorted.empty()){
-            auto environment=frameResources.bindings({transparentLayout_,{{0,skyParameters_,0,96,{},{}},{1,shadows_->parameters(),0,sizeof(ShadowParameters),{},{}},{2,{},0,0,skyView_,skySampler_},{3,{},0,0,irradianceView_,skySampler_},{4,{},0,0,shadows_->view(),hdrSampler_}}});
+            auto environment=frameResources.bindings({transparentLayout_,{{0,skyParameters_,0,128,{},{}},{1,shadows_->parameters(),0,sizeof(ShadowParameters),{},{}},{2,{},0,0,skyView_,skySampler_},{3,{},0,0,irradianceView_,skySampler_},{4,{},0,0,shadows_->view(),hdrSampler_}}});
             pass={};pass.color=targets_->hdrView;pass.colorLoad=rhi::LoadOp::Load;pass.depth=targets_->depthView;pass.depthLoad=rhi::LoadOp::Load;pass.additionalColors={{targets_->motionView,rhi::LoadOp::Load}};commands.beginRenderPass(pass);
             for(auto i:sorted){auto layout=frameLayout();std::vector<rhi::BindingEntry> entries{{0,camera_,0,64,{},{}},{1,objects_[i].data,0,128,{},{}},{2,lighting_,0,1472,{},{}}};if(packets[i].mesh->instances()){layout.entries.push_back({3,rhi::BindingType::StorageRead,rhi::ShaderStage::Vertex,"OutPose",64});entries.push_back({3,packets[i].mesh->instances(),0,size_t(packets[i].mesh->instanceCapacity())*64,{},{}});commands.bindPipeline(transparentInstanced_);}else commands.bindPipeline(transparentPipeline_);commands.bindBindingSet(frameResources.bindings({layout,entries}));packets[i].material->bind(commands);commands.bindBindingSet(environment);packets[i].mesh->draw(commands);}commands.endRenderPass();pass={};
         }
@@ -261,7 +291,7 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
     pass.color = targets_->outputView;commands.beginRenderPass(pass);
     commands.bindPipeline(tonePipeline_);commands.bindBindingSet(resolved?frameResources.bindings({{0,{{0,rhi::BindingType::UniformBuffer,rhi::ShaderStage::Fragment,"ToneMap",16},{1,rhi::BindingType::SampledTexture,rhi::ShaderStage::Fragment,"hdrBuffer",0}}},{{0,tone_,0,16,{},{}},{1,{},0,0,resolved,hdrSampler_}}}):targets_->toneBindings);commands.bindVertexBuffer(quad_);commands.draw(6);commands.endRenderPass();device.submit(commands);
     temporalOutput_=frame.taa;if(frame.taa)temporal_->commit(frame);
-    previousTaa_=source.taa;previousCamera_=source.cameraPosition;previousProjection_=source.viewProjection*glm::inverse(source.view);historyKey_=source.historyKey;
+    previousTaa_=source.taa;previousCamera_=source.cameraPosition;previousProjection_=source.viewProjection*glm::inverse(source.view);historyKey_=frame.historyKey;
     std::map<uint64_t,glm::mat4> models;for(size_t i=0;i<packets.size();++i)models[packets[i].id?packets[i].id:uint64_t(reinterpret_cast<uintptr_t>(packets[i].mesh.get()))^(uint64_t(i+1)<<32)]=packets[i].model;previousModels_.swap(models);
 }
 std::vector<float> ForwardPbrRenderer::readBackDepth(){if(!shadows_)throw std::invalid_argument("SSS unavailable on this path");return resources_.device->readTextureFloat(targets_->backDepth);}

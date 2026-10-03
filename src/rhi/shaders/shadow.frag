@@ -1,4 +1,5 @@
 #version 450
+#extension GL_GOOGLE_include_directive : require
 layout(location=0) in vec3 worldPosition;
 layout(location=1) in vec3 worldNormal;
 layout(location=2) in vec2 uv;
@@ -11,7 +12,7 @@ layout(set=1,binding=1) uniform sampler2D albedoMap;
 layout(set=1,binding=3) uniform sampler2D metallicMap;
 layout(set=1,binding=2) uniform sampler2D normalMap;
 layout(set=0,binding=4) uniform sampler2D skyIrradiance;
-vec2 skyUV(vec3 d){return vec2(mod(atan(d.x,-d.z)+6.2831853,6.2831853)/6.2831853,.5+.5*sign(d.y)*sqrt(abs(asin(clamp(d.y,-1.,1.)))/(1.5707963+.2)));}
+#include "sky-mapping.glsl"
 vec3 mappedNormal() {
     vec3 N = normalize(worldNormal);
     vec3 q1 = dFdx(worldPosition), q2 = dFdy(worldPosition);
@@ -37,7 +38,7 @@ void main(){
     float cone=lightPositionType.w>1.5?clamp((dot(L,-normalize(lightDirectionOuter.xyz))-lightDirectionOuter.w)/max(lightColorInner.w-lightDirectionOuter.w,1e-5),0,1):1;
     vec3 incident=lightColorInner.rgb*max(dot(N,L),0)*cone;
     if(captureSettings.y>0. && lightPositionType.w>.5)incident/=max(dot(delta,delta),1e-6);
-    if(captureSettings.x>0.)incident+=3.14159265*texture(skyIrradiance,skyUV(N)).rgb;
+    if(captureSettings.x>0.)incident+=3.14159265*sampleSkyLut(skyIrradiance,N);
     float area=captureSettings.y>0.?length(cross(dFdx(worldPosition),dFdy(worldPosition))):1.;
     float metallic=clamp(texture(metallicMap,uv).b*factors.x,0.,1.);
     flux=vec4(pow(max(base.rgb,vec3(0)),vec3(2.2))*incident*(1.-metallic)*area,1);

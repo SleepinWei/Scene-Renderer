@@ -58,8 +58,8 @@ void Atmosphere::initAtmosphereParameters(){
 	atmosphere.rayleigh_scattering = glm::vec3(5.802e-3, 13.558e-3, 33.1e-3);//ray_scat
 	// here 1 means 1km, thus we make scattering & absorption 1000 times larger
 	atmosphere.mie_scattering = glm::vec3(3.996e-3, 3.996e-3, 3.996e-3);//sattering
-	atmosphere.mie_extinction = glm::vec3(4.40e-3, 4.40e-3, 4.40e-3);//mie_absorption(extinction)
-	atmosphere.mie_extinction = atmosphere.mie_extinction + atmosphere.mie_scattering;
+	atmosphere.mie_extinction = glm::vec3(4.40e-3, 4.40e-3, 4.40e-3);//total Mie extinction (scattering + absorption)
+	// mie_extinction is total extinction, including scattering.
 	atmosphere.absorption_extinction = glm::vec3(0.650e-3, 1.881e-3, 0.085e-3);// ozone absorption
 	atmosphere.OzoneWidth = 15.0f; //ozone thickness
 }

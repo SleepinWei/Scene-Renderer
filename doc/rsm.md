@@ -2,6 +2,9 @@
 
 RSM（Reflective Shadow Map）将光源视角下的表面片元当作虚拟点光源（VPL），估计一次漫反射反弹。本项目沿用这一思想，增加太阳方向光与大气天空输入，修正光通量和采样归一化，并在原生 Metal 上验证。算法出处为 Dachsbacher 与 Stamminger 的 *Reflective Shadow Maps*（I3D 2005），见[作者所在研究组的出版列表](https://cg.ivd.kit.edu/english/publications.php)。
 
+
+2026-10-03：README 的对照图已更新为新 RHI／原生 Metal 输出。第一盏方向光的颜色按大气顶层辐照度解释，RSM 太阳源使用经过大气透射和地球遮挡的有效颜色；天空源使用统一球面映射的 `E/π` LUT。原文中的旧 `RSMPass` 名称和早期数值记录保留为历史实现说明，新调度见 `src/renderer/rhi/ShadowRenderer.cpp`；太阳／大气修复见 [修复记录](../docs/sky-and-sun-review.md)。
+
 ## 原实现为什么影响小
 
 旧版本只处理一盏聚光灯，Sponza 和 San Miguel 的主要照明来自太阳与天空，因此大部分入射能量没有进入 RSM。旧画廊同视角读回的平均 RGB 增量分别约为 1.12% 和 2.16%。这些旧值含额外聚光灯，不能与新版本直接视为同光照条件下的性能或精度比较。

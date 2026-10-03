@@ -1,90 +1,19 @@
 #version 450
-layout(set=0,binding=1,std140) uniform LutParameters {ivec4 dimensions;vec4 solar;};
-#define TexWidth dimensions.x
-#define TexHeight dimensions.y
-#define transTexWidth dimensions.z
-#define transTexHeight dimensions.w
-#define sunAngle solar.x
-layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
-
+#extension GL_GOOGLE_include_directive : require
+#include "atmosphere-common.glsl"
+#include "sky-mapping.glsl"
+layout(local_size_x=8,local_size_y=4) in;
 layout(set=1,binding=0,rgba32f) writeonly uniform image2D irradiance;
-
 layout(set=1,binding=1) uniform sampler2D skyViewLut;
-
-
-
-#define PI 3.1415
-#define epsilon 1e-4
-float MapUnitToLatitude(float unit) {
-    float s = sign(unit - 0.5);
-    return ((2 * unit - 1.0) * (2 * unit - 1.0)) * s * (PI / 2 + epsilon);
-}
-
-float MapLatitudeToUnit(float latitude) {
-    return 0.5 + 0.5 * sign(latitude) * sqrt(abs(latitude) / (PI / 2 + epsilon));
-}
-
-vec3 sampleSphericalMap(sampler2D tex, vec3 dir) {
-    float sinLat = dir.y;
-    float tanLon = -abs(dir.x) / (abs(dir.z)<1e-6?1e-6:dir.z);
-    float Lat = asin(sinLat);
-    float Lon = atan(tanLon);
-    if(Lon < 0.0)
-        Lon = PI + Lon;
-    if(dir.x < 0.0)
-        Lon = 2 * PI - Lon;
-    float LatUnit = MapLatitudeToUnit(Lat);
-    float LonUnit = Lon / (2 * PI);
-
-    vec2 sample_uv = vec2(LonUnit, LatUnit);
-    vec3 color = vec3(texture(tex, sample_uv));
-    return color;
-}
-
 void main() {
-    // 像素位置
-    vec2 uv = vec2(gl_WorkGroupID.x * 1.0 / TexWidth, gl_WorkGroupID.y * 1.0 / TexHeight);
-    ivec2 texelCoord = ivec2(gl_WorkGroupID.x, gl_WorkGroupID.y);
-    float latAngle = MapUnitToLatitude(uv.y);
-    float lonAngle = uv.x * 2 * PI;
-
-    // sample the hemisphere
-    vec3 normal = vec3(cos(latAngle) * sin(lonAngle), sin(latAngle), -cos(latAngle) * cos(lonAngle));
-
-    vec3 up = abs(normal.y)>.99?vec3(0,0,1):vec3(0,1,0);
-    vec3 right = normalize(cross(normal, up));
-    up = normalize(cross(right, normal));
-
-    const int sample_num = 10;
-
-    vec3 irrad = vec3(0, 0, 0);
-    for(int i = 0; i < sample_num; i++) {
-        for(int j = 0; j < sample_num; j++) {
-            float theta = i * PI * 0.5 / sample_num;
-            float phi = j * 2 * PI / sample_num;
-
-            vec3 dir = vec3(sin(theta) * cos(phi), cos(theta), sin(theta) * sin(phi));
-            vec3 actual_dir = normalize(normal * dir.y + up * dir.z + right * dir.x);
-
-            // sample the original sky view lut
-            // float sinLat = actual_dir.y;
-            // float tanLon = -abs(actual_dir.x) / actual_dir.z;
-            // float Lat = asin(sinLat);
-            // float Lon = atan(tanLon);
-            // if(Lon < 0.0)
-            //     Lon = PI + Lon;
-            // if(actual_dir.x < 0.0)
-            //     Lon = 2 * PI - Lon;
-            // float LatUnit = MapLatitudeToUnit(Lat);
-            // float LonUnit = Lon / (2 * PI);
-            // vec2 sample_uv = vec2(LonUnit, LatUnit);
-            // vec3 sky_color = vec3(texture(skyViewLut, sample_uv));
-            vec3 sky_color = sampleSphericalMap(skyViewLut,actual_dir);
-
-            irrad += sky_color * cos(theta) * sin(theta);
-        }
+    ivec2 pixel=ivec2(gl_GlobalInvocationID.xy);if(any(greaterThanEqual(pixel,dimensions.xy)))return;
+    vec3 N=skyTexelDirection(pixel,dimensions.xy),helper=abs(N.y)<.99?vec3(0,1,0):vec3(1,0,0);
+    vec3 T=normalize(cross(helper,N)),B=cross(N,T),sum=vec3(0);
+    for(int i=0;i<8;++i)for(int j=0;j<8;++j) {
+        float u=(float(i)+.5)/8.0,phi=2.0*ATM_PI*(float(j)+.5)/8.0;
+        vec3 direction=T*(sqrt(u)*cos(phi))+B*(sqrt(u)*sin(phi))+N*sqrt(1.0-u);
+        sum+=sampleSkyLut(skyViewLut,direction);
     }
-    irrad = PI * irrad / (sample_num * sample_num);
-    // irrad = pow(irrad, vec3(1.0 / 2.2));
-    imageStore(irradiance, texelCoord, vec4(irrad, 1.0));
+    // Cosine-weighted mean stores E/pi, matching PBR and RSM consumers.
+    imageStore(irradiance,pixel,vec4(sum/64.0,1));
 }

@@ -76,6 +76,7 @@ public:
 
 	//debug 
 	float sunAngle;
+    float sunAzimuth=0,seaLevelMeters=0,multipleScattering=1,groundAlbedo=.2f;
 
 private:
 	void computeTransTexture();

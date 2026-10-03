@@ -74,6 +74,7 @@ struct SceneAdapter::Cache {
     struct SubdivisionRecord{std::weak_ptr<Mesh> source;std::shared_ptr<GpuSubdivision> gpu;};
     std::map<std::pair<const GameObject*,const Mesh*>,SubdivisionRecord> subdivisions;
     std::shared_ptr<GpuMaterial> fallback;
+    std::weak_ptr<Atmosphere> sunAtmosphere;float lastSunAngle=0,lastSunAzimuth=0;
 };
 SceneAdapter::SceneAdapter(std::shared_ptr<rhi::GraphicsDevice> device) : device_(std::move(device)), cache_(std::make_unique<Cache>()) {
     MaterialDesc fallback;fallback.parameters.factors = {0,.5f,1,0};fallback.parameters.emissiveNormal.w = 0;
@@ -90,6 +91,21 @@ SceneFrame SceneAdapter::collect(const std::shared_ptr<RenderScene>& scene,float
     std::vector<std::shared_ptr<DirectionLight>> directional;std::vector<std::shared_ptr<PointLight>> points;std::vector<std::shared_ptr<SpotLight>> spots;
     { std::scoped_lock guard(scene->mtx,scene->lightMtx);objects = scene->objects;directional = scene->directionLights;points = scene->pointLights;spots = scene->spotLights; }
     if(scene->terrain && std::find(objects.begin(),objects.end(),scene->terrain)==objects.end())objects.push_back(scene->terrain);
+    // DirectionLight is authoritative initially; subsequent angle controls update that same light.
+    auto atmo=scene->sky?std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere")):nullptr;
+    auto source=std::find_if(directional.begin(),directional.end(),[](const auto& l){return l && l->enabled;});
+    if(atmo && source!=directional.end()) {
+        auto light=*source;
+        if(cache_->sunAtmosphere.lock()==atmo && (atmo->sunAngle!=cache_->lastSunAngle || atmo->sunAzimuth!=cache_->lastSunAzimuth)) {
+            float elevation=glm::radians(atmo->sunAngle),azimuth=glm::radians(atmo->sunAzimuth);
+            light->data.direction=-glm::vec3(std::cos(elevation)*std::sin(azimuth),std::sin(elevation),-std::cos(elevation)*std::cos(azimuth));
+        } else {
+            if(glm::dot(light->data.direction,light->data.direction)<1e-10f)throw std::invalid_argument("Sun needs a nonzero direction");
+            auto sun=-glm::normalize(light->data.direction);atmo->sunAngle=glm::degrees(std::asin(glm::clamp(sun.y,-1.f,1.f)));
+            atmo->sunAzimuth=glm::dot(glm::vec2(sun.x,sun.z),glm::vec2(sun.x,sun.z))<1e-10f?atmo->sunAzimuth:glm::degrees(std::atan2(sun.x,-sun.z));
+        }
+        cache_->sunAtmosphere=atmo;cache_->lastSunAngle=atmo->sunAngle;cache_->lastSunAzimuth=atmo->sunAzimuth;
+    }
     for (const auto& l : directional) if (l && l->enabled) result.frame.lights.push_back({{0,0,0,0},glm::vec4(l->data.color,0),glm::vec4(l->data.direction,0)});
     for (const auto& l : points) if (l && l->enabled) {
         auto t = std::static_pointer_cast<Transform>(l->gameObject->GetComponent("Transform"));if (!t) throw std::invalid_argument("Renderer: light needs transform");
@@ -101,7 +117,7 @@ SceneFrame SceneAdapter::collect(const std::shared_ptr<RenderScene>& scene,float
     }
     result.frame.shadows=result.frame.ssao=result.frame.rsm=true;result.frame.inverseSquareLocalLights=true;
     result.frame.timeSeconds=timeOverride>=0?timeOverride:float(glfwGetTime());result.frame.taa=device_->computeLimits().maxStorageImages>0;result.frame.historyKey=reinterpret_cast<uint64_t>(scene.get())^(scene->revision()*0x9e3779b97f4a7c15ull);
-    if(scene->sky){auto atmo=std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));if(atmo){result.frame.sky=true;result.frame.sunAngle=atmo->sunAngle;const auto& a=atmo->atmosphere;auto& p=result.frame.atmosphere;p.radii={a.solar_irradiance,a.sun_angular_radius,a.top_radius,a.bottom_radius};p.densities={a.HDensityRayleigh,a.HDensityMie,a.OzoneCenter,a.mie_g};p.rayleigh=glm::vec4(a.rayleigh_scattering,0);p.mie=glm::vec4(a.mie_scattering,0);p.extinction=glm::vec4(a.mie_extinction,0);p.absorption=glm::vec4(a.absorption_extinction,a.OzoneWidth);}}
+    if(scene->sky){auto atmo=std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));if(atmo){result.frame.sky=true;result.frame.sunAngle=atmo->sunAngle;result.frame.sunAzimuth=atmo->sunAzimuth;result.frame.seaLevelMeters=atmo->seaLevelMeters;result.frame.multipleScattering=atmo->multipleScattering;result.frame.groundAlbedo=atmo->groundAlbedo;const auto& a=atmo->atmosphere;auto& p=result.frame.atmosphere;p.radii={a.solar_irradiance,a.sun_angular_radius,a.top_radius,a.bottom_radius};p.densities={a.HDensityRayleigh,a.HDensityMie,a.OzoneCenter,a.mie_g};p.rayleigh=glm::vec4(a.rayleigh_scattering,0);p.mie=glm::vec4(a.mie_scattering,0);p.extinction=glm::vec4(a.mie_extinction,0);p.absorption=glm::vec4(a.absorption_extinction,a.OzoneWidth);}}
     if(scene->terrain){auto terrain=std::static_pointer_cast<TerrainComponent>(scene->terrain->GetComponent("TerrainComponent"));if(terrain){
         if(!device_->computeLimits().maxStorageImages)throw std::invalid_argument("Terrain requires storage compute on this backend; OpenGL 4.1 migration is deferred");
         if(!cache_->terrain || cache_->terrain->source.lock()!=terrain){

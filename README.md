@@ -44,7 +44,7 @@ python3 tools/fetch_gi_assets.py
 
 ## 场景与效果
 
-下面的图片均由本项目在 Apple M4 上以 **960 × 720** 离屏渲染输出，使用真实导入的模型与纹理。以下图片为旧 Metal 路径的历史输出；新 RHI 验收图保存在各构建目录 `rhi/gallery-*`。GI 场景使用统一的 PBR 材质近似，以太阳方向光和大气天空作为直接光照及 RSM 反弹的来源；当前曝光、相机及光源配置见 [ClassicScenes.cpp](src/renderer/rhi/ClassicScenes.cpp)。
+下面的实时效果图已使用本项目的**新 RHI／原生 Metal** 在 Apple M4 上重新生成：经典场景与天空为 **960 × 720**，海洋为 **1920 × 1080**。每张图独立清空 TSAA 历史并累积 16 帧，导入场景使用真实模型与纹理。GI 场景使用统一的 PBR 材质近似，以太阳方向光和大气天空作为直接光照及 RSM 反弹的来源；当前曝光、相机及光源配置见 [ClassicScenes.cpp](src/renderer/rhi/ClassicScenes.cpp)。
 
 ### Sponza：中庭与多层拱廊
 
@@ -62,7 +62,7 @@ python3 tools/fetch_gi_assets.py
 | --- | --- |
 | ![San Miguel：RSM 关闭](img/metal/san-miguel-direct.png) | ![San Miguel：RSM 开启](img/metal/san-miguel.png) |
 
-两组对照保持相机、曝光、直接光照、天空 IBL 和 SSAO 一致，只切换 RSM。`*-direct.png` 文件名表示 RSM 关闭，画面仍包含环境光和环境遮蔽。默认强度为 1，RSM 在色调映射前使 Sponza 的平均 RGB 亮度增加 **9.26%**，San Miguel 增加 **3.00%**。这些数值衡量当前固定视角的增量，不代表与参考 GI 的准确度。它近似局部的一次漫反射间接照明，有限采样会产生噪声，且不提供完整间接遮挡、多次反弹或焦散。
+两组对照保持相机、曝光、直接光照、天空 IBL 和 SSAO 一致，只切换 RSM。`*-direct.png` 文件名表示 RSM 关闭，画面仍包含环境光和环境遮蔽。默认强度为 1，RSM 在色调映射前使 Sponza 的平均 RGB 亮度增加 **5.62%**，San Miguel 增加 **3.01%**。这些数值衡量当前固定视角的增量，不代表与参考 GI 的准确度。它近似局部的一次漫反射间接照明，有限采样会产生噪声，且不提供完整间接遮挡、多次反弹或焦散。
 
 <details>
 <summary>查看太阳与天空各自的间接光贡献</summary>
@@ -91,6 +91,23 @@ python3 tools/fetch_gi_assets.py
 ./build/Scene-Renderer --classic bunny
 ./build/Scene-Renderer --classic helmet
 ```
+
+## 大气天空与太阳
+
+天空使用 Rayleigh／Mie 散射、臭氧吸收和各向同性高阶散射近似，按相机的米制海拔计算透射率与地平线。**太阳盘在背景片元中解析绘制**，其真实角半径独立于天空 LUT 分辨率；默认角直径约 0.573°。大气顶层的太阳辐照度同时驱动天空、PBR、RSM 和海洋，直接光乘大气透射及地球遮挡，日落时逐渐变红、衰减，低于地平线后不再照亮表面。
+
+| 白天天空 | 太阳特写 | 地平线日落 |
+| --- | --- | --- |
+| ![新 RHI 白天天空](img/metal/sky-day.png) | ![新 RHI 解析太阳盘](img/metal/sky-sun-closeup.png) | ![新 RHI 地平线日落](img/metal/sky-sunset.png) |
+
+GUI 可修改太阳仰角、方位、角半径、多次散射强度、地面反照率与海平面。第一盏启用的方向光是太阳来源，面板与灯光保持同步。太阳盘不写进 IBL LUT，避免与直接方向光重复计算；显示、材质、RSM 和海面共享球面采样编码。实现、历史问题、能量公式和 Metal／Vulkan 回归数值见 [天空与太阳修复记录](docs/sky-and-sun-review.md)。
+
+```sh
+./build/Scene-Renderer --classic sky
+./build/Scene-Renderer --render-gallery img/metal sky
+```
+
+`sky` 画廊还输出 10° 太阳和 -5° 暮光；纯天空示例没有地表几何，地球遮挡部分为暗色。RGB 光强尚未做绝对光度标定，当前不包含云、星空或自动曝光。
 
 ## 高清海洋与透明水体
 
@@ -123,53 +140,51 @@ GUI 的 `Enable TSAA` 可关闭此效果。场景切换、窗口尺寸和明显�
 
 ## 整体系统设计
 
-项目按场景、渲染调度、资源和 GPU 后端分层。`GameObject` 通过组件组合变换、网格、材质、灯光和自然场景逻辑；`RenderScene` 收集对象与相机，`RenderManager` 管理着色器、相机／光照缓冲区及各个渲染通道。
+项目按场景、效果调度、资源和 GPU 后端分层。`GameObject` 组合变换、网格、材质、灯光和自然场景组件，`RenderScene` 管理对象与相机。`RenderManager` 驱动编辑器；`SceneAdapter` 将 CPU 场景转为 GPU 网格／材质、绘制包和每帧参数，原生渲染器通过 RHI 记录命令。
 
 ```mermaid
 flowchart TD
-    A[JSON 场景 / Assimp 与 glTF 模型 / 程序生成场景] --> B[RenderScene]
-    B --> C[GameObject 与 Component]
-    C --> D[RenderManager]
-    I[InputManager / Camera / ImGui] --> D
-    D --> E[RenderPass：阴影 / G-buffer / SSAO / 光照 / RSM / TSAA / HDR]
-    D --> F[GPU 计算：大气 / 海洋 / 地形 / 草]
-    E --> G[Shader / Buffer / Texture / Mesh 资源接口]
+    A[JSON / Assimp / glTF / 程序场景] --> B[RenderScene 与组件]
+    I[InputManager / Camera / ImGui] --> C[RenderManager]
+    B --> C
+    C --> D[SceneAdapter：网格 / 材质 / FrameData]
+    D --> E[ForwardPbrRenderer：前向 / 延迟 / HDR / TSAA]
+    D --> F[GpuAtmosphere / GpuOcean / GpuTerrain / GpuGrass]
+    E --> G[RHI：GraphicsDevice / CommandList / 显式资源与绑定]
     F --> G
-    G --> H[MetalBackend：原生 Metal 命令与资源]
-    H --> J[GPU / CAMetalLayer]
-    B -. 场景转换 Connector .-> K[CPU PTScene]
-    K --> L[BVH / 材质采样 / 多线程路径追踪]
+    G --> H[MetalDevice / CAMetalLayer]
+    G --> V[VulkanDevice / Swapchain]
+    B -. Connector .-> K[CPU PTScene]
+    K --> L[BVH / 材质采样 / 多线程积分]
     L --> M[离线图像]
 ```
 
-当前实时路径保留 GL 风格的资源调用作为迁移边界，由 Metal 后端实现对应行为。它让既有组件和着色算法继续复用；CPU 路径追踪有自己的相机、几何、材质和积分器，独立于实时渲染通道。
+新 Metal／Vulkan 路径直接使用 RHI 的缓冲区、纹理、管线、资源绑定和命令列表。GL 风格组件字段仍用于读取历史场景数据，但原生 GPU 效果由 `src/renderer/rhi/` 调度；旧 `RenderPass` 与 Metal GL 兼容桥只属于保留的兼容路径。RHI 后端负责资源生命周期、状态转换、上传／读回、提交及呈现，支持多个在途帧；算法与 backend 分开，CPU 路径追踪保持独立。
 
 ### 一帧如何生成
 
-默认延迟路径按以下顺序执行，部分通道可在界面中关闭：
+1. `SceneAdapter` 收集相机、几何、材质、太阳及局部灯光，更新地形 LOD、草和计算细分资源。
+2. 统一太阳状态和观察高度；按参数缓存或更新大气 LUT，更新海洋 FFT、位移、法线与泡沫。
+3. `ShadowRenderer` 渲染方向光级联、点光源六面及聚光灯阴影；可选捕获太阳／天空 RSM 的位置、法线与反射功率。
+4. 不透明对象写入 G-buffer，计算 SSAO；全屏合成 PBR、天空与 RSM，特殊材质使用前向着色。前后表面深度用于近似 SSS。
+5. 拷贝不透明 HDR 场景，绘制排序透明材质与折射／吸收／散射水面，并生成物体和海面的运动信息。
+6. TSAA 在 HDR 中检查深度、重投影与裁剪历史，然后统一曝光、色调映射，绘制 ImGui 并呈现。
 
-1. 更新相机、灯光缓冲区，执行场景组件的 GPU 计算，例如大气 LUT、海洋 FFT、地形 LOD 与草分布。
-2. 渲染方向光级联阴影和点光源阴影，为后续光照提供可见性信息。
-3. 将不透明对象写入 G-buffer，记录位置、法线、底色及材质参数，并计算 SSAO。
-4. 延迟光照读取 G-buffer，合成 PBR 直接光照和环境光；绘制需要前向着色的对象及天空。
-5. 可选 RSM 在太阳方向的正交投影中生成位置、法线和太阳＋天空反射功率贴图；全屏读取 G-buffer，按接收表面材质采样并加入一次间接光照。无太阳和大气时可回退到聚光灯。
-6. 拷贝不透明 HDR 场景，绘制包含折射、吸收和散射的水面，并记录水面运动信息。
-7. TSAA 读取最终场景深度，在 HDR 空间重投影与裁剪历史，随后统一曝光、色调映射，最后绘制 ImGui 并呈现。
+`--forward` 在同一场景调度中改用前向材质光照，保留阴影、环境光、水体和后处理。核心实现见 [ForwardPbrRenderer.cpp](src/renderer/rhi/ForwardPbrRenderer.cpp)、[SceneAdapter.cpp](src/renderer/rhi/SceneAdapter.cpp) 与 [RenderManager.cpp](src/system/RenderManager.cpp)。
 
-独立前向路径使用 `DepthPass → BasePass → PostPass`，其中相机空间的前后表面深度用于近似 SSS。渲染通道的实现集中在 [RenderPass.cpp](src/renderer/RenderPass.cpp)，调度入口为 [RenderManager.cpp](src/system/RenderManager.cpp)。
-
-### 着色器构建与 Metal 执行
+### 统一着色器构建
 
 ```mermaid
 flowchart LR
-    A[既有 GLSL 效果源码] --> B[glslang：SPIR-V]
-    B --> C[SPIRV-Cross：MSL 与资源反射]
+    A[src/rhi/shaders：共享 GLSL] --> B[glslang：SPIR-V 与反射]
+    B --> V[Vulkan 管线]
+    B --> C[SPIRV-Cross：MSL]
     C --> D[Xcode Metal Toolchain：metallib]
-    D --> E[ShaderMetal / MetalBackend]
-    E --> F[Metal 渲染与计算管线]
+    D --> E[Metal 管线]
+    B --> F[JSON：RHI 资源接口校验]
 ```
 
-[compile_metal_shaders.py](tools/compile_metal_shaders.py) 在构建期完成转换和接口适配，运行时直接加载 `.metallib` 及 JSON 反射信息。后端负责缓冲区与纹理绑定、渲染附件、计算调度、管线缓存和同步。原几何着色器的分层阴影绘制改为主机端分别提交六个立方体面或五个级联切片；细分路径先用计算处理控制点与细分因子，再绘制原生 Metal 曲面片。
+[compile_rhi_shaders.py](tools/compile_rhi_shaders.py) 在构建期生成 `.spv`、Metal `.metallib`、反射信息和 OpenGL 可用的 shader 版本。运行时按后端加载二进制及接口描述，C++ 校验统一缓冲区布局与绑定。阴影由主机分别提交各级联／六面；细分使用共享 GPU 计算生成可绘制几何，使 Metal／Vulkan 复用同一效果代码。
 
 ## 渲染技术
 
@@ -178,10 +193,10 @@ flowchart LR
 | PBR 与材质变体 | 底色、法线、金属度、粗糙度、AO；各向异性、清漆层、近似 SSS、细分位移 | 延迟路径支持各向同性 PBR，其余变体走前向路径；SSS 是实时近似 |
 | 延迟与前向渲染 | G-buffer 解耦几何与光照，前向路径处理特殊材质，HDR 合成后色调映射 | 尚未实现自动曝光 |
 | 阴影 | 方向光级联阴影、PCSS 软阴影、点光源立方体阴影 | 通过阴影贴图近似可见性 |
-| TSAA | Halton 投影抖动、深度重投影、海洋运动信息、HDR／YCoCg 历史裁剪与自适应累积 | 仅接入延迟合成路径；其他独立运动物体未提供完整运动向量，快速运动仍可能模糊或拖影 |
+| TSAA | Halton 投影抖动、深度重投影、物体／海洋运动信息、HDR／YCoCg 历史裁剪与自适应累积 | 新 RHI 场景前向／延迟共用后处理；快速运动和透明表面仍可能模糊或拖影 |
 | SSAO | 屏幕空间采样核与噪声纹理，增强接触处的遮蔽 | 不包含屏幕外几何的信息，不等同于 GI |
 | RSM | 太阳方向正交投影；太阳辐照度＋大气天空漫反射 LUT；每纹素反射功率、显式采样 PDF、G-buffer 全屏合成；支持聚光灯回退 | 单个投影仅记录最近表面，天空入射未计算遮蔽；局部一次漫反射反弹，可能漏光、有采样噪声 |
-| 大气与 IBL | Rayleigh、Mie 与臭氧吸收；透射率、多重散射、天空视图和卷积 LUT | 使用大气天空环境，不是完整的场景反射探针系统 |
+| 大气与 IBL | 共享太阳状态、相机海拔、解析太阳盘；Rayleigh／Mie／臭氧、透射率、高阶散射近似、天空与 E/π 卷积 LUT | RGB 模型；太阳盘 HDR 上限 65000；未实现完整场景反射探针或环境遮挡 |
 | FFT 海洋与水体 | 共轭 Phillips 频谱、归一化二维 IFFT、主波与短波叠加、法线与 Jacobian 泡沫；深度折射、RGB 消光、近似单次散射与 HDR 光照 | 周期有限海面；折射限于屏幕空间，散射厚度是近似；不是流体求解器 |
 | 地形与草 | GPU 四叉树 LOD、队列、间接调度与绘制；GPU 草分布和实例化 | 当前验证使用程序生成资源 |
 | 模型导入 | Assimp、glTF；GI 示例增加 OBJ/MTL 材质、透明遮罩与高度图转法线 | OBJ 的传统材质参数近似转换为 PBR，玻璃／水不做真实折射 |
@@ -204,7 +219,7 @@ flowchart LR
 | `include/renderer/`、`src/renderer/` | 场景、材质、纹理、渲染通道 |
 | `src/system/` | 渲染、输入、资源与界面管理 |
 | `src/buffer/` | 顶点、索引、统一与图像缓冲区接口 |
-| `src/metal/` | 原生 Metal 后端、着色器加载、自检、经典场景与 OBJ 导入 |
+| `src/metal/` | 退役的 Metal GL 兼容桥及历史自检；默认构建不编译 |
 | `src/rhi/shaders/` | 统一 PBR、阴影、RSM、SSAO、大气、海洋、地形及 TSAA shader |
 | `src/renderer/rhi/`、`src/rhi/` | 效果调度、GPU 资源、原生后端与验证入口 |
 | `src/shader/` | 旧 OpenGL / Metal 兼容路径效果源码 |
@@ -212,6 +227,7 @@ flowchart LR
 | `tools/` | 着色器转换及可复现的资源下载脚本 |
 | `samples/`、`img/metal/` | 示例资产与来源清单、本项目生成的截图 |
 | `doc/metal.md`、`doc/rsm.md` | 中文 Metal 迁移说明与太阳／天空 RSM 实现、验证说明 |
+| `docs/sky-and-sun-review.md` | 历史天空问题、新 RHI 太阳／大气修复、能量与 GPU 回归 |
 | `docs/tsaa.md` | TSAA 重投影、海洋运动信息、历史处理与截图复现 |
 | `docs/ocean-fft-and-rendering-review.md` | 海洋 FFT、高清波纹、透明与散射的修复和验证记录 |
 
@@ -220,7 +236,7 @@ flowchart LR
 | 命令 | 用途 |
 | --- | --- |
 | `--demo` | 自动生成的功能演示，无需历史资产包 |
-| `--classic <name>` | 选择 `cornell`、`bunny`、`helmet`、`sponza`、`san-miguel`、`ocean` 或 `ocean-clear` |
+| `--classic <name>` | 选择 `cornell`、`bunny`、`helmet`、`sponza`、`san-miguel`、`sky`、`ocean` 或 `ocean-clear` |
 | `--frames <N>` | 窗口渲染 N 帧后退出 |
 | `--render-gallery <目录> core` | 离屏生成三个随仓库提供的基础示例 |
 | `--render-gallery <目录> gi` | 生成两个 GI 场景、RSM 开关对照及纯间接光／太阳／天空贡献图 |
@@ -250,7 +266,7 @@ ctest --test-dir build/vulkan --output-on-failure
 
 GPU 验证覆盖上传/异步读回、延迟释放、MRT、前向/延迟 PBR、SSS 深度、透明排序、三类阴影、SSAO、太阳/天空 RSM、大气 LUT、完整海洋 IFFT、地形/草、计算细分及 TSAA。CPU 数值参考和限定的像素比较用于检查结果；编辑器测试同时覆盖真实 resize、UI 与窗口呈现。画廊提供实际模型和贴图的视觉回归，不以历史截图作为物理参考图像。
 
-本轮 Apple M4/macOS 验收：Metal 9/9、Vulkan/MoltenVK 9/9、OpenGL 4.1 7/7。Metal 开启 API/Shader Validation；本机没有 Khronos validation layer，Windows/Linux 与 OpenGL 4.3+ 尚未实机验收。Metal/Vulkan 使用单队列、最多三帧并行提交；单次吞吐测量和算法边界见 [RHI 重构计划](docs/rhi-refactor-plan.md)。大规模 OBJ 导入仍需较多 CPU 内存与启动时间。
+本轮天空修复在 Apple M4/macOS 验收：Metal **8/8**、Vulkan/MoltenVK **9/9**，包含太阳角半径／能量、地平线及几何遮挡、控制同步、观察高度与极限参数。OpenGL 4.1 的历史 RHI 验收为 7/7，本轮未重复运行。Metal 开启 API/Shader Validation；本机没有 Khronos validation layer，Windows/Linux 与 OpenGL 4.3+ 尚未实机验收。Metal/Vulkan 使用单队列、最多三帧并行提交；单次吞吐测量和算法边界见 [RHI 重构计划](docs/rhi-refactor-plan.md)。大规模 OBJ 导入仍需较多 CPU 内存与启动时间。
 
 `Cloud` 当前只有声明，没有体积云实现。自动曝光、GPU 路径追踪和完整的实时场景到 CPU PBR 转换尚未实现；历史资产缺失也限制了原场景的视觉回归。Sponza 和 San Miguel 展示当前渲染器的能力，不代表已经实现完整 GI。
 

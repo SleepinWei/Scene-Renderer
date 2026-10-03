@@ -28,7 +28,7 @@ struct FrameData {
     RsmSettings rsmSettings;
     bool directionalEnabled=true;
     bool inverseSquareLocalLights=false; // Legacy forward validation can retain constant point attenuation.
-    AtmosphereSettings atmosphere;float sunAngle=10,timeSeconds=0;
+    AtmosphereSettings atmosphere;float sunAngle=10,sunAzimuth=0,seaLevelMeters=0,multipleScattering=1,groundAlbedo=.2f,timeSeconds=0;
     std::vector<OceanSurfaceSettings> oceans;
     std::vector<LightData> lights;
 };
@@ -46,6 +46,7 @@ public:
     ForwardPbrRenderer(std::shared_ptr<rhi::GraphicsDevice>, const std::string& shaderDirectory, uint32_t width, uint32_t height, PbrPath path = PbrPath::Forward);
     ~ForwardPbrRenderer();
     void resize(uint32_t width, uint32_t height);
+    void resetTemporal(); // Start an independent capture or comparison.
     void render(const FrameData&, const std::vector<DrawPacket>&, float exposure = 1, float gamma = 2.2f);
     rhi::TextureHandle output() const;
     std::vector<float> readHDR();

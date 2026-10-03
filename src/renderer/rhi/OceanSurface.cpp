@@ -43,7 +43,7 @@ void OceanSurface::simulate(float seconds,const OceanSurfaceSettings& s){
 void OceanSurface::record(Resources& frame,rhi::CommandList& c,const FrameData& f,const OceanSurfaceSettings& s,rhi::TextureViewHandle sky,rhi::TextureViewHandle opaque,rhi::TextureViewHandle position,rhi::TextureViewHandle normal){
     using namespace rhi;glm::mat4 model(1);model[3].y=s.seaLevel;
     Vertex v{f.viewProjection,model,history_?previousVP_:f.viewProjection,history_?previousView_:f.view,history_?previousModel_:model,{s.detailWaves?1:0,history_?1:0,0,0},{32,0,0,0}};
-    LightData sun{{0,0,0,0},{1,1,1,0},{0,-1,-.1f,0}};for(const auto& l:f.lights)if(l.positionType.w==0){sun=l;break;}
+    LightData sun{{0,0,0,0},{0,0,0,0},{0,-1,-.1f,0}};for(const auto& l:f.lights)if(l.positionType.w==0){sun=l;break;}
     Fragment p{f.viewProjection,f.view,glm::vec4(f.cameraPosition,0),sun.directionOuter,sun.colorInner,sun.colorInner,glm::vec4(s.shallow,0),glm::vec4(s.deep,0),glm::vec4(s.foamColor,0),glm::vec4(s.specular,0),glm::vec4(s.ambient,0),{s.fresnel,s.gloss,s.refractionStrength,s.deepWaterDistance},{s.subsurfaceStrength,s.anisotropy,0,0},glm::vec4(s.absorption,0),glm::vec4(s.scattering,0),{s.seaLevel,std::max(s.spectrum.heightScale,.01f),0,0},{f.sky?1.f:0.f,s.detailWaves?1.f:0.f,s.refraction?1.f:0.f,history_?1.f:0.f}};
     auto vd=frame.buffer({sizeof(v),BufferUsage::Uniform,"Water vertex parameters"},&v),fd=frame.buffer({sizeof(p),BufferUsage::Uniform,"Water fragment parameters"},&p);
     BindingLayout vertex{0,{{0,BindingType::UniformBuffer,ShaderStage::Vertex,"WaterVertex",352},{1,BindingType::UniformBuffer,ShaderStage::Fragment,"WaterFragment",368}}},fragment{1,{}};
@@ -51,7 +51,7 @@ void OceanSurface::record(Resources& frame,rhi::CommandList& c,const FrameData& 
     const char* vn[]={"DisplaceRT","detailDisplace","previousDisplace","previousDetailDisplace"};const TextureViewHandle vi[]={simulation_->images[0],simulation_->images[3],previousViews_[0],previousViews_[1]};
     for(uint32_t i=0;i<4;++i){vertex.entries.push_back({i+2,BindingType::SampledTexture,ShaderStage::Vertex,vn[i],0});ve.push_back({i+2,{},0,0,vi[i],repeat_});}
     const char* fn[]={"NormalRT","BubblesRT","skyview","detailNormal","detailFoam","opaqueScene","scenePosition","sceneNormal"};const TextureViewHandle fi[]={simulation_->images[1],simulation_->images[2],sky,simulation_->images[4],simulation_->images[5],opaque,position,normal};
-    for(uint32_t i=0;i<8;++i){fragment.entries.push_back({i,BindingType::SampledTexture,ShaderStage::Fragment,fn[i],0});fe.push_back({i,{},0,0,fi[i],i==2||i>=5?clamp_:repeat_});}
+    for(uint32_t i=0;i<8;++i){fragment.entries.push_back({i,BindingType::SampledTexture,ShaderStage::Fragment,fn[i],0});fe.push_back({i,{},0,0,fi[i],i>=5?clamp_:repeat_});}
     c.bindPipeline(pipeline_);c.bindBindingSet(frame.bindings({vertex,ve}));c.bindBindingSet(frame.bindings({fragment,fe}));c.bindVertexBuffer(vertices_);c.bindIndexBuffer(indices_);c.drawIndexed(indexCount_);
     previousVP_=f.viewProjection;previousView_=f.view;previousModel_=model;history_=true;
 }

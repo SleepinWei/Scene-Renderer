@@ -148,7 +148,12 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
     // Shadow attachments belong to the lights in each scene.
 
 
-    if (name == "bunny") {
+    if (name == "sky") {
+        target->main_camera=std::make_shared<Camera>(glm::vec3(0,2,0),glm::vec3(0,1,0),-90,10);
+        target->main_camera->Zoom=50;target->main_camera->exposure=1;
+        atmosphere(target);sun(target,glm::vec3(3),{0,-std::sin(glm::radians(10.f)),std::cos(glm::radians(10.f))});
+        manager->setting.enableShadow=false;manager->setting.enableSSAO=false;
+    } else if (name == "bunny") {
         target->main_camera = std::make_shared<Camera>(glm::vec3(0,3.8f,12), glm::vec3(0,1,0), -90, -10);
         const glm::vec3 colors[] = {{.78f,.83f,.86f},{.9f,.62f,.22f},{.25f,.56f,.72f}};
         for (int i = 0; i < 3; ++i)

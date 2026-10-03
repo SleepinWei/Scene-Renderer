@@ -6,6 +6,12 @@
 #include "system/InputManager.h"
 #include "utils/Utils.h"
 #include "utils/Camera.h"
+#include "component/Atmosphere.h"
+#include "component/Ocean.h"
+#include "component/Lights.h"
+#include "object/SkyBox.h"
+#include "object/Terrain.h"
+#include <cmath>
 #include <GLFW/glfw3.h>
 #include <stb/stb_image_write.h>
 #include <filesystem>
@@ -34,10 +40,34 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
             {
                 SceneAdapter adapter(device);ForwardPbrRenderer renderer(device,rhi::defaultShaderDirectory(),width,height,PbrPath::Scene);
                 auto capture=[&](const std::string& suffix,bool rsm,bool only,bool sun,bool sky){
+                    renderer.resetTemporal();
                     for(int i=0;i<16;++i){glfwPollEvents();device->beginFrame();auto frame=adapter.collect(scene,8);frame.frame.shadows=manager->setting.enableShadow;frame.frame.ssao=manager->setting.enableSSAO;frame.frame.rsm=rsm;frame.frame.rsmSettings=manager->setting.rsmSettings;frame.frame.rsmSettings.indirectOnly=only;frame.frame.rsmSettings.sunBounce=sun;frame.frame.rsmSettings.skyBounce=sky;renderer.render(frame.frame,frame.packets,frame.exposure);device->copyToBackbuffer(renderer.output());device->present();}
+                    auto hdr=renderer.readHDR();double energy=0;float peak=0;for(size_t i=0;i<hdr.size();i+=4)for(int c=0;c<3;++c){if(!std::isfinite(hdr[i+c]))throw std::runtime_error("Nonfinite gallery HDR");energy+=hdr[i+c];peak=std::max(peak,hdr[i+c]);}
+                    std::cout<<name<<suffix<<" HDR mean RGB "<<energy/(3*width*height)<<", peak "<<peak<<"\n";
                     auto pixels=renderer.readOutput();const auto path=(std::filesystem::path(directory)/(name+suffix+".png")).string();if(!stbi_write_png(path.c_str(),width,height,4,pixels.data(),width*4))throw std::runtime_error("Cannot save "+path);std::cout<<"Rendered "<<path<<'\n';
                 };
                 const bool gi=manager->setting.enableRSM;if(gi)capture("-direct",false,false,true,true);capture("",gi,false,true,true);
+                if(name=="ocean" || name=="ocean-clear") {
+                    auto ocean=std::static_pointer_cast<Ocean>(scene->terrain->GetComponent("Ocean"));
+                    if(name=="ocean") {
+                        const bool detail=ocean->detailWaves;ocean->detailWaves=false;capture("-no-detail",false,false,true,true);ocean->detailWaves=detail;
+                        const float scattering=ocean->subsurfaceStrength;ocean->subsurfaceStrength=0;capture("-no-scattering",false,false,true,true);ocean->subsurfaceStrength=scattering;
+                    } else {
+                        const bool refract=ocean->refraction;const float scattering=ocean->subsurfaceStrength;
+                        ocean->refraction=false;ocean->subsurfaceStrength=0;capture("-opaque",false,false,true,true);ocean->refraction=refract;ocean->subsurfaceStrength=scattering;
+                    }
+                }
+                if(name=="sky") {
+                    auto atmo=std::static_pointer_cast<Atmosphere>(scene->sky->GetComponent("Atmosphere"));
+                    auto pointSun=[&](float elevation,float fov,float pitch) {
+                        atmo->sunAngle=elevation;scene->main_camera=std::make_shared<Camera>(glm::vec3(0,2,0),glm::vec3(0,1,0),-90,pitch,float(width)/height);
+                        scene->main_camera->Zoom=fov;scene->main_camera->exposure=1;
+                    };
+                    pointSun(30,10,30);capture("-sun-closeup",false,false,true,true);
+                    pointSun(45,60,25);capture("-day",false,false,true,true);
+                    pointSun(0,20,2);capture("-sunset",false,false,true,true);
+                    pointSun(-5,30,0);capture("-night",false,false,true,true);
+                }
                 if(gi && (name=="sponza" || name=="san-miguel")){capture("-indirect",true,true,true,true);capture("-sun-indirect",true,true,true,false);capture("-sky-indirect",true,true,false,true);}
             }
             scene->destroy();

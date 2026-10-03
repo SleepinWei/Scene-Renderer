@@ -1,4 +1,6 @@
 #version 450
+#extension GL_GOOGLE_include_directive : require
+#include "sky-mapping.glsl"
 const float PI=3.14159265359;
 layout(set=0,binding=1,std140) uniform WaterFragment {mat4 waterFragmentVP;mat4 view;vec4 camera;vec4 direction;vec4 diffuse;vec4 specular;vec4 shallow;vec4 deep;vec4 foamColor;vec4 specularColor;vec4 ambientColor;vec4 optics;vec4 volume;vec4 absorb;vec4 scatter;vec4 surface;vec4 flags;};
 struct DirLight {vec3 direction;vec3 diffuse;vec3 specular;};
@@ -36,11 +38,7 @@ layout(set=1,binding=6) uniform sampler2D scenePosition;
 layout(set=1,binding=7) uniform sampler2D sceneNormal;
 vec3 skyRadiance(vec3 direction) {
     if(hasSky==0)return vec3(0);
-    // Same latitude encoding as skyRender.fs; radiance LUT is already linear HDR.
-    float latitude=asin(clamp(direction.y,-1.0,1.0));
-    float longitude=mod(atan(direction.x,-direction.z)+2.0*PI,2.0*PI);
-    float y=.5+.5*sign(latitude)*sqrt(abs(latitude)/(PI/2.0+.2));
-    return texture(skyview,vec2(longitude/(2.0*PI),y)).rgb;
+    return sampleSkyLut(skyview,direction);
 }
 vec2 screenUV(vec3 point) {
     vec4 clip=waterFragmentVP*vec4(point,1);

@@ -2,6 +2,9 @@
 
 TSAA 在原生输出分辨率下累积不同子像素位置的采样，改善几何边缘、材质细节及海面高光的时间稳定性。延迟渲染路径默认开启，GUI 的 `Enable TSAA` 可关闭；关闭后同时停用投影抖动和历史合成。
 
+
+新 RHI 更新：场景的前向／延迟着色共用 `GpuTemporal` 后处理，物体模型矩阵和海面位移提供运动信息。太阳／大气参数改变会清空历史，画廊每张独立重置后累积 16 帧。以下旧 `RenderPass` 的说明属于兼容路径；当前实现见 `src/renderer/rhi/GpuTemporal.cpp` 与 `ForwardPbrRenderer.cpp`。
+
 ## 一帧中的位置
 
 ```mermaid

@@ -14,7 +14,7 @@ glm::vec3 safeUp(glm::vec3 direction){return std::abs(direction.y)>.95f?glm::vec
 rhi::BindingLayout ShadowRenderer::objectLayout(){using namespace rhi;return {0,{{0,BindingType::UniformBuffer,ShaderStage::Vertex,"CameraVertex",64},{1,BindingType::UniformBuffer,ShaderStage::Vertex,"ObjectData",128}}};}
 ShadowRenderer::ShadowRenderer(std::shared_ptr<rhi::GraphicsDevice> device,const std::string& directory,uint32_t pixels,rhi::TextureViewHandle sky):resources_(std::move(device)),tilePixels_(pixels),extent_(pixels*14) {
     using namespace rhi;
-    skyIrradiance_=sky;skySampler_=resources_.sampler({Filter::Linear,AddressMode::ClampToEdge});if(!sky){auto black=resources_.texture({1,1,Format::RGBA8UNorm,TextureUsage::Sampled|TextureUsage::CopyDestination,"RSM sky fallback"});const uint8_t bytes[]={0,0,0,255};resources_.device->writeTexture(black,bytes,4);skyIrradiance_=resources_.view(black);}
+    skyIrradiance_=sky;skySampler_=resources_.sampler({Filter::Linear,AddressMode::Repeat});if(!sky){auto black=resources_.texture({1,1,Format::RGBA8UNorm,TextureUsage::Sampled|TextureUsage::CopyDestination,"RSM sky fallback"});const uint8_t bytes[]={0,0,0,255};resources_.device->writeTexture(black,bytes,4);skyIrradiance_=resources_.view(black);}
     if(!pixels || pixels>resources_.device->graphicsLimits().maxTextureDimension2D/14 || extent_>resources_.device->graphicsLimits().maxTextureDimension2D)throw std::invalid_argument("Shadow atlas exceeds device dimension limit");
     atlas_=resources_.texture({extent_,extent_,Format::Depth32Float,TextureUsage::DepthAttachment|TextureUsage::Sampled|TextureUsage::CopySource,"Directional/point/spot shadow atlas"});view_=resources_.view(atlas_);
     for(uint32_t i=0;i<3;++i){rsm_[i]=resources_.texture({extent_,extent_,Format::RGBA16Float,TextureUsage::ColorAttachment|TextureUsage::Sampled|TextureUsage::CopySource,"RSM atlas"});rsmViews_[i]=resources_.view(rsm_[i]);}
@@ -68,7 +68,7 @@ void ShadowRenderer::render(const FrameData& frame,const std::vector<DrawPacket>
     struct alignas(16) Capture {LightData light;glm::vec4 settings;};Capture bounce{};bool source=false;
     auto sun=std::find_if(frame.lights.begin(),frame.lights.end(),[](const LightData& l){return l.positionType.w==0;});
     if(rsm.useSunSky && (sun!=frame.lights.end() || frame.sky)){
-        source=true;if(sun!=frame.lights.end())bounce.light=*sun;else {const float angle=glm::radians(frame.sunAngle);bounce.light.directionOuter={0,-std::sin(angle),std::cos(angle),0};}
+        source=true;if(sun!=frame.lights.end())bounce.light=*sun;else {const float angle=glm::radians(frame.sunAngle),azimuth=glm::radians(frame.sunAzimuth);bounce.light.directionOuter={-std::cos(angle)*std::sin(azimuth),-std::sin(angle),std::cos(angle)*std::cos(azimuth),0};}
         if(!rsm.sunBounce || !frame.directionalEnabled)bounce.light.colorInner=glm::vec4(0);bounce.settings={frame.sky&&rsm.skyBounce?1.f:0.f,1,0,0};
         const auto axis=glm::normalize(glm::vec3(bounce.light.directionOuter));auto center=frame.cameraPosition+glm::vec3(glm::inverse(frame.view)*glm::vec4(0,0,-1,0))*(rsm.worldRadius*.5f);
         const auto right=glm::normalize(glm::cross(axis,safeUp(axis))),up=glm::cross(right,axis);const float texel=2*rsm.worldRadius/sourceExtent_;center-=right*std::fmod(glm::dot(center,right),texel)+up*std::fmod(glm::dot(center,up),texel);
