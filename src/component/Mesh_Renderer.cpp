@@ -23,11 +23,13 @@ MeshRenderer::~MeshRenderer() {
 }
 
 std::shared_ptr<MeshRenderer> MeshRenderer::setShader(ShaderType type) {
+    checkLogicThread();
 	shaderType=type;shader = RenderManager::GetInstance()->getShader(type);
 	return shared_from_this();
 }
 
 std::shared_ptr<MeshRenderer> MeshRenderer::setShader(std::string type) {
+    checkLogicThread();
 	ShaderType shadertype = ShaderType::SIMPLE;
 	if (type == "pbr") {
 		shadertype = ShaderType::PBR;
@@ -72,11 +74,13 @@ std::shared_ptr<MeshRenderer> MeshRenderer::setShader(std::string type) {
 // };
 
 std::shared_ptr<MeshRenderer> MeshRenderer::setDrawMode(GLenum drawMode_) {
+    checkLogicThread();
 	drawMode = drawMode_;
 	return shared_from_this();
 }
 
 std::shared_ptr<MeshRenderer> MeshRenderer::setPolyMode(GLenum ployMode_) {
+    checkLogicThread();
 	polyMode = ployMode_;
 	return shared_from_this();
 }
@@ -205,6 +209,7 @@ void MeshRenderer::render(const std::shared_ptr<Shader>& outShader){
 }
 
 void MeshRenderer::loadFromJson(json& data) {
+    checkLogicThread();
 	{
 		// if (data.find("material") != data.end()) {
 			// this->material->loadFromJson(data["material"]);

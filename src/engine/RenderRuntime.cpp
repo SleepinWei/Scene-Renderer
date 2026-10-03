@@ -79,8 +79,7 @@ void RenderRuntime::run(std::unique_ptr<render::GuiRenderer> gui) {
                     device_->present();
                     ++framesRendered_;
                     peakResourceBytes_ =
-                        std::max(peakResourceBytes_.load(), uint64_t(device_->allocatedBufferBytes() +
-                                                                     device_->allocatedTextureBytes()));
+                        uint64_t(device_->resourceMemory().peakBytes);
                     renderMilliseconds_ =
                         std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - started)
                             .count();

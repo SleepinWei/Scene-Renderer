@@ -22,9 +22,11 @@ public:
     rhi::Backend backend() const override { return rhi::Backend::Metal; }
     size_t allocations() const { return data_.size(); }
     bool manual=false;uint64_t signaled=0,completed=0;
+    bool failAllocation=false;unsigned allocationAttempts=0;
     unsigned waits = 0, frames = 0, presents = 0, closes = 0;
 protected:
     NativeBuffer createBufferImpl(const rhi::BufferDesc& desc, const void* bytes) override {
+        ++allocationAttempts;if(failAllocation)throw std::runtime_error("native allocation failed");
         const auto id = ++next_;
         auto& data = data_[id]; data.resize(desc.size, 0);
         if (bytes) std::memcpy(data.data(), bytes, desc.size);
@@ -53,6 +55,33 @@ private:
 int main() {
     try {
         using namespace rhi;
+        {
+            TestDevice budget;budget.setResourceBudget(128);
+            auto a=budget.createBuffer({64,BufferUsage::Vertex,"budget first"});
+            const auto attempts=budget.allocationAttempts;
+            rejects<ResourceBudgetExceeded>([&]{budget.createBuffer({65,BufferUsage::Vertex,"over budget"});});
+            check(budget.allocationAttempts==attempts && budget.resourceMemory().usedBytes()==64,
+                  "Budget rejected after native allocation or charged failed request");
+            budget.failAllocation=true;
+            rejects<std::runtime_error>([&]{budget.createBuffer({64,BufferUsage::Vertex,"native failure"});});
+            check(budget.resourceMemory().usedBytes()==64 && budget.resourceMemory().peakBytes==64,
+                  "Native allocation failure polluted memory accounting");
+            budget.failAllocation=false;
+            auto b=budget.createBuffer({64,BufferUsage::Vertex,"budget second"});
+            rejects<std::invalid_argument>([&]{budget.setResourceBudget(127);});
+            budget.destroyBuffer(a);budget.destroyBuffer(a);
+            check(budget.resourceMemory().usedBytes()==64 && budget.resourceMemory().peakBytes==128,
+                  "Double destroy corrupted resource budget or peak");
+            auto c=budget.createBuffer({32,BufferUsage::Vertex,"retired buffer"});
+            budget.manual=true;budget.beginFrame();
+            budget.retireResources([&]{budget.destroyBuffer(b);budget.destroyBuffer(c);});budget.endFrame();
+            rejects<ResourceBudgetExceeded>([&]{budget.createBuffer({40,BufferUsage::Vertex,"pending retirement"});});
+            check(budget.resourceMemory().usedBytes()==96,"In-flight retirement released quota early");
+            budget.waitIdle();check(budget.resourceMemory().usedBytes()==0,"Completed retirement retained quota");
+            budget.createBuffer({128,BufferUsage::Vertex,"reclaimed quota"});budget.close();
+            check(budget.resourceMemory().usedBytes()==0 && budget.resourceMemory().peakBytes==128,
+                  "Close leaked resource accounting");
+        }
         auto owner = std::make_shared<TestDevice>();
         TestDevice other;
         validateBufferTransfers(*owner);

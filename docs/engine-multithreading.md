@@ -15,6 +15,8 @@ flowchart LR
     L --> W[CPU 解码池：最多 8 workers / 128 jobs]
     W --> B[完整 staging scene 与已验证 CPU payload]
     B --> M
+    W --> C[世界值命令：256 容量 / 代际检查]
+    C --> M
     S --> I[共享 IO 池：2 workers / 64 jobs]
     R --> I
     I --> V[完成的 VT tile / CPU 资产]
@@ -23,7 +25,7 @@ flowchart LR
 
 CPU 队列与 GPU 在途帧分别限制：最多 2 个等待的帧包，GPU 默认最多 3 帧。队列满时主线程受背压，避免无限堆积输入到画面的延迟；已经接收的帧按 FIFO 执行，不悄悄丢帧。逻辑线程与渲染线程可以重叠处理相邻帧，但这不是无等待的固定频率模拟器。
 
-`Device::checkThread()` 检查设备归属。设备移交只能发生在启动／join 的静止边界，`adoptCurrentThread()` 不是并发锁。`RenderScene` 的结构容器、相机、sky／terrain 与 bootstrap payload 现已私有，读取和修改入口以及 snapshot capture 都检查逻辑线程。`objects()`／灯光列表返回 const 容器，插入去重，删除／清空同步维护灯光索引；活对象的组件变化后调用 `refreshObject(id)`。组件与 Camera 内部仍有历史公开字段，**不得从后台线程直接修改**。后台工作只构建未发布对象或不可变 payload，完成结果由主线程应用。
+`Device::checkThread()` 检查设备归属。设备移交只能发生在启动／join 的静止边界，`adoptCurrentThread()` 不是并发锁。`RenderScene` 的结构容器、相机、sky／terrain 与 bootstrap payload 现已私有，读取和修改入口以及 snapshot capture 都检查逻辑线程。`objects()`／灯光列表返回 const 容器，插入去重，删除／清空同步维护灯光索引；活对象增删组件通过私有注册表自动通知世界并维护灯光索引。后台任务通过容量 256 的值命令队列提交 ID／参数，主循环限量消费 64 条；旧世界入口在替换时失效。组件与 Camera 内部仍有历史公开字段，**不得从后台线程直接修改**。后台工作只构建未发布对象或不可变 payload，完成结果由主线程应用。
 
 ## 不可变快照与资产版本
 
@@ -31,13 +33,13 @@ CPU 队列与 GPU 在途帧分别限制：最多 2 个等待的帧包，GPU 默�
 
 `GuiFrame` 深拷贝 ImGui 顶点、索引和命令。渲染器不访问下一帧 ImGui 的内部缓冲区，也不在析构中访问 UI context。当前支持字体与已登记纹理；自定义 ImGui draw callback 不允许跨线程，必须先转成独立渲染消息。字体及原生 GUI pipeline 在启动阶段建立。
 
-对象、组件、Mesh 和 Material 使用单调递增 ID，地址不再作为这些 cache 的身份；复制活资产会分配新 ID。`Mesh::invalidate()` 与 `Material::invalidate()` 更新内容版本，修改 CPU 几何／图片后必须调用；变换与材质标量本身不需要重建图片。地形继续使用 `invalidateHeight()`，并检查组件身份、路径、尺寸、预算、材质版本和草状态。`getComponent<T>()` 使用检查过的动态转换；旧字符串接口保留给历史 JSON／反射。
+对象、组件、Mesh 和 Material 使用单调递增 ID，地址不再作为这些 cache 的身份；复制 Mesh／Material 资产会分配新 ID；GameObject／Component 禁止复制。`Mesh::invalidate()` 与 `Material::invalidate()` 更新内容版本，修改 CPU 几何／图片后必须调用；变换与材质标量本身不需要重建图片。地形继续使用 `invalidateHeight()`，并检查组件身份、路径、尺寸、预算、材质版本和草状态。`getComponent<T>()` 对精确类型使用 `type_index` 索引，基类查询保留确定顺序的动态转换；旧字符串接口保留给历史 JSON／反射。
 
 原生图片解码缓存按规范化路径、mtime 和文件长度合并请求，payload 共享 const 图片。普通 Texture cache 封装容器并合并同路径进行中的 future；锁只保护索引，解码不占用索引锁。失败不会永久污染 key，未被外部使用的条目可以释放。共享图片 cache 在快照收集时回收无引用条目，Texture cache 在编辑器周期／退出时回收。
 
 ## 场景加载事务与取消
 
-`Loader::buildScene(path)` 返回 `SceneLoadRequest`，包含 future、取消标记和进度。独立协调线程分发解码任务，按 JSON 对象键的确定顺序收集结果，避免 worker 完成先后改变场景顺序。子 JSON、网格、材质图片及 VT bootstrap 验证成功后才返回 staging；准备的 const CPU payload 在主线程第一次 capture 时被接管，避免重复准备。
+`Loader::buildScene(path)` 返回 `SceneLoadRequest`，包含 future、取消标记和进度。独立协调线程分发解码任务，按 JSON 对象键的确定顺序收集结果，避免 worker 完成先后改变场景顺序。每个解码对象先封存再经 future 交给协调线程接管，完整 staging 在资产准备后再次封存，主线程接管时重新指定组件归属。未封存外线程对象及单独外线程组件不能直接挂入世界。子 JSON、网格、材质图片及 VT bootstrap 验证成功后才返回 staging；准备的 const CPU payload 在主线程第一次 capture 时被接管，避免重复准备。
 
 GUI 轮询 future，在主线程调用 `RenderScene::replaceWith` 一次发布，保留已有相机。解析失败、缺少子文件、解码失败或取消都保留原场景。事务保证 CPU 侧构建与资产准备；GPU 分配、设备能力及 GPU 专用参数校验失败仍由渲染线程上报，尚未实现 GPU 阶段的回滚。重新选择文件先取消旧请求，旧结果不会覆盖新选择。取消在任务边界和发布前检查，不强制中断正在进行的文件读取／Assimp 导入。满载的协调队列返回明确失败，不阻塞 UI 等待空位。
 
@@ -51,11 +53,13 @@ GUI 轮询 future，在主线程调用 `RenderScene::replaceWith` 一次发布�
 
 普通材质图片通过同设备的 `GpuImageCache` 共用 texture／view，内容 hash 后再比较尺寸和完整字节，碰撞不会错误复用；sampler 独立于图片。默认图和 packed special 图也参与共享。不可变 shared 图片避免构造材质时再复制大数组，special payload 独立持有图片，不通过 alias 指针延长整个材质的 CPU 生命周期。
 
-缓存默认保留最多 **64 MiB 空闲图片**，按 LRU 淘汰没有材质 lease 的条目，活图片不会被预算强行释放。该限制不是全局显存硬上限：活资源、VT、mesh、render target 和 driver allocation 仍独立。GPU lease 在材质 binding set 之后通过 completion retirement 释放；缓存只能在设备线程操作，启动／退出仍使用既有静止设备移交。
+缓存默认保留最多 **64 MiB 空闲图片**，按 LRU 淘汰没有材质 lease 的条目，活图片不会被预算强行释放。该限制不是全局显存硬上限：统一 RHI buffer／texture 配额可另外启用，但 driver allocation 不在逻辑负载计费范围。GPU lease 在材质 binding set 之后通过 completion retirement 释放；缓存只能在设备线程操作，启动／退出仍使用既有静止设备移交。
 
 普通网格／材质在渲染线程按当前 snapshot 逐步创建：每帧最多接纳 2 个新资产，累计上传目标为 32 MiB。超过单帧目标的单个资源允许独占一次上传，避免大资源永远无法加载；这是接纳预算，不是硬性的帧时间保证。材质接纳只计尚未缓存的图片字节；相同内容在单个材质中也不重复计费。尚未就绪的对象暂时不进入 DrawPacket，但其仍被引用的材质／细分记录不会因上游网格等待而被清除，避免反复重建。上传完成会使 TSAA 历史失效。地形、细分、海洋和 pipeline 初始化仍有不可分割的分配／构建；后续应增加大 buffer 分段上传和 pipeline cache。
 
-运行日志输出帧数、最近一帧渲染线程 CPU 用时、最近最多 256 帧的 CPU p95／p99（每 32 帧和退出时更新）、主线程提交队列的最大等待用时、共享 GPU 图片字节／上传／命中次数，以及 RHI buffer／texture 峰值字节估算。CPU 时间包含 worker 中的提交、呈现与必要等待，不是 GPU timestamp；队列最大等待也不是完整输入到画面的端到端延迟。该估算包含仍在 RHI 注册的资源，**不包含** driver heap 对齐、隐式 staging、交换链、pipeline 或所有已延迟释放的 native allocation，不能当作系统显存峰值。
+可选 `--gpu-resource-budget-mib N` 对原生编辑器的所有 RHI buffer／texture 设定统一逻辑负载配额（默认 0，不限额）。分配前拒绝超限，失败不计费，等待 completion 的资源直到实际安全销毁才减计；超限由既有 worker 错误传播路径退出，尚无压力降级或 GPU 发布回滚。详见[组件、命令与配额](engine-world-commands.md)。
+
+运行日志输出帧数、最近一帧渲染线程 CPU 用时、最近最多 256 帧的 CPU p95／p99（每 32 帧和退出时更新）、主线程提交队列的最大等待用时、共享 GPU 图片字节／上传／命中次数，以及逐次成功分配更新的 RHI buffer／texture 逻辑负载峰值。CPU 时间包含 worker 中的提交、呈现与必要等待，不是 GPU timestamp；队列最大等待也不是完整输入到画面的端到端延迟。该估算包含仍在 RHI 注册的资源，**不包含** driver heap 对齐、隐式 staging、交换链、pipeline 或 RHI 未登记的 native allocation，不能当作系统显存峰值。
 
 ## Render graph 与呈现
 
@@ -79,9 +83,11 @@ clang++ -std=c++17 -pthread -fsanitize=thread -g -Iinclude \
 
 `--single-thread` 保留原生单线程对照；OpenGL 兼容编辑器维持单线程。无 UI 画廊和独立 GPU 自检使用同步收集路径，方便固定输入验证。
 
-CPU 并发测试覆盖同 key 合并、不同 key、失败重试、释放、队列容量、worker 异常、嵌套阻塞拒绝、排空退出与背压；该测试已在 ThreadSanitizer 下执行。应用 GPU 自检覆盖失败保留场景、缺少子文件、异步构建／显式发布、快照在场景删除后仍可消费、几何版本失效、设备／场景线程检查、GUI 数据隔离、渲染 worker 错误传播，以及 VT 未完成页不发布。窗口测试包含原生前向、缩放、异步 VT 地形和单线程对照。
+CPU 并发测试覆盖同 key 合并、不同 key、失败重试、释放、队列容量、worker 异常、嵌套阻塞拒绝、排空退出与背压，另覆盖多生产者世界命令、容量、取消、代际失效、弱入口与异常恢复；该测试已在 ThreadSanitizer 下执行。应用 GPU 自检覆盖失败保留场景、缺少子文件、异步构建／显式发布、快照在场景删除后仍可消费、几何版本失效、设备／场景线程检查、GUI 数据隔离、渲染 worker 错误传播，以及 VT 未完成页不发布。窗口测试包含原生前向、缩放、异步 VT 地形和单线程对照。
 
 完整图形应用与第三方 AppKit／GLFW 没有在 ThreadSanitizer 下验收；不能将 CPU 基础设施测试当作所有第三方调用的线程安全证明。
+
+组件边界、封存移交、命令队列和混合资源配额的后续回归同样通过 Metal **11/11**、Vulkan **12/12**、OpenGL **8/8**，CPU 并发测试再次通过 ThreadSanitizer。
 
 参考：[GLFW 线程约束](https://www.glfw.org/docs/latest/intro.html#thread_safety)、[Apple CAMetalLayer](https://developer.apple.com/documentation/quartzcore/cametallayer)。
 

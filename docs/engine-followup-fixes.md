@@ -6,7 +6,7 @@
 
 之前 `RenderScene::objects`、灯光数组、sky／terrain 和相机仍是 public，调用方能绕过 `checkLogicThread()`、修订号与灯光维护。海洋预设直接清空对象数组、保留灯光数组，使太阳成为没有对应场景对象的隐藏引用；单独删除对象也缺少安全接口。
 
-现在结构私有，读取返回 const 容器并检查逻辑线程。使用 `addObject`、`removeObject(id)`、`clearObjects`、`addSky`、`addTerrain`、`setCamera` 完成结构修改。重复插入相同 ID 是无变化操作；不存在的删除不改变版本。删除／清空维护灯光索引并释放 loader bootstrap 引用，活对象的组件变更后使用 `refreshObject(id)` 重新索引。海洋预设显式保留太阳对象、移除其他对象／灯光，效果保持原本意图。
+现在结构私有，读取返回 const 容器并检查逻辑线程。使用 `addObject`、`removeObject(id)`、`clearObjects`、`addSky`、`addTerrain`、`setCamera` 完成结构修改。重复插入相同 ID 是无变化操作；不存在的删除不改变版本。删除／清空维护灯光索引并释放 loader bootstrap 引用，这批修复中活对象的组件变更后使用 `refreshObject(id)` 重新索引；后续已改为自动通知，见下文链接。海洋预设显式保留太阳对象、移除其他对象／灯光，效果保持原本意图。
 
 Loader 在生产线程构建私有 staging，通过 future 完成后主线程 `replaceWith` 移交内容；这个接口只适用于已停止写入的 detached staging。所有现有原生、OpenGL、历史 Metal 和 PT 结构访问调用方均已迁移。组件内字段仍由主线程修改，const 容器并不使其引用的 GameObject／组件自动不可变；渲染线程仍必须消费快照。
 
@@ -36,7 +36,7 @@ GPU 自检新增同 source／相同内容只上传一次、内容与尺寸不同
 
 预算回归先同步上传三组资产，再在异步两项预算下同时替换三个网格，检查第三个网格延后完成时仍使用原材质，没有额外创建或阻塞进展。原有天空／太阳、海洋、地形／VT、TSAA、GUI 快照、故障传播、缩放和单线程对照继续执行。
 
-本轮不包含私有组件注册表、跨线程世界命令队列、全局显存硬预算、分段 buffer 上传或 pipeline cache；这些按依赖顺序继续推进，再扩展 RHI 子资源图和屏幕反馈 VT。Windows／Linux 与历史 Metal GL 桥未做实机运行验收。
+本记录对应的批次不包含私有组件注册表、跨线程世界命令队列或统一 RHI 资源配额；这些已在[组件、命令与配额修复](engine-world-commands.md)中继续落实。实际 native heap 预算、分段 buffer 上传、pipeline cache、RHI 子资源图和屏幕反馈 VT 仍待推进。Windows／Linux 与历史 Metal GL 桥未做实机运行验收。
 
 2026-10-03 在 Apple M4/macOS 上验收：Metal 全量 CTest **11/11**、Vulkan/MoltenVK **12/12**，新增地址复用用例在两后端分别再次通过 GPU 自检；OpenGL 兼容路径全量 **8/8**。Metal 启用 API／Shader Validation，Vulkan/MoltenVK 关闭本机已知阻塞的 MetalTools 组合。CPU 并发基础设施未改动，沿用前轮 ThreadSanitizer 验证；本轮未将完整图形应用用于 TSan 验收。
 

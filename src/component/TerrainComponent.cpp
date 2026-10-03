@@ -581,11 +581,13 @@ void TerrainComponent::render(const std::shared_ptr<Shader>& outShader) {
 }
 
 void TerrainComponent::setPolyMode(unsigned int polyMode_) {
+    checkLogicThread();
 	// GL_POLYGON_MODE : GL_FILL / GL_LINE
 	this->polyMode = polyMode_;
 }
 
 void TerrainComponent::loadFromJson(json& data) {
+    checkLogicThread();
 	// load terrain data from json file
     if(data.contains("heightVT")){
         heightVirtualTexture=data.at("heightVT").get<std::string>();

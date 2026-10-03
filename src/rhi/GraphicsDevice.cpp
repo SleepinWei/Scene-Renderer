@@ -13,6 +13,20 @@ std::atomic<uint64_t> nextObject{1};
 void require(bool condition, const char* message) {
     if (!condition) throw std::invalid_argument(message);
 }
+size_t texturePayloadBytes(const TextureDesc& desc) {
+    size_t stride=0;
+    switch(desc.format) {
+        case Format::RGBA8UNorm:case Format::Depth32Float:stride=4;break;
+        case Format::RGBA16Float:stride=8;break;
+        case Format::RGBA32Float:stride=16;break;
+        default:throw std::invalid_argument("RHI: unknown texture format");
+    }
+    require(desc.height && desc.width<=std::numeric_limits<size_t>::max()/desc.height,
+            "RHI: texture dimensions overflow payload size");
+    const size_t pixels=size_t(desc.width)*desc.height;
+    require(pixels<=std::numeric_limits<size_t>::max()/stride,"RHI: texture bytes overflow payload size");
+    return pixels*stride;
+}
 uint32_t attributeBytes(VertexFormat format) {
     switch (format) {
     case VertexFormat::Float2: return 8;
@@ -69,9 +83,10 @@ TextureHandle GraphicsDevice::createTexture(const TextureDesc& desc) {
     require(desc.width && desc.height && desc.width <= graphicsLimits_.maxTextureDimension2D &&
             desc.height <= graphicsLimits_.maxTextureDimension2D && supportsTexture(desc.format, desc.usage),
             "RHI: unsupported texture descriptor");
+    const auto bytes=texturePayloadBytes(desc);checkResourceAllocation(bytes,desc.label);
     auto native = createTextureImpl(desc);TextureHandle h{nextObject++};
     try { textures_.emplace(h.value, TextureRecord{desc, native}); }
-    catch (...) { destroyTextureImpl(native);throw; }return h;
+    catch (...) { destroyTextureImpl(native);throw; }accountResourceAllocation(bytes,true);return h;
 }
 TextureViewHandle GraphicsDevice::createTextureView(const TextureViewDesc& desc) {
     const auto& t = texture(desc.texture);
@@ -160,7 +175,8 @@ void GraphicsDevice::destroyPipeline(PipelineHandle h) { checkThread();
 void GraphicsDevice::destroyTexture(TextureHandle h) { checkThread();
     auto it = textures_.find(h.value);if (it == textures_.end()) return;
     for (const auto& v : views_) require(v.second.desc.texture.value != h.value, "RHI: texture still has live views");
-    waitForResourceRelease();destroyTextureImpl(it->second.native);textures_.erase(it);
+    waitForResourceRelease();destroyTextureImpl(it->second.native);
+    accountResourceRelease(texturePayloadBytes(it->second.desc),true);textures_.erase(it);
 }
 void GraphicsDevice::destroyTextureView(TextureViewHandle h) { checkThread();
     auto it = views_.find(h.value);if (it == views_.end()) return;
@@ -478,4 +494,4 @@ void CommandList::dispatchIndirect(ComputePipelineHandle pipeline,const std::vec
 void CommandList::endRenderPass() { requirePass();inPass_ = false; }
 } // namespace rhi
 
-namespace rhi {size_t GraphicsDevice::allocatedTextureBytes() const {checkThread();size_t bytes=0;for(const auto& entry:textures_){const auto& desc=entry.second.desc;size_t stride=desc.format==Format::RGBA32Float?16:desc.format==Format::RGBA16Float?8:4;bytes+=size_t(desc.width)*desc.height*stride;}return bytes;}}
+namespace rhi {size_t GraphicsDevice::allocatedTextureBytes() const {return resourceMemory().textureBytes;}}

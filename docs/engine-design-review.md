@@ -9,14 +9,14 @@
 | 1：资源 cache 与加载事务 | Loader worker 并发写无锁 unordered_map，同文件重复解码；子文件失败仍清空旧场景 | 私有 AssetCache、路径规范化、共享进行中的 future、失败可重试与未使用条目释放；独立 staging，所有资源验证成功后主线程一次 replace |
 | 2：snapshot 与资产版本 | 渲染器读取相机、组件和公开容器，还回写太阳参数；GPU cache 依赖地址 | SceneSnapshotBuilder 在逻辑线程复制值与 const CPU payload；SceneAdapter.resolve 只在渲染线程消费；单调 ID、Mesh／Material 内容版本、地形来源与草状态失效 |
 | 3：有界 jobs 与上传 | 公共 threadpool、无限任务／帧积压、VT 在帧内同步读取磁盘 | 有界 CPU／IO／协调队列；独立 RenderRuntime、2 个等待帧、设备线程检查、错误传播及排空 join；VT future、16 页上限、每帧 8 请求／8 上传，普通资产上传接纳预算 |
-| 4：模块、实体与类型基础 | RenderManager 同时处理逻辑／GPU，字符串 static cast，手工 pass 顺序 | 原生编辑器不经 RenderManager.render 读取世界；独立设置描述、检查过的 getComponent<T>()、稳定 ID；有序 RenderGraph 验证初始化／读写声明并记录现有 pass |
+| 4：模块、实体与类型基础 | RenderManager 同时处理逻辑／GPU，字符串 static cast，手工 pass 顺序 | 原生编辑器不经 RenderManager.render 读取世界；独立设置描述、私有组件注册表、按具体类型索引的 getComponent<T>()、稳定 ID；有序 RenderGraph 验证初始化／读写声明并记录现有 pass |
 
 主线程继续承担 GLFW、编辑器和主逻辑，渲染线程独占 RHI 和原生效果对象；CPU 路径追踪与旧 OpenGL 编辑器保留各自路径。详细线程图、接口、预算、验证和兼容边界见 [Engine 多线程说明](engine-multithreading.md)。
 
 ## 保留并验证的生命周期修复
 
 - Component owner 使用 weak_ptr，避免 GameObject 引用环；过期 owner 明确抛错。
-- GameObject 名称构造、重复组件挂载及模板返回值正确；复制活资产生成不同 ID。
+- GameObject 名称构造、重复组件挂载及模板返回值正确；Mesh／Material 复制生成不同 ID，GameObject／Component 禁止复制。
 - Loader 捕获异常并在 future 中传播，不保留已 join 的线程；坏主／子 JSON 和缺少文件不会破坏当前场景。
 - `RenderManager::generateShader` 对不支持枚举明确抛错。
 - 地形源版本、预算、接缝、边界法线、草容量及包围盒修复见 [地形审查](terrain-virtual-texture.md)。
@@ -25,12 +25,14 @@
 
 RenderScene 的结构与灯光索引改为私有并迁移全部调用方；重复插入去重，删除／清空／组件刷新保持索引一致。GpuImageCache 在同设备跨材质共享普通／默认／packed 图片，区分尺寸和完整内容，独立 sampler，空闲 LRU 64 MiB。上传接纳按实际缺失图片计费，等待帧不再清除仍被引用的下游资产。加入渲染 CPU p95／p99、队列等待和 GPU 图片统计。具体原因、验证和边界见 [后续修复记录](engine-followup-fixes.md)。
 
+组件表与 owner 已私有，组件增删自动维护灯光索引；生产者通过封存与 future 明确移交对象。后台世界修改使用有界、绑定世界代际的值命令；RHI buffer／texture 可统一设定逻辑负载配额。实现、使用方式、回归与限制见[组件、命令与资源配额](engine-world-commands.md)。
+
 ## 尚需推进的设计工作
 
 | 优先级 | 当前边界 | 下一步与验收 |
 | --- | --- | --- |
-| P1 | RenderScene 结构已私有并检查读写线程；组件、Mesh／Material 内部仍公开，类型查询使用 dynamic cast | 继续收紧组件写接口、实体／组件注册表和主线程命令队列；新模块不得跨线程直接写字段。稳定 ID 不复用，后续 ECS 槽位需 generation |
-| P1 | 普通 GPU 图片已按设备／内容共享，空闲 LRU 默认 64 MiB；活资源不受此缓存上限约束 | 扩展为 mesh／VT／render target 的全局预算及压力策略；统计 native allocation、延迟释放和实际 heap，对大场景进行压力验收 |
+| P1 | 世界结构、组件注册表与 owner 已私有；精确类型索引与代际值命令已落实，历史标量、Camera、Mesh／Material 内部仍公开 | 继续迁移字段写入口与内容失效检查；新模块使用检查过的 API／命令，不得跨线程直接写字段。稳定 ID 不复用，后续 ECS 槽位需 generation |
+| P1 | 图片空闲 LRU 64 MiB；所有 RHI buffer／texture 已有可选统一逻辑负载配额，含等待安全释放的资源 | 增加内存压力淘汰／降级、GPU 发布回滚与实际 native heap 统计；逻辑配额不覆盖隐式 staging／交换链／pipeline，继续大场景压力验收 |
 | P1 | 大地形／细分／海洋和 pipeline 初建仍不可分割；队列背压会等待 | 分段 upload、pipeline cache、按用时接纳；已有渲染 CPU p95／p99 和队列最大等待统计；继续测量大场景启动、GPU 时间、端到端输入延迟及实际 native heap 峰值 |
 | P2 | 场景取消不能中断正在执行的 Assimp／磁盘操作；路径仍沿用历史 cwd 约定 | 资产根目录、结构化诊断、分阶段取消与请求代际；失败／过期结果不发布 |
 | P2 | graph 是有序记录及校验，大气／阴影／海洋模拟仍在图前执行 | 将效果纳入资源图，增加 RHI mip/layer/subresource、transient 生命周期和 debug marker；再实现自动调度／资源复用 |
@@ -48,3 +50,5 @@ CPU cache／job／帧队列和 graph 契约有独立测试，并在 ThreadSaniti
 2026-10-03 最终原生回归：Metal **11/11**、Vulkan/MoltenVK **12/12**，包含线程故障传播、GUI／世界快照隔离、真实 Texture 路径合并、异步地形缩放和单线程对照。
 
 后续 GPU 图片共享与世界结构回归：Metal **11/11**、Vulkan/MoltenVK **12/12**，新增地址复用 GPU 自检在两后端通过；OpenGL 兼容路径 **8/8**。
+
+组件／世界命令／RHI 配额后续回归：Metal **11/11**、Vulkan/MoltenVK **12/12**、OpenGL **8/8**，CPU 命令队列再次通过 ThreadSanitizer；256 MiB 正常运行与 8 MiB 明确拒绝分配的编辑器路径通过。

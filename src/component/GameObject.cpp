@@ -1,115 +1,112 @@
-#include<glad/glad.h>
-#include"component/GameObject.h"
-#include"component/Component.h"
-const float PI = 3.1415926f;
-#include<glm/gtc/matrix_transform.hpp>
-#include<iostream>
-#include"component/Mesh_Filter.h"
-#include"component/Mesh_Renderer.h"
-#include"component/transform.h"
-#include"system/meta_register.h"
-//#include<rttr/registration.h>
-
-GameObject::GameObject() {
-	this->m_isDeferred = true; // true by default
+#include "component/GameObject.h"
+#include "renderer/RenderScene.h"
+#include "system/meta_register.h"
+GameObject::GameObject() = default;
+GameObject::GameObject(std::string value) : name(std::move(value)) {}
+GameObject::~GameObject() = default;
+void GameObject::checkLogicThread() const {
+    if (sealed_ || logicThread_ != std::this_thread::get_id())
+        throw std::logic_error("GameObject is sealed or accessed outside its logic thread");
 }
-
-GameObject::GameObject(std::string name) {
-	this->name = std::move(name);
-	this->m_isDeferred = true;
+void GameObject::sealForTransfer() { sealForTransfer(nullptr); }
+void GameObject::sealForTransfer(const RenderScene *previous) {
+    checkLogicThread();
+    if (auto scene = scene_.lock(); scene && scene.get() != previous)
+        throw std::logic_error("Published object must transfer through its world");
+    sealed_ = true;
+    for (const auto &entry : components_)
+        entry.second->logicThread_ = std::thread::id{};
 }
-
-GameObject::~GameObject() {
-
+void GameObject::bindScene(const std::shared_ptr<RenderScene> &scene, const RenderScene *previous) {
+    auto old = scene_.lock();
+    if (old && old != scene && old.get() != previous)
+        throw std::logic_error("Object already published in another world");
+    if (logicThread_ != std::this_thread::get_id() && !sealed_)
+        throw std::logic_error("Foreign object must be sealed before ownership handoff");
+    logicThread_ = std::this_thread::get_id();
+    sealed_ = false;
+    scene_ = scene;
+    for (const auto &entry : components_)
+        entry.second->logicThread_ = logicThread_;
 }
-
-//std::shared_ptr<Component> GameObject::addComponent(std::string component_type_name) {
-//	//rttr::type t = rttr::type::get_by_name(component_type_name);
-//	//rttr::variant var = t.create();    // ´´½¨ÊµÀý
-//
-//	//std::shared_ptr<Component> component = var.get_value<std::shared_ptr<Component>>();
-//	// TODO: improve  this part with reflection system
-//	std::shared_ptr<Component> component;
-//	if (component_type_name == "Transform") {
-//		component = std::make_shared<Transform>();
-//	}
-//	else if (component_type_name == "MeshFilter") {
-//		component = std::make_shared<MeshFilter>();
-//	}
-//	else if (component_type_name == "MeshRenderer") {
-//		component = std::make_shared<MeshRenderer>(); 
-//	}
-//    if(!component)throw std::invalid_argument("Cannot attach null component");
-//    if(auto owner=component->gameObject.lock();owner && owner.get()!=this)throw std::invalid_argument("Component already belongs to another object");
-//
-//	if (component_type_instance_map.find(component_type_name) == component_type_instance_map.end()) {
-//		std::vector<std::shared_ptr<Component>> component_vec;
-//		component_vec.push_back(component);
-//		component_type_instance_map[component_type_name] = component_vec;
-//	}
-//	else {
-//		component_type_instance_map[component_type_name].push_back(component);
-//	}
-//	return component;
-//}
-
-//std::shared_ptr<Component>& GameObject::GetComponents(std::string component_type_name) {
-	//return component_type_instance_map[component_type_name];
-//}
-
-std::shared_ptr<Component> GameObject::GetComponent(std::string component_type_name) {
-	if (component_type_instance_map.find(component_type_name) == component_type_instance_map.end()) {
-		return nullptr;
-	}
-	return component_type_instance_map[component_type_name];
+void GameObject::unbindScene(const RenderScene *scene) {
+    if (scene_.lock().get() == scene)
+        scene_.reset();
 }
-
-void GameObject::loadFromJson(json& data) {
-	std::string name_ = data["name"].get<std::string>();
-	this->name = name_;
-	if (data.find("components") != data.end()) {
-		json components = data["components"];
-		for (auto iter = components.begin(); iter != components.end(); ++iter) {
-			auto comp = Meta::generateComponent(iter.key());
-			comp->loadFromJson(iter.value());
-
-			this->addComponent(comp);
-		}
-	}
-	else {
-		//error
-	}
-	if (data.find("isDeferred") != data.end()) {
-		auto _isDeferred = data["isDeferred"].get<bool>();
-		this->setDeferred(_isDeferred);
-	}
-	else {
-		// no error
-	}
+void GameObject::componentsChanged() {
+    ++componentRevision_;
+    if (auto scene = scene_.lock())
+        scene->objectComponentsChanged(assetId);
 }
-
-std::shared_ptr<GameObject> GameObject::addComponent(const std::shared_ptr<Component>& component)
-{
-    if(!component)throw std::invalid_argument("Cannot attach null component");
-    if(auto owner=component->gameObject.lock();owner && owner.get()!=this)throw std::invalid_argument("Component already belongs to another object");
-	std::string component_type_name = component->name;
-	if (component_type_instance_map.find(component_type_name) == component_type_instance_map.end()) {
-		//std::vector<std::shared_ptr<Component>> component_vec;
-		//component_vec.push_back(component);
-        component->setGameObject(shared_from_this());
-		component_type_instance_map[component_type_name] = component;
-	}
-	else {
-		//component_type_instance_map[component_type_name] = component;
-		std::cout << "Component: " << component_type_name << " has already existed\n";
-	}
-	return shared_from_this();
+std::shared_ptr<Component> GameObject::GetComponent(std::string name) const {
+    checkLogicThread();
+    auto found = components_.find(name);
+    return found == components_.end() ? nullptr : found->second;
 }
-
-bool GameObject::isDeferred()const {
-	return this->m_isDeferred;
+std::shared_ptr<GameObject> GameObject::addComponent(const std::shared_ptr<Component> &component) {
+    checkLogicThread();
+    if (!component)
+        throw std::invalid_argument("Cannot attach null or unnamed component");
+    component->checkLogicThread();
+    if (component->typeName().empty())
+        throw std::invalid_argument("Cannot attach null or unnamed component");
+    if (auto owner = component->owner_.lock(); owner && owner.get() != this)
+        throw std::invalid_argument("Component already belongs to another object");
+    const auto type = std::type_index(typeid(*component));
+    auto named = components_.find(component->typeName());
+    if (named != components_.end()) {
+        if (typeid(*named->second) != typeid(*component))
+            throw std::logic_error("Component name registered to another type");
+        return shared_from_this();
+    }
+    if (types_.count(type))
+        throw std::logic_error("Component type registered under another name");
+    auto self = shared_from_this();
+    auto inserted = components_.emplace(component->typeName(), component);
+    try {
+        types_.emplace(type, component);
+    } catch (...) {
+        components_.erase(inserted.first);
+        throw;
+    }
+    component->owner_ = self;
+    component->logicThread_ = logicThread_;
+    componentsChanged();
+    return self;
 }
-
-void GameObject::setDeferred(bool _isDeferred) {
-	this->m_isDeferred = _isDeferred;
+bool GameObject::removeComponent(uint64_t id) {
+    checkLogicThread();
+    for (auto it = components_.begin(); it != components_.end(); ++it)
+        if (it->second->assetId == id) {
+            auto component = it->second;
+            types_.erase(std::type_index(typeid(*component)));
+            components_.erase(it);
+            component->owner_.reset();
+            componentsChanged();
+            return true;
+        }
+    return false;
+}
+void GameObject::loadFromJson(json &data) {
+    checkLogicThread();
+    name = data.at("name").get<std::string>();
+    if (data.contains("components"))
+        for (auto &entry : data.at("components").items()) {
+            auto component = Meta::generateComponent(entry.key());
+            component->loadFromJson(entry.value());
+            addComponent(component);
+        }
+    if (data.contains("isDeferred"))
+        setDeferred(data.at("isDeferred").get<bool>());
+}
+bool GameObject::isDeferred() const {
+    checkLogicThread();
+    return deferred_;
+}
+void GameObject::setDeferred(bool value) {
+    checkLogicThread();
+    if (deferred_ != value) {
+        deferred_ = value;
+        componentsChanged();
+    }
 }

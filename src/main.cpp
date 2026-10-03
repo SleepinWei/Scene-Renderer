@@ -74,6 +74,7 @@ std::array<int,2> scriptedResize{};
 bool startForward=false;
 bool singleThreadedNative=false;
 int maxFramesInFlight=3;
+size_t gpuResourceBudget=0;
 bool hiddenEditor=false;
 std::array<int,2> windowSize{1600,900};
 
@@ -85,7 +86,7 @@ void NativeRealTimeRun(GLFWwindow* window,shared_ptr<RenderScene>& scene){
     int framesSubmitted=0;
     try{
         while(!glfwWindowShouldClose(window)){
-            runtime.rethrowFailure();glfwPollEvents();
+            runtime.rethrowFailure();glfwPollEvents();scene->applyCommands();
             if(framesSubmitted==4 && scriptedResize[0]>0){glfwSetWindowSize(window,scriptedResize[0],scriptedResize[1]);scriptedResize={};glfwPollEvents();}
             int width,height;glfwGetFramebufferSize(window,&width,&height);
             runtime.notifySurfaceExtent(uint32_t(std::max(0,width)),uint32_t(std::max(0,height)));
@@ -128,6 +129,7 @@ void RealTimeRun(GLFWwindow* window, shared_ptr<RenderScene>& scene) {
 	int framesRendered=0;const auto started=std::chrono::steady_clock::now();
 	while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
+        scene->applyCommands();
         if(framesRendered==4 && scriptedResize[0]>0){glfwSetWindowSize(window,scriptedResize[0],scriptedResize[1]);scriptedResize={};glfwPollEvents();}
         int width,height;glfwGetFramebufferSize(window,&width,&height);if(width<=0 || height<=0){glfwWaitEventsTimeout(.05);continue;}
         framebuffer_size_callback(window,width,height);
@@ -225,6 +227,7 @@ int main(int argc, char** argv) {
         else if(argument=="--backend" && i+1<argc){std::string name=argv[++i];if(name=="Vulkan")rhi::requestBackend(rhi::Backend::Vulkan);else if(name=="Metal")rhi::requestBackend(rhi::Backend::Metal);else if(name=="OpenGL")rhi::requestBackend(rhi::Backend::OpenGL);else throw std::invalid_argument("Unknown backend");}
         else if(argument=="--classic"&&i+1<argc)classicScene=argv[++i];
         else if(argument=="--hidden")hiddenEditor=true;
+        else if(argument=="--gpu-resource-budget-mib" && i+1<argc){const std::string text=argv[++i];if(text.empty() || text[0]=='-')throw std::invalid_argument("Resource budget expects nonnegative MiB");size_t consumed=0;auto value=std::stoull(text,&consumed);if(consumed!=text.size() || value>SIZE_MAX/(1024*1024))throw std::invalid_argument("Resource budget exceeds supported byte range");gpuResourceBudget=size_t(value)*1024*1024;}
         else if(argument=="--frames-in-flight" && i+1<argc)maxFramesInFlight=std::stoi(argv[++i]);
         else if(argument=="--size" && i+1<argc){const std::string size=argv[++i];auto x=size.find('x');if(x==std::string::npos)throw std::invalid_argument("Size expects WIDTHxHEIGHT");windowSize={std::stoi(size.substr(0,x)),std::stoi(size.substr(x+1))};if(windowSize[0]<=0 || windowSize[1]<=0)throw std::invalid_argument("Window dimensions must be positive");}
         else if(argument=="--forward")startForward=true;
@@ -262,6 +265,8 @@ int main(int argc, char** argv) {
 	//glad
 	if (gladInit() != 0) return 1;
     rhi::device()->setMaxFramesInFlight(maxFramesInFlight);
+    if(gpuResourceBudget && !rhi::usesNativeRenderer())throw std::invalid_argument("Resource budget applies to the native RHI editor, not the legacy GL renderer");
+    rhi::device()->setResourceBudget(gpuResourceBudget);
 	if(!rhi::usesNativeRenderer()){glEnable(GL_DEPTH_TEST);
 	//glDepthMask(GL_FALSE);
 	glEnable(GL_CULL_FACE);

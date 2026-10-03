@@ -180,6 +180,7 @@ MeshFilter::~MeshFilter() {
 }
 
 void MeshFilter::addShape(SHAPE shape) {
+    checkLogicThread();
 	std::shared_ptr<Mesh> mesh;
 	switch (shape)
 	{
@@ -198,10 +199,13 @@ void MeshFilter::addShape(SHAPE shape) {
 	default:
 		break;
 	}
+    if(!mesh)throw std::invalid_argument("Unsupported mesh shape");
 	meshes.push_back(mesh);
+    invalidate();
 }
 
 void MeshFilter::addShape(std::string type) {
+    checkLogicThread();
 	std::shared_ptr<Mesh> mesh;
 	if (type == "sphere") {
 		mesh = Mesh::initSphere(64);
@@ -215,20 +219,29 @@ void MeshFilter::addShape(std::string type) {
 	else if (type == "point") {
 		mesh = Mesh::initPoint();
 	}
+    if(!mesh)throw std::invalid_argument("Unsupported mesh shape");
 	meshes.push_back(mesh);
+    invalidate();
 }
 
 void MeshFilter::addMesh(std::shared_ptr<Mesh> mesh_) {
+    checkLogicThread();
+    if(!mesh_)throw std::invalid_argument("Cannot add null mesh");
 	meshes.push_back(mesh_);
+    invalidate();
 }
 
 void MeshFilter::setMesh(const vector<shared_ptr<Mesh>> &meshes)
 {
+    checkLogicThread();
+    for(const auto& mesh:meshes)if(!mesh)throw std::invalid_argument("Cannot assign null mesh");
 	this->meshes = meshes;
+    invalidate();
 }
 // AssimpLoader 导入时，必须手动规定 material 值，而 gltf 导入则不用
 // 因此引入一个 candidate，如果有 mesh 没有 material 值，则放入.
 void MeshFilter::loadFromJson(json& data) {
+    checkLogicThread();
 	std::shared_ptr<Material> candidate_mat = std::make_shared<Material>();
 	for (auto iter = data.begin(); iter != data.end(); ++iter) {
 		// mesh name : mesh path

@@ -1,6 +1,8 @@
 #include "rhi/Device.h"
 #include <atomic>
 #include <stdexcept>
+#include <limits>
+#include <algorithm>
 
 namespace rhi {
 namespace {
@@ -29,7 +31,27 @@ void Device::requireOpen() const {
     if (!open_) throw std::logic_error("RHI: device is closed");
 }
 void Device::checkThread() const {if(ownerThread_!=std::this_thread::get_id())throw std::logic_error("RHI accessed outside its owning render thread");}
-size_t Device::allocatedBufferBytes() const {checkThread();size_t bytes=0;for(const auto& entry:buffers_)bytes+=entry.second.desc.size;return bytes;}
+size_t Device::allocatedBufferBytes() const {checkThread();return memory_.bufferBytes;}
+ResourceMemoryStats Device::resourceMemory() const {checkThread();return memory_;}
+void Device::setResourceBudget(size_t bytes) {
+    requireOpen();
+    if(bytes && bytes<memory_.usedBytes())throw std::invalid_argument("RHI: resource budget below current allocation");
+    memory_.budgetBytes=bytes;
+}
+void Device::checkResourceAllocation(size_t bytes,const std::string& label) const {
+    requireOpen();
+    const size_t limit=memory_.budgetBytes?memory_.budgetBytes:std::numeric_limits<size_t>::max();
+    if(bytes>limit-memory_.usedBytes())
+        throw ResourceBudgetExceeded("RHI resource budget exceeded for '"+label+"': requested "+std::to_string(bytes)+
+            " bytes; available "+std::to_string(limit-memory_.usedBytes())+" tracked bytes");
+}
+void Device::accountResourceAllocation(size_t bytes,bool texture) noexcept {
+    (texture?memory_.textureBytes:memory_.bufferBytes)+=bytes;
+    memory_.peakBytes=std::max(memory_.peakBytes,memory_.usedBytes());
+}
+void Device::accountResourceRelease(size_t bytes,bool texture) noexcept {
+    (texture?memory_.textureBytes:memory_.bufferBytes)-=bytes;
+}
 const Device::Record& Device::buffer(BufferHandle handle) const {
     requireOpen();
     auto found = buffers_.find(handle.value);
@@ -44,11 +66,12 @@ BufferHandle Device::createBuffer(const BufferDesc& desc, const void* initialDat
         throw std::invalid_argument("RHI: invalid buffer descriptor");
     if (hasUsage(desc.usage, BufferUsage::Uniform) && desc.size > limits_.maxUniformBufferSize)
         throw std::invalid_argument("RHI: uniform buffer exceeds device limit");
+    checkResourceAllocation(desc.size,desc.label);
     const auto native = createBufferImpl(desc, initialData);
     const BufferHandle handle{nextHandle.fetch_add(1)};
     try { buffers_.emplace(handle.value, Record{desc, native}); }
     catch (...) { destroyBufferImpl(native); throw; }
-    return handle;
+    accountResourceAllocation(desc.size,false);return handle;
 }
 void Device::destroyBuffer(BufferHandle handle) noexcept {
     try{checkThread();}catch(...){return;}
@@ -56,6 +79,7 @@ void Device::destroyBuffer(BufferHandle handle) noexcept {
     if (found == buffers_.end()) return;
     try{waitForResourceRelease();}catch(...){return;}
     destroyBufferImpl(found->second.native);
+    accountResourceRelease(found->second.desc.size,false);
     buffers_.erase(found);
 }
 void Device::writeBuffer(BufferHandle handle, size_t offset, size_t size, const void* data) {

@@ -75,6 +75,7 @@ SceneLoadRequest Loader::buildScene(const std::string &filename) {
                             auto object = std::make_shared<GameObject>();
                             object->loadFromJson(json);
                             checkCancelled(cancelled);
+                            object->sealForTransfer();
                             completed->fetch_add(1);
                             return object;
                         }));
@@ -89,6 +90,7 @@ SceneLoadRequest Loader::buildScene(const std::string &filename) {
                         auto object = std::make_shared<Sky>();
                         object->loadFromJson(json);
                         checkCancelled(cancelled);
+                        object->sealForTransfer();
                         completed->fetch_add(1);
                         return object;
                     });
@@ -102,6 +104,7 @@ SceneLoadRequest Loader::buildScene(const std::string &filename) {
                         auto object = std::make_shared<Terrain>();
                         object->loadFromJson(json);
                         checkCancelled(cancelled);
+                        object->sealForTransfer();
                         completed->fetch_add(1);
                         return object;
                     });
@@ -143,6 +146,7 @@ SceneLoadRequest Loader::buildScene(const std::string &filename) {
                 staging->setCamera({});
             }
             checkCancelled(cancelled);
+            staging->sealForTransfer();
             return staging;
         });
     request.result = task->get_future();

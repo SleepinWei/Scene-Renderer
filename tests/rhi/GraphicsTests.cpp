@@ -16,16 +16,17 @@ public:
     TestDevice() : GraphicsDevice({4096, 1024, 256, 16}, {128, 16, 2, 8}) {}
     rhi::Backend backend() const override { return rhi::Backend::OpenGL; }
     bool supportsTexture(rhi::Format f, rhi::TextureUsage u) const override {
-        return (f == rhi::Format::RGBA8UNorm && !rhi::hasUsage(u, rhi::TextureUsage::DepthAttachment) && uint32_t(u) && !(uint32_t(u) & ~31u)) ||
+        return ((f == rhi::Format::RGBA8UNorm || f==rhi::Format::RGBA16Float || f==rhi::Format::RGBA32Float) && !rhi::hasUsage(u, rhi::TextureUsage::DepthAttachment) && uint32_t(u) && !(uint32_t(u) & ~31u)) ||
             (f == rhi::Format::Depth32Float && u == rhi::TextureUsage::DepthAttachment);
     }
     unsigned submissions = 0;
+    bool failTexture=false;unsigned textureAttempts=0;
     std::vector<rhi::RecordedPass> recorded;
     rhi::ComputeLimits computeLimits() const override { return {true,{128,128,128},{32,32,32},256,16,4096}; }
     size_t allocations() const { return buffers.size() + graphics.size(); }
 protected:
     NativeObject allocate() { const auto id = next++;graphics.insert(id);return id; }
-    NativeObject createTextureImpl(const rhi::TextureDesc&) override { return allocate(); }
+    NativeObject createTextureImpl(const rhi::TextureDesc&) override {++textureAttempts;if(failTexture)throw std::runtime_error("native texture failure");return allocate(); }
     NativeObject createTextureViewImpl(NativeObject, const rhi::TextureDesc&) override { return allocate(); }
     NativeObject createSamplerImpl(const rhi::SamplerDesc&) override { return allocate(); }
     NativeObject createComputePipelineImpl(const rhi::ComputePipelineDesc&) override { return allocate(); }
@@ -58,6 +59,30 @@ private:
 int main() {
     using namespace rhi;
     try {
+        {
+            TestDevice budget;budget.setResourceBudget(128);
+            auto b=budget.createBuffer({64,BufferUsage::Vertex,"mixed buffer"});
+            auto t=budget.createTexture({2,2,Format::RGBA16Float,TextureUsage::Sampled,"half float"});
+            auto f=budget.createTexture({1,1,Format::RGBA32Float,TextureUsage::Sampled,"float"});
+            auto z=budget.createTexture({1,1,Format::Depth32Float,TextureUsage::DepthAttachment,"depth"});
+            auto usage=budget.resourceMemory();
+            check(usage.bufferBytes==64 && usage.textureBytes==52 && usage.usedBytes()==116,
+                  "Mixed-format texture and buffer budget counted wrong bytes");
+            const auto attempts=budget.textureAttempts;
+            bool rejected=false;try{budget.createTexture({2,2,Format::RGBA8UNorm,TextureUsage::Sampled,"over quota"});}
+            catch(const ResourceBudgetExceeded&){rejected=true;}
+            check(rejected && budget.textureAttempts==attempts && budget.resourceMemory().usedBytes()==116,
+                  "Texture allocation bypassed shared device quota");
+            budget.failTexture=true;rejected=false;
+            try{budget.createTexture({1,1,Format::RGBA8UNorm,TextureUsage::Sampled,"native failure"});}
+            catch(const std::runtime_error&){rejected=true;}
+            check(rejected && budget.resourceMemory().usedBytes()==116 && budget.resourceMemory().peakBytes==116,
+                  "Native texture failure polluted quota");
+            budget.failTexture=false;budget.destroyTexture(t);budget.destroyTexture(t);
+            check(budget.resourceMemory().textureBytes==20,"Texture double destruction released quota twice");
+            budget.destroyBuffer(b);budget.destroyTexture(f);budget.destroyTexture(z);budget.close();
+            check(budget.resourceMemory().usedBytes()==0,"Graphics close retained allocation bytes");
+        }
         auto d = std::make_shared<TestDevice>(), foreign = std::make_shared<TestDevice>();
         const auto usage = TextureUsage::ColorAttachment | TextureUsage::Sampled | TextureUsage::CopySource;
         auto target = d->createTexture({32, 32, Format::RGBA8UNorm, usage});auto view = d->createTextureView({target});

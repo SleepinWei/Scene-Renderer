@@ -1,26 +1,33 @@
 #pragma once
 #include "engine/AssetIdentity.h"
-#include<glm/glm.hpp>
-#include<memory>
-#include<string>
-#include<stdexcept>
-#include<json/json.hpp>
-
+#include <glm/glm.hpp>
+#include <memory>
+#include <string>
+#include <stdexcept>
+#include <thread>
+#include <json/json.hpp>
 using json = nlohmann::json;
-
-class GameObject; 
-
+class GameObject;
 class Component : public engine::AssetIdentity {
-public:
-	Component() =default;
-	virtual ~Component() {};
-	void setGameObject(std::shared_ptr<GameObject> object) {
-		gameObject = object;
-	}
-    std::shared_ptr<GameObject> owner()const{auto object=gameObject.lock();if(!object)throw std::logic_error("Component owner expired or not assigned");return object;}
-	virtual void loadFromJson(json& data) {};
-public:
-	std::weak_ptr<GameObject> gameObject;
-	std::string name; 
-};
+  public:
+    Component() = default;
+    Component(const Component &) = delete;
+    Component &operator=(const Component &) = delete;
+    virtual ~Component() = default;
+    std::shared_ptr<GameObject> owner() const;
+    bool hasOwner() const;
+    void checkLogicThread() const;
+    void invalidate() {
+        checkLogicThread();
+        engine::AssetIdentity::invalidate();
+    }
+    const std::string &typeName() const { return name; }
+    virtual void loadFromJson(json &data) {};
 
+  protected:
+    std::string name; // Reflection name established by concrete constructors.
+  private:
+    friend class GameObject;
+    std::weak_ptr<GameObject> owner_;
+    std::thread::id logicThread_ = std::this_thread::get_id();
+};

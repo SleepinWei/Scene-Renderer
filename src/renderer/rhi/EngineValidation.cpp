@@ -136,6 +136,19 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
         auto object = std::make_shared<GameObject>("structural light");
         object->addComponent(std::make_shared<DirectionLight>());
         scene->addObject(object);
+        struct SpoofLight final : Component {
+            SpoofLight() { name = "DirectionLight"; }
+        };
+        auto spoof = std::make_shared<SpoofLight>();
+        bool collision = false;
+        try {
+            object->addComponent(spoof);
+        } catch (const std::logic_error &) {
+            collision = true;
+        }
+        check(collision && !spoof->hasOwner() &&
+                  object->getComponent<Light>() == object->getComponent<DirectionLight>(),
+              "Component reflection name collision corrupted typed lookup or base query");
         const auto revision = scene->revision();
         scene->addObject(object);
         check(scene->objects().size() == 1 && scene->directionLights().size() == 1 &&
@@ -165,9 +178,134 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
         scene->clearObjects();
         check(scene->objects().empty() && scene->directionLights().empty(), "Clear retained ghost lights");
         scene->addObject(object);
-        object->component_type_instance_map.erase("DirectionLight");
-        check(scene->refreshObject(object->assetId) && scene->directionLights().empty(),
-              "Component refresh retained a removed light");
+        object->removeComponent<DirectionLight>();
+        check(scene->directionLights().empty(), "Component removal did not update the live light index");
+        auto light = object->addComponent<DirectionLight>();
+        check(scene->directionLights().size() == 1 && scene->directionLights()[0] == light,
+              "Live component insertion did not update the light index");
+        object->removeComponent<DirectionLight>();
+        check(!light->hasOwner() && !object->getComponent<DirectionLight>(),
+              "Removed component retained owner or typed index");
+        bool rebound = false;
+        auto another = std::make_shared<RenderScene>();
+        try {
+            another->addObject(object);
+        } catch (const std::logic_error &) {
+            rebound = true;
+        }
+        check(rebound && another->objects().empty(), "Published object was attached to two worlds");
+    }
+    {
+        auto scene = std::make_shared<RenderScene>();
+        auto decoded = std::async(std::launch::async, [] {
+                           auto object = std::make_shared<GameObject>("detached worker");
+                           auto transform = object->addComponent<Transform>();
+                           object->sealForTransfer();
+                           bool frozen = false;
+                           try {
+                               transform->setTRS({9, 9, 9}, {0, 0, 0}, {1, 1, 1});
+                           } catch (const std::logic_error &) {
+                               frozen = true;
+                           }
+                           if (!frozen)
+                               throw std::runtime_error("Producer wrote a sealed object");
+                           return object;
+                       }).get();
+        auto unsafe = std::async(std::launch::async, [] {
+                          return std::make_shared<GameObject>("unsealed worker");
+                      }).get();
+        bool refused = false;
+        try {
+            scene->addObject(unsafe);
+        } catch (const std::logic_error &) {
+            refused = true;
+        }
+        check(refused && scene->objects().empty(), "Unsealed foreign object bypassed ownership transfer");
+        auto foreignComponent =
+            std::async(std::launch::async, [] { return std::make_shared<Transform>(); }).get();
+        auto localObject = std::make_shared<GameObject>("local object");
+        refused = false;
+        try {
+            localObject->addComponent(foreignComponent);
+        } catch (const std::logic_error &) {
+            refused = true;
+        }
+        check(refused && !localObject->getComponent<Transform>(),
+              "Foreign component bypassed the sealed-object transfer boundary");
+        scene->addObject(decoded);
+        auto transform = decoded->getComponent<Transform>();
+        transform->setTRS({1, 2, 3}, {0, 0, 0}, {1, 1, 1});
+        const auto original = transform->position;
+        auto port = scene->commandPort();
+        auto request =
+            std::async(std::launch::async, [port, id = decoded->assetId, component = transform->assetId] {
+                return port.post(engine::SetTransform{id, component, {4, 5, 6}, {0, 10, 0}, {2, 2, 2}});
+            }).get();
+        check(transform->position == original, "Background post mutated world before main-thread drain");
+        check(scene->applyCommands(1) == 1 && request.result.get().status == engine::CommandStatus::Applied &&
+                  transform->position == glm::vec3(4, 5, 6),
+              "Value command failed to update main-thread transform");
+        auto foreign = std::async(std::launch::async, [decoded, transform] {
+            bool query = false, write = false, owner = false;
+            try {
+                decoded->getComponent<Transform>();
+            } catch (const std::logic_error &) {
+                query = true;
+            }
+            try {
+                transform->setTRS({9, 9, 9}, {0, 0, 0}, {1, 1, 1});
+            } catch (const std::logic_error &) {
+                write = true;
+            }
+            try {
+                transform->owner();
+            } catch (const std::logic_error &) {
+                owner = true;
+            }
+            return query && write && owner;
+        });
+        check(foreign.get(), "Former worker retained access after object ownership handoff");
+        auto invalid = port.post(
+            engine::SetTransform{decoded->assetId, transform->assetId, {0, 0, 0}, {0, 0, 0}, {0, 1, 1}});
+        auto cancelled = port.post(engine::SetDeferred{decoded->assetId, false});
+        cancelled.cancel();
+        scene->applyCommands();
+        check(invalid.result.get().status == engine::CommandStatus::Invalid &&
+                  transform->position == glm::vec3(4, 5, 6) &&
+                  cancelled.result.get().status == engine::CommandStatus::Cancelled && decoded->isDeferred(),
+              "Invalid or cancelled command partially modified an object");
+        auto removed = port.post(engine::RemoveComponent{decoded->assetId, transform->assetId});
+        scene->applyCommands();
+        check(removed.result.get().status == engine::CommandStatus::Applied && !transform->hasOwner(),
+              "Queued component removal retained an owner");
+        auto next = decoded->addComponent<Transform>();
+        auto staleComponent = port.post(
+            engine::SetTransform{decoded->assetId, transform->assetId, {7, 8, 9}, {0, 0, 0}, {1, 1, 1}});
+        scene->applyCommands();
+        check(staleComponent.result.get().status == engine::CommandStatus::MissingTarget &&
+                  next->position == glm::vec3(0),
+              "Old component ID modified a replacement component");
+        auto pending = port.post(engine::SetDeferred{decoded->assetId, false});
+        auto staging = std::make_shared<RenderScene>();
+        auto replacement = std::make_shared<GameObject>("new world");
+        staging->addObject(replacement);
+        scene->replaceWith(*staging);
+        check(pending.result.get().status == engine::CommandStatus::StaleWorld &&
+                  port.post(engine::SetDeferred{replacement->assetId, false}).result.get().status ==
+                      engine::CommandStatus::StaleWorld,
+              "World replacement accepted pending or late old-generation commands");
+        auto livePort = scene->commandPort();
+        auto applied = livePort.post(engine::SetDeferred{replacement->assetId, false});
+        scene->applyCommands();
+        check(applied.result.get().status == engine::CommandStatus::Applied && !replacement->isDeferred() &&
+                  scene->findObject(replacement->assetId) == replacement,
+              "New world port or entity lookup lost its target");
+        auto closing = livePort.post(engine::RemoveObject{replacement->assetId});
+        scene.reset();
+        check(closing.result.get().status == engine::CommandStatus::Closed &&
+                  livePort.post(engine::RemoveObject{replacement->assetId}).result.get().status ==
+                      engine::CommandStatus::Closed,
+              "World destruction left command futures unresolved");
     }
     {
         Material material;
@@ -182,10 +320,10 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
               "Object name or component owner lost");
         auto duplicate = std::make_shared<TerrainComponent>();
         object->addComponent(duplicate);
-        check(duplicate->gameObject.expired(), "Rejected duplicate component retained an owner");
+        check(!duplicate->hasOwner(), "Rejected duplicate component retained an owner");
         std::weak_ptr<GameObject> weakObject = object;
         object.reset();
-        check(weakObject.expired() && terrain->gameObject.expired(),
+        check(weakObject.expired() && !terrain->hasOwner(),
               "Component / object ownership cycle leaked scene");
         bool rejected = false;
         try {
@@ -235,6 +373,11 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
             terrain << "{";
             std::ofstream worker(base / "worker.json");
             worker << "{\"terrain\":\"" << (base / "terrain.json").string() << "\"}";
+            std::ofstream object(base / "object.json");
+            object
+                << R"({"name":"worker object","components":{"Transform":{"position":[0,0,0],"rotation":[0,0,0],"scale":[1,1,1]}}})";
+            std::ofstream valid(base / "valid.json");
+            valid << "{\"objects\":{\"one\":\"" << (base / "object.json").string() << "\"}}";
         }
         auto loader = Loader::GetInstance();
         loader->loadSceneAsync(scene, (base / "empty.json").string());
@@ -282,6 +425,14 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
             scene->replaceWith(*built);
             check(scene->objects().empty() && scene->mainCamera() == camera && scene->revision() > revision,
                   "Successful commit lost camera or failed to replace world");
+            auto populated = loader->buildScene((base / "valid.json").string());
+            auto builtObject = populated.result.get();
+            scene->replaceWith(*builtObject);
+            auto object = scene->objects().at(0);
+            auto transform = object->getComponent<Transform>();
+            transform->setTRS({1, 2, 3}, {0, 0, 0}, {1, 1, 1});
+            check(transform->owner() == object && scene->findObject(object->assetId) == object,
+                  "Decoder/coordinator/main ownership handoff lost component or entity index");
         }
         loader->loadSceneAsync(scene, (base / "empty.json").string());
         loader->waitIdle();
@@ -475,7 +626,7 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
         auto withGrass = adapter.collect(scene, 0);
         check(withGrass.packets.size() == 2, "Adding grass did not rebuild terrain cache");
         withGrass.packets.clear();
-        object->component_type_instance_map.erase("Grass");
+        object->removeComponent<Grass>();
         check(adapter.collect(scene, 0).packets.size() == 1, "Removing grass did not rebuild terrain cache");
         scene->destroy();
     }

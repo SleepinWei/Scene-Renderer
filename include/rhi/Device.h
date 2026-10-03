@@ -9,6 +9,7 @@
 #include <vector>
 #include <functional>
 #include <thread>
+#include <stdexcept>
 
 struct GLFWwindow;
 
@@ -43,6 +44,14 @@ struct BufferLimits {
 };
 
 struct CompletionToken {uint64_t device=0,serial=0;explicit operator bool()const{return serial!=0;}};
+struct ResourceMemoryStats {
+    size_t bufferBytes=0,textureBytes=0,peakBytes=0,budgetBytes=0;
+    size_t usedBytes() const {return bufferBytes+textureBytes;}
+};
+class ResourceBudgetExceeded:public std::runtime_error {
+public:
+    explicit ResourceBudgetExceeded(const std::string& message):std::runtime_error(message){}
+};
 class Device {
 public:
     virtual ~Device() = default;
@@ -73,8 +82,13 @@ public:
     void adoptCurrentThread() { ownerThread_=std::this_thread::get_id(); }
     void checkThread() const;
     size_t allocatedBufferBytes() const;
+    void setResourceBudget(size_t bytes); // 0 is unlimited; tracked buffer/texture payloads only.
+    ResourceMemoryStats resourceMemory() const;
 
 protected:
+    void checkResourceAllocation(size_t bytes,const std::string& label) const;
+    void accountResourceAllocation(size_t bytes,bool texture) noexcept;
+    void accountResourceRelease(size_t bytes,bool texture) noexcept;
     explicit Device(BufferLimits limits);
     using NativeBuffer = uint64_t;
     virtual NativeBuffer createBufferImpl(const BufferDesc&, const void*) = 0;
@@ -109,6 +123,7 @@ private:
     bool open_ = true;
     std::thread::id ownerThread_=std::this_thread::get_id();
     std::unordered_map<uint64_t, Record> buffers_;
+    ResourceMemoryStats memory_;
 };
 
 // Installed by the native backend after its device/context is ready.

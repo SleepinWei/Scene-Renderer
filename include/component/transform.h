@@ -14,6 +14,7 @@ class Transform : public Component {
 public:
 	Transform();
 	~Transform();
+    void setTRS(const glm::vec3& position,const glm::vec3& rotation,const glm::vec3& scale);
 
 	virtual void loadFromJson(json& data);
 	using Components = std::unordered_map<std::string, YAML::Node>;

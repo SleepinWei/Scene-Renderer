@@ -4,6 +4,7 @@
 #include <glm/gtx/transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/euler_angles.hpp>
+#include <cmath>
 
 Transform::Transform() :position(0.f), rotation(0.f), scale(1.0f) {
 	Component::name = "Transform";
@@ -11,6 +12,13 @@ Transform::Transform() :position(0.f), rotation(0.f), scale(1.0f) {
 }
 Transform::~Transform() {
 
+}
+
+void Transform::setTRS(const glm::vec3& p,const glm::vec3& r,const glm::vec3& s) {
+    checkLogicThread();
+    for(int i=0;i<3;++i)if(!std::isfinite(p[i]) || !std::isfinite(r[i]) || !std::isfinite(s[i]) || std::abs(s[i])<1e-6f)
+        throw std::invalid_argument("Transform needs finite TRS and nonzero scale");
+    position=p;rotation=r;scale=s;invalidate();
 }
 
 void Transform::loadFromJson(json& data) {
@@ -29,9 +37,7 @@ void Transform::loadFromJson(json& data) {
 		data["scale"][1].get<float>(),
 		data["scale"][2].get<float>()
 	);
-	this->position = position_;
-	this->rotation = rotation_;
-	this->scale = scale_;
+    setTRS(position_,rotation_,scale_);
 }
 // 构造一个游戏对象的世界坐标Transform
 std::shared_ptr<Transform> Transform::GetWorldTransform(Components& comps, std::string id)

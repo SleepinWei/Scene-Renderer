@@ -48,7 +48,7 @@ public:
 	float* heightData=nullptr;
     std::string heightSourcePath,heightVirtualTexture,materialVirtualTexture;uint32_t heightWidth=0,heightHeight=0;
     uint32_t maxLeaves=2048;uint64_t sourceRevision=0;
-    void invalidateHeight(){++sourceRevision;}
+    void invalidateHeight(){checkLogicThread();++sourceRevision;}
 
 	std::shared_ptr<Shader> shader;
 	std::shared_ptr<Shader> terrainGBuffer; 

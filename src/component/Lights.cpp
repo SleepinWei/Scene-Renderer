@@ -13,6 +13,7 @@ Light::~Light() {
 }
 
 void Light::setDirtyFlag(bool dirty) {
+    checkLogicThread();
 	this->dirty = dirty;
 }
 
@@ -81,11 +82,13 @@ PointLight::~PointLight() {
 }
 
 std::shared_ptr<PointLight> PointLight::setCastShadow(bool castShadow_) {
+    checkLogicThread();
 	this->castShadow = castShadow_;
 	return std::dynamic_pointer_cast<PointLight>(shared_from_this());
 }
 
 void PointLight::loadFromJson(json& json_data) {
+    checkLogicThread();
 	if (json_data.find("color") != json_data.end()) {
 		for (int i = 0; i < 3; i++) {
 			data.color[i] = json_data["color"][i].get<float>();
@@ -135,16 +138,19 @@ tuple<glm::mat4,glm::mat4> DirectionLight::getLightTransform() {
 }
 
 std::shared_ptr<DirectionLight> DirectionLight::setDirection(const glm::vec3& dir) {
+    checkLogicThread();
 	data.direction = dir; 
 	return std::dynamic_pointer_cast<DirectionLight>(shared_from_this());
 }
 
 std::shared_ptr<DirectionLight> DirectionLight::setCastShadow(bool castShadow_) {
+    checkLogicThread();
 	this->castShadow = castShadow_;
 	return std::dynamic_pointer_cast<DirectionLight>(shared_from_this());
 }
 
 void DirectionLight::loadFromJson(json& json_data) {
+    checkLogicThread();
 	if (json_data.find("color") != json_data.end()) {
 		for (int i = 0; i < 3; i++) {
 			data.color[i] = json_data["color"][i].get<float>();
@@ -202,6 +208,7 @@ tuple<glm::mat4, glm::mat4> SpotLight::getLightTransform() {
 }
 
 void SpotLight::loadFromJson(json& json_data) {
+    checkLogicThread();
 	if (json_data.find("color") != json_data.end()) {
 		for (int i = 0; i < 3; i++) {
 			data.color[i] = json_data["color"][i].get<float>();

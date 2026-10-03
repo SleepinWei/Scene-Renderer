@@ -2,9 +2,11 @@
 #include "engine/BoundedQueue.h"
 #include "engine/JobSystem.h"
 #include "engine/RenderGraph.h"
+#include "engine/CommandInbox.h"
 #include <atomic>
 #include <iostream>
 #include <stdexcept>
+#include <array>
 using namespace engine;
 static void check(bool value, const char *message) {
     if (!value)
@@ -89,6 +91,89 @@ int main() {
                 caught = true;
             }
             check(caught, "Nested same-pool wait did not reject deadlock");
+        }
+        {
+            auto inbox = std::make_shared<CommandInbox<int>>(2);
+            auto old = inbox->port();
+            auto first = old.post(1), second = old.post(2), full = old.post(3);
+            check(full.result.get().status == CommandStatus::QueueFull && inbox->pending() == 2,
+                  "Command inbox exceeded capacity or blocked its producer");
+            std::vector<int> applied;
+            auto execute = [&](int value) {
+                applied.push_back(value);
+                return CommandResult{};
+            };
+            check(inbox->drain(1, execute) == 1 && first.result.get().status == CommandStatus::Applied &&
+                      inbox->pending() == 1,
+                  "Command drain ignored its per-tick limit");
+            inbox->invalidate();
+            check(second.result.get().status == CommandStatus::StaleWorld &&
+                      old.post(4).result.get().status == CommandStatus::StaleWorld,
+                  "World replacement accepted pending or late work from an old port");
+            auto current = inbox->port();
+            auto cancelled = current.post(5);
+            cancelled.cancel();
+            inbox->drain(1, execute);
+            check(cancelled.result.get().status == CommandStatus::Cancelled && applied == std::vector<int>{1},
+                  "Cancelled command changed the world");
+            auto failure = current.post(6), after = current.post(7);
+            inbox->drain(2, [&](int value) {
+                if (value == 6)
+                    throw std::runtime_error("command failure");
+                return execute(value);
+            });
+            bool rejected = false;
+            try {
+                failure.result.get();
+            } catch (const std::runtime_error &) {
+                rejected = true;
+            }
+            check(rejected && after.result.get().status == CommandStatus::Applied && applied.back() == 7,
+                  "Command failure lost its result or stopped later work");
+            auto pending = current.post(8);
+            inbox->close();
+            check(pending.result.get().status == CommandStatus::Closed &&
+                      current.post(9).result.get().status == CommandStatus::Closed,
+                  "Close left command futures unresolved");
+            inbox.reset();
+            check(current.post(10).result.get().status == CommandStatus::Closed,
+                  "Expired port accessed destroyed world");
+        }
+        {
+            auto inbox = std::make_shared<CommandInbox<int>>(128);
+            auto port = inbox->port();
+            std::vector<std::future<std::vector<CommandTicket>>> producers;
+            for (int producer = 0; producer < 4; ++producer)
+                producers.push_back(std::async(std::launch::async, [port, producer] {
+                    std::vector<CommandTicket> tickets;
+                    for (int i = 0; i < 16; ++i)
+                        tickets.push_back(port.post(producer * 100 + i));
+                    return tickets;
+                }));
+            std::vector<std::vector<CommandTicket>> tickets;
+            for (auto &producer : producers)
+                tickets.push_back(producer.get());
+            std::array<int, 4> next{};
+            check(inbox->drain(128,
+                               [&](int value) {
+                                   check(value % 100 == next[value / 100]++,
+                                         "Command inbox reordered a producer's messages");
+                                   return CommandResult{};
+                               }) == 64,
+                  "Concurrent producers lost commands");
+            for (auto &group : tickets)
+                for (auto &ticket : group)
+                    check(ticket.result.get().status == CommandStatus::Applied,
+                          "Concurrent command lost result");
+            auto foreign = std::async(std::launch::async, [&] {
+                try {
+                    inbox->drain(1, [](int) { return CommandResult{}; });
+                } catch (const std::logic_error &) {
+                    return true;
+                }
+                return false;
+            });
+            check(foreign.get(), "Commands executed outside their logic thread");
         }
         {
             RenderGraph graph;
