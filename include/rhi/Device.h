@@ -29,10 +29,15 @@ struct BufferHandle {
     uint64_t value = 0;
     explicit operator bool() const { return value != 0; }
 };
+// Uninitialized requires CopyDestination and no initial data; the caller must
+// write every consumed byte before drawing, dispatching or reading it.
+enum class BufferInitialization { Zeroed, Uninitialized };
 struct BufferDesc {
     size_t size = 0;
     BufferUsage usage = BufferUsage::None;
     std::string label;
+    // Uninitialized requires CopyDestination and no initialData. Caller must fill before reading.
+    BufferInitialization initialization = BufferInitialization::Zeroed;
 };
 // Only limits exercised by the implemented buffer API; full feature/format
 // queries will accompany textures, pipelines and command lists.

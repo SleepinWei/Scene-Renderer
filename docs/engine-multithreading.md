@@ -55,11 +55,11 @@ GUI 轮询 future，在主线程调用 `RenderScene::replaceWith` 一次发布�
 
 缓存默认保留最多 **64 MiB 空闲图片**，按 LRU 淘汰没有材质 lease 的条目，活图片不会被预算强行释放。该限制不是全局显存硬上限：统一 RHI buffer／texture 配额可另外启用，但 driver allocation 不在逻辑负载计费范围。GPU lease 在材质 binding set 之后通过 completion retirement 释放；缓存只能在设备线程操作，启动／退出仍使用既有静止设备移交。
 
-普通网格／材质在渲染线程按当前 snapshot 逐步创建：每帧最多接纳 2 个新资产，累计上传目标为 32 MiB。超过单帧目标的单个资源允许独占一次上传，避免大资源永远无法加载；这是接纳预算，不是硬性的帧时间保证。材质接纳只计尚未缓存的图片字节；相同内容在单个材质中也不重复计费。尚未就绪的对象暂时不进入 DrawPacket，但其仍被引用的材质／细分记录不会因上游网格等待而被清除，避免反复重建。上传完成会使 TSAA 历史失效。地形、细分、海洋和 pipeline 初始化仍有不可分割的分配／构建；后续应增加大 buffer 分段上传和 pipeline cache。
+普通网格／材质在渲染线程按当前 snapshot 逐步创建：每帧最多接纳 2 个新资产，32 MiB 接纳目标继续限制材质图片等整体上传；单个超大图片允许独占一次。异步静态网格顶点／索引改为跨帧分段：默认每帧 8 MiB、每块 256 KiB、resolve CPU 软目标 2 ms，最多四个已分配但未完成的任务。完整分配仍不可分割，至少一个 chunk 可以推进，不能保证硬帧时间。首次加载完成前暂不绘制，普通网格更新可保留已发布几何；依赖材质／细分记录在等待期间保留，完整网格发布使 TSAA 历史失效。每设备 graphics／compute pipeline cache 默认保留合计最多 64 个空闲 native 条目，独立 handle 共享 lease。地形、细分、海洋、图片与首次管线构建仍有整块工作；详见 [分段上传与管线缓存](engine-streaming-and-pipeline-cache.md)。
 
 可选 `--gpu-resource-budget-mib N` 对原生编辑器的所有 RHI buffer／texture 设定统一逻辑负载配额（默认 0，不限额）。分配前拒绝超限，失败不计费，等待 completion 的资源直到实际安全销毁才减计；空间不足时先淘汰空闲图片并等待安全退役；仍超限时，双线程编辑器回滚候选缓存并冻结成功画面、250 ms 后重试。冷启动没有成功画面时仍失败，其他错误继续传播。帧发布范围与额外 RGBA8 画面成本见 [GPU 发布与压力处理](engine-gpu-publication.md)。详见[组件、命令与配额](engine-world-commands.md)。
 
-运行日志输出帧数、最近一帧渲染线程 CPU 用时、最近最多 256 帧的 CPU p95／p99（每 32 帧和退出时更新）、主线程提交队列的最大等待用时、共享 GPU 图片字节／上传／命中次数，以及逐次成功分配更新的 RHI buffer／texture 逻辑负载峰值。CPU 时间包含 worker 中的提交、呈现与必要等待，不是 GPU timestamp；队列最大等待也不是完整输入到画面的端到端延迟。该估算包含仍在 RHI 注册的资源，**不包含** driver heap 对齐、隐式 staging、交换链、pipeline 或 RHI 未登记的 native allocation，不能当作系统显存峰值。
+运行日志输出帧数、最近一帧渲染线程 CPU 用时、最近最多 256 帧的 CPU p95／p99（每 32 帧和退出时更新）、主线程提交队列的最大等待用时、共享 GPU 图片字节／上传／命中次数、网格分段累计字节／chunk／待完成数、管线原生构建／缓存命中，以及逐次成功分配更新的 RHI buffer／texture 逻辑负载峰值。CPU 时间包含 worker 中的提交、呈现与必要等待，不是 GPU timestamp；队列最大等待也不是完整输入到画面的端到端延迟。该估算包含仍在 RHI 注册的资源，**不包含** driver heap 对齐、隐式 staging、交换链、pipeline 或 RHI 未登记的 native allocation，不能当作系统显存峰值。
 
 ## Render graph 与呈现
 

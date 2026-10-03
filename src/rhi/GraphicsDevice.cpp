@@ -6,10 +6,65 @@
 #include <limits>
 #include <stdexcept>
 #include <unordered_set>
+#include <filesystem>
+#include <fstream>
 
 namespace rhi {
 namespace {
 std::atomic<uint64_t> nextObject{1};
+struct PipelineKey {
+    std::string bytes;
+    void number(uint64_t value) { bytes.append(reinterpret_cast<const char*>(&value),sizeof(value)); }
+    void text(const std::string& value) { number(value.size());bytes.append(value); }
+    void file(const std::string& path) {
+        text(path);
+        if(path.empty() || !std::filesystem::exists(path)) {number(0);return;}
+        number(1);
+        std::ifstream input(path,std::ios::binary);
+        if(!input)throw std::runtime_error("Cannot read pipeline cache shader: "+path);
+        std::string content{std::istreambuf_iterator<char>(input),{}};
+        if(input.bad())throw std::runtime_error("Incomplete pipeline cache shader: "+path);
+        text(content); // Exact bytes distinguish same-size edits and hash collisions.
+    }
+    void shader(const ShaderAsset& shader, Backend backend) {
+        text(shader.glslPath);text(shader.metallibPath);text(shader.spirvPath);
+        text(shader.entryPoint);text(shader.spirvEntryPoint);
+        file(backend==Backend::Metal?shader.metallibPath:backend==Backend::Vulkan?shader.spirvPath:shader.glslPath);
+        file(shader.reflectionPath);
+    }
+    void layouts(const std::vector<BindingLayout>& layouts) {
+        number(layouts.size());
+        for(const auto& layout:layouts) {
+            number(layout.group);number(layout.entries.size());
+            for(const auto& entry:layout.entries) {
+                number(entry.binding);number(uint32_t(entry.type));number(uint32_t(entry.stage));
+                text(entry.name);number(entry.minimumSize);number(uint32_t(entry.imageFormat));
+            }
+        }
+    }
+};
+std::string pipelineKey(const GraphicsPipelineDesc& desc,Backend backend) {
+    PipelineKey key;
+    key.shader(desc.vertex,backend);key.shader(desc.fragment,backend);
+    key.number(desc.vertexStride);key.number(desc.attributes.size());
+    for(const auto& attribute:desc.attributes) {
+        key.number(attribute.location);key.number(uint32_t(attribute.format));key.number(attribute.offset);
+    }
+    key.layouts(desc.bindings);
+    key.number(uint32_t(desc.colorFormat));key.number(desc.colorAttachment);
+    key.number(desc.additionalColorFormats.size());
+    for(auto format:desc.additionalColorFormats)key.number(uint32_t(format));
+    key.number(desc.depthAttachment);key.number(desc.depthTest);key.number(desc.depthWrite);
+    key.number(uint32_t(desc.depthCompare));key.number(uint32_t(desc.cull));
+    key.number(desc.attachmentBlend.size());for(bool blend:desc.attachmentBlend)key.number(blend);
+    key.number(desc.wireframe);key.number(desc.blend);
+    return std::move(key.bytes);
+}
+std::string pipelineKey(const ComputePipelineDesc& desc,Backend backend) {
+    PipelineKey key;key.shader(desc.shader,backend);key.layouts(desc.bindings);
+    for(auto threads:desc.threads)key.number(threads);
+    return std::move(key.bytes);
+}
 void require(bool condition, const char* message) {
     if (!condition) throw std::invalid_argument(message);
 }
@@ -134,9 +189,24 @@ PipelineHandle GraphicsDevice::createGraphicsPipeline(const GraphicsPipelineDesc
     }
     seen.clear();for (const auto& l : desc.bindings) { validateLayout(l);require(seen.insert(l.group).second, "RHI: duplicate binding group"); }
     for (const auto& l : desc.bindings) for (const auto& e : l.entries) require(e.stage != ShaderStage::Compute && (!isStorage(e.type) || (e.type==BindingType::StorageRead && e.stage==ShaderStage::Vertex && computeLimits().supported)) && !isStorageTexture(e.type), "RHI: graphics storage bindings are not implemented");
-    auto native = createPipelineImpl(desc);PipelineHandle h{nextObject++};
-    try { pipelines_.emplace(h.value, PipelineRecord{desc, native}); }
-    catch (...) { destroyPipelineImpl(native);throw; }return h;
+    auto key = pipelineKey(desc,backend());
+    auto cached = graphicsPipelineCache_.find(key);
+    const bool created = cached == graphicsPipelineCache_.end();
+    if(created) {
+        const auto native = createPipelineImpl(desc);
+        try {cached=graphicsPipelineCache_.emplace(std::move(key),CachedPipeline{native,0,++pipelineClock_}).first;}
+        catch (...) {destroyPipelineImpl(native);throw;}
+        ++pipelineStats_.graphicsBuilds;
+    }
+    PipelineHandle handle{nextObject++};
+    try {pipelines_.emplace(handle.value,PipelineRecord{desc,cached->second.native,&cached->second});}
+    catch (...) {
+        if(created){destroyPipelineImpl(cached->second.native);graphicsPipelineCache_.erase(cached);}
+        throw;
+    }
+    ++cached->second.leases;cached->second.touched=++pipelineClock_;
+    if(!created)++pipelineStats_.hits;
+    return handle;
 }
 void GraphicsDevice::validateBindings(const BindingSetDesc& desc) const {
     validateLayout(desc.layout);
@@ -170,7 +240,42 @@ BindingSetHandle GraphicsDevice::createBindingSet(const BindingSetDesc& desc) {
 void GraphicsDevice::destroyBindingSet(BindingSetHandle h) { checkThread(); bindingSets_.erase(h.value); }
 void GraphicsDevice::destroyPipeline(PipelineHandle h) { checkThread();
     auto it = pipelines_.find(h.value);if (it == pipelines_.end()) return;
-    waitForResourceRelease();destroyPipelineImpl(it->second.native);pipelines_.erase(it);
+    --it->second.cached->leases;it->second.cached->touched=++pipelineClock_;
+    pipelines_.erase(it);trimPipelineCache();
+}
+PipelineCacheStats GraphicsDevice::pipelineCacheStats() const {
+    checkThread();
+    auto stats=pipelineStats_;
+    stats.nativeEntries=graphicsPipelineCache_.size()+computePipelineCache_.size();
+    stats.liveHandles=pipelines_.size()+computePipelines_.size();
+    for(const auto& item:graphicsPipelineCache_)if(!item.second.leases)++stats.idleEntries;
+    for(const auto& item:computePipelineCache_)if(!item.second.leases)++stats.idleEntries;
+    return stats;
+}
+void GraphicsDevice::setPipelineCacheIdleLimit(size_t count) {
+    checkOpen();pipelineIdleLimit_=count;trimPipelineCache();
+}
+void GraphicsDevice::trimPipelineCache() {
+    checkThread();
+    if(trimmingPipelineCache_ || pipelineCacheStats().idleEntries<=pipelineIdleLimit_)return;
+    trimmingPipelineCache_=true;
+    try {
+        waitForResourceRelease();
+        while(pipelineCacheStats().idleEntries>pipelineIdleLimit_) {
+            auto graphics=graphicsPipelineCache_.end(),compute=computePipelineCache_.end();
+            for(auto it=graphicsPipelineCache_.begin();it!=graphicsPipelineCache_.end();++it)
+                if(!it->second.leases && (graphics==graphicsPipelineCache_.end() || it->second.touched<graphics->second.touched))graphics=it;
+            for(auto it=computePipelineCache_.begin();it!=computePipelineCache_.end();++it)
+                if(!it->second.leases && (compute==computePipelineCache_.end() || it->second.touched<compute->second.touched))compute=it;
+            if(graphics!=graphicsPipelineCache_.end() && (compute==computePipelineCache_.end() || graphics->second.touched<compute->second.touched)) {
+                destroyPipelineImpl(graphics->second.native);graphicsPipelineCache_.erase(graphics);
+            } else if(compute!=computePipelineCache_.end()) {
+                destroyComputePipelineImpl(compute->second.native);computePipelineCache_.erase(compute);
+            } else break;
+            ++pipelineStats_.evictions;
+        }
+        trimmingPipelineCache_=false;
+    } catch (...) {trimmingPipelineCache_=false;throw;}
 }
 void GraphicsDevice::destroyTexture(TextureHandle h) { checkThread();
     auto it = textures_.find(h.value);if (it == textures_.end()) return;
@@ -275,12 +380,29 @@ ComputePipelineHandle GraphicsDevice::createComputePipeline(const ComputePipelin
         for (const auto& e : layout.entries) { require(e.stage == ShaderStage::Compute && (isStorage(e.type) || isStorageTexture(e.type) || e.type == BindingType::SampledTexture || e.type == BindingType::UniformBuffer),"RHI: unsupported compute binding");if(isStorage(e.type))++storageCount;else if(isStorageTexture(e.type))++imageCount;else if(e.type == BindingType::SampledTexture)++sampledCount;else ++uniformCount; }
     }
     require(storageCount <= limits.maxStorageBindings && uniformCount <= limits.maxUniformBindings && imageCount <= limits.maxStorageImages && sampledCount <= limits.maxSampledTextures,"RHI: compute binding count exceeds limit");
-    const auto native = createComputePipelineImpl(desc);ComputePipelineHandle handle{nextObject++};
-    try { computePipelines_.emplace(handle.value,ComputeRecord{desc,native}); } catch (...) { destroyComputePipelineImpl(native);throw; }return handle;
+    auto key=pipelineKey(desc,backend());
+    auto cached=computePipelineCache_.find(key);
+    const bool created=cached==computePipelineCache_.end();
+    if(created) {
+        const auto native=createComputePipelineImpl(desc);
+        try {cached=computePipelineCache_.emplace(std::move(key),CachedPipeline{native,0,++pipelineClock_}).first;}
+        catch (...) {destroyComputePipelineImpl(native);throw;}
+        ++pipelineStats_.computeBuilds;
+    }
+    ComputePipelineHandle handle{nextObject++};
+    try {computePipelines_.emplace(handle.value,ComputeRecord{desc,cached->second.native,&cached->second});}
+    catch (...) {
+        if(created){destroyComputePipelineImpl(cached->second.native);computePipelineCache_.erase(cached);}
+        throw;
+    }
+    ++cached->second.leases;cached->second.touched=++pipelineClock_;
+    if(!created)++pipelineStats_.hits;
+    return handle;
 }
 void GraphicsDevice::destroyComputePipeline(ComputePipelineHandle handle) { checkThread();
     const auto it = computePipelines_.find(handle.value);if (it == computePipelines_.end()) return;
-    waitForResourceRelease();destroyComputePipelineImpl(it->second.native);computePipelines_.erase(it);
+    --it->second.cached->leases;it->second.cached->touched=++pipelineClock_;
+    computePipelines_.erase(it);trimPipelineCache();
 }
 GraphicsDevice::NativeObject GraphicsDevice::computePipelineObject(ComputePipelineHandle h) const {
     computePipelineDesc(h);return computePipelines_.at(h.value).native;
@@ -439,9 +561,11 @@ void GraphicsDevice::submit(CommandList& list) {
     submitGraphicsImpl(list.passes_);if(!frameActive())waitIdle();
 }
 void GraphicsDevice::releaseResourcesImpl() {
+    pipelineIdleLimit_=0;
     bindingSets_.clear();
     while (!computePipelines_.empty()) destroyComputePipeline(ComputePipelineHandle{computePipelines_.begin()->first});
     while (!pipelines_.empty()) destroyPipeline(PipelineHandle{pipelines_.begin()->first});
+    trimPipelineCache();
     while (!views_.empty()) destroyTextureView(TextureViewHandle{views_.begin()->first});
     while (!samplers_.empty()) destroySampler(SamplerHandle{samplers_.begin()->first});
     while (!textures_.empty()) destroyTexture(TextureHandle{textures_.begin()->first});

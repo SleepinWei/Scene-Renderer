@@ -4,6 +4,10 @@
 #include <limits>
 #include <stdexcept>
 #include <unordered_set>
+#include <filesystem>
+#include <fstream>
+#include <chrono>
+#include <future>
 
 namespace {
 void check(bool condition, const char* reason) { if (!condition) throw std::runtime_error(reason); }
@@ -20,6 +24,8 @@ public:
             (f == rhi::Format::Depth32Float && u == rhi::TextureUsage::DepthAttachment);
     }
     unsigned submissions = 0;
+    unsigned pipelineAttempts=0,computeAttempts=0;
+    bool failPipeline=false,failCompute=false;
     bool failTexture=false;unsigned textureAttempts=0;
     std::vector<rhi::RecordedPass> recorded;
     rhi::ComputeLimits computeLimits() const override { return {true,{128,128,128},{32,32,32},256,16,4096}; }
@@ -29,9 +35,9 @@ protected:
     NativeObject createTextureImpl(const rhi::TextureDesc&) override {++textureAttempts;if(failTexture)throw std::runtime_error("native texture failure");return allocate(); }
     NativeObject createTextureViewImpl(NativeObject, const rhi::TextureDesc&) override { return allocate(); }
     NativeObject createSamplerImpl(const rhi::SamplerDesc&) override { return allocate(); }
-    NativeObject createComputePipelineImpl(const rhi::ComputePipelineDesc&) override { return allocate(); }
+    NativeObject createComputePipelineImpl(const rhi::ComputePipelineDesc&) override { ++computeAttempts;if(failCompute)throw std::runtime_error("compute creation failure");return allocate(); }
     void destroyComputePipelineImpl(NativeObject id) noexcept override { graphics.erase(id); }
-    NativeObject createPipelineImpl(const rhi::GraphicsPipelineDesc&) override { return allocate(); }
+    NativeObject createPipelineImpl(const rhi::GraphicsPipelineDesc&) override { ++pipelineAttempts;if(failPipeline)throw std::runtime_error("graphics creation failure");return allocate(); }
     void destroyTextureImpl(NativeObject id) noexcept override { graphics.erase(id); }
     void destroyTextureViewImpl(NativeObject id) noexcept override { graphics.erase(id); }
     void destroySamplerImpl(NativeObject id) noexcept override { graphics.erase(id); }
@@ -82,6 +88,79 @@ int main() {
             check(budget.resourceMemory().textureBytes==20,"Texture double destruction released quota twice");
             budget.destroyBuffer(b);budget.destroyTexture(f);budget.destroyTexture(z);budget.close();
             check(budget.resourceMemory().usedBytes()==0,"Graphics close retained allocation bytes");
+        }
+        {
+            auto cached=std::make_shared<TestDevice>();
+            GraphicsPipelineDesc desc;
+            desc.vertexStride=8;desc.attributes={{0,VertexFormat::Float2,0}};
+            auto first=cached->createGraphicsPipeline(desc);
+            desc.label="another caller";
+            auto second=cached->createGraphicsPipeline(desc);
+            check(first.value!=second.value && cached->pipelineAttempts==1 && cached->pipelineCacheStats().hits==1,
+                  "Pipeline cache did not share native state through independent handles");
+            cached->destroyPipeline(first);cached->destroyPipeline(first);
+            check(cached->pipelineCacheStats().liveHandles==1 && cached->pipelineCacheStats().idleEntries==0,
+                  "Double release corrupted another pipeline lease");
+            cached->destroyPipeline(second);
+            auto reused=cached->createGraphicsPipeline(desc);
+            check(cached->pipelineAttempts==1 && reused.value!=second.value,
+                  "Idle native pipeline was recompiled or stale handle reused");
+            desc.blend=true;
+            auto different=cached->createGraphicsPipeline(desc);
+            check(cached->pipelineAttempts==2,"Blend state was omitted from pipeline key");
+            auto layout=desc;layout.bindings={{0,{{0,BindingType::UniformBuffer,ShaderStage::Vertex,"changed layout",16}}}};
+            auto layoutHandle=cached->createGraphicsPipeline(layout);
+            check(cached->pipelineAttempts==3,"Binding ABI was omitted from pipeline key");
+            ComputePipelineDesc compute;
+            compute.threads={2,1,1};
+            auto a=cached->createComputePipeline(compute),b=cached->createComputePipeline(compute);
+            compute.threads={4,1,1};
+            auto c=cached->createComputePipeline(compute);
+            check(a.value!=b.value && cached->computeAttempts==2,"Compute threads or independent leases lost");
+            cached->setPipelineCacheIdleLimit(1);
+            cached->destroyPipeline(reused);
+            cached->destroyPipeline(different);
+            cached->destroyPipeline(layoutHandle);
+            cached->destroyComputePipeline(a);cached->destroyComputePipeline(b);cached->destroyComputePipeline(c);
+            check(cached->pipelineCacheStats().idleEntries==1 && cached->pipelineCacheStats().evictions>=4,
+                  "Combined pipeline idle LRU failed to bound cached native state");
+            const auto builds=cached->computeAttempts;
+            auto recent=cached->createComputePipeline(compute);
+            check(cached->computeAttempts==builds,"Pipeline LRU evicted the most recently used idle entry");
+            cached->setPipelineCacheIdleLimit(0);
+            check(cached->pipelineCacheStats().idleEntries==0 && cached->pipelineCacheStats().liveHandles==1,
+                  "Trimming evicted a live pipeline");
+            cached->destroyComputePipeline(recent);
+            check(cached->allocations()==0,"Zero idle limit did not release all native pipelines");
+            cached->failPipeline=true;
+            bool failed=false;try {cached->createGraphicsPipeline(desc);}catch(const std::runtime_error&){failed=true;}
+            check(failed && cached->pipelineCacheStats().nativeEntries==0,"Failed graphics pipeline poisoned cache");
+            cached->failPipeline=false;
+            auto retry=cached->createGraphicsPipeline(desc);cached->destroyPipeline(retry);
+            cached->failCompute=true;failed=false;
+            try {cached->createComputePipeline(compute);}catch(const std::runtime_error&){failed=true;}
+            check(failed && cached->pipelineCacheStats().nativeEntries==0,"Failed compute pipeline poisoned cache");
+            cached->failCompute=false;
+            auto retried=cached->createComputePipeline(compute);cached->destroyComputePipeline(retried);
+            const auto path=std::filesystem::temp_directory_path()/
+                ("pipeline-key-"+std::to_string(std::chrono::steady_clock::now().time_since_epoch().count())+".glsl");
+            {std::ofstream file(path);file<<"aaaa";}
+            desc.vertex.glslPath=path.string();
+            auto oldShader=cached->createGraphicsPipeline(desc);
+            const auto attempts=cached->pipelineAttempts;
+            const auto timestamp=std::filesystem::last_write_time(path);
+            {std::ofstream file(path);file<<"bbbb";}
+            std::filesystem::last_write_time(path,timestamp);
+            auto newShader=cached->createGraphicsPipeline(desc);
+            check(cached->pipelineAttempts==attempts+1,"Same-size/same-mtime shader edit hit a stale pipeline");
+            std::filesystem::remove(path);
+            auto wrongThread=std::async(std::launch::async,[&] {
+                try {cached->pipelineCacheStats();}catch(const std::logic_error&){return true;}return false;
+            });
+            check(wrongThread.get(),"Pipeline cache accepted foreign-thread access");
+            cached->close();
+            check(cached->allocations()==0 && cached->pipelineCacheStats().nativeEntries==0,
+                  "Close leaked active or idle native pipelines");
         }
         auto d = std::make_shared<TestDevice>(), foreign = std::make_shared<TestDevice>();
         const auto usage = TextureUsage::ColorAttachment | TextureUsage::Sampled | TextureUsage::CopySource;

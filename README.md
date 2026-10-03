@@ -182,7 +182,7 @@ GPU 四叉树有固定叶节点预算，耗尽时保留父节点。公共整数�
 ./build/Scene-Renderer --render-gallery img/metal terrain
 ```
 
-示例由程序生成 1024² 高度与底色，无需额外下载；默认请求由 CPU 保守视锥预测，每帧限制页读取／上传数量。当前尚未加入后台 IO、GPU 屏幕反馈或高度 morph，快速移动时可暂时回退到粗 mip。离线分页命令、配置、修复记录与验证见 [地形 Virtual Texture 说明](docs/terrain-virtual-texture.md)。
+示例由程序生成 1024² 高度与底色，无需额外下载；默认请求由 CPU 保守视锥预测，每帧限制页读取／上传数量。原生双线程编辑器已使用有界后台 IO；当前尚未加入 GPU 屏幕反馈或高度 morph，快速移动时可暂时回退到粗 mip。离线分页命令、配置、修复记录与验证见 [地形 Virtual Texture 说明](docs/terrain-virtual-texture.md)。
 
 <details>
 <summary>查看同一视角的 LOD 网格</summary>
@@ -233,7 +233,7 @@ flowchart TD
 
 组件通过 weak owner 避免对象引用环，网格／材质／组件使用稳定 ID 与内容版本。RenderScene 结构、组件注册表与 owner 私有，具体类型查询采用索引；增删组件自动维护灯光索引。Transform／Light／Camera 的核心参数、Mesh／Material 的容器与 MeshRenderer 设置均通过检查接口访问；几何及贴图槽修改自动更新内容版本，材质标量复用图片缓存。后台任务只提交 ID／值命令，由主线程限量执行，场景替换使旧入口失效。
 
-资源缓存合并同 key 的解码；同设备普通 GPU 图片按内容共享，空闲 LRU 默认 64 MiB，sampler 独立。Loader 后台构建并验证完整 staging，经封存／future 移交后在主线程一次发布，CPU 构建失败保留旧场景。RHI buffer／texture 支持可选统一逻辑负载配额及逐次分配峰值统计；压力时回收空闲图片并等待退役资源。原生双线程编辑器在候选 GPU 帧超限时恢复缓存、保留上一张成功画面，并定时重试。VT 页通过有界 IO jobs 准备后由渲染线程上传，未完成页保持粗 mip 回退；有序 render graph 在记录前检查初始化及读写声明。线程归属、取消／退出、上传预算、单线程对照和剩余边界见 [Engine 多线程说明](docs/engine-multithreading.md) 与 [设计审查](docs/engine-design-review.md)。
+资源缓存合并同 key 的解码；同设备普通 GPU 图片按内容共享，空闲 LRU 默认 64 MiB，sampler 独立。异步静态网格按 8 MiB／帧、256 KiB／块与 2 ms 软目标分段上传，最多四个已分配的未完成任务；完整写入后才发布。每设备 graphics／compute 管线共享 native 对象，每个调用拥有独立 handle，空闲 LRU 合计默认保留 64 项；首次编译仍同步。实现及限制见 [分段上传与管线缓存](docs/engine-streaming-and-pipeline-cache.md)。Loader 后台构建并验证完整 staging，经封存／future 移交后在主线程一次发布，CPU 构建失败保留旧场景。RHI buffer／texture 支持可选统一逻辑负载配额及逐次分配峰值统计；压力时回收空闲图片并等待退役资源。原生双线程编辑器在候选 GPU 帧超限时恢复缓存、保留上一张成功画面，并定时重试。VT 页通过有界 IO jobs 准备后由渲染线程上传，未完成页保持粗 mip 回退；有序 render graph 在记录前检查初始化及读写声明。线程归属、取消／退出、上传预算、单线程对照和剩余边界见 [Engine 多线程说明](docs/engine-multithreading.md) 与 [设计审查](docs/engine-design-review.md)。
 
 `--forward` 在同一场景调度中改用前向材质光照，保留阴影、环境光、水体和后处理。核心实现见 [ForwardPbrRenderer.cpp](src/renderer/rhi/ForwardPbrRenderer.cpp)、[SceneAdapter.cpp](src/renderer/rhi/SceneAdapter.cpp) 与 [RenderManager.cpp](src/system/RenderManager.cpp)。
 
@@ -298,6 +298,7 @@ flowchart LR
 | `docs/engine-world-commands.md` | 私有组件注册表、线程封存移交、后台值命令与 RHI 统一资源配额 |
 | `docs/engine-data-boundaries.md` | 核心数据私有化、资产移交、自动版本失效、参数校验与剩余边界 |
 | `docs/engine-gpu-publication.md` | 内存压力回收、候选 GPU 缓存事务、失败画面保留与恢复、成本与验收 |
+| `docs/engine-streaming-and-pipeline-cache.md` | 静态网格跨帧上传、字节／用时预算、管线独立句柄与共享 native、LRU 与验收 |
 | `docs/tsaa.md` | TSAA 重投影、海洋运动信息、历史处理与截图复现 |
 | `docs/ocean-fft-and-rendering-review.md` | 海洋 FFT、高清波纹、透明与散射的修复和验证记录 |
 
@@ -346,7 +347,7 @@ ctest --test-dir build/vulkan --output-on-failure
 
 GPU 验证覆盖上传/异步读回、延迟释放、MRT、前向/延迟 PBR、SSS 深度、透明排序、三类阴影、SSAO、太阳/天空 RSM、大气 LUT、完整海洋 IFFT、地形/草的 VT 区域上传、页淘汰与回退、流式高度、网格预算和闭合接缝、计算细分及 TSAA。CPU 数值参考和限定的像素比较用于检查结果；编辑器测试同时覆盖真实 resize、UI 与窗口呈现。画廊提供实际模型和贴图的视觉回归，不以历史截图作为物理参考图像。
 
-2026-10-03 Engine 多线程回归在 Apple M4/macOS 验收：Metal **11/11**、Vulkan/MoltenVK **12/12**；有界 CPU cache／job／帧队列、世界命令与 graph 测试在 ThreadSanitizer 下通过。本轮后续修复同时通过 OpenGL 兼容路径 **8/8**。包括主逻辑／渲染分离、加载事务、快照／GUI 隔离、场景结构／组件自动灯光索引、封存移交、旧世界／旧组件命令失效、混合 RHI 资源配额、GPU 图片共享／LRU 与 CPU 地址复用、上传等待保留资产、异步地形、窗口缩放与单线程对照；新增核心数据边界回归包含错误线程访问、非法参数保留、Camera／Mesh／Material 移交和材质标量／图片版本隔离，结果仍为 Metal 11/11、Vulkan 12/12、OpenGL 8/8。内存压力与 GPU 发布回归也通过以上三个后端；新增空闲图片回收、候选缓存回滚、窗口／海洋超限时像素保持及后续恢复验证，CPU RHI 压力回调测试通过 TSan。完整应用没有在 ThreadSanitizer 下验收。
+2026-10-03 Engine 多线程回归在 Apple M4/macOS 验收：Metal **11/11**、Vulkan/MoltenVK **12/12**；有界 CPU cache／job／帧队列、世界命令与 graph 测试在 ThreadSanitizer 下通过。本轮后续修复同时通过 OpenGL 兼容路径 **8/8**。包括主逻辑／渲染分离、加载事务、快照／GUI 隔离、场景结构／组件自动灯光索引、封存移交、旧世界／旧组件命令失效、混合 RHI 资源配额、GPU 图片共享／LRU 与 CPU 地址复用、上传等待保留资产、异步地形、窗口缩放与单线程对照；新增核心数据边界回归包含错误线程访问、非法参数保留、Camera／Mesh／Material 移交和材质标量／图片版本隔离，结果仍为 Metal 11/11、Vulkan 12/12、OpenGL 8/8。内存压力与 GPU 发布回归也通过以上三个后端；新增空闲图片回收、候选缓存回滚、窗口／海洋超限时像素保持及后续恢复验证，CPU RHI 压力回调测试通过 TSan。分段上传／管线缓存继续通过三后端全部回归，新增 30 万顶点跨帧上传与逐字节 GPU 读回、待上传任务上限、取消／回滚、管线独立句柄／LRU／shader 内容失效，以及 renderer 共享管线后的像素一致性；CPU buffer／graphics 契约另通过 TSan。完整应用没有在 ThreadSanitizer 下验收。
 
 2026-10-03 天空修复在 Apple M4/macOS 验收：Metal **8/8**、Vulkan/MoltenVK **9/9**，包含太阳角半径／能量、地平线及几何遮挡、控制同步、观察高度与极限参数。OpenGL 4.1 的历史 RHI 验收为 7/7，本轮未重复运行。Metal 开启 API/Shader Validation；本机没有 Khronos validation layer，Windows/Linux 与 OpenGL 4.3+ 尚未实机验收。Metal/Vulkan 使用单队列、最多三帧并行提交；单次吞吐测量和算法边界见 [RHI 重构计划](docs/rhi-refactor-plan.md)。大规模 OBJ 导入仍需较多 CPU 内存与启动时间。
 

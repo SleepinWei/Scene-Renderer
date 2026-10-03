@@ -168,8 +168,11 @@ protected:
         if (hasUsage(desc.usage, BufferUsage::Indirect)) usage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
         auto b = allocateBuffer(desc.size, usage);
         try {
-            std::vector<uint8_t> zero;if (!data) { zero.resize(desc.size);data = zero.data(); }
-            transfer(b, 0, desc.size, const_cast<void*>(data), true);
+            std::vector<uint8_t> zero;
+            if (!data && desc.initialization == BufferInitialization::Zeroed) {
+                zero.resize(desc.size);data = zero.data();
+            }
+            if(data) transfer(b, 0, desc.size, const_cast<void*>(data), true);
             const auto id = next_++;buffers_.emplace(id, b);return id;
         } catch (...) { freeBuffer(b);throw; }
     }

@@ -26,6 +26,7 @@
 #include <chrono>
 #include <type_traits>
 #include <new>
+#include <cstring>
 namespace render {
 void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
     auto check = [](bool value, const char *reason) {
@@ -708,6 +709,116 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
             check(restored.packets[0].mesh == committed.packets[0].mesh &&
                       restored.packets[0].material == committed.packets[0].material,
                   "External publication rollback lost committed records");
+        }
+        {
+            auto geometry=std::make_shared<MeshPayload>();
+            geometry->id=engine::nextIdentity();geometry->revision=1;
+            geometry->vertices={{{-1,0,0},{0,1,0},{0,0}},{{1,0,0},{0,1,0},{1,0}},{{0,0,1},{0,1,0},{.5f,1}}};
+            geometry->indices={0,1,2};
+            RenderWorldSnapshot seed=*first;seed.draws.clear();seed.terrain.reset();seed.asynchronousStreaming=true;
+            SnapshotDraw draw;draw.mesh=geometry;draw.objectId=engine::nextIdentity();seed.draws.push_back(draw);
+            SceneAdapter streaming(device);
+            streaming.setMeshUploadBudget({64,32,1000});
+            auto deferred=streaming.resolve(seed);
+            check(deferred.packets.empty() && deferred.meshUploadsPending==1 && deferred.meshUploadBytes==64,
+                  "Incomplete mesh became drawable or exceeded per-frame upload bytes");
+            auto finished=streaming.resolve(seed);
+            check(finished.packets.size()==1 && finished.meshUploadsPending==0 && finished.meshUploadBytes==44,
+                  "Mesh did not finish remaining vertices and indices in separate chunks");
+            auto published=finished.packets[0].mesh;
+            std::vector<MeshVertex> vertices(3);std::vector<uint32_t> indices(3);
+            device->readBuffer(published->vertexBuffer(),0,vertices.size()*sizeof(MeshVertex),vertices.data());
+            device->readBuffer(published->indexBuffer(),0,indices.size()*4,indices.data());
+            check(std::memcmp(vertices.data(),geometry->vertices.data(),vertices.size()*sizeof(MeshVertex))==0 && indices==geometry->indices,
+                  "Chunked mesh bytes differ from immutable CPU payload");
+            auto changed=std::make_shared<MeshPayload>(*geometry);++changed->revision;
+            changed->vertices[0].position.y=2;seed.draws[0].mesh=changed;
+            streaming.beginPublication();
+            auto tentative=streaming.resolve(seed);
+            check(tentative.packets[0].mesh==published && tentative.meshUploadsPending==1,
+                  "Revision upload replaced the prior mesh before completion");
+            tentative.packets.clear();streaming.rollbackPublication();
+            auto replayed=streaming.resolve(seed);
+            check(replayed.meshUploadBytes==64 && replayed.packets[0].mesh==published,
+                  "Rollback lost or prematurely committed upload progress");
+            // Cancel a revision by reverting to the published source.
+            seed.draws[0].mesh=geometry;
+            auto reverted=streaming.resolve(seed);
+            check(reverted.meshUploadsPending==0 && reverted.meshUploadBytes==0 && reverted.packets[0].mesh==published,
+                  "Reverted source retained a stale pending upload");
+            seed.draws[0].mesh=changed;
+            streaming.resolve(seed);
+            auto replacement=streaming.resolve(seed);
+            check(replacement.packets[0].mesh!=published && replacement.packets[0].mesh->boundsMax().y==2 &&
+                      replacement.frame.historyKey!=finished.frame.historyKey,
+                  "Completed revision did not replace geometry/bounds or invalidate temporal history");
+            // A second source supersedes an in-progress revision without publishing its old bytes.
+            auto superseded=std::make_shared<MeshPayload>(*changed);++superseded->revision;
+            superseded->vertices[1].position.y=3;seed.draws[0].mesh=superseded;
+            streaming.resolve(seed);
+            auto latest=std::make_shared<MeshPayload>(*superseded);++latest->revision;
+            latest->vertices[1].position.y=4;seed.draws[0].mesh=latest;
+            streaming.resolve(seed);
+            auto newest=streaming.resolve(seed);
+            check(newest.packets[0].mesh->boundsMax().y==4,"Superseded upload published stale geometry");
+            {
+                auto large=std::make_shared<MeshPayload>();large->id=engine::nextIdentity();large->revision=1;
+                large->vertices.assign(300000,{{.25f,.5f,.75f},{0,1,0},{0,0}});
+                large->indices={0,1,2};
+                auto big=seed;big.draws[0].mesh=large;
+                SceneAdapter bounded(device);bounded.setMeshUploadBudget({8*1024*1024,256*1024,1000});
+                auto partial=bounded.resolve(big);
+                check(partial.packets.empty() && partial.meshUploadBytes==8*1024*1024 &&
+                          partial.meshUploadChunks==32 && partial.meshUploadsPending==1,
+                      "Large mesh bypassed hard byte/chunk upload limits");
+                auto complete=bounded.resolve(big);
+                check(complete.packets.size()==1 && complete.meshUploadsPending==0 &&
+                          partial.meshUploadBytes+complete.meshUploadBytes==large->vertices.size()*sizeof(MeshVertex)+12,
+                      "Large mesh upload did not resume precisely at its next range");
+                std::vector<MeshVertex> readback(large->vertices.size());
+                device->readBuffer(complete.packets[0].mesh->vertexBuffer(),0,readback.size()*sizeof(MeshVertex),readback.data());
+                check(std::memcmp(readback.data(),large->vertices.data(),readback.size()*sizeof(MeshVertex))==0,
+                      "Large mesh chunk boundary corrupted GPU bytes");
+            }
+            {
+                auto limited=seed;limited.draws[0].mesh=geometry;
+                auto another=std::make_shared<MeshPayload>(*geometry);another->id=engine::nextIdentity();
+                auto second=limited.draws[0];second.mesh=another;limited.draws.push_back(second);
+                SceneAdapter bounded(device);bounded.setMeshUploadBudget({64,32,1000,1});
+                device->waitIdle();const auto before=device->resourceMemory().usedBytes();
+                auto partial=bounded.resolve(limited);
+                check(partial.packets.empty() && partial.meshUploadsPending==2 && partial.assetUploads==1 &&
+                          device->resourceMemory().usedBytes()==before+108,
+                      "Pending mesh capacity allocated more than one job or admitted an incomplete draw");
+                auto next=bounded.resolve(limited);auto later=bounded.resolve(limited);auto complete=bounded.resolve(limited);
+                check(next.packets.size()==1 && later.packets.size()==1 && complete.packets.size()==2 &&
+                          complete.meshUploadsPending==0,
+                      "Pending job backpressure starved its successor");
+                // Even a vanishingly small time budget must make one bounded chunk of progress.
+                auto revision=std::make_shared<MeshPayload>(*geometry);++revision->revision;
+                limited.draws.resize(1);limited.draws[0].mesh=revision;
+                bounded.setMeshUploadBudget({64,32,1e-12,1});
+                auto timed=bounded.resolve(limited);
+                check(timed.meshUploadChunks==1 && timed.meshUploadBytes==32 && timed.meshUploadsPending==1,
+                      "CPU time budget failed to stop after one chunk or caused permanent starvation");
+            }
+            auto pending=GpuMesh::beginUpload(device,3,3);
+            auto commands=device->createCommandList();bool denied=false;
+            try {pending->draw(commands);}catch(const std::logic_error&){denied=true;}
+            check(denied && !pending->ready(),"Pending GPU mesh allowed drawing uninitialized memory");
+            denied=false;
+            try {pending->uploadVertices(1,geometry->vertices.data()+1,1);}catch(const std::invalid_argument&){denied=true;}
+            check(denied,"Mesh upload accepted a hole in its initialized prefix");
+            // Identical renderer instances share native pipelines; independent handles remain valid.
+            auto a=std::make_unique<ForwardPbrRenderer>(device,rhi::defaultShaderDirectory(),64,64,PbrPath::Forward);
+            const auto stats=device->pipelineCacheStats();
+            auto b=std::make_unique<ForwardPbrRenderer>(device,rhi::defaultShaderDirectory(),64,64,PbrPath::Forward);
+            check(device->pipelineCacheStats().graphicsBuilds==stats.graphicsBuilds && device->pipelineCacheStats().hits>stats.hits,
+                  "Identical native renderer recompiled pipelines");
+            auto frame=finished.frame;frame.taa=false;frame.sky=false;frame.shadows=false;
+            a->render(frame,finished.packets);auto expected=device->readTexture(a->output());
+            a.reset();b->render(frame,finished.packets);
+            check(device->readTexture(b->output())==expected,"Releasing one renderer invalidated another pipeline lease");
         }
         auto unchanged = builder.capture(scene, 1, 64, 64);
         check(first->draws[0].mesh == unchanged->draws[0].mesh, "Unchanged geometry was recopied each frame");

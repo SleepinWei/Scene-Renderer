@@ -111,6 +111,29 @@ int main() {
             pressure.destroyBuffer(admitted);
             pressure.close();
         }
+        {
+            TestDevice initialized;
+            uint32_t zero = 1;
+            auto original = initialized.createBuffer({4,BufferUsage::CopySource,"default initialization"});
+            initialized.readBuffer(original,0,4,&zero);
+            check(zero == 0,"Default buffer creation lost zero initialization");
+            rejects<std::invalid_argument>([&] {
+                initialized.createBuffer({4,BufferUsage::Vertex,"invalid deferred",BufferInitialization::Uninitialized});
+            });
+            rejects<std::invalid_argument>([&] {
+                initialized.createBuffer({4,BufferUsage::CopyDestination,"invalid initial data",BufferInitialization::Uninitialized},&zero);
+            });
+            rejects<std::invalid_argument>([&] {
+                initialized.createBuffer({4,BufferUsage::CopyDestination,"bad initialization enum",BufferInitialization(999)});
+            });
+            auto deferred = initialized.createBuffer({4,BufferUsage::CopyDestination|BufferUsage::CopySource,
+                                                       "explicit upload",BufferInitialization::Uninitialized});
+            const uint32_t value=0x12345678;
+            initialized.writeBuffer(deferred,0,4,&value);
+            initialized.readBuffer(deferred,0,4,&zero);
+            check(zero==value,"Explicit buffer upload did not roundtrip");
+            initialized.close();
+        }
         auto owner = std::make_shared<TestDevice>();
         TestDevice other;
         validateBufferTransfers(*owner);

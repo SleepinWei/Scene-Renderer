@@ -187,6 +187,10 @@ private:
     DrawCommand state_;
     bool inPass_ = false, submitted_ = false;
 };
+struct PipelineCacheStats {
+    uint64_t graphicsBuilds = 0, computeBuilds = 0, hits = 0, evictions = 0;
+    size_t nativeEntries = 0, idleEntries = 0, liveHandles = 0;
+};
 struct ReadbackTicket {CompletionToken completion;std::shared_ptr<std::vector<uint8_t>> bytes;};
 class GraphicsDevice : public Device, public std::enable_shared_from_this<GraphicsDevice> {
 public:
@@ -196,6 +200,9 @@ public:
     PipelineHandle createGraphicsPipeline(const GraphicsPipelineDesc&);
     ComputePipelineHandle createComputePipeline(const ComputePipelineDesc&);
     void destroyComputePipeline(ComputePipelineHandle);
+    PipelineCacheStats pipelineCacheStats() const;
+    void setPipelineCacheIdleLimit(size_t count); // Combined graphics/compute idle LRU; default 64.
+    void trimPipelineCache();
     virtual ComputeLimits computeLimits() const { return {}; }
     virtual bool supportsWireframe() const { return false; }
     BindingSetHandle createBindingSet(const BindingSetDesc&);
@@ -265,8 +272,10 @@ private:
     friend class CommandList;
     struct TextureRecord { TextureDesc desc; NativeObject native; };
     struct ViewRecord { TextureViewDesc desc; NativeObject native; };
-    struct PipelineRecord { GraphicsPipelineDesc desc; NativeObject native; };
-    struct ComputeRecord { ComputePipelineDesc desc;NativeObject native; };
+    // unordered_map rehash preserves value addresses; leased entries cannot be evicted.
+    struct CachedPipeline { NativeObject native; size_t leases = 0; uint64_t touched = 0; };
+    struct PipelineRecord { GraphicsPipelineDesc desc; NativeObject native; CachedPipeline* cached; };
+    struct ComputeRecord { ComputePipelineDesc desc;NativeObject native; CachedPipeline* cached; };
     struct SamplerRecord { SamplerDesc desc; NativeObject native; };
     const TextureRecord& texture(TextureHandle) const;
     const ViewRecord& view(TextureViewHandle) const;
@@ -283,6 +292,12 @@ private:
     std::unordered_map<uint64_t, ViewRecord> views_;
     std::unordered_map<uint64_t, PipelineRecord> pipelines_;
     std::unordered_map<uint64_t, ComputeRecord> computePipelines_;
+    // unordered_map rehash preserves pointers; live leases prevent entry eviction.
+    std::unordered_map<std::string, CachedPipeline> graphicsPipelineCache_, computePipelineCache_;
+    size_t pipelineIdleLimit_ = 64;
+    uint64_t pipelineClock_ = 0;
+    PipelineCacheStats pipelineStats_;
+    bool trimmingPipelineCache_ = false;
     std::unordered_map<uint64_t, SamplerRecord> samplers_;
     std::unordered_map<uint64_t, BindingSetDesc> bindingSets_;
 };

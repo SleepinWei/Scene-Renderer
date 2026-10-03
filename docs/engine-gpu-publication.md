@@ -51,7 +51,7 @@ RenderRuntime 额外拥有一张 RGBA8 成功画面，渲染和 GUI 完整成功
 - 这是 GPU **帧发布**与资产缓存记录的事务。CPU 世界已经发布的修改仍保留，异步资产接纳仍可能发布部分就绪绘制；完整世界的 CPU／GPU 联合两阶段加载仍是后续设计工作。
 - 地形／VT／细分等已有对象的动态 compute 状态不逐字节回滚；冻结成功画面避免暴露失败结果，下一份成功快照重新生成当前状态。独立 resolve 的调用方不能把历史 GPU packet 当作不可变 GPU 内容。
 - 原生 Metal／Vulkan 双线程编辑器具备画面回退；单线程对照与独立画廊仍按原异常传播路径处理。图片压力回收和 SceneAdapter 缓存事务是 RHI 共用功能。
-- 逻辑配额统计仍不覆盖 driver heap 对齐、隐式 staging、交换链、pipeline、view／sampler 等开销。实际 native heap 统计、自动调整 VT／FFT／LOD 品质、大 buffer 分段上传及 pipeline cache 留待后续阶段。
+- 逻辑配额统计仍不覆盖 driver heap 对齐、隐式 staging、交换链、pipeline、view／sampler 等开销。静态 mesh 分段上传及 pipeline cache 已在 [后续阶段](engine-streaming-and-pipeline-cache.md) 完成。实际 native heap 统计、自动调整 VT／FFT／LOD 品质、图片／生成资源增量初始化与首次管线预热仍待推进。
 
 ## 验证
 

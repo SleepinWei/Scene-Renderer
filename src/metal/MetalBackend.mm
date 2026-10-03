@@ -780,7 +780,7 @@ fragment float4 rhiPresentFragment(float4 position [[position]],texture2d<float>
         require(gpu!=nil,"RHI buffer allocation failed: "+desc.label);
         gpu.label=[NSString stringWithUTF8String:desc.label.c_str()];
         if(data)memcpy(gpu.contents,data,desc.size);
-        else memset(gpu.contents,0,desc.size);
+        else if(desc.initialization == rhi::BufferInitialization::Zeroed) memset(gpu.contents,0,desc.size);
         const unsigned id=s.next++;
         s.buffers.emplace(id,Buffer{gpu,desc.size});
         return id;

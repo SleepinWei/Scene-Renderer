@@ -90,6 +90,9 @@ void RenderRuntime::run(std::unique_ptr<render::GuiRenderer> gui) {
                             rendererWidth = width;
                             rendererHeight = height;
                             auto frame = adapter.resolve(snapshot);
+                            meshUploadBytes_ += frame.meshUploadBytes;
+                            meshUploadChunks_ += frame.meshUploadChunks;
+                            pendingMeshUploads_ = frame.meshUploadsPending;
                             imageBytes_ = frame.gpuImages.residentBytes;
                             imageUploads_ = frame.gpuImages.uploads;
                             imageCacheHits_ = frame.gpuImages.hits;
@@ -154,6 +157,9 @@ void RenderRuntime::run(std::unique_ptr<render::GuiRenderer> gui) {
                     const auto memory = device_->resourceMemory();
                     peakResourceBytes_ = uint64_t(memory.peakBytes);
                     memoryPressureEvents_ = memory.pressureEvents;
+                    const auto pipelines = device_->pipelineCacheStats();
+                    pipelineBuilds_ = pipelines.graphicsBuilds + pipelines.computeBuilds;
+                    pipelineCacheHits_ = pipelines.hits;
                     renderMilliseconds_ =
                         std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - started)
                             .count();

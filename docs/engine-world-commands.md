@@ -87,7 +87,7 @@ Buffer 按 descriptor 字节数计费；RGBA8／Depth32、RGBA16、RGBA32 textur
 - RHI 契约覆盖混合 buffer／四种 texture 格式计费、原生分配失败、超限前拒绝、延迟释放继续计费、重复释放、峰值与关闭归零。
 - Metal 原生 Cornell 编辑器在 256 MiB 配额下完成 8 帧并排空退出，逻辑负载峰值约 134.12 MiB；8 MiB 下在阴影 atlas 分配前报告请求与可用字节，返回错误退出。该运行是配额行为验收，不是性能基准。
 
-完整图形应用与第三方 AppKit／GLFW 未运行 TSan；Windows／Linux 未实机验收。Mesh／Material 核心接口封装与压力回收已在后续阶段完成；下一步完善历史 Texture／效果配置、联合世界发布、品质降级、实际 native heap 统计、大 buffer 分段上传和 pipeline cache，再扩展 RHI 子资源图及 VT feedback。
+完整图形应用与第三方 AppKit／GLFW 未运行 TSan；Windows／Linux 未实机验收。Mesh／Material 核心接口封装与压力回收已在后续阶段完成；下一步完善历史 Texture／效果配置、联合世界发布、品质降级、实际 native heap 统计、图片／生成资源增量初始化和管线预热（静态 mesh 分段上传与 pipeline cache 已实现，见 [修复记录](engine-streaming-and-pipeline-cache.md)），再扩展 RHI 子资源图及 VT feedback。
 
 ## 后续核心数据封装
 

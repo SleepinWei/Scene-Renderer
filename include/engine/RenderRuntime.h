@@ -33,6 +33,11 @@ class RenderRuntime {
     uint64_t rejectedPublications() const { return rejectedPublications_.load(); }
     uint64_t fallbackFrames() const { return fallbackFrames_.load(); }
     uint64_t memoryPressureEvents() const { return memoryPressureEvents_.load(); }
+    uint64_t meshUploadBytes() const { return meshUploadBytes_.load(); }
+    uint64_t meshUploadChunks() const { return meshUploadChunks_.load(); }
+    uint64_t pendingMeshUploads() const { return pendingMeshUploads_.load(); }
+    uint64_t pipelineBuilds() const { return pipelineBuilds_.load(); }
+    uint64_t pipelineCacheHits() const { return pipelineCacheHits_.load(); }
     std::string lastRecoveryMessage() const;
 
   private:
@@ -48,6 +53,8 @@ class RenderRuntime {
     std::atomic<uint64_t> imageBytes_{0}, imageUploads_{0}, imageCacheHits_{0};
     std::atomic<uint64_t> peakResourceBytes_{0};
     std::atomic<uint64_t> rejectedPublications_{0}, fallbackFrames_{0}, memoryPressureEvents_{0};
+    std::atomic<uint64_t> meshUploadBytes_{0}, meshUploadChunks_{0}, pendingMeshUploads_{0};
+    std::atomic<uint64_t> pipelineBuilds_{0}, pipelineCacheHits_{0};
     std::string recoveryMessage_;
     std::atomic<uint64_t> surfaceExtent_{UINT64_MAX};
 };

@@ -319,7 +319,7 @@ protected:
     }
     NativeBuffer createBufferImpl(const BufferDesc& desc, const void* data) override {
         std::vector<uint8_t> zero;
-        if (!data) { zero.resize(desc.size, 0); data = zero.data(); }
+        if (!data && desc.initialization == BufferInitialization::Zeroed) { zero.resize(desc.size, 0); data = zero.data(); }
         GLuint id = 0;
         glGenBuffers(1, &id);
         ScopedCopyBinding binding(GL_COPY_WRITE_BUFFER, id);

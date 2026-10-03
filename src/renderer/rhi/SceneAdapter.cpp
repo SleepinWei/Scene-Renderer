@@ -10,11 +10,16 @@
 #include <map>
 #include <set>
 #include <limits>
+#include <chrono>
+#include <cmath>
 namespace render {
 struct SceneAdapter::Cache {
     struct MeshRecord {
         std::shared_ptr<const MeshPayload> source;
         std::shared_ptr<GpuMesh> gpu;
+        std::shared_ptr<const MeshPayload> uploading;
+        std::shared_ptr<GpuMesh> upload;
+        uint32_t vertexCursor = 0, indexCursor = 0;
     };
     struct MaterialRecord {
         std::shared_ptr<const MaterialPayload> source;
@@ -68,6 +73,14 @@ SceneAdapter::SceneAdapter(std::shared_ptr<rhi::GraphicsDevice> device)
     cache_->fallback = std::make_shared<GpuMaterial>(device_, fallback);
 }
 SceneAdapter::~SceneAdapter() = default;
+void SceneAdapter::setMeshUploadBudget(MeshUploadBudget budget) {
+    device_->checkThread();
+    if(previous_)throw std::logic_error("Cannot configure uploads during publication");
+    if(budget.bytesPerFrame < sizeof(MeshVertex) || budget.bytesPerChunk < sizeof(MeshVertex) ||
+       !std::isfinite(budget.cpuMilliseconds) || budget.cpuMilliseconds <= 0 || !budget.maxPendingMeshes)
+        throw std::invalid_argument("Invalid mesh upload budget");
+    meshUploadBudget_ = budget;
+}
 void SceneAdapter::beginPublication() {
     device_->checkThread();
     if (previous_) throw std::logic_error("Scene publication already active");
@@ -120,7 +133,12 @@ SceneFrame SceneAdapter::resolveCandidate(const RenderWorldSnapshot &snapshot) {
     SceneFrame result;
     result.frame = snapshot.frame;
     result.exposure = snapshot.exposure;
-    auto admit = [&](size_t bytes) {
+    const auto uploadStarted = std::chrono::steady_clock::now();
+    std::set<uint64_t> pendingMeshIds;
+    auto elapsed = [&] {
+        return std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-uploadStarted).count();
+    };
+    auto admit = [&](size_t bytes, bool published = true) {
         if (snapshot.asynchronousStreaming && result.assetUploads &&
             (result.assetUploads >= 2 || result.uploadBytes + bytes > 32 * 1024 * 1024)) {
             ++result.assetsPending;
@@ -128,7 +146,7 @@ SceneFrame SceneAdapter::resolveCandidate(const RenderWorldSnapshot &snapshot) {
         }
         result.uploadBytes += bytes;
         ++result.assetUploads;
-        ++cache_->uploadEpoch;
+        if(published)++cache_->uploadEpoch;
         return true;
     };
     result.frame.taa = result.frame.taa && device_->computeLimits().maxStorageImages > 0;
@@ -199,12 +217,67 @@ SceneFrame SceneAdapter::resolveCandidate(const RenderWorldSnapshot &snapshot) {
             throw std::invalid_argument("Snapshot contains pending mesh");
         usedMeshes.insert(source->id);
         auto &mesh = cache_->meshes[source->id];
+        if(mesh.source == source && mesh.uploading) {
+            mesh.uploading.reset();mesh.upload.reset();mesh.vertexCursor=mesh.indexCursor=0;
+        }
         if (mesh.source != source) {
-            if (!admit(source->vertices.size() * sizeof(MeshVertex) + source->indices.size() * 4))
-                continue;
-            auto uploaded = std::make_shared<GpuMesh>(device_, source->vertices, source->indices);
-            mesh.source = source;
-            mesh.gpu = std::move(uploaded);
+            if(!snapshot.asynchronousStreaming) {
+                admit(source->vertices.size() * sizeof(MeshVertex) + source->indices.size() * 4);
+                auto uploaded = std::make_shared<GpuMesh>(device_, source->vertices, source->indices);
+                mesh.source = source;
+                mesh.gpu = std::move(uploaded);
+                mesh.uploading.reset();mesh.upload.reset();mesh.vertexCursor=mesh.indexCursor=0;
+            } else {
+                if(mesh.uploading != source) {
+                    const auto pending=std::count_if(cache_->meshes.begin(),cache_->meshes.end(),
+                        [](const auto& record){return bool(record.second.upload);});
+                    if(!mesh.upload && pending>=meshUploadBudget_.maxPendingMeshes) {
+                        ++result.assetsPending;pendingMeshIds.insert(source->id);continue;
+                    }
+                    if(!admit(0,false)) {pendingMeshIds.insert(source->id);continue;}
+                    if(source->vertices.size() > UINT32_MAX || source->indices.size() > UINT32_MAX)
+                        throw std::invalid_argument("Mesh upload exceeds uint32 capacity");
+                    auto uploaded = GpuMesh::beginUpload(device_, uint32_t(source->vertices.size()),
+                                                        uint32_t(source->indices.size()));
+                    mesh.uploading = source;
+                    mesh.upload = std::move(uploaded);
+                    mesh.vertexCursor = mesh.indexCursor = 0;
+                }
+                while(result.meshUploadBytes < meshUploadBudget_.bytesPerFrame) {
+                    if(result.meshUploadChunks && elapsed() >= meshUploadBudget_.cpuMilliseconds)break;
+                    const size_t bytes = std::min(meshUploadBudget_.bytesPerChunk,
+                                                  meshUploadBudget_.bytesPerFrame-result.meshUploadBytes);
+                    size_t uploaded = 0;
+                    if(mesh.vertexCursor < source->vertices.size()) {
+                        const auto count = uint32_t(std::min(bytes/sizeof(MeshVertex),source->vertices.size()-mesh.vertexCursor));
+                        if(!count)break;
+                        mesh.upload->uploadVertices(mesh.vertexCursor,source->vertices.data()+mesh.vertexCursor,count);
+                        mesh.vertexCursor += count;
+                        uploaded = size_t(count)*sizeof(MeshVertex);
+                    } else if(mesh.indexCursor < source->indices.size()) {
+                        const auto count = uint32_t(std::min(bytes/4,source->indices.size()-mesh.indexCursor));
+                        if(!count)break;
+                        mesh.upload->uploadIndices(mesh.indexCursor,source->indices.data()+mesh.indexCursor,count);
+                        mesh.indexCursor += count;
+                        uploaded = size_t(count)*4;
+                    } else break;
+                    result.meshUploadBytes += uploaded;
+                    result.uploadBytes += uploaded;
+                    ++result.meshUploadChunks;
+                }
+                if(mesh.vertexCursor == source->vertices.size() && mesh.indexCursor == source->indices.size()) {
+                    mesh.source = source;
+                    mesh.gpu = std::move(mesh.upload);
+                    mesh.uploading.reset();mesh.vertexCursor=mesh.indexCursor=0;
+                    ++cache_->uploadEpoch;
+                    pendingMeshIds.erase(source->id);
+                } else {
+                    ++result.assetsPending;
+                    pendingMeshIds.insert(source->id);
+                    // Keep an already-published base mesh visible during revision upload.
+                    if(!mesh.gpu || draw.subdivision)continue;
+                }
+            }
         }
         auto material = cache_->fallback;
         if (draw.material) {
@@ -271,6 +344,8 @@ SceneFrame SceneAdapter::resolveCandidate(const RenderWorldSnapshot &snapshot) {
             ++it;
     cache_->images->trim();
     result.gpuImages = cache_->images->stats();
+    result.meshUploadsPending = uint32_t(pendingMeshIds.size());
+    result.resolveCpuMilliseconds = elapsed();
     result.frame.historyKey ^= cache_->uploadEpoch * 0x94d049bb133111ebull;
     return result;
 }

@@ -80,6 +80,11 @@ BufferHandle Device::createBuffer(const BufferDesc& desc, const void* initialDat
         throw std::invalid_argument("RHI: invalid buffer descriptor");
     if (hasUsage(desc.usage, BufferUsage::Uniform) && desc.size > limits_.maxUniformBufferSize)
         throw std::invalid_argument("RHI: uniform buffer exceeds device limit");
+    if(desc.initialization != BufferInitialization::Zeroed && desc.initialization != BufferInitialization::Uninitialized)
+        throw std::invalid_argument("RHI: invalid buffer initialization");
+    if(desc.initialization == BufferInitialization::Uninitialized &&
+       (initialData || !hasUsage(desc.usage, BufferUsage::CopyDestination)))
+        throw std::invalid_argument("RHI: uninitialized buffer requires explicit later upload");
     checkResourceAllocation(desc.size,desc.label);
     const auto native = createBufferImpl(desc, initialData);
     const BufferHandle handle{nextHandle.fetch_add(1)};
