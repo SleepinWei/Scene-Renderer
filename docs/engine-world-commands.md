@@ -76,7 +76,7 @@ auto ticket = port.post(engine::SetTransform{
 
 Buffer 按 descriptor 字节数计费；RGBA8／Depth32、RGBA16、RGBA32 texture 每像素分别计 4、8、16 字节，并检查尺寸乘法溢出。分配前检查剩余配额，超限不进入后端创建；后端创建失败或注册失败不计费。活资源和等待 completion retirement 的资源都继续占用配额，实际安全销毁后才减计；重复销毁不重复减计。关闭设备释放全部已登记资源。`resourceMemory()` 提供 buffer／texture 当前字节、配额与逐次成功分配的峰值，避免仅逐帧采样遗漏峰值。
 
-这个配额覆盖通过 RHI 创建的 mesh、VT、阴影／帧目标和图片；图片 cache 的 64 MiB 空闲 LRU、每帧两项／32 MiB 上传接纳目标仍有各自用途。配额**不包含** driver heap 对齐、隐式 staging、交换链、pipeline、view／sampler 开销，不能作为实际系统显存上限。超限明确抛出 `ResourceBudgetExceeded`，由既有错误传播与退出路径处理；尚无自动内存压力淘汰、降级或 GPU 发布回滚。
+这个配额覆盖通过 RHI 创建的 mesh、VT、阴影／帧目标和图片；图片 cache 的 64 MiB 空闲 LRU、每帧两项／32 MiB 上传接纳目标仍有各自用途。配额**不包含** driver heap 对齐、隐式 staging、交换链、pipeline、view／sampler 开销，不能作为实际系统显存上限。后续已加入分配前空闲图片淘汰与等待安全退役；仍超限抛出 `ResourceBudgetExceeded`。原生双线程编辑器回滚候选缓存并保留成功画面后重试；冷启动、其他错误及单线程路径仍明确失败。详见 [GPU 发布与内存压力](engine-gpu-publication.md)。
 
 ## 验证
 
@@ -87,7 +87,7 @@ Buffer 按 descriptor 字节数计费；RGBA8／Depth32、RGBA16、RGBA32 textur
 - RHI 契约覆盖混合 buffer／四种 texture 格式计费、原生分配失败、超限前拒绝、延迟释放继续计费、重复释放、峰值与关闭归零。
 - Metal 原生 Cornell 编辑器在 256 MiB 配额下完成 8 帧并排空退出，逻辑负载峰值约 134.12 MiB；8 MiB 下在阴影 atlas 分配前报告请求与可用字节，返回错误退出。该运行是配额行为验收，不是性能基准。
 
-完整图形应用与第三方 AppKit／GLFW 未运行 TSan；Windows／Linux 未实机验收。下一步继续收紧历史标量／Mesh／Material 的写入口，补充内存压力策略、实际 native heap 统计、大 buffer 分段上传和 pipeline cache，再扩展 RHI 子资源图及 VT feedback。
+完整图形应用与第三方 AppKit／GLFW 未运行 TSan；Windows／Linux 未实机验收。Mesh／Material 核心接口封装与压力回收已在后续阶段完成；下一步完善历史 Texture／效果配置、联合世界发布、品质降级、实际 native heap 统计、大 buffer 分段上传和 pipeline cache，再扩展 RHI 子资源图及 VT feedback。
 
 ## 后续核心数据封装
 

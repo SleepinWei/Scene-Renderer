@@ -46,6 +46,7 @@ struct BufferLimits {
 struct CompletionToken {uint64_t device=0,serial=0;explicit operator bool()const{return serial!=0;}};
 struct ResourceMemoryStats {
     size_t bufferBytes=0,textureBytes=0,peakBytes=0,budgetBytes=0;
+    uint64_t pressureEvents=0,pressureRecoveries=0;
     size_t usedBytes() const {return bufferBytes+textureBytes;}
 };
 class ResourceBudgetExceeded:public std::runtime_error {
@@ -84,9 +85,12 @@ public:
     size_t allocatedBufferBytes() const;
     void setResourceBudget(size_t bytes); // 0 is unlimited; tracked buffer/texture payloads only.
     ResourceMemoryStats resourceMemory() const;
+    // Called once before a quota rejection. Handler may release idle resources,
+    // but must not allocate or change the budget. Only the device thread may use it.
+    void setResourcePressureHandler(std::function<void(size_t)>);
 
 protected:
-    void checkResourceAllocation(size_t bytes,const std::string& label) const;
+    void checkResourceAllocation(size_t bytes,const std::string& label);
     void accountResourceAllocation(size_t bytes,bool texture) noexcept;
     void accountResourceRelease(size_t bytes,bool texture) noexcept;
     explicit Device(BufferLimits limits);
@@ -124,6 +128,8 @@ private:
     std::thread::id ownerThread_=std::this_thread::get_id();
     std::unordered_map<uint64_t, Record> buffers_;
     ResourceMemoryStats memory_;
+    std::function<void(size_t)> pressureHandler_;
+    bool handlingPressure_=false;
 };
 
 // Installed by the native backend after its device/context is ready.

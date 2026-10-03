@@ -35,12 +35,26 @@ size_t Device::allocatedBufferBytes() const {checkThread();return memory_.buffer
 ResourceMemoryStats Device::resourceMemory() const {checkThread();return memory_;}
 void Device::setResourceBudget(size_t bytes) {
     requireOpen();
+    if(handlingPressure_)throw std::logic_error("RHI: pressure handler cannot change budget");
     if(bytes && bytes<memory_.usedBytes())throw std::invalid_argument("RHI: resource budget below current allocation");
     memory_.budgetBytes=bytes;
 }
-void Device::checkResourceAllocation(size_t bytes,const std::string& label) const {
+void Device::setResourcePressureHandler(std::function<void(size_t)> handler) {
     requireOpen();
+    if(handlingPressure_)throw std::logic_error("RHI: pressure handler cannot replace itself");
+    pressureHandler_=std::move(handler);
+}
+void Device::checkResourceAllocation(size_t bytes,const std::string& label) {
+    requireOpen();
+    if(handlingPressure_)throw std::logic_error("RHI: pressure handler cannot allocate resources");
     const size_t limit=memory_.budgetBytes?memory_.budgetBytes:std::numeric_limits<size_t>::max();
+    if(bytes>limit-memory_.usedBytes() && pressureHandler_ && !handlingPressure_) {
+        ++memory_.pressureEvents;
+        handlingPressure_=true;
+        try {pressureHandler_(bytes-(limit-memory_.usedBytes()));handlingPressure_=false;}
+        catch (...) {handlingPressure_=false;throw;}
+        if(bytes<=limit-memory_.usedBytes())++memory_.pressureRecoveries;
+    }
     if(bytes>limit-memory_.usedBytes())
         throw ResourceBudgetExceeded("RHI resource budget exceeded for '"+label+"': requested "+std::to_string(bytes)+
             " bytes; available "+std::to_string(limit-memory_.usedBytes())+" tracked bytes");

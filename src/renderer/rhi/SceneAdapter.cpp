@@ -19,6 +19,8 @@ struct SceneAdapter::Cache {
     struct MaterialRecord {
         std::shared_ptr<const MaterialPayload> source;
         std::shared_ptr<GpuMaterial> gpu;
+        MaterialParameters parameters;
+        MaterialExtension extension;
     };
     std::map<uint64_t, MeshRecord> meshes;
     using MaterialKey = std::pair<uint64_t, uint32_t>;
@@ -36,12 +38,27 @@ struct SceneAdapter::Cache {
         std::shared_ptr<GpuGrass> grass;
         std::shared_ptr<GpuMaterial> material, grassMaterial;
         uint64_t epoch = 0;
+        MaterialParameters parameters;
     };
     std::unique_ptr<TerrainRecord> terrain;
     uint64_t terrainEpoch = 0, uploadEpoch = 0;
     std::shared_ptr<GpuImageCache> images;
     std::shared_ptr<GpuMaterial> fallback;
+    Cache() = default;
+    Cache(const Cache &other)
+        : meshes(other.meshes), materials(other.materials), subdivisions(other.subdivisions),
+          terrain(other.terrain ? std::make_unique<TerrainRecord>(*other.terrain) : nullptr),
+          terrainEpoch(other.terrainEpoch), uploadEpoch(other.uploadEpoch), images(other.images),
+          fallback(other.fallback) {}
 };
+namespace {
+bool same(const MaterialParameters &a, const MaterialParameters &b) {
+    return a.albedoAlpha == b.albedoAlpha && a.factors == b.factors && a.emissiveNormal == b.emissiveNormal;
+}
+bool same(const MaterialExtension &a, const MaterialExtension &b) {
+    return a.lobes == b.lobes && a.settings == b.settings;
+}
+}
 SceneAdapter::SceneAdapter(std::shared_ptr<rhi::GraphicsDevice> device)
     : device_(std::move(device)), cache_(std::make_unique<Cache>()) {
     cache_->images = GpuImageCache::forDevice(device_);
@@ -51,7 +68,28 @@ SceneAdapter::SceneAdapter(std::shared_ptr<rhi::GraphicsDevice> device)
     cache_->fallback = std::make_shared<GpuMaterial>(device_, fallback);
 }
 SceneAdapter::~SceneAdapter() = default;
+void SceneAdapter::beginPublication() {
+    device_->checkThread();
+    if (previous_) throw std::logic_error("Scene publication already active");
+    auto candidate = std::make_unique<Cache>(*cache_);
+    previous_ = std::move(cache_);
+    cache_ = std::move(candidate);
+}
+void SceneAdapter::commitPublication() {
+    device_->checkThread();
+    if (!previous_) throw std::logic_error("No scene publication active");
+    previous_.reset();
+}
+void SceneAdapter::rollbackPublication() {
+    device_->checkThread();
+    if (!previous_) return;
+    cache_.swap(previous_);
+    previous_.reset();
+    cache_->images->releaseIdle(); // Discard unleased images from partially built materials.
+}
 void SceneAdapter::invalidateAssets() {
+    device_->checkThread();
+    if (previous_) throw std::logic_error("Cannot invalidate during publication");
     cache_->meshes.clear();
     cache_->materials.clear();
     cache_->subdivisions.clear();
@@ -66,6 +104,19 @@ SceneFrame SceneAdapter::collect(const std::shared_ptr<RenderScene> &scene, floa
     return resolve(*snapshot);
 }
 SceneFrame SceneAdapter::resolve(const RenderWorldSnapshot &snapshot) {
+    device_->checkThread();
+    const bool local = !previous_;
+    if (local) beginPublication();
+    try {
+        auto result = resolveCandidate(snapshot);
+        if (local) commitPublication();
+        return result;
+    } catch (...) {
+        if (local) rollbackPublication();
+        throw;
+    }
+}
+SceneFrame SceneAdapter::resolveCandidate(const RenderWorldSnapshot &snapshot) {
     SceneFrame result;
     result.frame = snapshot.frame;
     result.exposure = snapshot.exposure;
@@ -101,6 +152,7 @@ SceneFrame SceneAdapter::resolve(const RenderWorldSnapshot &snapshot) {
             MaterialDesc material;
             material.parameters = terrain.parameters;
             record->material = std::make_shared<GpuMaterial>(device_, material, record->virtualMaterial);
+            record->parameters = terrain.parameters;
             if (source->grass) {
                 record->grass = std::make_shared<GpuGrass>(device_, rhi::defaultShaderDirectory(),
                                                            record->gpu, terrain.model);
@@ -117,7 +169,12 @@ SceneFrame SceneAdapter::resolve(const RenderWorldSnapshot &snapshot) {
         record.gpu->update(result.frame, terrain.model);
         record.virtualMaterial->prepare(result.frame.viewProjection, terrain.model,
                                         result.frame.viewportWidth, result.frame.viewportHeight, true);
-        record.material->update(terrain.parameters);
+        if (!same(record.parameters, terrain.parameters)) {
+            MaterialDesc desc;
+            desc.parameters = terrain.parameters;
+            record.material = std::make_shared<GpuMaterial>(device_, desc, record.virtualMaterial);
+            record.parameters = terrain.parameters;
+        }
         result.frame.historyKey ^= record.gpu->heightTexture()->version() * 0x9e3779b97f4a7c15ull ^
                                    record.virtualMaterial->version() ^ (record.epoch * 0xd1b54a32d192ed03ull);
         result.packets.push_back({record.gpu->mesh(), record.material, terrain.model, 0, terrain.wireframe});
@@ -154,21 +211,23 @@ SceneFrame SceneAdapter::resolve(const RenderWorldSnapshot &snapshot) {
             const auto key = Cache::MaterialKey{draw.material->id, draw.shading};
             usedMaterials.insert(key);
             auto &cached = cache_->materials[key];
-            if (cached.source != draw.material) {
+            const bool imagesChanged = cached.source != draw.material;
+            if (imagesChanged || !same(cached.parameters, draw.parameters) ||
+                !same(cached.extension, draw.extension)) {
                 MaterialDesc desc;
                 desc.parameters = draw.parameters;
                 desc.extension = draw.extension;
                 desc.sharedImages = draw.material->images;
                 desc.sharedSpecial = draw.material->special;
-                if (!admit(GpuMaterial::imageUploadBytes(device_, desc)))
+                if (imagesChanged && !admit(GpuMaterial::imageUploadBytes(device_, desc)))
                     continue;
                 auto uploaded = std::make_shared<GpuMaterial>(device_, desc);
                 cached.source = draw.material;
                 cached.gpu = std::move(uploaded);
+                cached.parameters = draw.parameters;
+                cached.extension = draw.extension;
             }
             material = cached.gpu;
-            material->update(draw.parameters);
-            material->updateExtension(draw.extension);
         }
         auto gpu = mesh.gpu;
         if (draw.subdivision) {
@@ -176,11 +235,12 @@ SceneFrame SceneAdapter::resolve(const RenderWorldSnapshot &snapshot) {
             usedSubdivisions.insert(key);
             auto &cached = cache_->subdivisions[key];
             if (cached.source != source || cached.material != draw.material) {
-                cached.source = source;
-                cached.material = draw.material;
-                cached.gpu = std::make_shared<GpuSubdivision>(
+                auto uploaded = std::make_shared<GpuSubdivision>(
                     device_, rhi::defaultShaderDirectory(), source->vertices, source->indices,
                     draw.material && draw.material->height ? *draw.material->height : ImageRGBA8{});
+                cached.source = source;
+                cached.material = draw.material;
+                cached.gpu = std::move(uploaded);
             }
             float distance = std::numeric_limits<float>::max();
             for (const auto &vertex : source->vertices)

@@ -82,6 +82,35 @@ int main() {
             check(budget.resourceMemory().usedBytes()==0 && budget.resourceMemory().peakBytes==128,
                   "Close leaked resource accounting");
         }
+        {
+            TestDevice pressure;
+            pressure.setResourceBudget(128);
+            auto idle = pressure.createBuffer({64, BufferUsage::Vertex, "reclaimable"});
+            auto live = pressure.createBuffer({64, BufferUsage::Vertex, "live"});
+            size_t requested = 0;
+            pressure.setResourcePressureHandler([&](size_t bytes) {
+                requested = bytes;
+                pressure.destroyBuffer(idle);
+            });
+            auto admitted = pressure.createBuffer({32, BufferUsage::Vertex, "after pressure"});
+            check(requested == 32 && pressure.resourceMemory().usedBytes() == 96 &&
+                      pressure.resourceMemory().pressureEvents == 1 &&
+                      pressure.resourceMemory().pressureRecoveries == 1,
+                  "Pressure did not reclaim before admission or recorded wrong recovery");
+            rejects<ResourceBudgetExceeded>([&] {
+                pressure.createBuffer({64, BufferUsage::Vertex, "still too large"});
+            });
+            pressure.setResourcePressureHandler([&](size_t) {
+                pressure.createBuffer({1, BufferUsage::Vertex, "recursive allocation"});
+            });
+            rejects<std::logic_error>([&] {pressure.createBuffer({64, BufferUsage::Vertex, "recursive"});});
+            pressure.setResourcePressureHandler({}); // Throwing handler must restore its reentry guard.
+            check(pressure.resourceMemory().usedBytes() == 96,
+                  "Rejected pressure request polluted accounting");
+            pressure.destroyBuffer(live);
+            pressure.destroyBuffer(admitted);
+            pressure.close();
+        }
         auto owner = std::make_shared<TestDevice>();
         TestDevice other;
         validateBufferTransfers(*owner);

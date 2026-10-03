@@ -31,6 +31,7 @@ class GpuImageCache {
     size_t missingBytes(const std::vector<std::shared_ptr<const ImageRGBA8>> &) const;
     void setIdleBudget(size_t bytes);
     void trim();
+    size_t releaseIdle(size_t bytes = SIZE_MAX); // Never evicts a live material lease.
     GpuImageCacheStats stats() const;
 
   private:

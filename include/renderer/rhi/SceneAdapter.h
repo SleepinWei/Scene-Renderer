@@ -18,11 +18,17 @@ class SceneAdapter {
     ~SceneAdapter();
     SceneFrame collect(const std::shared_ptr<RenderScene> &, float timeOverride = -1);
     SceneFrame resolve(const RenderWorldSnapshot &); // Render-thread only.
-    void invalidateAssets();                         // Call after changing cached CPU geometry/images.
+    // Extend cache publication across renderer/GUI work. Every begin must commit or rollback.
+    // Dynamic compute output is mutable; use an independent successful image for frame fallback.
+    void beginPublication();
+    void commitPublication();
+    void rollbackPublication();
+    void invalidateAssets(); // Call after changing cached CPU geometry/images.
   private:
     struct Cache;
     std::shared_ptr<rhi::GraphicsDevice> device_;
-    std::unique_ptr<Cache> cache_;
+    std::unique_ptr<Cache> cache_, previous_;
+    SceneFrame resolveCandidate(const RenderWorldSnapshot &);
     SceneSnapshotBuilder builder_; // Single-thread compatibility capture.
 };
 void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice>);

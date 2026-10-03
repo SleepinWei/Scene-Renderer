@@ -41,7 +41,7 @@ CPU 队列与 GPU 在途帧分别限制：最多 2 个等待的帧包，GPU 默�
 
 `Loader::buildScene(path)` 返回 `SceneLoadRequest`，包含 future、取消标记和进度。独立协调线程分发解码任务，按 JSON 对象键的确定顺序收集结果，避免 worker 完成先后改变场景顺序。每个解码对象先封存再经 future 交给协调线程接管，完整 staging 在资产准备后再次封存，主线程接管时重新指定组件与 CPU 资产归属；Camera、Mesh 和引用的 Material 一并参与。可变资产组必须整体移交，不支持不同线程同时使用跨世界共享的可变 Material。未封存外线程对象及单独外线程组件不能直接挂入世界。子 JSON、网格、材质图片及 VT bootstrap 验证成功后才返回 staging；准备的 const CPU payload 在主线程第一次 capture 时被接管，避免重复准备。
 
-GUI 轮询 future，在主线程调用 `RenderScene::replaceWith` 一次发布，保留已有相机。解析失败、缺少子文件、解码失败或取消都保留原场景。事务保证 CPU 侧构建与资产准备；GPU 分配、设备能力及 GPU 专用参数校验失败仍由渲染线程上报，尚未实现 GPU 阶段的回滚。重新选择文件先取消旧请求，旧结果不会覆盖新选择。取消在任务边界和发布前检查，不强制中断正在进行的文件读取／Assimp 导入。满载的协调队列返回明确失败，不阻塞 UI 等待空位。
+GUI 轮询 future，在主线程调用 `RenderScene::replaceWith` 一次发布，保留已有相机。解析失败、缺少子文件、解码失败或取消都保留原场景。CPU 构建与资产准备仍在 staging 中完成。原生双线程编辑器现支持 GPU 候选缓存与成功画面的帧级事务，配额拒绝会保留成功画面并重试；CPU 世界不回滚，完整联合两阶段加载尚待设计。设备能力及 GPU 参数错误仍由渲染线程上报。重新选择文件先取消旧请求，旧结果不会覆盖新选择。取消在任务边界和发布前检查，不强制中断正在进行的文件读取／Assimp 导入。满载的协调队列返回明确失败，不阻塞 UI 等待空位。
 
 旧 `loadSceneAsync(scene,path)` 保留为阻塞兼容包装，内部也执行完整事务。OpenGL 兼容路径由该包装在 GL context 线程同步构建，后台 `buildScene` 明确拒绝此后端，避免历史组件在无 context 的 worker 中创建 GL 对象。Loader 不再公开 threadpool/maxThread。退出先等待所有已取消／过期请求结束，再关闭设备，避免任务访问已经销毁的运行环境。
 
@@ -57,7 +57,7 @@ GUI 轮询 future，在主线程调用 `RenderScene::replaceWith` 一次发布�
 
 普通网格／材质在渲染线程按当前 snapshot 逐步创建：每帧最多接纳 2 个新资产，累计上传目标为 32 MiB。超过单帧目标的单个资源允许独占一次上传，避免大资源永远无法加载；这是接纳预算，不是硬性的帧时间保证。材质接纳只计尚未缓存的图片字节；相同内容在单个材质中也不重复计费。尚未就绪的对象暂时不进入 DrawPacket，但其仍被引用的材质／细分记录不会因上游网格等待而被清除，避免反复重建。上传完成会使 TSAA 历史失效。地形、细分、海洋和 pipeline 初始化仍有不可分割的分配／构建；后续应增加大 buffer 分段上传和 pipeline cache。
 
-可选 `--gpu-resource-budget-mib N` 对原生编辑器的所有 RHI buffer／texture 设定统一逻辑负载配额（默认 0，不限额）。分配前拒绝超限，失败不计费，等待 completion 的资源直到实际安全销毁才减计；超限由既有 worker 错误传播路径退出，尚无压力降级或 GPU 发布回滚。详见[组件、命令与配额](engine-world-commands.md)。
+可选 `--gpu-resource-budget-mib N` 对原生编辑器的所有 RHI buffer／texture 设定统一逻辑负载配额（默认 0，不限额）。分配前拒绝超限，失败不计费，等待 completion 的资源直到实际安全销毁才减计；空间不足时先淘汰空闲图片并等待安全退役；仍超限时，双线程编辑器回滚候选缓存并冻结成功画面、250 ms 后重试。冷启动没有成功画面时仍失败，其他错误继续传播。帧发布范围与额外 RGBA8 画面成本见 [GPU 发布与压力处理](engine-gpu-publication.md)。详见[组件、命令与配额](engine-world-commands.md)。
 
 运行日志输出帧数、最近一帧渲染线程 CPU 用时、最近最多 256 帧的 CPU p95／p99（每 32 帧和退出时更新）、主线程提交队列的最大等待用时、共享 GPU 图片字节／上传／命中次数，以及逐次成功分配更新的 RHI buffer／texture 逻辑负载峰值。CPU 时间包含 worker 中的提交、呈现与必要等待，不是 GPU timestamp；队列最大等待也不是完整输入到画面的端到端延迟。该估算包含仍在 RHI 注册的资源，**不包含** driver heap 对齐、隐式 staging、交换链、pipeline 或 RHI 未登记的 native allocation，不能当作系统显存峰值。
 
@@ -96,3 +96,5 @@ CPU 并发测试覆盖同 key 合并、不同 key、失败重试、释放、队�
 后续结构、图片共享、LRU 和预算等待修复的原因与验收见 [Engine 后续修复记录](engine-followup-fixes.md)。
 
 核心参数私有化、自动版本失效、MaterialData worker 输入与资产移交的接口及最新验收见 [可变数据边界](engine-data-boundaries.md)。
+
+GPU 发布与内存压力后续回归同样通过 Metal **11/11**、Vulkan **12/12**、OpenGL **8/8**；CPU RHI 配额回调测试通过 ThreadSanitizer。原生 worker 超限后的保留与恢复使用真实 PPM 像素比较验收。

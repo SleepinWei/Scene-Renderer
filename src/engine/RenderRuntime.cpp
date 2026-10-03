@@ -7,7 +7,24 @@
 #include <fstream>
 #include <array>
 #include <cmath>
+#include <iostream>
 namespace engine {
+namespace {
+// Publication owns pixels independently of mutable terrain/ocean/temporal state.
+// A rejected candidate may have submitted compute; never redraw its old packets.
+struct PublishedImage {
+    render::Resources resources;
+    rhi::TextureHandle texture;
+    uint32_t width, height;
+    PublishedImage(std::shared_ptr<rhi::GraphicsDevice> device, uint32_t w, uint32_t h)
+        : resources(std::move(device)), width(w), height(h) {
+        texture = resources.texture({w, h, rhi::Format::RGBA8UNorm,
+                                     rhi::TextureUsage::Sampled | rhi::TextureUsage::CopyDestination |
+                                         rhi::TextureUsage::CopySource,
+                                     "Last successful scene publication"});
+    }
+};
+}
 RenderRuntime::RenderRuntime(std::shared_ptr<rhi::GraphicsDevice> device,
                              std::unique_ptr<render::GuiRenderer> gui, size_t capacity)
     : device_(std::move(device)), queue_(capacity) {
@@ -41,6 +58,9 @@ void RenderRuntime::run(std::unique_ptr<render::GuiRenderer> gui) {
         try {
             render::SceneAdapter adapter(device_);
             std::unique_ptr<render::ForwardPbrRenderer> renderer;
+            std::unique_ptr<PublishedImage> published;
+            uint32_t rendererWidth = 0, rendererHeight = 0;
+            auto nextAttempt = std::chrono::steady_clock::time_point::min();
             while (auto packet = queue_.pop()) {
 #ifdef __APPLE__
                 @autoreleasepool {
@@ -52,19 +72,72 @@ void RenderRuntime::run(std::unique_ptr<render::GuiRenderer> gui) {
                     device_->setPresentationExtent(surface == UINT64_MAX ? width : uint32_t(surface >> 32),
                                                    surface == UINT64_MAX ? height : uint32_t(surface));
                     device_->beginFrame();
-                    if (!renderer)
-                        renderer = std::make_unique<render::ForwardPbrRenderer>(
-                            device_, rhi::defaultShaderDirectory(), width, height, render::PbrPath::Scene);
-                    renderer->resize(width, height);
-                    auto frame = adapter.resolve(snapshot);
-                    imageBytes_ = frame.gpuImages.residentBytes;
-                    imageUploads_ = frame.gpuImages.uploads;
-                    imageCacheHits_ = frame.gpuImages.hits;
-                    renderer->render(frame.frame, frame.packets, frame.exposure);
-                    if (gui)
-                        gui->render(packet->gui, renderer->output());
+                    bool fallback = published && started < nextAttempt;
+                    if (!fallback) {
+                        adapter.beginPublication();
+                        bool rendering = false;
+                        std::unique_ptr<PublishedImage> replacement;
+                        try {
+                            if (!published || published->width != width || published->height != height)
+                                replacement = std::make_unique<PublishedImage>(device_, width, height);
+                            if (!renderer) {
+                                renderer = std::make_unique<render::ForwardPbrRenderer>(
+                                    device_, rhi::defaultShaderDirectory(), width, height, render::PbrPath::Scene);
+                                rendererWidth = width;
+                                rendererHeight = height;
+                            }
+                            renderer->resize(width, height);
+                            rendererWidth = width;
+                            rendererHeight = height;
+                            auto frame = adapter.resolve(snapshot);
+                            imageBytes_ = frame.gpuImages.residentBytes;
+                            imageUploads_ = frame.gpuImages.uploads;
+                            imageCacheHits_ = frame.gpuImages.hits;
+                            rendering = true;
+                            renderer->render(frame.frame, frame.packets, frame.exposure);
+                            if (gui)
+                                gui->render(packet->gui, renderer->output());
+                            auto &target = replacement ? *replacement : *published;
+                            auto copy = device_->createCommandList();
+                            copy.copyTexture(renderer->output(), target.texture);
+                            device_->submit(copy);
+                            adapter.commitPublication();
+                            if (replacement)
+                                published = std::move(replacement);
+                            nextAttempt = std::chrono::steady_clock::time_point::min();
+                        } catch (const rhi::ResourceBudgetExceeded &error) {
+                            adapter.rollbackPublication();
+                            replacement.reset();
+                            // If candidate rendering mutated effects, rebuild them on the next attempt.
+                            if (rendering || (published && (rendererWidth != published->width ||
+                                                           rendererHeight != published->height))) {
+                                renderer.reset();
+                                rendererWidth = rendererHeight = 0;
+                            }
+                            auto images = render::GpuImageCache::forDevice(device_);
+                            images->releaseIdle();
+                            device_->waitIdle(); // Complete candidate work and retirement before retry.
+                            if (!published)
+                                throw; // Cold start has no valid image to retain.
+                            ++rejectedPublications_;
+                            {
+                                std::lock_guard<std::mutex> lock(failureMutex_);
+                                if (recoveryMessage_ != error.what())
+                                    std::cerr << "Scene GPU publication rejected; keeping last image: "
+                                              << error.what() << '\n';
+                                recoveryMessage_ = error.what();
+                            }
+                            fallback = true;
+                            // Avoid uploading the same oversized candidate on every UI tick.
+                            nextAttempt = std::chrono::steady_clock::now() + std::chrono::milliseconds(250);
+                        }
+                    }
+                    if (fallback)
+                        ++fallbackFrames_;
+                    width = published->width;
+                    height = published->height;
                     if (!packet->screenshot.empty()) {
-                        auto pixels = device_->readTexture(renderer->output());
+                        auto pixels = device_->readTexture(published->texture);
                         auto path = std::filesystem::path(packet->screenshot);
                         if (!path.parent_path().empty())
                             std::filesystem::create_directories(path.parent_path());
@@ -75,11 +148,12 @@ void RenderRuntime::run(std::unique_ptr<render::GuiRenderer> gui) {
                         if (!file)
                             throw std::runtime_error("Cannot write render screenshot");
                     }
-                    device_->copyToBackbuffer(renderer->output());
+                    device_->copyToBackbuffer(published->texture);
                     device_->present();
                     ++framesRendered_;
-                    peakResourceBytes_ =
-                        uint64_t(device_->resourceMemory().peakBytes);
+                    const auto memory = device_->resourceMemory();
+                    peakResourceBytes_ = uint64_t(memory.peakBytes);
+                    memoryPressureEvents_ = memory.pressureEvents;
                     renderMilliseconds_ =
                         std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - started)
                             .count();
@@ -125,6 +199,10 @@ bool RenderRuntime::submit(RenderPacket packet) {
     peakQueueWaitMilliseconds_ = std::max(peakQueueWaitMilliseconds_.load(), waited);
     rethrowFailure();
     return accepted;
+}
+std::string RenderRuntime::lastRecoveryMessage() const {
+    std::lock_guard<std::mutex> lock(failureMutex_);
+    return recoveryMessage_;
 }
 void RenderRuntime::rethrowFailure() const {
     std::lock_guard<std::mutex> lock(failureMutex_);

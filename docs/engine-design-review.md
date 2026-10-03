@@ -34,14 +34,14 @@ RenderScene 的结构与灯光索引改为私有并迁移全部调用方；重�
 | 优先级 | 当前边界 | 下一步与验收 |
 | --- | --- | --- |
 | P1 | 世界结构、组件注册表与核心 Transform／Light／Camera／Mesh／Material 数据已私有；Texture 像素、部分效果配置与兼容字段仍公开 | 继续迁移历史 Texture 与效果配置，约束共享可变资产组移交；新模块使用检查过的 API／命令。稳定 ID 不复用，后续 ECS 槽位需 generation |
-| P1 | 图片空闲 LRU 64 MiB；所有 RHI buffer／texture 已有可选统一逻辑负载配额，含等待安全释放的资源 | 增加内存压力淘汰／降级、GPU 发布回滚与实际 native heap 统计；逻辑配额不覆盖隐式 staging／交换链／pipeline，继续大场景压力验收 |
+| P1 | 配额压力时回收空闲图片／等待退役，候选缓存事务与成功画面回退已实现；CPU 世界仍独立发布 | 完整世界的 CPU／GPU 联合两阶段加载、品质降级、实际 native heap 统计与大场景压力验收；动态 GPU 状态依靠成功画面隔离，详见发布文档 |
 | P1 | 大地形／细分／海洋和 pipeline 初建仍不可分割；队列背压会等待 | 分段 upload、pipeline cache、按用时接纳；已有渲染 CPU p95／p99 和队列最大等待统计；继续测量大场景启动、GPU 时间、端到端输入延迟及实际 native heap 峰值 |
 | P2 | 场景取消不能中断正在执行的 Assimp／磁盘操作；路径仍沿用历史 cwd 约定 | 资产根目录、结构化诊断、分阶段取消与请求代际；失败／过期结果不发布 |
 | P2 | graph 是有序记录及校验，大气／阴影／海洋模拟仍在图前执行 | 将效果纳入资源图，增加 RHI mip/layer/subresource、transient 生命周期和 debug marker；再实现自动调度／资源复用 |
 | P2 | 相机与编辑器逻辑仍按主线程帧 tick，PT 启动接口会阻塞 | 输入消息与独立固定步长模拟；PT 任务状态／取消；验收暂停、慢 GPU、加载时逻辑时钟与交互行为 |
 | P2 | VT 是 CPU 预测，LOD 用固定距离和全局高度界；动态地形不累积 TSAA | 屏幕 feedback、阴影／反射视角请求、分块 min/max、屏幕误差 LOD、morph 与可靠运动历史 |
 
-推荐后续仍按依赖顺序：先完成资产与世界接口封装／预算，再扩展 graph 与 RHI 子资源，最后推进屏幕反馈 VT 和地形时间连续性。屏幕 feedback、morph、全局 ECS、跨队列 GPU 调度没有在本次实现中伪装为已经完成。
+推荐后续仍按依赖顺序：继续完善历史资产接口与联合世界发布，推进分段上传／pipeline cache，再扩展 graph 与 RHI 子资源，最后推进屏幕反馈 VT 和地形时间连续性。屏幕 feedback、morph、全局 ECS、跨队列 GPU 调度没有在本次实现中伪装为已经完成。
 
 ## 验证范围
 
@@ -56,3 +56,5 @@ CPU cache／job／帧队列和 graph 契约有独立测试，并在 ThreadSaniti
 组件／世界命令／RHI 配额后续回归：Metal **11/11**、Vulkan/MoltenVK **12/12**、OpenGL **8/8**，CPU 命令队列再次通过 ThreadSanitizer；256 MiB 正常运行与 8 MiB 明确拒绝分配的编辑器路径通过。
 
 核心数据封装后续回归：Metal **11/11**、Vulkan/MoltenVK **12/12**、OpenGL **8/8**，CPU LogicAsset 错误线程访问／复制检查通过 ThreadSanitizer；详情见 [可变数据边界](engine-data-boundaries.md)。
+
+内存压力与 GPU 帧发布阶段已完成并通过三后端回归：空闲图片回收、候选缓存／材质参数隔离、窗口与海洋超限时保留旧像素、正常快照恢复。完整范围、成本与剩余联合加载工作见 [GPU 发布文档](engine-gpu-publication.md)。

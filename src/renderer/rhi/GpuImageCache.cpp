@@ -49,6 +49,15 @@ std::shared_ptr<GpuImageCache> GpuImageCache::forDevice(std::shared_ptr<rhi::Gra
     if (!result) {
         result = std::shared_ptr<GpuImageCache>(new GpuImageCache(std::move(device)));
         cached = result;
+        device = result->device_;
+        const auto weak = std::weak_ptr<GpuImageCache>(result);
+        device->setResourcePressureHandler([weak](size_t bytes) {
+            if (auto cache = weak.lock()) {
+                cache->releaseIdle(bytes);
+                // Pending frame resources may reclaim quota even with no idle images.
+                cache->device_->waitIdle(); // Keep in-flight accounting until safe completion.
+            }
+        });
     }
     return result;
 }
@@ -125,7 +134,20 @@ void GpuImageCache::trim() {
     for (const auto &entry : entries_)
         if (entry.second.gpu.use_count() == 1)
             idle += entry.second.gpu->bytes();
-    while (idle > idleBudget_) {
+    if (idle > idleBudget_)
+        releaseIdle(idle - idleBudget_);
+    // Remove dead aliases even when no image was evicted.
+    for (auto it = identities_.begin(); it != identities_.end();) {
+        if (it->second.source.expired() || it->second.gpu.expired())
+            it = identities_.erase(it);
+        else
+            ++it;
+    }
+}
+size_t GpuImageCache::releaseIdle(size_t bytes) {
+    device_->checkThread();
+    size_t released = 0;
+    while (released < bytes) {
         auto oldest = entries_.end();
         for (auto it = entries_.begin(); it != entries_.end(); ++it)
             if (it->second.gpu.use_count() == 1 &&
@@ -133,7 +155,7 @@ void GpuImageCache::trim() {
                 oldest = it;
         if (oldest == entries_.end())
             break;
-        idle -= oldest->second.gpu->bytes();
+        released += oldest->second.gpu->bytes();
         entries_.erase(oldest);
         ++evictions_;
     }
@@ -144,6 +166,7 @@ void GpuImageCache::trim() {
         else
             ++it;
     }
+    return released;
 }
 GpuImageCacheStats GpuImageCache::stats() const {
     device_->checkThread();

@@ -30,6 +30,10 @@ class RenderRuntime {
     uint64_t imageUploads() const { return imageUploads_.load(); }
     uint64_t imageCacheHits() const { return imageCacheHits_.load(); }
     uint64_t peakResourceBytes() const { return peakResourceBytes_.load(); }
+    uint64_t rejectedPublications() const { return rejectedPublications_.load(); }
+    uint64_t fallbackFrames() const { return fallbackFrames_.load(); }
+    uint64_t memoryPressureEvents() const { return memoryPressureEvents_.load(); }
+    std::string lastRecoveryMessage() const;
 
   private:
     void run(std::unique_ptr<render::GuiRenderer>);
@@ -43,6 +47,8 @@ class RenderRuntime {
     std::atomic<double> renderP95Milliseconds_{0}, renderP99Milliseconds_{0}, peakQueueWaitMilliseconds_{0};
     std::atomic<uint64_t> imageBytes_{0}, imageUploads_{0}, imageCacheHits_{0};
     std::atomic<uint64_t> peakResourceBytes_{0};
+    std::atomic<uint64_t> rejectedPublications_{0}, fallbackFrames_{0}, memoryPressureEvents_{0};
+    std::string recoveryMessage_;
     std::atomic<uint64_t> surfaceExtent_{UINT64_MAX};
 };
 } // namespace engine

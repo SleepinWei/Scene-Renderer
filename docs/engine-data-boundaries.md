@@ -65,6 +65,6 @@ Mesh／Material 副本保留内容但使用新稳定 ID，复制入口也检查�
 
 本阶段没有声称全部历史对象均已私有化。Texture 的像素、路径、尺寸及 GL handle 仍是历史公开字段；材质只保护映射，不能拦截 Texture 指针的原地像素修改。此类修改必须在逻辑线程进行并调用 Material::invalidate，内存图的共享引用也需要调用方管理。Terrain／Ocean／Atmosphere 的部分效果配置、GameObject 名称与历史灯光 GPU 资源仍有公开兼容字段，应继续按主线程约定使用。
 
-下一阶段仍按既定顺序推进：内存压力淘汰与降级、GPU 发布事务及失败回滚，然后分段上传／pipeline cache、完整资源图与 RHI 子资源、VT feedback／LOD 时间连续性。现有 RHI 配额超限仍通过错误传播退出；本次没有实现 GPU 回滚，也没有把逻辑负载统计当作实际 driver heap 统计。
+后续内存压力回收与 GPU 帧发布回滚已经落地，见 [GPU 发布与压力处理](engine-gpu-publication.md)：原生双线程编辑器保留成功画面并重试，CPU 世界不回滚。之后继续推进联合世界加载／品质降级、分段上传／pipeline cache、完整资源图与 RHI 子资源、VT feedback／LOD 时间连续性。逻辑负载统计仍不能作为实际 driver heap 统计。
 
 设计全貌见 [Engine 设计审查](engine-design-review.md)，线程和快照协议见 [Engine 多线程说明](engine-multithreading.md)，前一阶段的值命令与配额见 [组件、命令与配额](engine-world-commands.md)。

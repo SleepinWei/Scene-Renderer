@@ -246,6 +246,24 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
         cache->trim();
         device->waitIdle();
         cache->setIdleBudget(64 * 1024 * 1024);
+        {
+            auto live = cache->acquire(image);
+            auto idle = cache->acquire(newest);
+            idle.reset();
+            device->waitIdle();
+            const auto before = device->resourceMemory();
+            const auto evictions = cache->stats().evictions;
+            device->setResourceBudget(before.usedBytes());
+            auto buffer = device->createBuffer({8, rhi::BufferUsage::Vertex, "Image pressure admission"});
+            check(cache->stats().idleBytes == 0 && cache->stats().evictions > evictions &&
+                      device->resourceMemory().pressureRecoveries == before.pressureRecoveries + 1 &&
+                      device->readTexture(live->texture()) == image->pixels,
+                  "Pressure eviction failed to reclaim idle images or evicted a live material lease");
+            device->destroyBuffer(buffer);
+            device->setResourceBudget(before.budgetBytes);
+        }
+        cache->releaseIdle();
+        device->waitIdle();
     }
     {
         auto scene = std::make_shared<RenderScene>();
@@ -638,6 +656,59 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
                       secondUpload.packets[2].material == warm.packets[2].material,
                   "Upload backpressure evicted a still-referenced material or blocked progress");
         }
+        {
+            SceneAdapter transactional(device);
+            auto seed = *first;
+            seed.terrain.reset();
+            seed.draws.resize(1);
+            seed.draws[0].subdivision = false;
+            auto committed = transactional.resolve(seed);
+            auto changed = seed;
+            auto geometry = std::make_shared<MeshPayload>(*seed.draws[0].mesh);
+            ++geometry->revision;
+            geometry->vertices[0].position.x += .1f;
+            changed.draws[0].mesh = geometry;
+            changed.draws[0].parameters.albedoAlpha.w = .5f;
+            auto extra = changed.draws[0];
+            auto extraMesh = std::make_shared<MeshPayload>(*geometry);
+            extraMesh->id += 1000000;
+            extra.mesh = extraMesh;
+            changed.draws.push_back(extra);
+            auto images = GpuImageCache::forDevice(device);
+            images->releaseIdle();
+            device->waitIdle();
+            const auto before = device->resourceMemory();
+            // First mesh and its new parameter buffers fit. The later mesh fails.
+            device->setResourceBudget(before.usedBytes() + geometry->vertices.size() * sizeof(MeshVertex) +
+                                      geometry->indices.size() * 4 + 96);
+            bool rejected = false;
+            try {
+                transactional.resolve(changed);
+            } catch (const rhi::ResourceBudgetExceeded &) {
+                rejected = true;
+            }
+            device->waitIdle();
+            check(rejected && device->resourceMemory().usedBytes() == before.usedBytes(),
+                  "Late scene allocation did not reject or leaked candidate resources");
+            device->setResourceBudget(before.budgetBytes);
+            auto retained = transactional.resolve(seed);
+            check(retained.packets[0].mesh == committed.packets[0].mesh &&
+                      retained.packets[0].material == committed.packets[0].material &&
+                      !committed.packets[0].material->transparent() &&
+                      retained.frame.historyKey == committed.frame.historyKey,
+                  "Rejected scene changed committed mesh/material/epoch or partially updated parameters");
+            // Runtime may reject after resolve, so explicit publication must also restore caches.
+            transactional.beginPublication();
+            auto tentative = transactional.resolve(changed);
+            check(tentative.packets[0].mesh != committed.packets[0].mesh,
+                  "Publication did not stage changed geometry");
+            tentative.packets.clear();
+            transactional.rollbackPublication();
+            auto restored = transactional.resolve(seed);
+            check(restored.packets[0].mesh == committed.packets[0].mesh &&
+                      restored.packets[0].material == committed.packets[0].material,
+                  "External publication rollback lost committed records");
+        }
         auto unchanged = builder.capture(scene, 1, 64, 64);
         check(first->draws[0].mesh == unchanged->draws[0].mesh, "Unchanged geometry was recopied each frame");
         std::shared_ptr<GameObject> object;
@@ -768,6 +839,63 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
                 runtime.submit({first, {}, {}});
                 runtime.finish();
                 check(runtime.framesRendered() == 1, "Surface restoration did not resume rendering");
+            }
+            {
+                const auto directory = std::filesystem::temp_directory_path() /
+                                       ("scene-publication-validation-" +
+                                        std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+                std::filesystem::create_directories(directory);
+                const auto before = device->resourceMemory();
+                const size_t budget = before.usedBytes() + before.peakBytes + 16384;
+                const auto extent = device->graphicsLimits().maxTextureDimension2D;
+                check(uint64_t(extent) * extent * 4 > budget,
+                      "Publication validation requires a resize larger than the warm resource quota");
+                device->setResourceBudget(budget);
+                {
+                    engine::RenderRuntime runtime(device, {}, 1);
+                    runtime.notifySurfaceExtent(64, 64);
+                    auto awaitFrames = [&](uint64_t count) {
+                        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+                        while (runtime.framesRendered() < count && std::chrono::steady_clock::now() < deadline) {
+                            runtime.rethrowFailure();
+                            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                        }
+                        check(runtime.framesRendered() >= count, "Publication rollback stopped the render queue");
+                    };
+                    runtime.submit({first, {}, (directory / "first.ppm").string()});
+                    awaitFrames(1);
+                    auto resize = std::make_shared<RenderWorldSnapshot>(*first);
+                    resize->frame.viewportWidth = resize->frame.viewportHeight = extent;
+                    runtime.submit({resize, {}, (directory / "resize-rejected.ppm").string()});
+                    awaitFrames(2);
+                    std::this_thread::sleep_for(std::chrono::milliseconds(260));
+                    auto ocean = std::make_shared<RenderWorldSnapshot>(*first);
+                    OceanSurfaceSettings largeOcean;
+                    largeOcean.spectrum.size = 2048;
+                    ocean->frame.oceans.push_back(largeOcean);
+                    runtime.submit({ocean, {}, (directory / "ocean-rejected.ppm").string()});
+                    awaitFrames(3);
+                    std::this_thread::sleep_for(std::chrono::milliseconds(260));
+                    auto restored = std::make_shared<RenderWorldSnapshot>(*first);
+                    restored->exposure = 0;
+                    runtime.submit({restored, {}, (directory / "restored.ppm").string()});
+                    runtime.finish();
+                    check(runtime.framesRendered() == 4 && runtime.rejectedPublications() == 2 &&
+                              runtime.fallbackFrames() == 2 && runtime.memoryPressureEvents() >= 2 &&
+                              !runtime.lastRecoveryMessage().empty(),
+                          "Runtime did not reject two candidates, retain prior output and resume");
+                }
+                device->setResourceBudget(before.budgetBytes);
+                auto bytes = [&](const char *name) {
+                    std::ifstream input(directory / name, std::ios::binary);
+                    check(bool(input), "Publication screenshot was not written");
+                    return std::vector<char>(std::istreambuf_iterator<char>(input), {});
+                };
+                const auto pixels = bytes("first.ppm");
+                check(pixels == bytes("resize-rejected.ppm") && pixels == bytes("ocean-rejected.ppm") &&
+                          pixels != bytes("restored.ppm"),
+                      "Failed publication overwrote prior pixels/extent or valid scene did not resume");
+                std::filesystem::remove_all(directory);
             }
             bool propagated = false;
             try {
