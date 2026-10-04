@@ -3,6 +3,7 @@
 #include "renderer/rhi/SceneSnapshot.h"
 #include "renderer/rhi/GuiRenderer.h"
 #include "renderer/rhi/AtmosphereBake.h"
+#include "PT/ProceduralCapture.h"
 #include <future>
 #include <atomic>
 #include <thread>
@@ -22,11 +23,17 @@ struct AtmosphereCapture {
     render::FrameData frame;
     std::promise<render::BakedAtmosphere> completion;
 };
+struct PathTracingCapture {
+    render::RenderWorldSnapshot world;
+    pt::CaptureOptions options;
+    std::promise<render::RenderWorldSnapshot> completion;
+};
 struct RenderPacket {
     std::shared_ptr<const render::RenderWorldSnapshot> world;
     render::GuiFrame gui;
     std::string screenshot;
     std::shared_ptr<AtmosphereCapture> atmosphereCapture;
+    std::shared_ptr<PathTracingCapture> pathTracingCapture;
     std::shared_ptr<ScenePreparation> prepare;
     uint64_t activatePrepared=0;
     std::chrono::steady_clock::time_point sampledAt;
@@ -40,6 +47,7 @@ class RenderRuntime {
     bool trySubmitFrame(RenderPacket); // Full queue skips a render snapshot, never blocks event/simulation ticks.
     // Synchronous CPU request; GPU bake executes exclusively on the render owner thread.
     render::BakedAtmosphere captureAtmosphere(const render::FrameData &);
+    render::RenderWorldSnapshot capturePathTracingScene(const render::RenderWorldSnapshot &,const pt::CaptureOptions & = {});
     ScenePreparationTicket prepareScene(std::shared_ptr<const render::RenderWorldSnapshot>,std::shared_ptr<std::atomic<bool>> cancelled={});
     void activatePrepared(uint64_t token);
     void notifySurfaceExtent(uint32_t width, uint32_t height) {

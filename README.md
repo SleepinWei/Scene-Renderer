@@ -418,6 +418,57 @@ CPU、Metal/Vulkan PT 和 CPU BDPT 可以加 `--pt-denoise` 使用 **Open Image 
 
 上图为 **320×240、固定 64 spp、16 次反弹**的 Metal GPU PT，降噪使用 albedo/normal AOV；左右采用相同曝光。BDPT 焦散的原始／降噪对照见上一节。
 
+### Stanford Dragon 透明玻璃与 BDPT 焦散
+
+使用 [Stanford University Computer Graphics Laboratory 的 Dragon 扫描](https://graphics.stanford.edu/data/3Dscanrep/)，完整原始网格为 **871,414 个三角形**，覆盖 IOR 1.5 玻璃。下图由本项目 CPU BDPT 输出：**640×480、512 spp、12 次反弹**，保留原始渲染与 OIDN 降噪结果。
+
+| 原始 BDPT | OIDN 降噪 |
+| --- | --- |
+| ![Stanford 透明龙 BDPT 原始图](img/path-tracing/dragon-glass-raw.png) | ![Stanford 透明龙 OIDN](img/path-tracing/dragon-glass.png) |
+
+<details>
+<summary>查看独立的真实焦散路径贡献</summary>
+
+![Stanford 龙的真实 BDPT 焦散](img/path-tracing/dragon-caustics.png)
+
+焦散图保留原始采样噪声，曝光与 beauty 相同；同网格改为不透明材质的对照中，焦散能量为 0。原扫描含小孔，未做闭合修复，因此不是严格闭合玻璃基准。模型使用条件见 [资源声明](samples/licenses/stanford-dragon.txt)。
+
+</details>
+
+```sh
+python3 tools/fetch_dragon.py
+./build/pt/Scene-Renderer --path-trace dragon-caustics --pt-bdpt \
+  --pt-size 640x480 --pt-samples 512 --pt-bounces 12 --pt-threads 8 \
+  --pt-exposure 2 --pt-denoise --pt-output build/path-tracing/procedural/dragon-glass
+```
+
+### 地形与海洋的固定时刻 Path Tracing
+
+CPU、Metal/Vulkan GPU PT 现已接入当前高度／材质 VT、沙滩 PBR、原生草丛姿态及大波／短波 FFT。湖水包含真实场景反射、IOR 1.333 折射、岸线 mask、泡沫和按路径长度计算的 RGB 水下吸收；天空由实时大气烘焙为 HDR。下图为 **640×480、time=8 s** 的实际 Metal GPU PT，经 OIDN 降噪。
+
+| 地形与草丛，128 spp | Mountain Lake，128 spp |
+| --- | --- |
+| ![地形与草丛 Path Tracing](img/path-tracing/pt-terrain.png) | ![Mountain Lake 地形倒影 Path Tracing](img/path-tracing/pt-mountain-lake.png) |
+
+| 湖岸沙滩，256 spp | 浅水折射与水下物体，256 spp |
+| --- | --- |
+| ![湖岸沙滩 Path Tracing](img/path-tracing/pt-mountain-lake-beach.png) | ![FFT 浅水折射 Path Tracing](img/path-tracing/pt-ocean-clear.png) |
+
+![FFT 大浪海洋 Path Tracing，256 spp](img/path-tracing/pt-ocean.png)
+
+```sh
+./build/pt/Scene-Renderer --path-trace-gpu mountain-lake --pt-time 8 \
+  --pt-size 640x480 --pt-samples 128 --pt-bounces 12 --pt-fixed --pt-denoise \
+  --pt-output build/path-tracing/procedural/mountain-lake
+# 改为 --path-trace 即使用 CPU 积分；FFT／草丛捕获仍需要 Metal/Vulkan。
+```
+
+默认捕获完整高度场，网格边长最多 1025；可用 `--pt-terrain-grid`、`--pt-ocean-grid`、`--pt-texture-size` 调整精度。草丛受当前视点与预算约束，默认最多 16,384 丛；`--pt-no-grass` 可以跳过。编辑器 `R` 键冻结当前时刻，随后静态渲染。水体目前支持均匀吸收，体散射与嵌套介质尚未实现；**BDPT 水体介质连接仍未支持**，Dragon 焦散使用现有玻璃 BDPT。捕获设计、完整命令、CPU/GPU 数值对照和限制见 [Dragon／程序化 PT 说明](docs/path-tracing-procedural.md)。
+
+本轮在 Apple M4/macOS 上通过 Metal **16/16**、Vulkan/MoltenVK **17/17** 和 ASan/UBSan **3/3** 回归；上面的实际渲染非有限样本均为 0。图片校验值、场景三角形数量、采样和耗时见 [验收记录](img/path-tracing/procedural-validation.json)。
+
+下一步加入 **Stanford 透明龙与 FFT 海面的联合场景**，展示海面反射／折射和物体与水面的相互遮挡；目前龙与海洋仍分别验收，尚未生成龙位于海面上的渲染图。水体 BDPT 焦散需要进一步实现介质连接与对应 MIS 权重。
+
 ## 目录与模块
 
 完整目录约定与依赖管理见 [仓库结构说明](docs/repository-layout.md)，技术文档见 [文档索引](docs/README.md)，测试入口见 [测试说明](tests/README.md)。

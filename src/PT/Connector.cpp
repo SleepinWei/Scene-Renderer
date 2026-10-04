@@ -1,19 +1,23 @@
 #include "PT/Connector.h"
 #include "PT/CpuPathTracer.h"
+#include "PT/ProceduralCapture.h"
 #include "PT/PTRenderer.h"
 #include "PT/PathTracing.h"
 #include "renderer/rhi/AtmosphereBake.h"
 #include "renderer/rhi/SceneSnapshot.h"
 #include "rhi/GraphicsDevice.h"
 #include "system/InputManager.h"
+#include "system/RenderManager.h"
 #include "utils/Camera.h"
 #include <algorithm>
+#include <GLFW/glfw3.h>
 
+namespace {float captureTime(){const float fixed=RenderManager::GetInstance()->setting.timeOverride;return fixed>=0?fixed:float(glfwGetTime());}}
 void Connector::passDataToPTConfig(json &data) {PTConfig::GetInstance()->parse(data);}
 void Connector::buildPTSceneFromRenderScene(shared_ptr<PTScene> target,const shared_ptr<RenderScene> scene) {
     auto input=InputManager::GetInstance();const auto w=uint32_t(std::max(1,input->width/2)),h=uint32_t(std::max(1,input->height/2));
-    render::SceneSnapshotBuilder builder;auto snapshot=builder.capture(scene,8,w,h);
-    target->cpuScene=std::make_shared<pt::CpuScene>(*snapshot);
+    render::SceneSnapshotBuilder builder;auto snapshot=builder.capture(scene,captureTime(),w,h);
+    auto frozen=pt::captureProcedural(*snapshot,rhi::graphicsDevice());target->cpuScene=std::make_shared<pt::CpuScene>(frozen);
     const auto &camera=*scene->mainCamera();
     target->addCam(std::make_shared<PTCamera>(camera.getPosition(),camera.getPosition()+camera.getFront(),camera.getUp(),camera.getZoom(),int(w),int(h)));
 }
@@ -32,8 +36,10 @@ void Connector::LaunchPathTracingWithSnapshot(std::shared_ptr<const render::Rend
 }
 void Connector::LaunchPathTracingWithRenderScene(shared_ptr<RenderScene> scene) {
     const auto input=InputManager::GetInstance();std::shared_ptr<const render::RenderWorldSnapshot> snapshot;
-    {render::SceneSnapshotBuilder builder;snapshot=builder.capture(scene,8,uint32_t(std::max(1,input->width)),uint32_t(std::max(1,input->height)));}
+    {render::SceneSnapshotBuilder builder;snapshot=builder.capture(scene,captureTime(),uint32_t(std::max(1,input->width)),uint32_t(std::max(1,input->height)));}
+    auto controls=std::make_shared<render::RenderWorldSnapshot>(*snapshot);controls->frame.directionalEnabled=RenderManager::GetInstance()->setting.enableDirectional;snapshot=controls;
     render::BakedAtmosphere baked;
     if(snapshot->frame.sky)baked=render::bakeAtmosphere(rhi::graphicsDevice(),snapshot->frame);
+    snapshot=std::make_shared<render::RenderWorldSnapshot>(pt::captureProcedural(*snapshot,rhi::graphicsDevice()));
     LaunchPathTracingWithSnapshot(std::move(snapshot),baked);
 }

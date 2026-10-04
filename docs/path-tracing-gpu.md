@@ -63,7 +63,7 @@ flowchart LR
 
 GPU 首版采用软件 BVH compute 路径。CPU 构建二叉 SAH BVH，GPU 每个 invocation 处理一个像素，8×8 workgroup；每次 dispatch 最多推进 4 spp，checkpoint 读回。GPU 遍历使用深度上限 60、64 个槽的私有栈，按近 child 优先；退化三角形与 alpha mask 处理与 CPU 相同。纹理通过去重后的 RGBA8 texel buffer、descriptor 和显式双线性采样读取，保留原材质通道与 UV 约定。
 
-数据有显式 ABI 断言：顶点 32 字节、BVH 节点 32 字节、三角形 16 字节、材质 96 字节、发光面 32 字节、累积像素 80 字节、参数块 224 字节。shader 经项目现有 GLSL→SPIR-V→MSL 工具链生成，C++ RHI 校验反射和绑定；资源创建、提交、读回均在设备拥有线程执行。单个 buffer 超过设备 storage range 会报错，不截断场景。
+数据有显式 ABI 断言：顶点 32 字节、BVH 节点 32 字节、三角形 16 字节、材质 112 字节、发光面 32 字节、累积像素 80 字节、参数块 240 字节。shader 经项目现有 GLSL→SPIR-V→MSL 工具链生成，C++ RHI 校验反射和绑定；资源创建、提交、读回均在设备拥有线程执行。单个 buffer 超过设备 storage range 会报错，不截断场景。
 
 ## 验证与测量
 
@@ -97,3 +97,5 @@ Apple M4/macOS Release、320×240、256 spp 预算、16 次反弹、seed 1、曝
 后续 [Guiding、Radiance Cache 与 BDPT 焦散](path-tracing-convergence.md) 已增加显式优化模式及 CPU BDPT 参考。上面的首次 GPU 性能记录属于默认普通 PT。
 
 这条路径未加入硬件 ray tracing acceleration structure、GPU BVH 构建、wavefront 队列、ReSTIR。最终输出可以接入 [OIDN 降噪](path-tracing-denoising.md)。CPU/GPU 的真实模型比较允许浮点舍入造成分支差异，不要求逐像素位相同。程序化地形/草、海洋、计算细分后几何及特殊材质 lobe 的边界沿用 [CPU PT 说明](path-tracing-cpu.md)。天空能量、曝光和间接光增益未作艺术提亮；更好的采样不会自动改变正确解的平均亮度。
+
+固定时刻地形、草丛与 FFT 水面现已通过共享捕获层进入 Metal/Vulkan PT；水面 IOR、泡沫和水下吸收使用同一材质 ABI。入口、精度预算、数值验证及介质限制见 [程序化 PT](path-tracing-procedural.md)。

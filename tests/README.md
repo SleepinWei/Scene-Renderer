@@ -14,7 +14,7 @@ ctest --test-dir build/vulkan --output-on-failure
 
 | 路径 | 覆盖范围 |
 | --- | --- |
-| `PT/` | CPU 路径追踪、材质、采样、输出与多线程确定性 |
+| `PT/` | CPU PT／BDPT、材质、采样、输出、多线程确定性、OIDN、地形／沙滩／FFT 水体冻结与 Beer/Fresnel |
 | `engine/` | 任务系统、帧队列与并发契约 |
 | `rhi/` | 设备与图形契约、图像解码、OpenGL 状态与 Vulkan 验证 |
 | `test_bake_terrain_vt.py` | 地形离线分页、mip、边框与输入校验 |
@@ -30,3 +30,5 @@ python3 tests/test_bake_terrain_vt.py
 ## 历史反射实验
 
 `legacy/test.cpp` 与 `legacy/pch.*` 保留早期 GoogleTest 反射实验源码，供历史参考；它们未注册到当前 CMake／CTest 测试集合。独立 Visual Studio 工程与 NuGet 清单已移除，当前构建与回归统一使用 CMake，无需恢复旧 NuGet 缓存。
+
+程序化 PT 数值测试为 `pt-procedural`；`pt-native-sky` 另验证设备线程 FFT 捕获、时刻变化、异常回传及水面／水下相机的 CPU/GPU 能量一致性。覆盖范围与实际场景图见 [程序化 PT](../docs/path-tracing-procedural.md)。

@@ -18,10 +18,10 @@ struct alignas(16) Parameters {
     glm::uvec4 dimensions,counts,control;
     glm::vec4 settings;
     glm::uvec4 adaptive,learning;
-    glm::vec4 guideSettings;
+    glm::vec4 guideSettings,cameraAbsorption;
 };
 struct alignas(16) Pixel {glm::vec4 mean{0},m2{0};glm::uvec4 stats{0};glm::vec4 albedo{0},normal{0};};
-static_assert(sizeof(Parameters)==224 && sizeof(Pixel)==80,"GPU path tracing ABI");
+static_assert(sizeof(Parameters)==240 && sizeof(Pixel)==80,"GPU path tracing ABI");
 struct alignas(16) GuideCell {glm::uvec4 meta{0};glm::vec4 tail{0};std::array<float,64> cdf{},environmentCdf{};};
 static_assert(sizeof(GuideCell)==544,"Guide cell ABI");
 class Kernel {
@@ -32,7 +32,7 @@ class Kernel {
         if(!resources_.device->computeLimits().supported || resources_.device->backend()==rhi::Backend::OpenGL)throw std::invalid_argument("GPU PT requires Metal or Vulkan compute");
         if(!options.sobol)throw std::invalid_argument("GPU PT uses Sobol; use CPU for the PCG reference");
         auto data=scene.exportData();
-        parameters_.inverseProjection=data.inverseProjection;parameters_.camera=glm::vec4(data.camera,0);
+        parameters_.cameraAbsorption=glm::vec4(data.cameraAbsorption,0);parameters_.inverseProjection=data.inverseProjection;parameters_.camera=glm::vec4(data.camera,0);
         const uint32_t highSeed=uint32_t(options.seed>>32);std::memcpy(&parameters_.camera.w,&highSeed,4);
         parameters_.sunDirectionRadius=glm::vec4(scene.sunDirection,scene.sunRadius);parameters_.sunIrradiance=glm::vec4(scene.sunIrradiance,0);
         parameters_.dimensions={options.width,options.height,0,0};parameters_.counts={uint32_t(data.nodes.size()),uint32_t(data.lights.size()),scene.environment?scene.environment->width():0,scene.environment?scene.environment->height():0};

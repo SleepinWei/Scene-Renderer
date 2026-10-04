@@ -108,6 +108,7 @@ void RenderRuntime::run(std::unique_ptr<render::GuiRenderer> gui) {
                         candidate.reset();nextAttempt=std::chrono::steady_clock::time_point::min();
                         continue;
                     }
+                    if(packet->pathTracingCapture){auto request=packet->pathTracingCapture;try{request->completion.set_value(pt::captureProcedural(request->world,device_,request->options));}catch(...){request->completion.set_exception(std::current_exception());}continue;}
                     if(packet->atmosphereCapture) {
                         auto request=packet->atmosphereCapture;
                         try {request->completion.set_value(render::bakeAtmosphere(device_,request->frame));}
@@ -318,6 +319,11 @@ void RenderRuntime::activatePrepared(uint64_t token) {
     if(!token)throw std::invalid_argument("Empty prepared scene token");
     RenderPacket packet;packet.activatePrepared=token;
     if(!submit(std::move(packet)))throw std::runtime_error("Renderer closed during scene activation");
+}
+render::RenderWorldSnapshot RenderRuntime::capturePathTracingScene(const render::RenderWorldSnapshot &world,const pt::CaptureOptions &options){
+    if(std::this_thread::get_id()==thread_.get_id())throw std::logic_error("PT capture cannot block its GPU owner thread");
+    rethrowFailure();auto request=std::make_shared<PathTracingCapture>();request->world=world;request->options=options;auto result=request->completion.get_future();RenderPacket packet;packet.pathTracingCapture=request;
+    if(!queue_.push(std::move(packet)))throw std::runtime_error("Render runtime closed during PT capture");while(result.wait_for(std::chrono::milliseconds(50))!=std::future_status::ready)rethrowFailure();rethrowFailure();return result.get();
 }
 render::BakedAtmosphere RenderRuntime::captureAtmosphere(const render::FrameData &frame) {
     if(std::this_thread::get_id()==thread_.get_id())throw std::logic_error("Atmosphere capture cannot block its own GPU thread");

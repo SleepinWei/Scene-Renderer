@@ -1,0 +1,18 @@
+Stanford Dragon
+Source: Stanford University Computer Graphics Laboratory
+Repository and use terms: https://graphics.stanford.edu/data/3Dscanrep/
+Reconstruction archive: https://graphics.stanford.edu/pub/3Dscanrep/dragon/dragon_recon.tar.gz
+
+The repository permits research use and free mirroring/redistribution, with
+acknowledgment. Commercial use requires permission from the source institution.
+The original reconstructed scan has numerous small holes; this project uses
+the supplied PLY without mesh repair or morphological modification. Glass is
+a rendering material override. No license to sell the model is implied.
+
+Original archive SHA256:
+74ac1d90989c9b1732edee82d57e9ce71452144cf4355f108d8c9c616d28d02f
+Full-resolution dragon_vrip.ply SHA256:
+fea87ff48f2aba22fb53e7b67c3ff3f7b8c2a3b3a0653af62c48bba67c6d5744
+
+Downloaded PLY files and archives stay in ignored samples/assets/pt and
+samples/downloads; generated renderings in img/path-tracing credit this source.

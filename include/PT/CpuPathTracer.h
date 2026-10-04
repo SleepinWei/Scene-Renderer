@@ -32,13 +32,16 @@ struct Surface {
     glm::vec2 uv{0};
     float metallic = 0, roughness = .5f, opacity = 1, distance = 0, ior = 0;
     bool twoSided = false;
+    bool water = false;
+    float foam = 0;
+    glm::vec3 absorption{0};
     uint32_t primitive = UINT32_MAX;
     bool frontFace = true;
 };
 enum class TransportMode {Radiance, Importance};
 struct DielectricMaterial {uint64_t objectId;float ior=1.5f;};
 struct EmitterSample {Surface surface;float pdfArea=0;};
-struct BsdfSample { glm::vec3 direction{0}, value{0}; float pdf = 0; bool delta=false; };
+struct BsdfSample { glm::vec3 direction{0}, value{0}; float pdf = 0; bool delta=false, transmission=false; };
 float dielectricFresnel(float cosine,float etaI,float etaT);
 glm::vec3 evaluateBsdf(const Surface &, glm::vec3 view, glm::vec3 light);
 float bsdfPdf(const Surface &, glm::vec3 view, glm::vec3 light);
@@ -98,6 +101,9 @@ class CpuScene {
     size_t dielectricCount() const;
     size_t nodeCount() const;
     size_t memoryBytes() const;
+    size_t proceduralCount(uint32_t kind) const;
+    float capturedTime() const;
+    glm::vec3 initialAbsorption(glm::vec3 origin) const;
   private:
     struct State;
     std::unique_ptr<State> state_;

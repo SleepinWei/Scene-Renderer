@@ -15,8 +15,8 @@ void generate(uint sampleIndex,uint side){
     float h=shape.x*growth,w=shape.y*growth;
     float bend=.16*sin(grassSettings.x*1.7+position.x*.3+position.z*.2)*h;
     mat4 model=mat4(c*w,0,-s*w,0,bend,h,0,0,s*w,0,c*w,0,position,1);
-    uint index=atomicAdd(instanceCount,1),capacity=uint(grassSettings.y);
-    if(index>=capacity){atomicMin(instanceCount,capacity);return;}outPose[index]=model;
+    uint index=atomicAdd(instanceCount,1),instanceCapacity=uint(grassSettings.y);
+    if(index>=instanceCapacity){atomicMin(instanceCount,instanceCapacity);return;}outPose[index]=model;
 }
 
 void main(){if(!leafEligible())return;preparePatch();uint side=cellSide(),blocks=side/2u;for(uint i=0;i<blocks*blocks;i++)generate(i,side);}

@@ -92,6 +92,6 @@ GPU 桥测试覆盖 RenderRuntime 设备线程上的真实 HDR 烘焙、有限�
 
 ## 暂未支持
 
-此次支持静态 mesh 物体与目标大型场景。程序化地形/草、FFT 海面、计算细分/位移后的网格未进入 CPU 求交；快照含这些效果时打印提示，不把实时效果静默当作已追踪。clearcoat/anisotropy/SSS 特殊 lobe、玻璃体内吸收/介质栈、体积云、运动模糊、景深、跨进程 resume 及 BVH 实例共享仍待后续。后续已加入 [平滑玻璃与 CPU BDPT 焦散](path-tracing-convergence.md)、[Metal/Vulkan GPU PT](path-tracing-gpu.md) 和 [OIDN 降噪](path-tracing-denoising.md)。
+支持静态 mesh 物体与目标大型场景；程序化地形、草与 FFT 海面通过固定时刻捕获进入求交，包含地形材质、沙滩、泡沫、反射／折射和水下吸收，见 [程序化 PT](path-tracing-procedural.md)。未冻结的海面请求明确报错。计算细分／额外位移后的网格仍未迁移。clearcoat/anisotropy/SSS 特殊 lobe、玻璃体内吸收/介质栈、体积云、运动模糊、景深、跨进程 resume 及 BVH 实例共享仍待后续。后续已加入 [平滑玻璃与 CPU BDPT 焦散](path-tracing-convergence.md)、[Metal/Vulkan GPU PT](path-tracing-gpu.md) 和 [OIDN 降噪](path-tracing-denoising.md)。
 
 保留旧 PT 球/矩形/介质等实验类及历史 Cornell 路径；新场景转换和大型场景入口使用新的连续内存积分核心，不把旧实验类的所有材质模型宣称为已合并。

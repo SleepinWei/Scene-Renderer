@@ -115,9 +115,10 @@ void NativeRealTimeRun(GLFWwindow* window,shared_ptr<RenderScene>& scene){
             framebuffer_size_callback(window,width,height);
             gui.window(scene);InputManager::GetInstance()->tick();
             if(InputManager::GetInstance()->keyStatus[KEY_R]==PRESSED){
-                auto captured=std::make_shared<render::RenderWorldSnapshot>(*snapshots.capture(scene,8,uint32_t(width),uint32_t(height)));
+                auto captured=std::make_shared<render::RenderWorldSnapshot>(*snapshots.capture(scene,RenderManager::GetInstance()->setting.timeOverride>=0?RenderManager::GetInstance()->setting.timeOverride:float(logicClock.seconds()),uint32_t(width),uint32_t(height)));
                 captured->frame.directionalEnabled=RenderManager::GetInstance()->setting.enableDirectional;
                 auto baked=runtime.captureAtmosphere(captured->frame);
+                captured=std::make_shared<render::RenderWorldSnapshot>(runtime.capturePathTracingScene(*captured));
                 Connector::GetInstance()->LaunchPathTracingWithSnapshot(std::move(captured),baked);
                 InputManager::GetInstance()->keyStatus[KEY_R]=RELEASED;
             }

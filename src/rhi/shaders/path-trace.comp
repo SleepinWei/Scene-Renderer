@@ -4,7 +4,7 @@
 layout(local_size_x=8,local_size_y=8,local_size_z=1) in;
 struct Vertex {vec4 positionU,normalV;};
 struct Node {vec4 low,high;};
-struct Material {vec4 albedo,emission,factors,optics;uvec4 textures,extra;};
+struct Material {vec4 albedo,emission,factors,optics,absorption;uvec4 textures,extra;};
 struct Light {vec4 positionType,colorInner,directionOuter;};
 struct Emitter {vec4 primitiveAreaCDF,normal;};
 struct Pixel {vec4 mean,m2;uvec4 stats;vec4 albedo,normal;}; // count, stable, rays, invalid
@@ -18,6 +18,7 @@ layout(set=0,binding=0,std140) uniform Parameters {
     uvec4 adaptive; // enabled,minSamples,budget,Sobol enabled
     uvec4 learning; // capacity,flags: guide=1/cache=2,cache minimum,cache depth
     vec4 guideSettings; // cell size,mix fraction,unused,unused
+    vec4 cameraAbsorption;
 } p;
 layout(set=0,binding=1,std430) readonly buffer Nodes {Node nodes[];};
 layout(set=0,binding=2,std430) readonly buffer Vertices {Vertex vertices[];};
@@ -47,7 +48,7 @@ vec4 textureValue(uint id,vec2 uv){
     return mix(mix(imagePixel(image,i.x,i.y),imagePixel(image,i.x+1,i.y),f.x),mix(imagePixel(image,i.x,i.y+1),imagePixel(image,i.x+1,i.y+1),f.x),f.y);
 }
 struct Hit {uint primitive;float distance;vec2 bary;};
-struct Surface {vec3 position,gn,n,albedo,emission;float roughness,metallic,opacity,ior;uint primitive;bool frontFace;};
+struct Surface {vec3 position,gn,n,albedo,emission;float roughness,metallic,opacity,ior,foam;vec3 absorption;uint primitive;bool frontFace,water;};
 bool boxHit(Node node,vec3 o,vec3 d,float maximum,out float nearDistance){
     float minimum=EPS;
     for(int i=0;i<3;++i){if(abs(d[i])<1e-30){if(o[i]<node.low[i]||o[i]>node.high[i])return false;continue;}
@@ -84,21 +85,24 @@ Surface makeSurface(Hit hit,vec3 o,vec3 d){
     bool frontFace=dot(gn,d)<0;if(!frontFace){gn=-gn;n=-n;}
     vec2 auv=vec2(a.positionU.w,a.normalV.w),buv=vec2(b.positionU.w,b.normalV.w),cuv=vec2(c.positionU.w,c.normalV.w),uv=auv*(1-u-v)+buv*u+cuv*v;
     vec3 normal=n;
-    if(m.textures.y!=0xffffffffu&&m.emission.w>0){vec2 ta=buv-auv,tb=cuv-auv;float det=ta.x*tb.y-ta.y*tb.x;
+    bool water=m.optics.y>0;
+    if(water&&m.textures.y!=0xffffffffu){vec3 map=textureValue(m.textures.y,uv*m.optics.z).xyz*2-1;vec3 mapped=unit(vec3(map.x,map.z,-map.y),n);if(!frontFace)mapped=-mapped;if(dot(mapped,gn)>.05)normal=mapped;}
+    else if(m.textures.y!=0xffffffffu&&m.emission.w>0){vec2 ta=buv-auv,tb=cuv-auv;float det=ta.x*tb.y-ta.y*tb.x;
         if(abs(det)>1e-10){vec3 tangent=(e1*tb.y-e2*ta.y)/det,bitangent=(-e1*tb.x+e2*ta.x)/det;tangent=unit(tangent-n*dot(n,tangent),vec3(0,1,0));bitangent=unit(bitangent-n*dot(n,bitangent),vec3(0,1,0));
             vec3 map=textureValue(m.textures.y,uv).xyz*2-1;map.xy*=m.emission.w;vec3 mapped=unit(tangent*map.x+bitangent*map.y+n*map.z,n);if(dot(mapped,gn)>.05)normal=mapped;}}
+    if(dot(normal,-d)<=0)normal=dot(n,-d)>0?n:gn;
     vec4 base=textureValue(m.textures.x,uv)*m.albedo;vec3 albedo=pow(max(base.xyz,vec3(0)),vec3(2.2));
     vec3 emission=frontFace||m.extra.y!=0u?m.emission.xyz:vec3(0);if(m.extra.z!=0u&&luminance(emission)==0)emission=albedo;
-    return Surface(o+d*hit.distance,gn,normal,albedo,emission,clamp(textureValue(m.textures.w,uv).g*m.factors.y,.045,1),clamp(textureValue(m.textures.z,uv).b*m.factors.x,0,1),m.factors.w>0?(base.a<m.factors.w?0:1):clamp(base.a,0,1),m.optics.x,hit.primitive,frontFace);
+    return Surface(o+d*hit.distance,gn,normal,albedo,emission,clamp(textureValue(m.textures.w,uv).g*m.factors.y,.045,1),clamp(textureValue(m.textures.z,uv).b*m.factors.x,0,1),m.factors.w>0?(base.a<m.factors.w?0:1):clamp(base.a,0,1),m.optics.x,water&&m.textures.z!=0xffffffffu?textureValue(m.textures.z,uv*m.optics.z).r:0,m.absorption.xyz,hit.primitive,frontFace,water);
 }
 float distribution(float nh,float roughness){float a=roughness*roughness,a2=a*a,q=nh*nh*(a2-1)+1;return a2/(PI*q*q);}
 float smith(float cosine,float roughness){if(cosine<=0)return 0;float a=roughness*roughness;return 2*cosine/(cosine+sqrt(a*a+(1-a*a)*cosine*cosine));}
 float specularChance(Surface s){float spec=luminance(mix(vec3(.04),s.albedo,s.metallic)),diffuse=luminance(s.albedo)*(1-s.metallic);return clamp(spec/(spec+diffuse+1e-20),.1,.9);}
-vec3 bsdf(Surface s,vec3 v,vec3 l){float nv=dot(s.n,v),nl=dot(s.n,l);if(nv<=0||nl<=0||dot(s.gn,v)<=0||dot(s.gn,l)<=0)return vec3(0);
+vec3 bsdf(Surface s,vec3 v,vec3 l){if(s.ior>0)return s.water&&dot(s.n,v)>0&&dot(s.n,l)>0&&dot(s.gn,l)>0?s.foam*s.albedo/PI:vec3(0);float nv=dot(s.n,v),nl=dot(s.n,l);if(nv<=0||nl<=0||dot(s.gn,v)<=0||dot(s.gn,l)<=0)return vec3(0);
     vec3 h=unit(v+l,s.n);float nh=max(0,dot(s.n,h)),vh=max(0,dot(v,h));vec3 f0=mix(vec3(.04),s.albedo,s.metallic),f=f0+(1-f0)*pow(1-vh,5);
     return (1-f)*s.albedo*(1-s.metallic)/PI+f*(distribution(nh,s.roughness)*smith(nv,s.roughness)*smith(nl,s.roughness)/(4*nv*nl));
 }
-float bsdfPdf(Surface s,vec3 v,vec3 l){float nv=dot(s.n,v),nl=dot(s.n,l);if(nv<=0||nl<=0)return 0;vec3 h=unit(v+l,s.n);if(dot(v,h)<=0)return 0;float chance=specularChance(s);return (1-chance)*nl/PI+chance*distribution(max(0,dot(s.n,h)),s.roughness)*smith(nv,s.roughness)/(4*nv);}
+float bsdfPdf(Surface s,vec3 v,vec3 l){if(s.ior>0)return s.water&&dot(s.n,v)>0?s.foam*max(0,dot(s.n,l))/PI:0;float nv=dot(s.n,v),nl=dot(s.n,l);if(nv<=0||nl<=0)return 0;vec3 h=unit(v+l,s.n);if(dot(v,h)<=0)return 0;float chance=specularChance(s);return (1-chance)*nl/PI+chance*distribution(max(0,dot(s.n,h)),s.roughness)*smith(nv,s.roughness)/(4*nv);}
 vec3 sampleBsdf(Surface s,vec3 v){
     float selection=randomValue();vec2 uv=randomPair();
     if(selection<specularChance(s)){
@@ -118,33 +122,38 @@ float environmentSolid(uint y){return 2*PI/float(p.counts.z)*(cos(PI*float(y)/fl
 float environmentPdf(vec3 d){if(p.counts.z==0u)return 0;vec2 uv=environmentUV(d);uvec2 i=min(uvec2(uv*vec2(p.counts.zw)),p.counts.zw-uvec2(1));return environmentMass(i.y*p.counts.z+i.x)/environmentSolid(i.y);}
 vec3 sampleEnvironment(out float pdf){float q=randomValue();uint low=0u,high=p.counts.z*p.counts.w;while(low<high){uint mid=(low+high)/2u;if(environment[mid].w<=q)low=mid+1u;else high=mid;}uint i=min(low,p.counts.z*p.counts.w-1u),x=i%p.counts.z,y=i/p.counts.z;
     vec2 uv=randomPair();float phi=(float(x)+uv.x)/float(p.counts.z)*2*PI,cosine=mix(cos(PI*float(y)/float(p.counts.w)),cos(PI*float(y+1u)/float(p.counts.w)),uv.y),sine=sqrt(max(0,1-cosine*cosine));pdf=environmentMass(i)/environmentSolid(y);return vec3(sine*sin(phi),cosine,-sine*cos(phi));}
-vec3 offsetOrigin(Surface s,vec3 d){return s.position+s.gn*(dot(d,s.gn)>=0?EPS:-EPS);}
+vec3 offsetOrigin(Surface s,vec3 d){return s.position+s.gn*((dot(d,s.gn)>=0?1:-1)*max(EPS,8*1.1920929e-7*max(abs(s.position.x),max(abs(s.position.y),abs(s.position.z)))));}
 float visibility(vec3 o,vec3 d,float maximum){float transmission=1;Hit hit;for(int i=0;i<128;++i){if(!intersectScene(o,d,maximum,hit))return transmission;Surface s=makeSurface(hit,o,d);transmission*=1-s.opacity;if(transmission<1e-5)return 0;if(maximum<INF){maximum-=hit.distance+EPS;if(maximum<=EPS)return transmission;}o=s.position+d*EPS;}return 0;}
 #include "pt-learning.glsl"
-vec3 directLight(Surface s,vec3 view,vec3 l,vec3 energy,float pdf,float distance,bool delta){if(pdf<=0)return vec3(0);float cosine=max(0,dot(s.n,l));if(cosine==0)return vec3(0);vec3 f=bsdf(s,view,l);if(luminance(f)<=0)return vec3(0);float weight=delta?1:mis(pdf,continuationPdf(s,view,l));return f*energy*(cosine*visibility(offsetOrigin(s,l),l,distance)*weight/pdf);}
+vec3 mediumAbsorption;
+vec3 mediumTransmission(float distance){
+    // Handle unbounded segments explicitly: Metal fast exp may overflow its
+    // intermediate range reduction even for exp(0 * FLT_MAX).
+    if(distance>=INF)return vec3(mediumAbsorption.x>0?0:1,mediumAbsorption.y>0?0:1,mediumAbsorption.z>0?0:1);
+    return exp(-min(mediumAbsorption*distance,vec3(80)));
+}
+vec3 directLight(Surface s,vec3 view,vec3 l,vec3 energy,float pdf,float distance,bool delta){if(pdf<=0)return vec3(0);float cosine=max(0,dot(s.n,l));if(cosine==0)return vec3(0);vec3 f=bsdf(s,view,l);if(luminance(f)<=0)return vec3(0);float weight=delta?1:mis(pdf,continuationPdf(s,view,l));return f*energy*mediumTransmission(distance)*(cosine*visibility(offsetOrigin(s,l),l,distance)*weight/pdf);}
 vec3 sampleSun(float sunCos){float cosine=mix(1,sunCos,randomValue()),sine=sqrt(max(0,1-cosine*cosine)),phi=2*PI*randomValue();return localVector(vec3(sine*cos(phi),sine*sin(phi),cosine),p.sunDirectionRadius.xyz);}
 vec3 tracePath(vec3 origin,vec3 direction){
+    mediumAbsorption=p.cameraAbsorption.xyz;
     vec3 throughput=vec3(1),radiance=vec3(0),previousPoint=vec3(0);float previousPdf=0,previousEnvironmentPdf=0,radius=p.sunDirectionRadius.w,sunCos=cos(radius),sunPdf=radius>0?1/(2*PI*(1-sunCos)):0;uint bounce=0u,transparent=0u;
     bool recorded=false;Surface record;vec3 prefix=vec3(1),before=vec3(0),recordDirection=vec3(0,1,0);float recordEnvironmentWeight=0;vec3 recordEnvironmentDirection=vec3(0,1,0);
     while(true){Hit hit;
         if(!intersectScene(origin,direction,INF,hit)){
+            throughput*=mediumTransmission(INF);
             radiance+=throughput*environmentValue(direction)*(previousPdf>0?mis(previousPdf,previousEnvironmentPdf):1);
             if(radius>0&&dot(direction,p.sunDirectionRadius.xyz)>=sunCos)radiance+=throughput*p.sunIrradiance.xyz/(PI*sin(radius)*sin(radius))*(previousPdf>0?mis(previousPdf,sunPdf):1);break;
         }
+        throughput*=mediumTransmission(hit.distance);
         uint base=2u+bounce*256u;Surface s=makeSurface(hit,origin,direction);dimension=base+20u+transparent;
         if(s.opacity<1&&randomValue()>=s.opacity){if(++transparent>128u)break;origin=s.position+direction*EPS;continue;}
         float emissionWeight=1;
         if(previousPdf>0&&p.settings.x>0){Material m=materials[triangles[s.primitive].w];float energy=luminance(m.emission.xyz),cosine=abs(dot(s.gn,-direction));float pdf=cosine>0?energy/p.settings.x*dot(s.position-previousPoint,s.position-previousPoint)/cosine:0;emissionWeight=mis(previousPdf,pdf);}
         radiance+=throughput*s.emission*emissionWeight;if(bounce>=p.control.x)break;vec3 view=-direction,direct=vec3(0);
-        if(s.ior>0){float etaI=s.frontFace?1:s.ior,etaT=s.frontFace?s.ior:1,eta=etaI/etaT,c=abs(dot(s.n,view)),st=eta*sqrt(max(0,1-c*c)),f=1;
-            if(st<1){float ct=sqrt(1-st*st),a=(etaT*c-etaI*ct)/(etaT*c+etaI*ct),b=(etaI*c-etaT*ct)/(etaI*c+etaT*ct);f=.5*(a*a+b*b);}
-            dimension=base+12u;vec3 l;if(randomValue()<f)l=reflect(-view,s.n);else{l=refract(-view,s.n,eta);throughput*=s.albedo*eta*eta;}
-            previousPdf=0;previousPoint=s.position;origin=offsetOrigin(s,l);direction=l;++bounce;continue;
-        }
         activeGuide=guideSlot(s);
-        bool cached=p.control.z!=3u&&(p.learning.y&2u)!=0u&&bounce>=p.learning.w&&s.metallic<.05&&s.roughness>=.5&&activeGuide!=0xffffffffu&&guide[activeGuide].meta.y>=p.learning.z;
-        guideFraction=p.control.z!=3u&&!cached&&(p.learning.y&1u)!=0u&&activeGuide!=0xffffffffu&&guide[activeGuide].meta.z!=0u&&guide[activeGuide].meta.y>=128u&&s.metallic<.2&&s.roughness>=.5?p.guideSettings.y:0;
-        environmentFraction=p.control.z!=3u&&!cached&&(p.learning.y&1u)!=0u&&activeGuide!=0xffffffffu&&guide[activeGuide].meta.w!=0u&&guide[activeGuide].meta.y>=128u&&s.metallic<.2&&s.roughness>=.5?p.guideSettings.z:0;
+        bool cached=p.control.z!=3u&&(p.learning.y&2u)!=0u&&bounce>=p.learning.w&&s.ior==0&&s.metallic<.05&&s.roughness>=.5&&activeGuide!=0xffffffffu&&guide[activeGuide].meta.y>=p.learning.z;
+        guideFraction=p.control.z!=3u&&!cached&&(p.learning.y&1u)!=0u&&activeGuide!=0xffffffffu&&guide[activeGuide].meta.z!=0u&&guide[activeGuide].meta.y>=128u&&s.ior==0&&s.metallic<.2&&s.roughness>=.5?p.guideSettings.y:0;
+        environmentFraction=p.control.z!=3u&&!cached&&(p.learning.y&1u)!=0u&&activeGuide!=0xffffffffu&&guide[activeGuide].meta.w!=0u&&guide[activeGuide].meta.y>=128u&&s.ior==0&&s.metallic<.2&&s.roughness>=.5?p.guideSettings.z:0;
         dimension=base;if(p.counts.z>0u){float pdf;vec3 l=guidedEnvironment(pdf),e=directLight(s,view,l,environmentValue(l),pdf,INF,false);direct+=e;
             if(p.control.z==3u&&bounce==sampleIndex%min(p.control.x,8u)){recordEnvironmentDirection=l;recordEnvironmentWeight=luminance(e/max(s.albedo,vec3(.01)));}
         }
@@ -160,6 +169,14 @@ vec3 tracePath(vec3 origin,vec3 direction){
             if(cosine>1e-8&&distance>2*EPS){Surface emitter=makeSurface(Hit(primitive,distance,bary),s.position,l);float mass=e.primitiveAreaCDF.z-(i>0u?emitters[i-1u].primitiveAreaCDF.z:0);direct+=directLight(s,view,l,emitter.emission*emitter.opacity,mass*distance*distance/(e.primitiveAreaCDF.y*cosine),distance-2*EPS,false);}
         }
         radiance+=throughput*direct;
+        if(s.ior>0){float etaI=s.frontFace?1:s.ior,etaT=s.frontFace?s.ior:1,eta=etaI/etaT,c=abs(dot(s.n,view)),st=eta*sqrt(max(0,1-c*c)),f=1;
+            if(st<1){float ct=sqrt(1-st*st),a=(etaT*c-etaI*ct)/(etaT*c+etaI*ct),b=(etaI*c-etaT*ct)/(etaI*c+etaT*ct);f=.5*(a*a+b*b);}
+            dimension=base+12u;vec3 l;float foam=s.water?s.foam:0;
+            if(foam>0&&randomValue()<foam){vec2 uv=randomPair();float r=sqrt(uv.x),phi=2*PI*uv.y;l=localVector(vec3(r*cos(phi),r*sin(phi),sqrt(1-uv.x)),s.n);if(dot(s.gn,l)<=0)break;throughput*=s.albedo;previousPdf=foam*max(0,dot(s.n,l))/PI;previousEnvironmentPdf=environmentPdf(l);previousPoint=s.position;origin=offsetOrigin(s,l);direction=l;++bounce;continue;}
+            if(randomValue()<f)l=reflect(-view,s.n);else{l=refract(-view,s.n,eta);throughput*=s.albedo*eta*eta;if(s.water)mediumAbsorption=s.frontFace?s.absorption:vec3(0);}
+            previousPdf=0;previousPoint=s.position;origin=offsetOrigin(s,l);direction=l;++bounce;continue;
+        }
+
         if(cached){radiance+=throughput*s.albedo*guide[activeGuide].tail.xyz;++cacheEvents;break;}
         if(guideFraction>0)++guideEvents;
         if(p.control.z==3u&&bounce==sampleIndex%min(p.control.x,8u)){recorded=true;record=s;prefix=throughput;before=radiance;}

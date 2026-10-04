@@ -1,4 +1,6 @@
 #include "renderer/rhi/GpuGrass.h"
+#include "renderer/rhi/GrassGeometry.h"
+#include "renderer/rhi/SceneSnapshot.h"
 #include "rhi/ShaderAssets.h"
 #include <glm/gtc/matrix_inverse.hpp>
 #include <cmath>
@@ -15,17 +17,8 @@ GpuGrass::GpuGrass(std::shared_ptr<rhi::GraphicsDevice> d,const std::string& dir
     :terrain_(std::move(terrain)),resources_(d),settings_(std::move(settings)) {
     using namespace rhi;settings_.capacity=cap;settings_.validate();
     if(!terrain_)throw std::invalid_argument("Grass needs terrain");
-    std::vector<MeshVertex> vertices;std::vector<uint32_t> indices;
-    // Four slender curved blades form a clump visible from every azimuth.
-    for(int blade=0;blade<4;++blade){
-        float a=blade*2.3999632f,c=std::cos(a),s=std::sin(a);
-        const glm::vec3 points[]={{-.015f,0,0},{.015f,0,0},{-.012f,.08f,.004f},{.012f,.08f,.004f},{-.007f,.17f,.025f},{.007f,.17f,.025f},{0,.25f,.055f}};
-        const glm::vec2 uv[]={{0,1},{1,1},{0,.68f},{1,.68f},{0,.32f},{1,.32f},{.5f,0}};
-        uint32_t base=uint32_t(vertices.size());
-        for(int i=0;i<7;++i){auto p=points[i];p.y*=.85f+.1f*blade;vertices.push_back({{c*p.x+s*p.z,p.y,-s*p.x+c*p.z},{s,0,c},uv[i]});}
-        for(uint32_t i:{0u,2u,1u,1u,2u,3u,2u,4u,3u,3u,4u,5u,4u,6u,5u})indices.push_back(base+i);
-    }
-    mesh_=std::make_shared<GpuMesh>(d,vertices,indices,cap,glm::vec3(-1),glm::vec3(1));
+    auto blades=grassBladeGeometry();
+    mesh_=std::make_shared<GpuMesh>(d,blades->vertices,blades->indices,cap,glm::vec3(-1),glm::vec3(1));
     imageCache_=GpuImageCache::forDevice(d);
     mask_=imageCache_->acquire(mask?mask:std::make_shared<const ImageRGBA8>(ImageRGBA8{1,1,{0,0,0,255}}));
     exclusion_=imageCache_->acquire(exclusionMask?exclusionMask:std::make_shared<const ImageRGBA8>(ImageRGBA8{1,1,{0,0,0,255}}));

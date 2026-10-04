@@ -46,7 +46,7 @@
 
 缓存的定点贡献上限约为 16，空间/法线合并、截断和提前终止都有偏差，可能平滑细节、漏光或遗漏稀有光路。它仅作为显式的预览模式，不能代替固定 spp 参考。Guiding 同样需要足够训练和渲染预算来抵消开销，当前表还没有自适应空间/方向细分。
 
-GPU ABI 已扩展：材质 96 字节（新增 optics）、参数 224 字节，学习槽 544 字节；其余基础几何和像素布局沿用 [GPU PT 说明](path-tracing-gpu.md)。
+GPU ABI 已扩展：材质 112 字节（含 optics 和 absorption）、参数 240 字节，学习槽 544 字节；其余基础几何和像素布局沿用 [GPU PT 说明](path-tracing-gpu.md)。
 
 ## BDPT 与平滑玻璃
 
@@ -88,3 +88,5 @@ Metal 全套 15/15、Vulkan/MoltenVK 全套 16/16 通过，Metal 开启 API/Shad
 
 
 参考：[Practical Path Guiding](https://cgl.ethz.ch/publications/papers/paperMue17a.php)、[BDPT 推导](https://www.pbr-book.org/3ed-2018/Light_Transport_III_Bidirectional_Methods/Bidirectional_Path_Tracing)、[Radiance Caching](https://gpuopen.com/download/publications/GPUOpen2022_GI1_0.pdf)。当前实现是独立的简化版本，不是上述论文完整实现或厂商 SDK。
+
+新增 Stanford Dragon 玻璃 BDPT 及不透明对照，保留真实焦散 AOV；资源与复现见 [Dragon／程序化 PT](path-tracing-procedural.md)。开放 FFT 水面已支持 CPU/Metal/Vulkan 单向 PT，但 BDPT 的介质连接权重尚未实现，含水面的请求会明确拒绝。

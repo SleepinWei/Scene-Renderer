@@ -7,6 +7,7 @@ struct alignas(16) PackedNode {glm::vec4 low, high;}; // w stores uint bits: fir
 struct alignas(16) PackedMaterial {
     glm::vec4 albedo, emission, factors;
     glm::vec4 optics{0}; // x: smooth dielectric IOR; zero uses basic PBR.
+    glm::vec4 absorption{0};
     glm::uvec4 textures, extra; // extra: AO image, two-sided, emissive-albedo.
 };
 struct alignas(16) PackedEmitter {glm::vec4 primitiveAreaCDF, normal;};
@@ -20,6 +21,7 @@ struct SceneData {
     std::vector<PackedEmitter> emitters;
     glm::mat4 inverseProjection{1};
     glm::vec3 camera{0};
+    glm::vec3 cameraAbsorption{0};
     double emitterWeight=0;
     bool inverseSquare=true;
 };

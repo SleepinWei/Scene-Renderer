@@ -10,6 +10,13 @@
 - 本项目保留原始 PLY 文件，导入时居中、缩放，并生成用于常量材质的平面 UV。演示分别使用白色非金属、金色金属和蓝色非金属材质。
 - 使用条件：上游允许研究使用和免费再分发，并要求注明来源；商业使用需要 Stanford 的许可。详细条件见上游页面。
 
+## Stanford Dragon
+
+- 数据提供方：[Stanford University Computer Graphics Laboratory](https://graphics.stanford.edu/data/3Dscanrep/)。官方完整重建 PLY 有 437,645 个顶点、871,414 个三角形。
+- `python3 tools/fetch_dragon.py` 下载固定 SHA-256 的官方重建归档；模型保存在忽略的 `samples/assets/pt/dragon/`，不随仓库提交。
+- 运行时居中、缩放、生成平滑法线及覆盖为 IOR 1.5 玻璃，用本项目 CPU BDPT 输出透明和焦散渲染。保留原扫描的小孔，未做闭合修复；不是严格闭合玻璃基准。
+- 上游允许研究使用和免费再分发，要求注明来源；商业使用需要 Stanford 的许可。完整来源和校验值见 [资源声明](licenses/stanford-dragon.txt)，复现见 [Dragon／程序化 PT](../docs/path-tracing-procedural.md)。
+
 ## Damaged Helmet
 
 - 来源：[Khronos glTF Sample Assets / DamagedHelmet](https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/DamagedHelmet)。

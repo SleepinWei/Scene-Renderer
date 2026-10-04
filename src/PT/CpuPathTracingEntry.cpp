@@ -2,6 +2,7 @@
 #include "PT/GpuPathTracer.h"
 #include "PT/ValidationScenes.h"
 #include "PT/Denoiser.h"
+#include "PT/ProceduralCapture.h"
 #include "renderer/rhi/AtmosphereBake.h"
 #include "renderer/rhi/FeatureScenes.h"
 #include "renderer/RenderScene.h"
@@ -45,7 +46,7 @@ float realNumber(const std::string &s,const char *name,bool zero=false) {size_t 
 int runCommandLine(int argc,char **argv) {
     const bool gpu=argc>1 && std::string(argv[1])=="--path-trace-gpu";
     if(gpu && rhi::requestedBackend()==rhi::Backend::OpenGL)throw std::invalid_argument("GPU PT requires Metal or Vulkan");
-    Options options;DenoiseOptions denoiseOptions;std::string denoiseInput;
+    Options options;DenoiseOptions denoiseOptions;CaptureOptions captureOptions;float time=8;std::string denoiseInput,dragonPath="samples/assets/pt/dragon/dragon_vrip.ply";
     std::string name="sponza",prefix,environmentPath;bool sky=true,glass=true,filter=false;int argument=2;
     if(argument<argc && std::string(argv[argument]).rfind("--",0)!=0)name=argv[argument++];
     for(int i=argument;i<argc;++i) {
@@ -61,6 +62,13 @@ int runCommandLine(int argc,char **argv) {
         else if(flag=="--pt-cache")options.radianceCache=true;
         else if(flag=="--pt-bdpt"){options.bdpt=true;options.adaptive=false;}
         else if(flag=="--pt-no-glass")glass=false;
+        else if(flag=="--pt-time")time=realNumber(value(),"frozen time",true);
+        else if(flag=="--pt-terrain-grid")captureOptions.terrainGrid=number(value(),"terrain grid",1025);
+        else if(flag=="--pt-ocean-grid")captureOptions.oceanGrid=number(value(),"ocean grid",1025);
+        else if(flag=="--pt-texture-size")captureOptions.textureExtent=number(value(),"capture texture size",4096);
+        else if(flag=="--pt-grass-limit")captureOptions.grassLimit=number(value(),"grass limit",1048576);
+        else if(flag=="--pt-no-grass")captureOptions.grass=false;
+        else if(flag=="--pt-dragon-mesh")dragonPath=value();
         else if(flag=="--pt-denoise")filter=true;
         else if(flag=="--pt-denoise-device"){denoiseOptions.device=value();filter=true;}
         else if(flag=="--pt-denoise-color-only"){denoiseOptions.auxiliary=false;filter=true;}
@@ -96,12 +104,14 @@ int runCommandLine(int argc,char **argv) {
     const auto parent=std::filesystem::path(prefix).parent_path();if(!parent.empty())std::filesystem::create_directories(parent);
     std::shared_ptr<RenderScene> scene;std::vector<DielectricMaterial> dielectrics;
     std::shared_ptr<const render::RenderWorldSnapshot> snapshot;
-    if(name=="caustics"){auto validation=makeCausticsScene(options.width,options.height,glass);snapshot=std::make_shared<render::RenderWorldSnapshot>(std::move(validation.snapshot));dielectrics=std::move(validation.dielectrics);}
-    else {scene=render::makeClassicScene(name);scene->mainCamera()->setAspect(float(options.width)/options.height);render::SceneSnapshotBuilder builder;snapshot=builder.capture(scene,8,options.width,options.height);}
+    if(name=="caustics"||name=="dragon-caustics"){auto validation=name=="caustics"?makeCausticsScene(options.width,options.height,glass):makeDragonScene(options.width,options.height,dragonPath,glass);snapshot=std::make_shared<render::RenderWorldSnapshot>(std::move(validation.snapshot));dielectrics=std::move(validation.dielectrics);}
+    else {scene=render::makeClassicScene(name);scene->mainCamera()->setAspect(float(options.width)/options.height);render::SceneSnapshotBuilder builder;snapshot=builder.capture(scene,time,options.width,options.height);}
     render::BakedAtmosphere baked;
     DeviceContext context;
-    if(gpu || (sky && environmentPath.empty() && snapshot->frame.sky))context.open();
+    const bool proceduralDevice=!snapshot->frame.oceans.empty()||(snapshot->terrain&&captureOptions.grass&&snapshot->terrain->source->grass);
+    if(gpu || proceduralDevice || (sky && environmentPath.empty() && snapshot->frame.sky))context.open();
     if(sky && environmentPath.empty() && snapshot->frame.sky)baked=render::bakeAtmosphere(rhi::graphicsDevice(),snapshot->frame);
+    snapshot=std::make_shared<render::RenderWorldSnapshot>(captureProcedural(*snapshot,proceduralDevice?rhi::graphicsDevice():nullptr,captureOptions));
     if(!gpu)context.close();
     CpuScene cpu(*snapshot,dielectrics);
     // Apply the same exposure by default, while retaining an explicit CLI override.
