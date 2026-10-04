@@ -78,7 +78,8 @@ done
   --pt-output build/path-tracing/procedural/cpu-mountain-lake
 ```
 
-当前是开放水面下的均匀吸收介质，未构造水体侧壁／底面；未支持重叠水体、嵌套介质栈、水下体散射／HG、实时自定义泡沫色或动态运动模糊。既有 512 m 大波周期可完整包含 32 m 短波周期，其他不整除周期的组合未验收。水下焦散由单向 PT 采样，收敛可能较慢；**BDPT 尚未实现介质连接权重，含水面的 BDPT 请求明确报错**。本轮 BDPT 焦散验收对象为 Dragon 玻璃。
+当前开放水面下已接入均匀 RGB 吸收／多次散射、HG 相位和介质栈，支持部分浸水的 Jade Dragon；实现、对照图与限制见 [水体／玉石随机游走](path-tracing-subsurface.md)。未构造水体侧壁／底面，未支持实时自定义泡沫色或动态运动模糊。既有 512 m 大波周期可完整包含 32 m 短波周期，其他不整除周期的组合未验收。水下焦散由单向 PT 采样，收敛可能较慢；**BDPT 尚未实现介质连接权重，含水面或散射材质的 BDPT 请求明确报错**。既有 BDPT 焦散验收对象为 Dragon 玻璃。
+
 
 ## 参数与验证
 
@@ -91,10 +92,10 @@ done
 | `--pt-grass-limit N` | 16,384 丛，最多 1,048,576，受原生 capacity 约束 |
 | `--pt-no-grass` | 跳过原生草丛捕获；仅地形／已保存 HDR 可完全在 CPU 上运行 |
 
-JSON 新增 `terrain_meshes`、`grass_meshes`、`ocean_interfaces` 和 `frozen_time_seconds`；原有几何数量、非有限样本、曝光、采样、时间和降噪记录仍保留。GPU std430 材质扩展为 112 字节，参数块为 240 字节；两后端通过同一 GLSL→SPIR-V→MSL 工具链。
+JSON 新增 `terrain_meshes`、`grass_meshes`、`ocean_interfaces` 和 `frozen_time_seconds`；原有几何数量、非有限样本、曝光、采样、时间和降噪记录仍保留。GPU std430 材质现为 128 字节，参数块为 288 字节；两后端通过同一 GLSL→SPIR-V→MSL 工具链。
 
 2026-10-04，Apple M4/macOS，完整 CTest 为 Metal **16/16**、Vulkan/MoltenVK **17/17**，ASan/UBSan CPU／程序化／denoiser **3/3**。回归包含：高度／法线／UV 与材质方向、损坏 VT 页面拒绝、沙滩湿润度／粗糙度、FFT 水面拓扑、Fresnel+Beer 能量、水下初始介质、零吸收通道极限、岸线 alpha、泡沫混合 PDF、掠射法线、未捕获水面与 BDPT 水体拒绝。设备线程测试验证 FFT 时刻变化及异常回传；32×24 / 512 spp 对照中，CPU/GPU 水面相对 L1 约 4.7×10⁻⁷，水下相机约 8.8×10⁻⁸。CPU、程序化捕获及 denoiser 另通过 ASan/UBSan。完整场景 PNG 已目视检查，非有限样本均为 0。性能数字受本机其他开发负载影响，不作为跨平台基准。
 
-计算细分／额外位移、clearcoat／anisotropy／SSS、体积云和 BVH 实例共享仍属于后续工作；本轮支持的是上述已冻结的地形、草和 FFT 水面。
+计算细分／额外位移、clearcoat／anisotropy、实时材质到 PT 的通用 SSS 映射、体积云和 BVH 实例共享仍属于后续工作；本轮支持的是上述已冻结的地形、草和 FFT 水面。
 
 最终图片和实际 JSON 汇总见 [验收记录](../img/path-tracing/procedural-validation.json)：Dragon 512 spp BDPT 约 182.08 秒，焦散能量占比约 4.96%，不透明对照为 0；Mountain Lake 为 4,194,304 个三角形，Metal 128 spp 及 Vulkan 16 spp 均完成。所有记录保留具体设备、曝光、采样和时间；各次运行存在并行开发负载。

@@ -16,6 +16,7 @@
 | [Mountain Lake 山湖场景](mountain-lake.md) | 官方资源、网格转高度场、材质 VT 与湖面 |
 | [TSAA](tsaa.md) | 运动向量、重投影、历史裁剪与截图复现 |
 | [Dragon、地形与 FFT 水面的离线 PT](path-tracing-procedural.md) | 官方透明龙／BDPT 焦散、固定时间捕获、岸线／草丛／沙滩与水下吸收 |
+| [水体 BSSRDF／Jade Dragon](path-tracing-subsurface.md) | 均匀介质、HG、随机游走次表面和双后端验证 |
 | [CPU 路径追踪](path-tracing-cpu.md) | 实时场景转换、材质、采样与输出验证 |
 | [OIDN 路径追踪降噪](path-tracing-denoising.md) | 现成 HDR denoiser、辅助 AOV、设备选择与离线处理 |
 | [收敛优化与 BDPT 焦散](path-tracing-convergence.md) | GPU Guiding、Radiance Cache、平滑玻璃、CPU BDPT 与误差对照 |

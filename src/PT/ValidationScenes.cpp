@@ -22,4 +22,16 @@ ValidationScene makeCausticsScene(uint32_t width,uint32_t height,bool glass){
     if(glass){s.draws.push_back(sphere({0,1.05f,0},.7f,4));result.dielectrics.push_back({4,1.5f});}
     return result;
 }
+ValidationScene makeMediumValidationScene(uint32_t width,uint32_t height,bool conservative){
+    ValidationScene result;auto &s=result.snapshot;s.frame.cameraPosition={0,.2f,4};glm::mat4 depth(1);depth[2][2]=.5f;depth[3][2]=.5f;s.frame.viewProjection=depth*glm::perspective(glm::radians(35.f),float(width)/height,.1f,100.f)*glm::lookAt(s.frame.cameraPosition,glm::vec3(0),glm::vec3(0,1,0));
+    auto box=[&](float r,uint32_t kind,float ior,glm::vec3 absorption,glm::vec3 scattering,float g){
+        auto mesh=std::make_shared<render::MeshPayload>();
+        auto face=[&](glm::vec3 a,glm::vec3 b,glm::vec3 c,glm::vec3 d){auto q=quad(a*r,b*r,c*r,d*r).mesh;uint32_t base=uint32_t(mesh->vertices.size());mesh->vertices.insert(mesh->vertices.end(),q->vertices.begin(),q->vertices.end());for(auto i:q->indices)mesh->indices.push_back(base+i);};
+        face({-1,-1,-1},{1,-1,-1},{1,-1,1},{-1,-1,1});face({-1,1,-1},{-1,1,1},{1,1,1},{1,1,-1});face({-1,-1,1},{1,-1,1},{1,1,1},{-1,1,1});face({1,-1,-1},{-1,-1,-1},{-1,1,-1},{1,1,-1});face({-1,-1,-1},{-1,-1,1},{-1,1,1},{-1,1,-1});face({1,-1,1},{1,-1,-1},{1,1,-1},{1,1,1});
+        render::SnapshotDraw draw;draw.mesh=mesh;draw.objectId=kind;draw.parameters.albedoAlpha=glm::vec4(1);draw.parameters.factors={0,.1f,1,0};draw.pathTracingKind=kind;draw.pathTracingIor=ior;draw.pathTracingAbsorption=absorption;draw.pathTracingScattering=scattering;draw.pathTracingAnisotropy=g;s.draws.push_back(draw);
+    };
+    if(!conservative)box(1.8f,3,1.333f,{.04f,.02f,.01f},{.1f,.2f,.3f},.65f);
+    box(1,4,1.54f,conservative?glm::vec3(0):glm::vec3(2,.1f,.8f),conservative?glm::vec3(.6f,.8f,.7f):glm::vec3(6,8,7),.3f);return result;
+}
+
 }

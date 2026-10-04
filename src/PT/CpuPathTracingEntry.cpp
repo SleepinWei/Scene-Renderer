@@ -46,14 +46,14 @@ float realNumber(const std::string &s,const char *name,bool zero=false) {size_t 
 int runCommandLine(int argc,char **argv) {
     const bool gpu=argc>1 && std::string(argv[1])=="--path-trace-gpu";
     if(gpu && rhi::requestedBackend()==rhi::Backend::OpenGL)throw std::invalid_argument("GPU PT requires Metal or Vulkan");
-    Options options;DenoiseOptions denoiseOptions;CaptureOptions captureOptions;float time=8;std::string denoiseInput,dragonPath="samples/assets/pt/dragon/dragon_vrip.ply";
-    std::string name="sponza",prefix,environmentPath;bool sky=true,glass=true,filter=false;int argument=2;
+    Options options;DenoiseOptions denoiseOptions;CaptureOptions captureOptions;float time=8,sssScale=1,sssScatteringScale=1,waterScatteringScale=1,sunRadius=0,floorDepth=20;std::string denoiseInput,dragonPath="samples/assets/pt/dragon/dragon_vrip.ply";
+    std::string name="sponza",prefix,environmentPath;bool sky=true,glass=true,filter=false,depthExplicit=false,floorExplicit=false;int argument=2;
     if(argument<argc && std::string(argv[argument]).rfind("--",0)!=0)name=argv[argument++];
     for(int i=argument;i<argc;++i) {
         const std::string flag=argv[i];auto value=[&](){if(++i>=argc)throw std::invalid_argument("PT: missing argument for "+flag);return std::string(argv[i]);};
         if(flag=="--pt-size"){const auto size=value();const auto at=size.find('x');if(at==std::string::npos)throw std::invalid_argument("PT: size must be WIDTHxHEIGHT");options.width=number(size.substr(0,at),"width",16384);options.height=number(size.substr(at+1),"height",16384);}
         else if(flag=="--pt-samples")options.samples=number(value(),"samples",1048576);
-        else if(flag=="--pt-bounces")options.maxDepth=number(value(),"bounces",128);
+        else if(flag=="--pt-bounces"){options.maxDepth=number(value(),"bounces",128);depthExplicit=true;}
         else if(flag=="--pt-threads")options.threads=number(value(),"threads",256);
         else if(flag=="--pt-seed")options.seed=number(value(),"seed",UINT32_MAX);
         else if(flag=="--pt-exposure"){const auto s=value();size_t end;options.exposure=std::stof(s,&end);if(end!=s.size() || !std::isfinite(options.exposure) || options.exposure<=0)throw std::invalid_argument("PT: invalid exposure");}
@@ -62,6 +62,11 @@ int runCommandLine(int argc,char **argv) {
         else if(flag=="--pt-cache")options.radianceCache=true;
         else if(flag=="--pt-bdpt"){options.bdpt=true;options.adaptive=false;}
         else if(flag=="--pt-no-glass")glass=false;
+        else if(flag=="--pt-sss-scale")sssScale=realNumber(value(),"subsurface coefficient scale",true);
+        else if(flag=="--pt-sss-scattering-scale")sssScatteringScale=realNumber(value(),"subsurface scattering scale",true);
+        else if(flag=="--pt-water-scattering-scale")waterScatteringScale=realNumber(value(),"water scattering scale",true);
+        else if(flag=="--pt-sun-radius"){sunRadius=realNumber(value(),"sun angular radius in degrees");if(sunRadius>=glm::degrees(.1f))throw std::invalid_argument("PT: sun angular radius must be below 5.73 degrees");}
+        else if(flag=="--pt-ocean-floor-depth"){floorDepth=realNumber(value(),"ocean floor depth");floorExplicit=true;}
         else if(flag=="--pt-time")time=realNumber(value(),"frozen time",true);
         else if(flag=="--pt-terrain-grid")captureOptions.terrainGrid=number(value(),"terrain grid",1025);
         else if(flag=="--pt-ocean-grid")captureOptions.oceanGrid=number(value(),"ocean grid",1025);
@@ -88,6 +93,9 @@ int runCommandLine(int argc,char **argv) {
         else if(flag=="--backend")value();
         else throw std::invalid_argument("PT: unknown argument "+flag);
     }
+    if(!depthExplicit&&(name=="dragon-jade"||name=="dragon-jade-ocean"))options.maxDepth=96;
+    if(floorExplicit&&name!="dragon-jade-ocean")throw std::invalid_argument("PT: ocean floor depth requires dragon-jade-ocean");
+    if(sunRadius>0&&(!sky||!environmentPath.empty()||!denoiseInput.empty()))throw std::invalid_argument("PT: sun radius requires a rendered scene with baked sky");
     if(filter&&!denoiserAvailable())throw std::runtime_error("Open Image Denoise is not enabled in this build; see docs/path-tracing-denoising.md");
     if(denoiseOptions.device!="auto"&&denoiseOptions.device!="cpu"&&denoiseOptions.device!="metal")throw std::invalid_argument("PT: denoise device must be auto, cpu or metal");
     if(!denoiseInput.empty()){
@@ -104,8 +112,11 @@ int runCommandLine(int argc,char **argv) {
     const auto parent=std::filesystem::path(prefix).parent_path();if(!parent.empty())std::filesystem::create_directories(parent);
     std::shared_ptr<RenderScene> scene;std::vector<DielectricMaterial> dielectrics;
     std::shared_ptr<const render::RenderWorldSnapshot> snapshot;
-    if(name=="caustics"||name=="dragon-caustics"){auto validation=name=="caustics"?makeCausticsScene(options.width,options.height,glass):makeDragonScene(options.width,options.height,dragonPath,glass);snapshot=std::make_shared<render::RenderWorldSnapshot>(std::move(validation.snapshot));dielectrics=std::move(validation.dielectrics);}
+    if(name=="dragon-jade"||name=="dragon-jade-ocean"){auto validation=makeJadeDragonScene(options.width,options.height,dragonPath,name=="dragon-jade-ocean",floorDepth);validation.snapshot.frame.timeSeconds=time;for(auto &draw:validation.snapshot.draws)if(draw.pathTracingKind==4){draw.pathTracingAbsorption*=sssScale;draw.pathTracingScattering*=sssScale*sssScatteringScale;}for(auto &ocean:validation.snapshot.frame.oceans)ocean.scattering*=waterScatteringScale;snapshot=std::make_shared<render::RenderWorldSnapshot>(std::move(validation.snapshot));}
+    else if(name=="caustics"||name=="dragon-caustics"){auto validation=name=="caustics"?makeCausticsScene(options.width,options.height,glass):makeDragonScene(options.width,options.height,dragonPath,glass);snapshot=std::make_shared<render::RenderWorldSnapshot>(std::move(validation.snapshot));dielectrics=std::move(validation.dielectrics);}
     else {scene=render::makeClassicScene(name);scene->mainCamera()->setAspect(float(options.width)/options.height);render::SceneSnapshotBuilder builder;snapshot=builder.capture(scene,time,options.width,options.height);}
+    if(waterScatteringScale!=1&&name!="dragon-jade-ocean"){auto scaled=std::make_shared<render::RenderWorldSnapshot>(*snapshot);for(auto &ocean:scaled->frame.oceans)ocean.scattering*=waterScatteringScale;snapshot=scaled;}
+    if(sunRadius>0){if(!snapshot->frame.sky)throw std::invalid_argument("PT: sun radius requires a scene with sky");auto adjusted=std::make_shared<render::RenderWorldSnapshot>(*snapshot);adjusted->frame.atmosphere.radii.y=glm::radians(sunRadius);snapshot=adjusted;}
     render::BakedAtmosphere baked;
     DeviceContext context;
     const bool proceduralDevice=!snapshot->frame.oceans.empty()||(snapshot->terrain&&captureOptions.grass&&snapshot->terrain->source->grass);
@@ -114,6 +125,7 @@ int runCommandLine(int argc,char **argv) {
     snapshot=std::make_shared<render::RenderWorldSnapshot>(captureProcedural(*snapshot,proceduralDevice?rhi::graphicsDevice():nullptr,captureOptions));
     if(!gpu)context.close();
     CpuScene cpu(*snapshot,dielectrics);
+    if(options.bdpt&&cpu.scatteringCount())cpu.validateBidirectional();
     // Apply the same exposure by default, while retaining an explicit CLI override.
     bool explicitExposure=false;for(int i=2;i<argc;++i)explicitExposure|=std::string(argv[i])=="--pt-exposure";
     if(!explicitExposure)options.exposure=snapshot->exposure;

@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <array>
 namespace pt {
-// Padded 2D Sobol: each pair uses a separate reproducible digital scramble.
+// Padded 2D Sobol: each pair uses a separate dyadic index permutation and shift.
 // Dimension assignments are fixed per bounce; PCG is retained for references.
 uint32_t sampleHash(uint32_t value);
 float sobolSample(uint32_t pixelSeed, uint32_t sample, uint32_t dimension);

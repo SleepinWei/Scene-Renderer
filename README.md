@@ -492,11 +492,66 @@ CPU、Metal/Vulkan GPU PT 现已接入当前高度／材质 VT、沙滩 PBR、�
 # 改为 --path-trace 即使用 CPU 积分；FFT／草丛捕获仍需要 Metal/Vulkan。
 ```
 
-默认捕获完整高度场，网格边长最多 1025；可用 `--pt-terrain-grid`、`--pt-ocean-grid`、`--pt-texture-size` 调整精度。草丛受当前视点与预算约束，默认最多 16,384 丛；`--pt-no-grass` 可以跳过。编辑器 `R` 键冻结当前时刻，随后静态渲染。水体目前支持均匀吸收，体散射与嵌套介质尚未实现；**BDPT 水体介质连接仍未支持**，Dragon 焦散使用现有玻璃 BDPT。捕获设计、完整命令、CPU/GPU 数值对照和限制见 [Dragon／程序化 PT 说明](docs/path-tracing-procedural.md)。
+默认捕获完整高度场，网格边长最多 1025；可用 `--pt-terrain-grid`、`--pt-ocean-grid`、`--pt-texture-size` 调整精度。草丛受当前视点与预算约束，默认最多 16,384 丛；`--pt-no-grass` 可以跳过。编辑器 `R` 键冻结当前时刻，随后静态渲染。水体已支持均匀 RGB 吸收、多次散射、HG 相位与介质栈，见下方 Jade Dragon 联合场景；**BDPT 水体介质连接仍未支持**，Dragon 焦散使用现有玻璃 BDPT。捕获设计、完整命令、CPU/GPU 数值对照和限制见 [Dragon／程序化 PT 说明](docs/path-tracing-procedural.md)。
 
-本轮在 Apple M4/macOS 上通过 Metal **16/16**、Vulkan/MoltenVK **17/17** 和 ASan/UBSan **3/3** 回归；上面的实际渲染非有限样本均为 0。图片校验值、场景三角形数量、采样和耗时见 [验收记录](img/path-tracing/procedural-validation.json)。
+此前程序化捕获版本在 Apple M4/macOS 上通过 Metal **16/16**、Vulkan/MoltenVK **17/17** 和 ASan/UBSan **3/3** 回归；上面的实际渲染非有限样本均为 0。图片校验值、场景三角形数量、采样和耗时见 [验收记录](img/path-tracing/procedural-validation.json)。
 
-下一步加入 **Stanford 透明龙与 FFT 海面的联合场景**，展示海面反射／折射和物体与水面的相互遮挡；目前龙与海洋仍分别验收，尚未生成龙位于海面上的渲染图。水体 BDPT 焦散需要进一步实现介质连接与对应 MIS 权重。
+### 水体 BSSRDF 与 Jade Stanford Dragon
+
+CPU、Metal 和 Vulkan PT 已支持均匀介质随机游走。水体沿实际折射路径计算 RGB 吸收、多次散射和 HG 相位；玉龙以 IOR 1.54 的抛光表面进入模型，在内部散射后从其他位置出射，形成隐式 BSSRDF。独立使用原扫描的运行时修复副本，最终龙体有 871,286 个三角形；原始资源不变。
+
+下面的独立玉龙图为 **640×480、512 spp、最大深度 96** 的实际 Metal GPU PT，经 OIDN color-only 降噪。无散射对照保留相同的吸收、折射、模型和灯光。
+
+| Jade 随机游走 BSSRDF | 关闭玉石散射的有色玻璃对照 |
+| --- | --- |
+| ![Jade Stanford Dragon BSSRDF](img/path-tracing/dragon-jade.png) | ![关闭散射的 Stanford Dragon](img/path-tracing/dragon-jade-no-scattering.png) |
+
+**玉龙位于原生 FFT 海面上**，足部部分浸水；玉石内部优先使用玉石介质，出射后再切换至水或空气。time=8 s，联合场景有 2,968,440 个三角形。新预览为 **640×480、2048 spp、最大深度 96**，使用原生水体系数、20 m 海床、2° 角半径的软太阳和 OIDN 辅助 AOV 降噪。软太阳改变光源形状，便于预览；默认真实太阳设置继续保留。
+
+![Jade Stanford Dragon 与 FFT 水体多次散射](img/path-tracing/dragon-jade-ocean-preview.png)
+
+旧图的“雾”不是空气体积：浅色的两米海床、四倍水体散射和未收敛的太阳焦散被 color-only 降噪混合成云斑。关闭水体散射和 CPU PCG 对照仍出现云斑。另修复了 Sobol 不同反弹之间仅做 XOR 移位的相关性；新增解析积分与 CPU/Metal/Vulkan 一致性回归。诊断和预览参数见 [水体／玉石 PT 说明](docs/path-tracing-subsurface.md)。
+
+| 海面预览设置 | 旧图（伪影记录） | 新图 |
+| --- | --- | --- |
+| 分辨率／固定采样 | 640×480／512 spp | 640×480／2048 spp |
+| 静水面至海床深度 | 2.2 m | 20 m |
+| 水体散射倍率 | 4× | 1×（原生系数） |
+| 太阳角半径 | 大气默认，约 0.27° | 2° 软太阳，保持辐照度 |
+| OIDN 输入 | color-only | color + 预滤波 albedo／normal |
+
+新图在 Apple M4 上追踪约 **191.8 秒**。降噪／原始积分的全图平均 RGB 比值由旧图约 **0.629** 改善为新图约 **0.984**；两图的场景参数不同，这些数值只记录降噪偏移，不构成同场景收敛或焦散能量正确性的证明。本次最终相关回归包含 CPU、介质、降噪、程序化捕获与原生天空／GPU 一致性：Metal **5/5**、Vulkan **5/5**。真实小太阳下的折射焦散仍有高方差，折射界面光源采样和体积 BDPT 待实现。
+
+<details>
+<summary>查看原始采样、旧图伪影和关闭散射诊断</summary>
+
+| 玉龙原始采样 | 玉龙／海洋原始采样 |
+| --- | --- |
+| ![Jade 原始 Path Tracing](img/path-tracing/dragon-jade-raw.png) | ![Jade Ocean 原始 Path Tracing](img/path-tracing/dragon-jade-ocean-preview-raw.png) |
+
+旧版 512 spp、浅海床、四倍散射的降噪图，保留作伪影记录：
+
+![旧图的焦散噪声与降噪云斑](img/path-tracing/dragon-jade-ocean.png)
+
+旧设置关闭水体散射仍出现云斑；该图不能与上方新场景直接比较散射能量：
+
+![关闭水体散射，保留玉石散射和水下吸收](img/path-tracing/dragon-jade-ocean-no-water-scattering.png)
+
+</details>
+
+```sh
+python3 tools/fetch_dragon.py
+./build/pt/Scene-Renderer --path-trace-gpu dragon-jade \
+  --pt-size 640x480 --pt-samples 512 --pt-bounces 96 --pt-fixed \
+  --pt-no-sky --pt-denoise-color-only --pt-output build/path-tracing/subsurface/dragon-jade
+./build/pt/Scene-Renderer --path-trace-gpu dragon-jade-ocean \
+  --pt-time 8 --pt-size 640x480 --pt-samples 2048 --pt-bounces 96 --pt-fixed \
+  --pt-sun-radius 2 --pt-ocean-floor-depth 20 --pt-denoise \
+  --pt-output build/path-tracing/subsurface/dragon-jade-ocean-preview
+# CPU：入口改为 --path-trace；Vulkan：使用 Vulkan 构建并追加 --backend Vulkan。
+```
+
+两场景默认深度 96；`--pt-sss-scale` 调整玉石自由程，`--pt-sss-scattering-scale 0` 关闭玉石散射，`--pt-water-scattering-scale 0` 关闭水体散射。当前是均匀 RGB 模型、平滑折射边界；**体积 BDPT 和体积 guiding/cache 尚未接入**。材质参数、封孔、能量守恒、CPU/GPU 对照和范围限制见 [水体／玉石 PT 说明](docs/path-tracing-subsurface.md)，原始 JSON 与图片校验值见 [次表面验收记录](img/path-tracing/subsurface-validation.json)，新预览与雾状伪影诊断见 [诊断记录](img/path-tracing/ocean-fog-validation.json)。
 
 ## 目录与模块
 
@@ -559,6 +614,8 @@ CPU、Metal/Vulkan GPU PT 现已接入当前高度／材质 VT、沙滩 PBR、�
 | `--path-trace-gpu <场景名>` | Metal/Vulkan GPU 路径追踪，共用 `--pt-*` 输出参数 |
 | `--pt-sampler sobol/pcg` / `--pt-fixed` | CPU 采样器对照与完整固定 spp；GPU 使用 Sobol |
 | `--pt-environment <HDR>` / `--pt-no-sky` | 复用环境贴图及太阳 sidecar，或跳过实时天空烘焙 |
+| `--pt-sun-radius <DEG>` | 调整烘焙天空的太阳角半径，0 < DEG < 5.73；保持辐照度，扩大太阳用于软光预览 |
+| `--pt-ocean-floor-depth <METERS>` | 设置 `dragon-jade-ocean` 海床深度，默认 20 m；2.2 m 恢复旧浅水设置 |
 | `--pt-self-test` | Metal／Vulkan 天空桥和 GPU PT 求交、采样与积分自检 |
 
 `W/A/S/D` 移动，`E/Q` 上下移动，按住 `Shift` 加速；按住鼠标右键调整视角。ImGui 用于修改渲染选项和场景参数。经典场景和离屏画廊支持 Metal/Vulkan；同时编译两后端时加 `--backend Vulkan`。`--rhi-self-test` 同时支持 OpenGL 基础路径。历史 `--metal-self-test` 仅在显式启用 `SCENERENDERER_LEGACY_METAL` 时提供。

@@ -92,6 +92,8 @@ GPU 桥测试覆盖 RenderRuntime 设备线程上的真实 HDR 烘焙、有限�
 
 ## 暂未支持
 
-支持静态 mesh 物体与目标大型场景；程序化地形、草与 FFT 海面通过固定时刻捕获进入求交，包含地形材质、沙滩、泡沫、反射／折射和水下吸收，见 [程序化 PT](path-tracing-procedural.md)。未冻结的海面请求明确报错。计算细分／额外位移后的网格仍未迁移。clearcoat/anisotropy/SSS 特殊 lobe、玻璃体内吸收/介质栈、体积云、运动模糊、景深、跨进程 resume 及 BVH 实例共享仍待后续。后续已加入 [平滑玻璃与 CPU BDPT 焦散](path-tracing-convergence.md)、[Metal/Vulkan GPU PT](path-tracing-gpu.md) 和 [OIDN 降噪](path-tracing-denoising.md)。
+支持静态 mesh 物体与目标大型场景；程序化地形、草与 FFT 海面通过固定时刻捕获进入求交，包含地形材质、沙滩、泡沫、反射／折射和水下吸收，见 [程序化 PT](path-tracing-procedural.md)。未冻结的海面请求明确报错。计算细分／额外位移后的网格仍未迁移。clearcoat/anisotropy 特殊 lobe、实时 SSS 材质自动映射、体积云、运动模糊、景深、跨进程 resume 及 BVH 实例共享仍待后续。后续已加入 [平滑玻璃与 CPU BDPT 焦散](path-tracing-convergence.md)、[Metal/Vulkan GPU PT](path-tracing-gpu.md) 和 [OIDN 降噪](path-tracing-denoising.md)。
 
 保留旧 PT 球/矩形/介质等实验类及历史 Cornell 路径；新场景转换和大型场景入口使用新的连续内存积分核心，不把旧实验类的所有材质模型宣称为已合并。
+
+水体多次散射与 Jade Dragon 随机游走 BSSRDF、RGB 吸收、HG 相位和初始／嵌套介质现已支持，见 [水体／玉石说明](path-tracing-subsurface.md)。玉石使用封闭扫描网格；体积 BDPT 尚未接入。

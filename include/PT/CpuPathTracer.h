@@ -2,6 +2,7 @@
 #include "renderer/rhi/SceneSnapshot.h"
 #include "PT/Sampler.h"
 #include "PT/SceneData.h"
+#include "PT/Medium.h"
 #include <functional>
 #include <memory>
 #include <string>
@@ -35,11 +36,14 @@ struct Surface {
     bool water = false;
     float foam = 0;
     glm::vec3 absorption{0};
+    float exteriorIor=1;
+    uint32_t mediumId=0;
     uint32_t primitive = UINT32_MAX;
     bool frontFace = true;
 };
 enum class TransportMode {Radiance, Importance};
 struct DielectricMaterial {uint64_t objectId;float ior=1.5f;};
+struct MediumInfo {uint32_t id=0,kind=0;float ior=1;Medium volume;};
 struct EmitterSample {Surface surface;float pdfArea=0;};
 struct BsdfSample { glm::vec3 direction{0}, value{0}; float pdf = 0; bool delta=false, transmission=false; };
 float dielectricFresnel(float cosine,float etaI,float etaT);
@@ -61,7 +65,7 @@ struct Image {
     uint32_t width = 0, height = 0, samples = 0;
     std::vector<glm::vec3> radiance, albedo, normal, caustics;
     std::vector<uint32_t> sampleCounts;
-    uint64_t rays = 0, nonFiniteSamples = 0, totalSamples = 0;
+    uint64_t rays = 0, nonFiniteSamples = 0, totalSamples = 0, volumeEvents = 0;
     uint32_t convergedPixels = 0;
     std::string execution = "CPU";
     double seconds = 0, setupSeconds = 0;
@@ -88,7 +92,7 @@ class CpuScene {
     bool intersect(glm::vec3 origin, glm::vec3 direction, float minimum, float maximum,
                    Surface &, bool bruteForce = false) const;
     glm::vec3 trace(glm::vec3 origin, glm::vec3 direction, Random &, uint32_t maxDepth,
-                    uint64_t &rays) const;
+                    uint64_t &rays,uint64_t *volumeEvents=nullptr) const;
     void cameraRay(float u, float v, glm::vec3 &origin, glm::vec3 &direction) const;
     SceneData exportData() const;
     EmitterSample sampleEmitter(Random &) const;
@@ -103,6 +107,9 @@ class CpuScene {
     size_t memoryBytes() const;
     size_t proceduralCount(uint32_t kind) const;
     float capturedTime() const;
+    size_t scatteringCount() const;
+    std::vector<MediumInfo> media() const;
+    std::array<uint32_t,8> initialMedia(glm::vec3 origin,std::array<uint32_t,8> *winding=nullptr) const;
     glm::vec3 initialAbsorption(glm::vec3 origin) const;
   private:
     struct State;

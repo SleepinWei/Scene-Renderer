@@ -1,0 +1,356 @@
+{
+  "date": "2026-10-05",
+  "conclusion": "No air fog is present. Bright shallow seabed transmission and rare refracted solar paths at low spp become cloud-shaped denoiser artifacts. An independent cross-bounce Sobol correlation defect was also fixed.",
+  "preview_changes_are_scene_changes": true,
+  "preview_settings": {
+    "sun_angular_radius_degrees": 2,
+    "sun_irradiance_preserved": true,
+    "ocean_floor_depth_meters": 20,
+    "water_scattering_scale": 1,
+    "frozen_time_seconds": 8,
+    "denoiser": "OIDN with prefiltered albedo and normal",
+    "no_radiance_clamp": true
+  },
+  "tests": {
+    "metal_final_cpu_medium_denoiser_procedural_native_sky": "5/5",
+    "vulkan_final_cpu_medium_denoiser_procedural_native_sky": "5/5",
+    "metal_and_vulkan_rhi_gpu_before_final_probe_expansion": "passed",
+    "invalid_cli_ranges_and_no_sky_combination": "rejected"
+  },
+  "sampler_regression": {
+    "samples": 16384,
+    "dimensions": [
+      2,
+      258
+    ],
+    "analytic_quadrant_and_product": 0.25,
+    "actual_cpp_measurements": [
+      {
+        "seed": 79,
+        "legacy_quadrant": 0,
+        "fixed_quadrant": 0.252319335938,
+        "legacy_product": 0.166809868919,
+        "fixed_product": 0.250439404241
+      },
+      {
+        "seed": 738,
+        "legacy_quadrant": 0.5,
+        "fixed_quadrant": 0.254211425781,
+        "legacy_product": 0.325493236041,
+        "fixed_product": 0.250124244244
+      },
+      {
+        "seed": 31,
+        "legacy_quadrant": 0,
+        "fixed_quadrant": 0.254272460938,
+        "legacy_product": 0.176568734632,
+        "fixed_product": 0.25038886131
+      }
+    ]
+  },
+  "diagnostics": {
+    "old_512_water_scattering_4x": {
+      "report": "build/path-tracing/subsurface/dragon-jade-ocean.json",
+      "size": [
+        640,
+        480
+      ],
+      "samples": 512,
+      "sampler": "digitally scrambled padded 2D Sobol",
+      "raw_mean_rgb": [
+        1.0631959682994114,
+        1.587311152218402,
+        1.39654061726588
+      ],
+      "denoised_mean_rgb": [
+        0.5554177599657063,
+        0.884613624070486,
+        1.1046965233675776
+      ],
+      "denoised_to_raw_mean_rgb_ratio": 0.6287862343816464,
+      "raw_rgb_percentile_levels": [
+        50,
+        90,
+        99,
+        99.9,
+        100
+      ],
+      "raw_rgb_percentiles": [
+        0.3185570538043976,
+        2.0562518358230593,
+        2.5631423354148866,
+        271.3460116271984,
+        4051.883544921875
+      ],
+      "raw_pfm_sha256": "4ca693618ddc9d6e17f57d4f51fa1d058ad0ab808c418203f9c5114d2a298269",
+      "denoised_pfm_sha256": "8367ab01d1af620d8bc05999477c159199c0e9175af7da2f0eff93ed93ae61e2"
+    },
+    "old_512_no_water_scattering": {
+      "report": "build/path-tracing/subsurface/dragon-jade-ocean-no-water-scattering.json",
+      "size": [
+        640,
+        480
+      ],
+      "samples": 512,
+      "sampler": "digitally scrambled padded 2D Sobol",
+      "raw_mean_rgb": [
+        1.0556231530121063,
+        1.5284003602903475,
+        1.2940224023397469
+      ],
+      "denoised_mean_rgb": [
+        0.6897230295741338,
+        1.0870385132831324,
+        1.3030764296469595
+      ],
+      "denoised_to_raw_mean_rgb_ratio": 0.7941726424851283,
+      "raw_rgb_percentile_levels": [
+        50,
+        90,
+        99,
+        99.9,
+        100
+      ],
+      "raw_rgb_percentiles": [
+        0.30148230493068695,
+        2.062412023544311,
+        2.5693984413146973,
+        202.7236791992188,
+        4051.8798828125
+      ],
+      "raw_pfm_sha256": "d4710a2468ab0d5d6365d21cea0fa918c8c96da14bfb72aafa28c1db4774a0d4",
+      "denoised_pfm_sha256": "eaf7da5f394f893db21aa1b4649f1a5c1aeacf785dcc109d255146a803f731ca"
+    },
+    "old_4096_no_water_scattering": {
+      "report": "build/path-tracing/fog-debug/no-water-4096.json",
+      "size": [
+        320,
+        240
+      ],
+      "samples": 4096,
+      "sampler": "digitally scrambled padded 2D Sobol",
+      "raw_mean_rgb": [
+        1.0699460733133757,
+        1.5517818381472777,
+        1.301106583658281
+      ],
+      "denoised_mean_rgb": [
+        1.0310939177770828,
+        1.3747222398799688,
+        1.423703277448464
+      ],
+      "denoised_to_raw_mean_rgb_ratio": 0.9762123382647094,
+      "raw_rgb_percentile_levels": [
+        50,
+        90,
+        99,
+        99.9,
+        100
+      ],
+      "raw_rgb_percentiles": [
+        0.3221444934606552,
+        2.1706791639328005,
+        23.457809467315673,
+        57.60790966796983,
+        776.65966796875
+      ],
+      "raw_pfm_sha256": "257bc5f15be06f7a17092483b02e8546088b8b7f582c3841c432ff88a3c7d872",
+      "denoised_pfm_sha256": "88456b9e9b9914de0fccf2886ea10b7c3c650cab4649bb5413b8c72737c76657"
+    },
+    "cpu_pcg_1024_no_water_scattering": {
+      "report": "build/path-tracing/fog-debug/no-water-cpu-pcg.json",
+      "size": [
+        160,
+        120
+      ],
+      "samples": 1024,
+      "sampler": "PCG",
+      "raw_mean_rgb": [
+        1.029037011563099,
+        1.7296848890767433,
+        1.3059857445943635
+      ],
+      "denoised_mean_rgb": [
+        0.7689326334147093,
+        1.119967407529087,
+        1.332113069811215
+      ],
+      "denoised_to_raw_mean_rgb_ratio": 0.7924341408739666,
+      "raw_rgb_percentile_levels": [
+        50,
+        90,
+        99,
+        99.9,
+        100
+      ],
+      "raw_rgb_percentiles": [
+        0.3034442961215973,
+        2.063888359069824,
+        2.579607117176056,
+        102.96449871063244,
+        3362.138671875
+      ],
+      "raw_pfm_sha256": "d3ef48a7d85e8fd4da388170c21887fd2843e4c6cd27deaa67df7cb8147e4113",
+      "denoised_pfm_sha256": "73d6850b4123dc5d4d48e24fc9fd65715334d18d9ad2646dbdd9ad9d93c09875"
+    },
+    "new_2048_deep_soft_sun": {
+      "report": "build/path-tracing/subsurface/dragon-jade-ocean-preview.json",
+      "size": [
+        640,
+        480
+      ],
+      "samples": 2048,
+      "sampler": "dyadic-permuted padded 2D Sobol",
+      "raw_mean_rgb": [
+        0.5130998116115991,
+        0.951479456614652,
+        1.1024842438058597
+      ],
+      "denoised_mean_rgb": [
+        0.504912089475359,
+        0.9297334275686141,
+        1.0914569125027749
+      ],
+      "denoised_to_raw_mean_rgb_ratio": 0.9840436037934498,
+      "raw_rgb_percentile_levels": [
+        50,
+        90,
+        99,
+        99.9,
+        100
+      ],
+      "raw_rgb_percentiles": [
+        0.31395308673381805,
+        2.254015755653381,
+        5.182148299217227,
+        13.999390264511867,
+        244.94668579101562
+      ],
+      "raw_pfm_sha256": "b5d448edda15a3ef2236ce08dbdb20c9fab2352e6479f09b7f4bca3b9d48a52f",
+      "denoised_pfm_sha256": "db07c8da89113b46925bc8b06798bd6a0f88ed1475406f6b2e18cf2d8b6c8461"
+    }
+  },
+  "preview_report": {
+    "absolute_error": 0.0005000000237487257,
+    "adaptive": false,
+    "average_spp": 2048.0,
+    "bdpt": false,
+    "bvh_nodes": 996685,
+    "cache_depth": 2,
+    "cache_hits": 0,
+    "cache_minimum": 64,
+    "converged_pixels": 0,
+    "denoise_auxiliary": true,
+    "denoise_device": "Metal",
+    "denoise_seconds": 0.42392225,
+    "denoiser": "Open Image Denoise 2.5.1",
+    "dielectric_meshes": 2,
+    "environment": {
+      "height": 256,
+      "type": "linear HDR equirectangular, importance sampled",
+      "width": 512
+    },
+    "execution": "GPU Metal compute BVH",
+    "exposure": 1.0,
+    "frozen_time_seconds": 8.0,
+    "geometry_bvh_bytes": 178168672,
+    "gpu_buffer_bytes": 154145508,
+    "grass_meshes": 0,
+    "guide_cell_size": 0.0,
+    "guide_hits": 0,
+    "guiding": false,
+    "height": 480,
+    "integrator": "RGB homogeneous random walk BSSRDF/volume, HG phase, dielectric boundaries, environment/sun/emitter NEE + MIS, Russian roulette",
+    "max_depth": 96,
+    "media": [
+      {
+        "hg_g": 0.44999998807907104,
+        "id": 1,
+        "ior": 1.5399999618530273,
+        "kind": 4,
+        "sigma_a": [
+          9.0,
+          0.699999988079071,
+          3.5
+        ],
+        "sigma_s": [
+          35.0,
+          45.0,
+          38.0
+        ]
+      },
+      {
+        "hg_g": 0.6499999761581421,
+        "id": 3,
+        "ior": 1.3329999446868896,
+        "kind": 3,
+        "sigma_a": [
+          0.11999999731779099,
+          0.03999999910593033,
+          0.019999999552965164
+        ],
+        "sigma_s": [
+          0.02500000037252903,
+          0.05000000074505806,
+          0.07000000029802322
+        ]
+      }
+    ],
+    "meshes": 3,
+    "minimum_samples": 64,
+    "non_finite_samples": 0,
+    "ocean_interfaces": 1,
+    "radiance_cache": false,
+    "rays": 4957489521,
+    "relative_error": 0.029999999329447746,
+    "render_seconds": 191.788778833,
+    "requested_threads": 0,
+    "sample_budget": 2048,
+    "sampler": "dyadic-permuted padded 2D Sobol",
+    "samples": 2048,
+    "scattering_meshes": 2,
+    "scene": "dragon-jade-ocean",
+    "seed": 1,
+    "setup_seconds": 1.99764225,
+    "subsurface_meshes": 1,
+    "sun_irradiance": [
+      27.76178550720215,
+      22.571727752685547,
+      17.039640426635742
+    ],
+    "sun_radius_degrees": 2.0,
+    "terrain_meshes": 0,
+    "terrain_ocean": "frozen procedural meshes",
+    "total_samples": 629145600,
+    "trace_and_training_seconds": 191.788778833,
+    "trace_training_denoise_seconds": 192.212701083,
+    "trained_cells": 0,
+    "training_rays": 0,
+    "training_seconds": 0.0,
+    "training_spp": 0,
+    "triangles": 2968440,
+    "volume_scattering_events": 1260670059,
+    "width": 640
+  },
+  "images": {
+    "dragon-jade-ocean-preview.png": "9d0b0cd57ca878dd30fc13523e00634d77c8d1514c7592ed9429a09d9b2cf390",
+    "dragon-jade-ocean-preview-raw.png": "2c84a100a4127effe3630bf92e08b27fcda463a643adc5658104842ae3d18709"
+  },
+  "source_checksums": {
+    "src/PT/Sampler.cpp": "68a3183c268c9e26d06d6240478bed114dd64fcff6b5435627bd05eff8d47434",
+    "include/PT/Sampler.h": "11c27e603f206157c688b5e3b5669bdb9e40c4109c1e304b568a516f4b2851f3",
+    "src/rhi/shaders/pt-sampling.glsl": "b24801982a096588b13dd1945939d14739dbb18b5d9d2b0ccdc86a240e3e3b15",
+    "src/PT/CpuPathTracer.cpp": "002d64cffd82631af1c895702213f5cc08f16babc37e19e1b284c35f37a103c1",
+    "src/PT/GpuPathTracer.cpp": "eb412a6ded2d4b34bd9de26cf32850f9f3d17693e11da64036763d56eba1ae39",
+    "src/rhi/shaders/path-trace.comp": "c2ce85a8feaac70927c671b953c7ca2710816c91f89215f66d4b89b19f2500a9",
+    "src/PT/CpuPathTracingEntry.cpp": "bf8d209e235701b49f3fde17fa234c0d109f7b1fa997c74f5b179bd1f176ed70",
+    "src/PT/DragonScene.cpp": "25d3b61c67b7bf7d257ec42b75333ba2bc1746eda10b76fe3a24db2b7e22df8d",
+    "tests/PT/CpuPathTracerTests.cpp": "4fb8ee9a259fe3d5632e2cebe8957a12e4179f9a3d472f72f99e317de505ce04"
+  },
+  "limitations": [
+    "No refractive NEE or volume BDPT yet; the real small sun remains high variance.",
+    "Preview parameters differ from the old shallow-water scene; no same-scene convergence claim.",
+    "Finite captured ocean horizon seam remains.",
+    "OIDN is not an energy or caustic validation reference."
+  ]
+}

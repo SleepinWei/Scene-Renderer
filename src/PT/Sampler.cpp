@@ -4,6 +4,21 @@ uint32_t sampleHash(uint32_t x) {
     x ^= x >> 16; x *= 0x7feb352du; x ^= x >> 15; x *= 0x846ca68bu; return x ^ (x >> 16);
 }
 float sobolSample(uint32_t pixelSeed, uint32_t sample, uint32_t dimension) {
+    const uint32_t pairSeed=sampleHash(pixelSeed^sampleHash(dimension/2+0x9e3779b9u));
+    // Permute each dyadic index block independently for each padded pair.
+    // Every power-of-two prefix retains its complete 2D net, while different
+    // bounces no longer share a fixed XOR relation between their coordinates.
+    if(sample>=2){
+        uint32_t block=1,bits=0;while(block<=sample/2){block<<=1;++bits;}
+        uint32_t rightBits=bits/2,leftBits=bits-rightBits;
+        uint32_t left=(sample-block)>>rightBits,right=(sample-block)&((1u<<rightBits)-1);
+        const uint32_t seed=sampleHash(pairSeed^sampleHash(block));
+        for(uint32_t round=0;round<6;++round){
+            const uint32_t next=left^(sampleHash(right^seed^sampleHash(round+0x9e3779b9u))&((1u<<leftBits)-1));
+            left=right;right=next;const uint32_t swap=leftBits;leftBits=rightBits;rightBits=swap;
+        }
+        sample=block+(left<<rightBits|right);
+    }
     uint32_t gray = sample ^ (sample >> 1), direction = 0x80000000u, value = 0;
     while (gray) {
         if (gray & 1u) value ^= direction;

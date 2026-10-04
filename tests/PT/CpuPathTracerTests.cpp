@@ -20,6 +20,14 @@ void samplers() {
     for(uint32_t dimension:{0u,1u,10u,511u,32767u}){std::vector<int> bins(1024,0);for(uint32_t i=0;i<1024;++i){float value=pt::sobolSample(738,i,dimension);check(value>=0 && value<1,"Sobol sample out of range");++bins[uint32_t(value*1024)];}for(auto count:bins)check(count==1,"Sobol lost one-dimensional stratification");}
     std::vector<int> cells(1024,0);for(uint32_t i=0;i<1024;++i){uint32_t x=uint32_t(pt::sobolSample(79,i,0)*32),y=uint32_t(pt::sobolSample(79,i,1)*32);++cells[y*32+x];}for(auto count:cells)check(count==1,"Sobol 2D net missed a stratum");
     auto a=pt::Random::forPixel(31,19,5,true),b=pt::Random::forPixel(31,19,5,true);a.dimension(259);b.dimension(259);check(a.uniform()==b.uniform(),"Sobol random access differs across clones");
+    // A digital shift alone locks distant bounce coordinates together: this
+    // integral becomes 0 or .5 instead of .25, regardless of sample count.
+    for(uint32_t seed:{79u,738u,31u})for(uint32_t d:{258u,514u,24578u}){
+        double product=0;uint32_t quadrant=0;constexpr uint32_t count=16384;
+        for(uint32_t i=0;i<count;++i){float x=pt::sobolSample(seed,i,2),y=pt::sobolSample(seed,i,d);product+=x*y;quadrant+=x<.5f&&y<.5f;}
+        check(std::abs(product/count-.25)<.008,"Sobol cross-bounce product integral is correlated");
+        check(std::abs(double(quadrant)/count-.25)<.012,"Sobol cross-bounce quadrant integral is correlated");
+    }
 }
 void geometry() {
     auto s=snapshot();s.draws.push_back(triangle({-1,-1,0},{1,-1,0},{0,1,0},{.5f,.2f,.1f}));pt::CpuScene scene(s);pt::Surface hit;

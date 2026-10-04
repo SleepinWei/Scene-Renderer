@@ -1,4 +1,5 @@
 #include "PT/ValidationScenes.h"
+#include "PT/SubsurfaceMesh.h"
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
@@ -25,4 +26,21 @@ ValidationScene makeDragonScene(uint32_t width,uint32_t height,const std::string
     render::SnapshotDraw dragon;dragon.objectId=4;dragon.mesh=mesh;dragon.parameters.albedoAlpha=glass?glm::vec4(.99f,.995f,1,1):glm::vec4(.55f,.65f,.8f,1);dragon.parameters.factors={0,.08f,1,0};s.draws.push_back(dragon);if(glass)result.dielectrics.push_back({4,1.5f});
     std::cout<<"Stanford Dragon: "<<mesh->vertices.size()<<" vertices, "<<mesh->indices.size()/3<<" triangles, IOR "<<(glass?1.5:0)<<'\n';return result;
 }
+ValidationScene makeJadeDragonScene(uint32_t width,uint32_t height,const std::string &path,bool ocean,float floorDepth){
+    if(!std::isfinite(floorDepth)||floorDepth<=0)throw std::invalid_argument("PT: ocean floor depth must be positive");
+    auto result=makeDragonScene(width,height,path,false);auto &s=result.snapshot;auto &dragon=s.draws.back();auto mesh=std::make_shared<render::MeshPayload>(*dragon.mesh);auto closure=closeSubsurfaceMesh(*mesh);dragon.mesh=mesh;
+    dragon.parameters.albedoAlpha=glm::vec4(1);dragon.pathTracingIor=1.54f;dragon.pathTracingAbsorption={9,.7f,3.5f};dragon.pathTracingScattering={35,45,38};dragon.pathTracingAnisotropy=.45f;dragon.pathTracingKind=4;
+    std::cout<<"Jade scan closure: "<<closure.weldedVertices<<" welded vertices, "<<closure.removedFaces<<" removed faces, "<<closure.filledHoles<<" filled holes, "<<closure.boundaryEdges<<" boundary edges, "<<mesh->indices.size()/3<<" solid triangles\n";
+    if(ocean){
+        auto jade=dragon;s.draws.clear();s.draws.push_back(jade);
+        const float bottomY=.2f-floorDepth;
+        auto bottom=std::make_shared<render::MeshPayload>();bottom->vertices={{{-300,bottomY,-300},{0,1,0},{0,0}},{{-300,bottomY,300},{0,1,0},{0,1}},{{300,bottomY,300},{0,1,0},{1,1}},{{300,bottomY,-300},{0,1,0},{1,0}}};bottom->indices={0,1,2,0,2,3};render::SnapshotDraw seabed;seabed.objectId=7;seabed.mesh=bottom;seabed.parameters.albedoAlpha={.72f,.68f,.55f,1};seabed.parameters.factors={0,.85f,1,0};s.draws.push_back(seabed);
+        render::OceanSurfaceSettings water;water.spectrum.size=256;water.spectrum.length=64;water.spectrum.amplitude=.0001f;water.spectrum.heightScale=.25f;water.spectrum.windSpeed=8;water.surfaceLength=512;water.meshSize=1025;water.seaLevel=.2f;water.detailStrength=.4f;water.absorption={.12f,.04f,.02f};water.scattering={.025f,.05f,.07f};s.frame.oceans={water};s.frame.sky=true;s.frame.lights={{{0,0,0,0},{30,27,24,0},{-.45f,-.7f,-.3f,0}}};s.exposure=1;
+    }else{
+        // Large luminous panels illuminate the thin horns and folds through the solid.
+        for(auto &draw:s.draws)if(draw.objectId==2){draw.parameters.albedoAlpha={.08f,.09f,.09f,1};draw.parameters.emissiveNormal=glm::vec4(0);}
+    }
+    return result;
+}
+
 }

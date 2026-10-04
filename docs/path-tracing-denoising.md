@@ -46,6 +46,8 @@ RT 以 `hdr=true`、`srgb=false`、high quality 执行。albedo / normal 在私�
 
 当前渲染器辅助 AOV 采用像素中心第一交点，beauty 有子像素采样；两者在细几何、透明/玻璃、多层反射处可能不匹配。预滤波不会补齐缺失的第二层特征，可用 color-only 作对照。OIDN 的 RT 模型对稀有焦散、高频纹理和路径间相关性可能产生平滑或偏差，不能凭降噪图验证 BDPT 能量或证明更快收敛；所有算法误差仍比较未降噪的线性 PFM。
 
+玉龙／FFT 海洋旧图是一个实际反例：512 spp 的原始图含很亮的太阳焦散噪点，color-only 将其平滑成大片白色云斑，关闭水体散射仍然出现；提高到 4096 spp 和 CPU PCG 对照也未消除小太阳引起的高方差。辅助 AOV 能保留轮廓，但不能恢复这些稀有路径的正确能量。新 README 预览明确改用软太阳和较深海床，保留原始 PFM；详情见 [水体／玉石 PT](path-tracing-subsurface.md)。
+
 测试包含确定性含噪 HDR 阶跃面：线性能量、边缘两侧的均值、MSE 下降、原图/AOV 不变、color-only、NaN/尺寸拒绝；同时验证 PFM 大小端、scale、翻转和截断错误，以及关闭 OIDN 的构建。真实 Sponza、San Miguel 与 BDPT 图像另作视觉检查。
 
 ## 实测预览

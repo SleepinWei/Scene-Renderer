@@ -18,10 +18,11 @@ struct alignas(16) Parameters {
     glm::uvec4 dimensions,counts,control;
     glm::vec4 settings;
     glm::uvec4 adaptive,learning;
-    glm::vec4 guideSettings,cameraAbsorption;
+    glm::vec4 guideSettings;
+    std::array<glm::uvec4,2> cameraMedia{},cameraWinding{};
 };
 struct alignas(16) Pixel {glm::vec4 mean{0},m2{0};glm::uvec4 stats{0};glm::vec4 albedo{0},normal{0};};
-static_assert(sizeof(Parameters)==240 && sizeof(Pixel)==80,"GPU path tracing ABI");
+static_assert(sizeof(Parameters)==288 && sizeof(Pixel)==80,"GPU path tracing ABI");
 struct alignas(16) GuideCell {glm::uvec4 meta{0};glm::vec4 tail{0};std::array<float,64> cdf{},environmentCdf{};};
 static_assert(sizeof(GuideCell)==544,"Guide cell ABI");
 class Kernel {
@@ -31,15 +32,16 @@ class Kernel {
         if(options.bdpt)throw std::invalid_argument("GPU PT does not implement BDPT; use the CPU BDPT reference");
         if(!resources_.device->computeLimits().supported || resources_.device->backend()==rhi::Backend::OpenGL)throw std::invalid_argument("GPU PT requires Metal or Vulkan compute");
         if(!options.sobol)throw std::invalid_argument("GPU PT uses Sobol; use CPU for the PCG reference");
+        if(scene.scatteringCount()&&(options.guiding||options.radianceCache))throw std::invalid_argument("GPU volume PT requires guiding/cache disabled");
         auto data=scene.exportData();
-        parameters_.cameraAbsorption=glm::vec4(data.cameraAbsorption,0);parameters_.inverseProjection=data.inverseProjection;parameters_.camera=glm::vec4(data.camera,0);
+        parameters_.cameraMedia=data.cameraMedia;parameters_.cameraWinding=data.cameraWinding;parameters_.inverseProjection=data.inverseProjection;parameters_.camera=glm::vec4(data.camera,0);
         const uint32_t highSeed=uint32_t(options.seed>>32);std::memcpy(&parameters_.camera.w,&highSeed,4);
         parameters_.sunDirectionRadius=glm::vec4(scene.sunDirection,scene.sunRadius);parameters_.sunIrradiance=glm::vec4(scene.sunIrradiance,0);
         parameters_.dimensions={options.width,options.height,0,0};parameters_.counts={uint32_t(data.nodes.size()),uint32_t(data.lights.size()),scene.environment?scene.environment->width():0,scene.environment?scene.environment->height():0};
         parameters_.control={options.maxDepth,uint32_t(options.seed),0,uint32_t(data.emitters.size())};parameters_.settings={float(data.emitterWeight),options.relativeError,options.absoluteError,data.inverseSquare?1.f:0.f};parameters_.adaptive={options.adaptive?1:0,options.minimumSamples,options.samples,1};
         parameters_.learning={options.guiding||options.radianceCache?16384u:0u,(options.guiding?1u:0u)|(options.radianceCache?2u:0u),options.cacheMinimum,options.cacheDepth};
         float extent=1;if(!data.nodes.empty()){auto size=glm::vec3(data.nodes[0].high-data.nodes[0].low);extent=std::max({size.x,size.y,size.z,1.f});}
-        parameters_.guideSettings={options.guideCellSize>0?options.guideCellSize:extent/48,.35f,.5f,0};
+        parameters_.guideSettings={options.guideCellSize>0?options.guideCellSize:extent/48,.35f,.5f,scene.scatteringCount()?1.f:0.f};
         using namespace rhi;
         const auto path=defaultShaderDirectory()+"/path-trace.comp";
         ComputePipelineDesc desc;desc.shader={path+".glsl",path+".metallib",path+".spv",path+".json","main0"};desc.threads={8,8,1};desc.label="Portable GPU path tracing";
@@ -134,8 +136,8 @@ Image renderGpu(const CpuScene &scene,const Options &options,std::shared_ptr<rhi
     for(uint32_t first=0;first<options.samples;) {
         const uint32_t end=std::min(options.samples,first<4?4u:first<16?16u:first+32);
         for(uint32_t begin=first;begin<end;){const uint32_t next=std::min(end,begin+4);kernel.dispatch(begin,next,options.adaptive&&next==end);begin=next;}
-        const auto &pixels=kernel.read();image.rays=0;image.nonFiniteSamples=0;image.totalSamples=0;image.convergedPixels=0;image.guideHits=0;image.cacheHits=0;
-        for(size_t i=0;i<count;++i){image.radiance[i]=glm::vec3(pixels[i].mean);image.albedo[i]=glm::vec3(pixels[i].albedo);image.normal[i]=glm::vec3(pixels[i].normal);image.sampleCounts[i]=pixels[i].stats.x;image.totalSamples+=pixels[i].stats.x;image.rays+=pixels[i].stats.z;image.nonFiniteSamples+=pixels[i].stats.w;image.convergedPixels+=pixels[i].stats.y>=2;image.guideHits+=uint64_t(pixels[i].mean.w);image.cacheHits+=uint64_t(pixels[i].m2.w);}
+        const auto &pixels=kernel.read();image.rays=0;image.nonFiniteSamples=0;image.totalSamples=0;image.convergedPixels=0;image.guideHits=0;image.cacheHits=0;image.volumeEvents=0;
+        for(size_t i=0;i<count;++i){image.radiance[i]=glm::vec3(pixels[i].mean);image.albedo[i]=glm::vec3(pixels[i].albedo);image.normal[i]=glm::vec3(pixels[i].normal);image.sampleCounts[i]=pixels[i].stats.x;image.totalSamples+=pixels[i].stats.x;image.rays+=pixels[i].stats.z;image.nonFiniteSamples+=pixels[i].stats.w;image.convergedPixels+=pixels[i].stats.y>=2;image.guideHits+=uint64_t(pixels[i].mean.w);image.cacheHits+=uint64_t(pixels[i].m2.w);image.volumeEvents+=uint64_t(pixels[i].normal.w);}
         if(image.nonFiniteSamples)throw std::runtime_error("GPU PT non-finite path contribution");image.samples=end;image.seconds=std::chrono::duration<double>(std::chrono::steady_clock::now()-started).count();
         std::cout<<image.execution<<": "<<end<<" spp budget, "<<double(image.totalSamples)/count<<" average spp, "<<image.seconds<<" s, "<<image.rays<<" rays\n"<<std::flush;
         if(progress)progress(image);first=end;if(image.convergedPixels==count)break;
@@ -151,7 +153,8 @@ void validateGpuPathTracing(std::shared_ptr<rhi::GraphicsDevice> device) {
     probe.uploadPixels(rays);probe.dispatch(0,1,false,1);const auto result=probe.read();
     for(size_t i=0;i<result.size();++i){check((result[i].m2.w>0)==hits[i],"GPU BVH visibility differs from CPU brute force");if(hits[i]){check(std::abs(result[i].mean.w-references[i].distance)<.001f,"GPU triangle distance differs from CPU");check(glm::length(glm::vec3(result[i].m2)-references[i].albedo)<.002f,"GPU material texel differs from CPU");}}
     probe.dispatch(0,1,false,2);const auto samples=probe.read();
-    for(uint32_t i=0;i<samples.size();++i){uint32_t pixelSeed=sampleHash(1^sampleHash(0)^sampleHash(i));for(uint32_t d=0;d<4;++d)check(samples[i].mean[d]==sobolSample(pixelSeed,i,d),"GPU Sobol sequence differs from CPU");}
+    const uint32_t probeDimensions[]={0,258,514,24578};
+    for(uint32_t i=0;i<samples.size();++i){uint32_t pixelSeed=sampleHash(1^sampleHash(0)^sampleHash(i));for(uint32_t d=0;d<4;++d)check(samples[i].mean[d]==sobolSample(pixelSeed,i,probeDimensions[d]),"GPU Sobol sequence differs from CPU");}
     world=fixture();world.draws.push_back(triangle({-20,-20,0},{20,-20,0},{0,20,0}));world.frame.lights.push_back({{0,0,0,0},{2,2,2,0},{0,0,-1,0}});CpuScene scene(world);scene.environment=std::make_shared<Environment>(16,8,std::vector<glm::vec3>(128,glm::vec3(.3f)));
     Options options;options.width=32;options.height=32;options.samples=128;options.maxDepth=4;options.threads=1;options.adaptive=false;
     const auto cpu=render(scene,options),gpu=renderGpu(scene,options,device);double error=0,energy=0;

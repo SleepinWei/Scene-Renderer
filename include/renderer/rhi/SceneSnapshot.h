@@ -27,9 +27,10 @@ struct SnapshotDraw {
     bool subdivision = false, wireframe = false;
     // Detached optical data for frozen procedural PT geometry. Raster passes ignore it.
     float pathTracingIor = 0;
-    glm::vec3 pathTracingAbsorption{0};
+    glm::vec3 pathTracingAbsorption{0},pathTracingScattering{0};
+    float pathTracingAnisotropy=0;
     float pathTracingNormalScale = 1;
-    uint32_t pathTracingKind = 0; // 1 terrain, 2 grass, 3 ocean interface.
+    uint32_t pathTracingKind = 0; // 1 terrain, 2 grass, 3 ocean interface, 4 subsurface solid.
 };
 struct TerrainPayload {
     uint64_t id = 0, revision = 0;
