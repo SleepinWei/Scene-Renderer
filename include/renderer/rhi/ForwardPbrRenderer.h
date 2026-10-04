@@ -15,6 +15,11 @@ struct RsmSettings {
     float worldRadius=20,intensity=1,sampleRadius=.3f,minDistance=.1f;
     int sampleCount=128;
 };
+struct ShadowSettings {
+    bool pcss=true;
+    float distance=300, cascadeBlend=.1f, depthBias=.002f;
+    float sunAngularRadius=.00465f, localLightRadius=.05f, maxFilterTexels=24;
+};
 struct FrameData {
     glm::mat4 viewProjection{1}; // NDC depth 0..1.
     glm::mat4 view{1};
@@ -27,6 +32,7 @@ struct FrameData {
     float aoRadius=1,aoBias=.025f,aoPower=1.5f;
     bool toneMapping=true,forwardShading=false;
     RsmSettings rsmSettings;
+    ShadowSettings shadowSettings;
     bool directionalEnabled=true;
     bool inverseSquareLocalLights=false; // Legacy forward validation can retain constant point attenuation.
     AtmosphereSettings atmosphere;float sunAngle=10,sunAzimuth=0,seaLevelMeters=0,multipleScattering=1,groundAlbedo=.2f,timeSeconds=0;

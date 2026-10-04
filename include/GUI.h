@@ -139,7 +139,15 @@ public:
 			if (ImGui::Toggle("Enable Shadow", &enableShadow)) {
 				setting.enableShadow = enableShadow;
 			}
-			ImGui::Toggle("Enable RSM", &setting.enableRSM);
+			if(nativeUi_ && setting.enableShadow){
+                auto& shadows=setting.shadowSettings;
+                ImGui::Checkbox("PCSS soft shadows",&shadows.pcss);
+                ImGui::SliderFloat("Shadow distance",&shadows.distance,10,5000);
+                ImGui::SliderFloat("Cascade blend",&shadows.cascadeBlend,0,.3f);
+                ImGui::SliderFloat("Shadow bias (world units)",&shadows.depthBias,0,.05f,"%.4f");
+                ImGui::SliderFloat("Local light radius",&shadows.localLightRadius,0,1);
+            }
+            ImGui::Toggle("Enable RSM", &setting.enableRSM);
             if(setting.enableRSM && nativeUi_){
                 auto& rsm=setting.rsmSettings;
                 ImGui::Checkbox("Sun and sky RSM",&rsm.useSunSky);ImGui::Checkbox("Sun bounce",&rsm.sunBounce);ImGui::Checkbox("Sky bounce",&rsm.skyBounce);

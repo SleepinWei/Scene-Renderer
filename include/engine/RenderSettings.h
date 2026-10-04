@@ -30,4 +30,5 @@ struct RenderSetting {
     float timeOverride = -1;
     float aoRadius = 1, aoBias = .025f, aoPower = 1.5f;
     render::RsmSettings rsmSettings;
+    render::ShadowSettings shadowSettings;
 };

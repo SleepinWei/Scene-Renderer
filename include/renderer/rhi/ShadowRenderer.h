@@ -12,6 +12,9 @@ struct alignas(16) ShadowParameters {
     glm::mat4 rsmMatrix{1};
     glm::vec4 rsmRect{0};
     glm::vec4 rsmSettings{.3f,128,.1f,0}; // UV radius, samples, minimum distance, indirect only.
+    std::array<glm::vec4,30> lightDepth; // near, far, orthographic flag, tan(fov/2).
+    glm::vec4 filter{1,.00465f,.05f,24}; // PCSS enabled, sun angular radius, local emitter radius, radius cap in texels.
+    glm::vec4 cascades{.1f,300,.1f,.1f}; // camera near, shadow distance, cascade overlap, far fade fraction.
 };
 class ShadowRenderer {
 public:

@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <stdexcept>
 namespace render {
-static_assert(sizeof(ShadowParameters)==15536 && offsetof(ShadowParameters,settings)==15424,"Shadow std140 ABI");
+static_assert(sizeof(ShadowParameters)==16048 && offsetof(ShadowParameters,settings)==15424,"Shadow std140 ABI");
 namespace {
 rhi::ShaderAsset asset(const std::string& directory,const char* name){auto p=directory+"/"+name;return {p+".glsl",p+".metallib",p+".spv",p+".json","main0"};}
 glm::mat4 depthCorrection(){glm::mat4 m(1);m[2][2]=.5f;m[3][2]=.5f;return m;}
@@ -26,6 +26,15 @@ ShadowRenderer::ShadowRenderer(std::shared_ptr<rhi::GraphicsDevice> device,const
 }
 void ShadowRenderer::render(const FrameData& frame,const std::vector<DrawPacket>& packets) {
     if(frame.lights.size()>30 || !std::isfinite(frame.nearPlane) || !std::isfinite(frame.farPlane) || frame.nearPlane<=0 || frame.farPlane<=frame.nearPlane)throw std::invalid_argument("Shadow: invalid camera/light parameters");
+    const auto& settings=frame.shadowSettings;
+    for(float x:{settings.distance,settings.cascadeBlend,settings.depthBias,settings.sunAngularRadius,settings.localLightRadius,settings.maxFilterTexels})
+        if(!std::isfinite(x))throw std::invalid_argument("Shadow: nonfinite setting");
+    if(settings.distance<=frame.nearPlane || settings.cascadeBlend<0 || settings.cascadeBlend>.3f || settings.depthBias<0 ||
+       settings.sunAngularRadius<0 || settings.sunAngularRadius>.1f || settings.localLightRadius<0 || settings.maxFilterTexels<1 || settings.maxFilterTexels>64)
+        throw std::invalid_argument("Shadow: setting outside domain");
+    uint32_t required=0;for(const auto& light:frame.lights)required+=light.positionType.w==0?5:light.positionType.w==1?6:1;
+    const uint32_t columns=std::max(1u,uint32_t(std::ceil(std::sqrt(float(required))))),tileSize=extent_/columns;
+    if(tileSize<8)throw std::invalid_argument("Shadow tiles too small for filtering");
     glm::vec3 minimum(1e30f),maximum(-1e30f);
     for(const auto& packet:packets) {
         if(!packet.mesh || !packet.material || packet.mesh->owner()!=resources_.device.get() || packet.material->owner()!=resources_.device.get())throw std::invalid_argument("Shadow: foreign draw packet");
@@ -33,11 +42,23 @@ void ShadowRenderer::render(const FrameData& frame,const std::vector<DrawPacket>
     }
     if(packets.empty()){minimum=glm::vec3(-1);maximum=glm::vec3(1);}
     const auto center=(minimum+maximum)*.5f;const float radius=std::max(glm::length(maximum-minimum)*.5f,1.f);
-    const float far=std::min(frame.farPlane,std::max(frame.nearPlane*2,glm::length(center-frame.cameraPosition)+radius*2));
-    std::array<float,6> splits;splits[0]=frame.nearPlane;for(int i=1;i<=5;++i){const float t=float(i)/5;splits[i]=.6f*frame.nearPlane*std::pow(far/frame.nearPlane,t)+.4f*(frame.nearPlane+(far-frame.nearPlane)*t);}
-    const auto inverse=glm::inverse(frame.viewProjection);
-    std::array<glm::vec3,8> corners;for(int i=0;i<8;++i){auto p=inverse*glm::vec4(i&1?1.f:-1.f,i&2?1.f:-1.f,i&4?1.f:0.f,1);if(!std::isfinite(p.w) || std::abs(p.w)<1e-12f)throw std::invalid_argument("Shadow: singular camera projection");corners[i]=glm::vec3(p)/p.w;}
-    data_={};data_.cameraView=frame.view;data_.settings={.001f,frame.shadows?1.f:0.f,frame.rsm?frame.rsmSettings.intensity:0.f,float(sourceExtent_)};
+    const float far=std::min(frame.farPlane,settings.distance);
+    std::array<float,6> splits;splits[0]=frame.nearPlane;for(int i=1;i<=5;++i){const float t=float(i)/5;splits[i]=.7f*frame.nearPlane*std::pow(far/frame.nearPlane,t)+.3f*(frame.nearPlane+(far-frame.nearPlane)*t);}
+    const auto inverse=glm::inverse(frame.viewProjection),inverseView=glm::inverse(frame.view);
+    const auto projection=frame.viewProjection*inverseView;const glm::vec3 eye=inverseView[3];
+    std::array<glm::vec3,8> corners;
+    for(int i=0;i<4;++i){
+        auto p=inverse*glm::vec4(i&1?1.f:-1.f,i&2?1.f:-1.f,0,1);
+        if(!std::isfinite(p.w) || std::abs(p.w)<1e-12f)throw std::invalid_argument("Shadow: singular camera projection");
+        corners[i]=glm::vec3(p)/p.w;
+        if(std::abs(projection[3][3])<.5f){
+            float depth=-(frame.view*glm::vec4(corners[i],1)).z;
+            corners[i+4]=eye+(corners[i]-eye)*(frame.farPlane/depth);
+        }else corners[i+4]=corners[i]+glm::vec3(inverseView*glm::vec4(0,0,-(frame.farPlane-frame.nearPlane),0));
+    }
+    data_={};data_.cameraView=frame.view;data_.settings={settings.depthBias,frame.shadows?1.f:0.f,frame.rsm?frame.rsmSettings.intensity:0.f,float(sourceExtent_)};
+    data_.filter={settings.pcss?1.f:0.f,frame.sky?frame.atmosphere.radii.y:settings.sunAngularRadius,settings.localLightRadius,std::min(settings.maxFilterTexels,std::max(1.f,tileSize*.25f-1.f))};
+    data_.cascades={frame.nearPlane,far,settings.cascadeBlend,.1f};
     uint32_t tiles=0;
     const glm::vec3 faces[]={{1,0,0},{-1,0,0},{0,1,0},{0,-1,0},{0,0,1},{0,0,-1}},ups[]={{0,-1,0},{0,-1,0},{0,0,1},{0,0,-1},{0,-1,0},{0,-1,0}};
     for(size_t light=0;light<frame.lights.size();++light) {
@@ -48,18 +69,33 @@ void ShadowRenderer::render(const FrameData& frame,const std::vector<DrawPacket>
             auto matrix=glm::mat4(1);
             if(type==0) {
                 glm::vec3 cascadeCenter(0);std::array<glm::vec3,8> part;
-                const float low=(splits[face]-frame.nearPlane)/(frame.farPlane-frame.nearPlane), high=(splits[face+1]-frame.nearPlane)/(frame.farPlane-frame.nearPlane);
+                const float sliceNear=face?splits[face]-settings.cascadeBlend*(splits[face]-splits[face-1]):splits[0];
+                const float low=(sliceNear-frame.nearPlane)/(frame.farPlane-frame.nearPlane), high=(splits[face+1]-frame.nearPlane)/(frame.farPlane-frame.nearPlane);
                 for(int i=0;i<4;++i){part[i]=glm::mix(corners[i],corners[i+4],low);part[i+4]=glm::mix(corners[i],corners[i+4],high);cascadeCenter+=part[i]+part[i+4];}cascadeCenter/=8.f;
-                float r=.1f;for(const auto& p:part)r=std::max(r,glm::length(p-cascadeCenter));r=std::ceil(r*16)/16;
-                const auto axis=glm::normalize(direction);const auto view=glm::lookAt(cascadeCenter-axis*(r+radius*2),cascadeCenter,safeUp(axis));
-                matrix=depthCorrection()*glm::ortho(-r,r,-r,r,.01f,2*r+radius*4)*view;
+                float r=.1f;for(const auto& p:part)r=std::max(r,glm::length(p-cascadeCenter));r=std::ceil(r*16)/16;const uint32_t guard=settings.pcss?uint32_t(std::ceil(data_.filter.w))+1:2;
+                r*=float(tileSize)/float(tileSize-2*guard);
+                const auto axis=glm::normalize(direction),right=glm::normalize(glm::cross(axis,safeUp(axis))),up=glm::cross(right,axis);
+                const float texel=2*r/tileSize;
+                cascadeCenter+=right*(std::round(glm::dot(cascadeCenter,right)/texel)*texel-glm::dot(cascadeCenter,right))+
+                               up*(std::round(glm::dot(cascadeCenter,up)/texel)*texel-glm::dot(cascadeCenter,up));
+                const auto orientation=glm::lookAt(glm::vec3(0),axis,safeUp(axis));
+                float zMin=1e30f,zMax=-1e30f;
+                auto include=[&](glm::vec3 p){float z=(orientation*glm::vec4(p,1)).z;zMin=std::min(zMin,z);zMax=std::max(zMax,z);};
+                for(int i=0;i<8;++i)include({i&1?maximum.x:minimum.x,i&2?maximum.y:minimum.y,i&4?maximum.z:minimum.z});
+                for(int i=0;i<4;++i){include(corners[i]);include(glm::mix(corners[i],corners[i+4],(far-frame.nearPlane)/(frame.farPlane-frame.nearPlane)));}
+                const float padding=1.f,zCenter=(orientation*glm::vec4(cascadeCenter,1)).z;
+                const auto view=glm::lookAt(cascadeCenter-axis*(zMax-zCenter+padding),cascadeCenter,safeUp(axis));
+                const float depthRange=std::max(zMax-zMin+2*padding,.2f);
+                matrix=depthCorrection()*glm::ortho(-r,r,-r,r,0.f,depthRange)*view;
+                data_.lightDepth[light]={0,depthRange,1,0};
             } else {
                 const auto position=glm::vec3(l.positionType);const float range=std::max(glm::length(center-position)+radius*2,.2f);
                 const auto axis=type==1?faces[face]:glm::normalize(direction);const auto up=type==1?ups[face]:safeUp(axis);
                 const float fov=type==1?glm::radians(90.f):std::clamp(2*std::acos(std::clamp(l.directionOuter.w,-.999f,.999f)),.02f,3.12f);
                 matrix=depthCorrection()*glm::perspective(fov,1.f,.05f,range)*glm::lookAt(position,position+axis,up);
+                data_.lightDepth[light]={.05f,range,0,std::tan(fov*.5f)};
             }
-            data_.matrices[tiles]=matrix;data_.rects[tiles]={float(tiles%14)/14,float(tiles/14)/14,1.f/14,1.f/14};++tiles;
+            data_.matrices[tiles]=matrix;data_.rects[tiles]={float(tiles%columns*tileSize)/extent_,float(tiles/columns*tileSize)/extent_,float(tileSize)/extent_,float(tileSize)/extent_};++tiles;
         }
     }
     const auto& rsm=frame.rsmSettings;
@@ -79,13 +115,14 @@ void ShadowRenderer::render(const FrameData& frame,const std::vector<DrawPacket>
     std::vector<rhi::BufferHandle> objects;
     for(const auto& packet:packets){const std::array<glm::mat4,2> object{packet.model,glm::transpose(glm::inverse(packet.model))};objects.push_back(frameResources.buffer({sizeof(object),rhi::BufferUsage::Uniform,"Shadow object"},object.data()));}
     uint32_t lightIndex=0;
-    for(uint32_t iteration=0;iteration<tiles+(source&&frame.rsm?1u:0u);++iteration) {
-        const bool indirect=iteration==tiles;const uint32_t tile=indirect?180:iteration;
+    const uint32_t drawnTiles=frame.shadows||frame.rsm?tiles:0;
+    for(uint32_t iteration=0;iteration<drawnTiles+(source&&frame.rsm?1u:0u);++iteration) {
+        const bool indirect=iteration==drawnTiles;const uint32_t tile=indirect?180:iteration;
         while(!indirect && lightIndex+1<frame.lights.size() && tile>=uint32_t(data_.lights[lightIndex].x+data_.lights[lightIndex].y))++lightIndex;
         Capture capture=indirect?bounce:Capture{frame.lights[lightIndex],glm::vec4(0)};auto light=frameResources.buffer({sizeof(Capture),rhi::BufferUsage::Uniform,"RSM light"},&capture);
         auto layout=objectLayout();layout.entries.push_back({2,rhi::BindingType::UniformBuffer,rhi::ShaderStage::Fragment,"RsmLight",64});layout.entries.push_back({4,rhi::BindingType::SampledTexture,rhi::ShaderStage::Fragment,"skyIrradiance",0});
         auto camera=frameResources.buffer({64,rhi::BufferUsage::Uniform,"Shadow face/cascade matrix"},indirect?&data_.rsmMatrix:&data_.matrices[tile]);
-        rhi::RenderPassDesc pass;pass.depth=view_;pass.color=rsmViews_[0];pass.colorLoad=rhi::LoadOp::Load;pass.additionalColors={{rsmViews_[1],rhi::LoadOp::Load},{rsmViews_[2],rhi::LoadOp::Load}};pass.depthLoad=rhi::LoadOp::Load;pass.viewport={tile%14*tilePixels_,tile/14*tilePixels_,tilePixels_,tilePixels_};if(indirect){pass={};pass.depth=sourceDepthView_;pass.color=sourceRsmViews_[0];pass.clearColor={0,0,0,0};pass.additionalColors={{sourceRsmViews_[1]},{sourceRsmViews_[2]}};}commands.beginRenderPass(pass);commands.bindPipeline(pipeline_);
+        rhi::RenderPassDesc pass;pass.depth=view_;pass.color=rsmViews_[0];pass.colorLoad=rhi::LoadOp::Load;pass.additionalColors={{rsmViews_[1],rhi::LoadOp::Load},{rsmViews_[2],rhi::LoadOp::Load}};pass.depthLoad=rhi::LoadOp::Load;pass.viewport={tile%columns*tileSize,tile/columns*tileSize,tileSize,tileSize};if(indirect){pass={};pass.depth=sourceDepthView_;pass.color=sourceRsmViews_[0];pass.clearColor={0,0,0,0};pass.additionalColors={{sourceRsmViews_[1]},{sourceRsmViews_[2]}};}commands.beginRenderPass(pass);commands.bindPipeline(pipeline_);
         for(size_t i=0;i<packets.size();++i){auto objectLayout=layout;std::vector<rhi::BindingEntry> entries{{0,camera,0,64,{},{}},{1,objects[i],0,128,{},{}},{2,light,0,64,{},{}},{4,{},0,0,skyIrradiance_,skySampler_}};if(packets[i].mesh->instances()){objectLayout.entries.push_back({3,rhi::BindingType::StorageRead,rhi::ShaderStage::Vertex,"OutPose",64});entries.push_back({3,packets[i].mesh->instances(),0,size_t(packets[i].mesh->instanceCapacity())*64,{},{}});commands.bindPipeline(instanced_);}else commands.bindPipeline(pipeline_);auto bindings=frameResources.bindings({objectLayout,entries});commands.bindBindingSet(bindings);packets[i].material->bindRsm(commands);packets[i].mesh->draw(commands);}commands.endRenderPass();
     }
     resources_.device->writeBuffer(parameters_,0,sizeof(data_),&data_);resources_.device->submit(commands);

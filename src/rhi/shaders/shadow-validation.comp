@@ -1,0 +1,14 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+layout(local_size_x=64,local_size_y=1,local_size_z=1)in;
+struct TestLight {vec4 positionType;};
+layout(set=0,binding=0,std140) uniform ShadowTestLights {TestLight lights[30];};
+layout(set=0,binding=1,std430) readonly buffer ShadowTestPoints {vec4 points[];};
+layout(set=0,binding=2,std430) writeonly buffer ShadowTestResults {vec4 results[];};
+#include "shadow-data.glsl"
+layout(set=1,binding=5) uniform sampler2D shadowAtlas;
+#define SHADOW_COMPUTE
+#include "shadow-visibility.glsl"
+void main(){uint i=gl_GlobalInvocationID.x;if(i>=uint(lights[0].positionType.w))return;
+    results[i]=vec4(lightVisibility(0,points[i].xyz,vec3(0,0,1),vec3(0,0,1)),
+        shadowLinearDepth(points[i].w,shadowLightDepth[0]),0,1);}

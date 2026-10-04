@@ -1,5 +1,6 @@
 #include "renderer/rhi/GpuVirtualTexture.h"
 #include <cmath>
+#include <cstring>
 #include <iostream>
 #include <set>
 #include <fstream>
@@ -120,19 +121,21 @@ void validateVirtualTextureRhi(std::shared_ptr<rhi::GraphicsDevice> device, cons
         pipeline.bindings = {{0,
                               {{0, BindingType::StorageWrite, ShaderStage::Compute, "VtResults", 16},
                                {1, BindingType::SampledTexture, ShaderStage::Compute, "atlas", 0},
-                               {2, BindingType::SampledTexture, ShaderStage::Compute, "pageTable", 0}}}};
+                               {2, BindingType::SampledTexture, ShaderStage::Compute, "pageTable", 0},
+                               {3, BindingType::StorageRead, ShaderStage::Compute, "VtSamples",16}}}};
         auto kernel = resources.computePipeline(pipeline);
         auto output = resources.buffer(
             {16 * 16, BufferUsage::Storage | BufferUsage::CopySource, "VT GPU sample reference"});
-        auto bindings = resources.bindings({pipeline.bindings[0],
-                                            {{0, output, 0, 16 * 16, {}, {}},
-                                             {1, {}, 0, 0, vt.atlas(), vt.sampler()},
-                                             {2, {}, 0, 0, vt.pageTable(), vt.sampler()}}});
-        auto commands = device->createCommandList();
-        commands.dispatch(kernel, {bindings}, {1, 1, 1});
-        device->submit(commands);
-        float values[64];
-        device->readBuffer(output, 0, sizeof(values), values);
+        auto sample=[&](GpuVirtualTexture& surface,const std::array<glm::vec4,16>& points){
+            Resources batch(device);auto input=batch.buffer({sizeof(points),BufferUsage::Storage,"VT query coordinates"},points.data());
+            auto bindings=batch.bindings({pipeline.bindings[0],
+                {{0,output,0,16*16,{},{}},{1,{},0,0,surface.atlas(),surface.sampler()},
+                 {2,{},0,0,surface.pageTable(),surface.sampler()},{3,input,0,sizeof(points),{},{}}}});
+            auto commands=device->createCommandList();commands.dispatch(kernel,{bindings},{1,1,1});device->submit(commands);
+            std::array<float,64> values;device->readBuffer(output,0,sizeof(values),values.data());return values;
+        };
+        std::array<glm::vec4,16> queries;for(uint32_t i=0;i<16;++i)queries[i]={i/15.f,((i*7)%16)/15.f,0,0};
+        auto values=sample(vt,queries);
         for (uint32_t i = 0; i < 16; i++) {
             float u = i / 15.f, v = ((i * 7) % 16) / 15.f;
             if (std::abs(values[i * 4] - (.3f + .4f * u - .2f * v)) >= 2e-6f)
@@ -142,6 +145,43 @@ void validateVirtualTextureRhi(std::shared_ptr<rhi::GraphicsDevice> device, cons
             check(std::abs(values[i * 4] - (.3f + .4f * u - .2f * v)) < 2e-6f,
                   "VT GPU sampler failed resident / missing page / domain edge lookup");
         }
+    }
+    // Deliberately different fine and root data expose a residency seam that
+    // affine-plane tests cannot detect. Test both axes, diagonal corners and eviction.
+    {
+        using namespace rhi;auto path=directory+"/vt-validation.comp";
+        ComputePipelineDesc p;p.shader={path+".glsl",path+".metallib",path+".spv",path+".json","main0"};p.threads={16,1,1};
+        p.bindings={{0,{{0,BindingType::StorageWrite,ShaderStage::Compute,"VtResults",16},
+            {1,BindingType::SampledTexture,ShaderStage::Compute,"atlas",0},{2,BindingType::SampledTexture,ShaderStage::Compute,"pageTable",0},
+            {3,BindingType::StorageRead,ShaderStage::Compute,"VtSamples",16}}}};
+        auto kernel=resources.computePipeline(p);
+        for(bool height:{true,false}){
+            VirtualTextureSource source;source.extent=256;source.heightField=height;source.minimum=.2f;source.maximum=.8f;
+            source.formats={height?Format::RGBA32Float:Format::RGBA8UNorm};
+            source.readPage=[height](uint32_t mip,uint32_t,uint32_t){
+                VirtualTextureSource::Page page(1);float value=mip==0?.8f:.2f;
+                if(height){std::vector<float> pixels(68*68*4,value);page[0].resize(pixels.size()*4);std::memcpy(page[0].data(),pixels.data(),page[0].size());}
+                else page[0]=std::vector<uint8_t>(68*68*4,uint8_t(std::round(value*255)));return page;
+            };
+            GpuVirtualTexture seam(device,source,2);seam.update({{0,0,0},{0,1,0},{0,0,1}},3);
+            const glm::vec2 positions[16]={{64-.001f,32},{64+.001f,32},{100,64-.001f},{100,64+.001f},
+                {64-.001f,64-.001f},{64+.001f,64+.001f},{64-.001f,60},{64+.001f,60},
+                {32,32},{100,100},{56,100},{64,64},{0,0},{255,255},{100,56},{100,72}};
+            std::array<glm::vec4,16> queries;for(int i=0;i<16;++i)queries[i]={
+                (positions[i]+glm::vec2(height?0:.5f))/(height?255.f:256.f),0,0};
+            auto input=resources.buffer({sizeof(queries),BufferUsage::Storage,"VT seam queries"},queries.data());
+            auto output=resources.buffer({256,BufferUsage::Storage|BufferUsage::CopySource,"VT seam results"});
+            auto bindings=resources.bindings({p.bindings[0],{{0,output,0,256,{},{}},{1,{},0,0,seam.atlas(),seam.sampler()},
+                {2,{},0,0,seam.pageTable(),seam.sampler()},{3,input,0,sizeof(queries),{},{}}}});
+            auto sample=[&]{auto commands=device->createCommandList();commands.dispatch(kernel,{bindings},{1,1,1});device->submit(commands);
+                std::array<float,64> values;device->readBuffer(output,0,sizeof(values),values.data());return values;};
+            auto values=sample();for(int pair=0;pair<4;++pair)check(std::abs(values[pair*8]-values[pair*8+4])<.001f,"VT residency edge/corner is discontinuous");
+            check(std::abs(values[8*4]-.8f)<.001f && std::abs(values[9*4]-.2f)<.001f,"VT seam filter erased interior detail or parent fallback");
+            check(std::abs(values[14*4]-.8f)<.001f && std::abs(values[15*4]-.2f)<.001f,"VT transition did not remain inside its boundary band");
+            seam.update({{0,2,2},{0,3,2},{0,2,3}},3);values=sample();
+            for(int i=0;i<8;++i)check(std::abs(values[i*4]-.2f)<.001f,"VT eviction left stale seam samples");
+        }
+        std::cout<<"VT GPU height/material residency edges, diagonal corners, interior detail and post-eviction continuity passed\n";
     }
     // Small disk pack exercises the same source path without retaining a CPU field.
     auto base = std::filesystem::temp_directory_path() / ("scene-renderer-vt-validation-"+std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));

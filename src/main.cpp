@@ -94,7 +94,7 @@ void NativeRealTimeRun(GLFWwindow* window,shared_ptr<RenderScene>& scene){
         const auto settings=RenderManager::GetInstance()->setting;
         frame.shadows=settings.enableShadow;frame.ssao=settings.enableSSAO;frame.rsm=settings.enableRSM;frame.taa=settings.enableTSAA;
         target->automaticQuality=settings.automaticQuality;
-        frame.forwardShading=!settings.useDefer;frame.rsmSettings=settings.rsmSettings;
+        frame.forwardShading=!settings.useDefer;frame.rsmSettings=settings.rsmSettings;frame.shadowSettings=settings.shadowSettings;
         return runtime.prepareScene(std::move(target),std::move(cancelled));
     };
     gui.activateScene_=[&](uint64_t token){runtime.activatePrepared(token);};
@@ -130,7 +130,7 @@ void NativeRealTimeRun(GLFWwindow* window,shared_ptr<RenderScene>& scene){
             auto captured=snapshots.capture(scene,settings.timeOverride>=0?settings.timeOverride:float(logicClock.seconds()),uint32_t(width),uint32_t(height),false);
             if(captured){
                 auto snapshot=std::make_shared<render::RenderWorldSnapshot>(*captured);auto& frame=snapshot->frame;
-                frame.shadows=settings.enableShadow;frame.ssao=settings.enableSSAO;frame.rsm=settings.enableRSM;frame.taa=settings.enableTSAA;frame.aoRadius=settings.aoRadius;frame.aoBias=settings.aoBias;frame.aoPower=settings.aoPower;frame.toneMapping=settings.enableHDR;frame.rsmSettings=settings.rsmSettings;frame.directionalEnabled=settings.enableDirectional;frame.forwardShading=!settings.useDefer;
+                frame.shadows=settings.enableShadow;frame.ssao=settings.enableSSAO;frame.rsm=settings.enableRSM;frame.taa=settings.enableTSAA;frame.aoRadius=settings.aoRadius;frame.aoBias=settings.aoBias;frame.aoPower=settings.aoPower;frame.toneMapping=settings.enableHDR;frame.rsmSettings=settings.rsmSettings;frame.shadowSettings=settings.shadowSettings;frame.directionalEnabled=settings.enableDirectional;frame.forwardShading=!settings.useDefer;
                 snapshot->automaticQuality=settings.automaticQuality;
                 engine::RenderPacket packet;packet.sampledAt=inputSampledAt;packet.world=std::move(snapshot);packet.gui=render::GuiFrame::capture(ImGui::GetDrawData());
                 if(!nativeScreenshot.empty() && frameLimit==1)packet.screenshot=nativeScreenshot;

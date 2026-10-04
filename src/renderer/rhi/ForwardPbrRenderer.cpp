@@ -65,7 +65,9 @@ struct ForwardPbrRenderer::Targets {
             BindingLayout images{1,{}};std::vector<BindingEntry> entries;
             const char* names[] = {"positionBuffer","normalBuffer","albedoBuffer","emissiveBuffer"};
             for (uint32_t i=0;i<4;++i) {
-                gbuffer[i] = resources.texture({w,h,Format::RGBA16Float,TextureUsage::ColorAttachment | TextureUsage::Sampled | TextureUsage::CopySource,names[i]});gbufferViews[i] = resources.view(gbuffer[i]);
+                // World positions need float32: half precision rounds kilometre
+                // coordinates by metres and corrupts shadow depth/receiver planes.
+                gbuffer[i] = resources.texture({w,h,i==0?Format::RGBA32Float:Format::RGBA16Float,TextureUsage::ColorAttachment | TextureUsage::Sampled | TextureUsage::CopySource,names[i]});gbufferViews[i] = resources.view(gbuffer[i]);
                 images.entries.push_back({i+1,BindingType::SampledTexture,ShaderStage::Fragment,names[i],0});entries.push_back({i+1,{},0,0,gbufferViews[i],sampler});
             }
             if(path==PbrPath::Scene){
@@ -106,7 +108,7 @@ ForwardPbrRenderer::ForwardPbrRenderer(std::shared_ptr<rhi::GraphicsDevice> devi
     GraphicsPipelineDesc p;p.vertex = shader(directory,"forward.vert");p.fragment = shader(directory,"forward.frag");p.vertexStride = sizeof(MeshVertex);
     if (path_ != PbrPath::Forward) { p.fragment = shader(directory,"gbuffer.frag");geometryLayout_.entries.pop_back();p.additionalColorFormats = {Format::RGBA16Float,Format::RGBA16Float,Format::RGBA16Float}; }
     if(path_==PbrPath::Scene){p.fragment=shader(directory,"scene-gbuffer.frag");p.additionalColorFormats.insert(p.additionalColorFormats.end(),2,Format::RGBA16Float);}
-    p.attributes = GpuMesh::attributes();p.bindings = {geometryLayout_, GpuMaterial::layout()};p.colorFormat = Format::RGBA16Float;p.depthAttachment = p.depthTest = p.depthWrite = true;p.label = "Forward Cook-Torrance PBR";
+    p.attributes = GpuMesh::attributes();p.bindings = {geometryLayout_, GpuMaterial::layout()};p.colorFormat = path_==PbrPath::Forward?Format::RGBA16Float:Format::RGBA32Float;p.depthAttachment = p.depthTest = p.depthWrite = true;p.label = "Forward Cook-Torrance PBR";
     checkBlock(p.vertex,"CameraVertex",{{"viewProjection",0}},64);checkBlock(p.vertex,"ObjectData",{{"model",0},{"normalMatrix",64}},128);
     checkBlock(p.fragment,"MaterialData",{{"albedoAlpha",0},{"factors",16},{"emissiveNormal",32}},48);
     if (path_ == PbrPath::Forward) checkBlock(p.fragment,"SceneLighting",{{"cameraAmbient",0},{"counts",16},{"lights",32}},1472);
@@ -204,6 +206,11 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
     }
     if(!frame.directionalEnabled)for(auto& light:frame.lights)if(light.positionType.w==0)light.colorInner=glm::vec4(0);
     if(frame.taa && !temporal_)throw std::invalid_argument("Temporal compute unavailable on this path/backend");
+    auto hashShadow=[&](float value){uint32_t bits;std::memcpy(&bits,&value,4);frame.historyKey^=uint64_t(bits)+0x9e3779b97f4a7c15ull+(frame.historyKey<<6)+(frame.historyKey>>2);};
+    const auto& shadows=frame.shadowSettings;
+    for(float value:{frame.shadows?1.f:0.f,shadows.pcss?1.f:0.f,shadows.distance,shadows.cascadeBlend,shadows.depthBias,
+                    shadows.sunAngularRadius,shadows.localLightRadius,shadows.maxFilterTexels})hashShadow(value);
+    const auto shadowViewProjection=frame.viewProjection;
     if(temporal_){const auto projection=frame.viewProjection*glm::inverse(frame.view);float difference=0;for(int c=0;c<4;++c)for(int r=0;r<4;++r)difference=std::max(difference,std::abs(projection[c][r]-previousProjection_[c][r]));
         if(!frame.taa || !previousTaa_ || historyKey_!=frame.historyKey || difference>1e-4f || glm::length(frame.cameraPosition-previousCamera_)>2) {temporal_->reset();previousModels_.clear();}
         if(frame.taa){const auto j=GpuTemporal::jitter(temporal_->samples());glm::mat4 shift(1);shift[3].x=j.x*2/targets_->width;shift[3].y=-j.y*2/targets_->height;frame.viewProjection=shift*frame.viewProjection;}
@@ -262,7 +269,7 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
     if(!frame.oceans.empty())graph.add("ocean-simulation",{{"ocean-state",A::Write}},[&]{
         for(const auto& ocean:frame.oceans)oceans_.at(ocean.id)->simulate(frame.timeSeconds,ocean);
     });
-    if(shadows_)graph.add("shadows-rsm",{{"assets",A::Read},{"environment",A::Read},{"shadow-state",A::Write}},[&]{shadows_->render(frame,packets);});
+    if(shadows_)graph.add("shadows-rsm",{{"assets",A::Read},{"environment",A::Read},{"shadow-state",A::Write}},[&]{auto shadowFrame=frame;shadowFrame.viewProjection=shadowViewProjection;shadows_->render(shadowFrame,packets);});
     rhi::TextureViewHandle resolved;
     for(size_t i=0;i<packets.size();++i)device.writeBuffer(objects_[i].data,0,128,&blocks[i]);
     if (shadows_)
