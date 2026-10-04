@@ -23,6 +23,11 @@ struct SceneFrame {
     uint32_t meshUploadChunks = 0, meshUploadsPending = 0;
     double resolveCpuMilliseconds = 0; // Whole resolve, not a GPU upload timestamp.
 };
+// Render-thread diagnostic leases; inspecting these must not mutate residency.
+struct TerrainVirtualTextures {
+    std::shared_ptr<const GpuVirtualTexture> height, material;
+    glm::mat4 model{1};
+};
 class SceneAdapter {
   public:
     explicit SceneAdapter(std::shared_ptr<rhi::GraphicsDevice>);
@@ -37,6 +42,7 @@ class SceneAdapter {
     void rollbackPublication();
     void recordVirtualFeedback(const FrameData&,rhi::TextureViewHandle,const std::vector<glm::mat4>& auxiliaryViews={});
     void invalidateAssets(); // Call after changing cached CPU geometry/images.
+    TerrainVirtualTextures terrainVirtualTextures() const;
   private:
     struct Cache;
     std::shared_ptr<rhi::GraphicsDevice> device_;

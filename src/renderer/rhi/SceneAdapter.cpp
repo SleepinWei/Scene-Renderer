@@ -76,6 +76,12 @@ SceneAdapter::SceneAdapter(std::shared_ptr<rhi::GraphicsDevice> device)
     cache_->fallback = std::make_shared<GpuMaterial>(device_, fallback);
 }
 SceneAdapter::~SceneAdapter() = default;
+TerrainVirtualTextures SceneAdapter::terrainVirtualTextures() const {
+    device_->checkThread();
+    if (!cache_->terrain) return {};
+    const auto& terrain = *cache_->terrain;
+    return {terrain.gpu->heightTexture(), terrain.virtualMaterial, terrain.feedbackModel};
+}
 void SceneAdapter::setMeshUploadBudget(MeshUploadBudget budget) {
     device_->checkThread();
     if(previous_)throw std::logic_error("Cannot configure uploads during publication");

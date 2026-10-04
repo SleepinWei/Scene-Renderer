@@ -200,6 +200,20 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
         target->mainCamera()->setZoom(62); target->mainCamera()->setExposure(1.4f);
         atmosphere(target); sun(target,glm::vec3(3),{-.5f,-1,-.4f});
         manager->setting.enableSSAO = true;
+    } else if (name == "shadow-test") {
+        manager->setting.shadowSettings=render::ShadowSettings{};
+        target->setCamera(std::make_shared<Camera>(glm::vec3(12,10,30),glm::vec3(0,1,0),-102,-12));
+        target->mainCamera()->setClipPlanes(.1f,500);
+        target->mainCamera()->setZoom(70);target->mainCamera()->setExposure(1);
+        addMeshes(target,"Shadow receiver",{quad({glm::vec3(-120,0,40),{120,0,40},{120,0,-350},{-120,0,-350}},{0,1,0})},pbr({.65f,.68f,.72f},.85f));
+        for(int i=0;i<3;++i) {
+            float h=4.f+i*6.f;
+            addMeshes(target,"Near shadow pillar "+std::to_string(i),box(),pbr({.55f,.28f,.12f},.7f),{float(i-1)*8,h/2,0},{1,h/2,1});
+        }
+        for(int i=0;i<7;++i)
+            addMeshes(target,"Distant shadow pillar "+std::to_string(i),box(),pbr({.24f,.40f,.55f},.7f),{float(i%2?6:-6),3,-25.f-i*35},{1.5f,3,1.5f});
+        sun(target,glm::vec3(3),{.4f,-1,.6f});
+        manager->setting.enableSSAO=false;
     } else if (name == "terrain") {
         target->setCamera(std::make_shared<Camera>(glm::vec3(0,10,32),glm::vec3(0,1,0),-90,-12));
         target->mainCamera()->setZoom(60);target->mainCamera()->setExposure(1);
@@ -312,6 +326,6 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
             point(target,{8,7,6},{4,5,0});
         }
         manager->setting.enableRSM = true;
-    } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose terrain, mountain-lake, sky, bunny, dragon, buddha, armadillo, helmet, cornell, sponza, san-miguel, sibenik, ocean or ocean-clear");
+    } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose terrain, mountain-lake, sky, shadow-test, bunny, dragon, buddha, armadillo, helmet, cornell, sponza, san-miguel, sibenik, ocean or ocean-clear");
     return target;
 }

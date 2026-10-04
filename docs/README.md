@@ -12,6 +12,8 @@
 | [RSM 实现与验证](rsm.md) | 太阳／天空间接光、算法边界与捕获方法 |
 | [FFT 海洋与透明水体](ocean-fft-and-rendering-review.md) | 频谱、高清波纹、折射与散射 |
 | [地形与 Virtual Texture](terrain-virtual-texture.md) | 四叉树、分页、预算与离线工具 |
+| [VT／CSM／PCSS 效果捕获](render-diagnostics-gallery.md) | 实际 GPU 缓冲、页表与回退可视化、阴影图集、PCF／PCSS 对照及复现 |
+| [VT／CSM／PCSS 修复记录](vt-csm-pcss-fixes.md) | 缺页边界混合、级联稳定、线性深度半影与 GPU 验证 |
 | [草地植被与 FFT 湖面](vegetation-and-lake-water.md) | GPU 放置过滤、共享角点、生图水域 mask、FFT 周期与显示范围分离及验收 |
 | [Mountain Lake 山湖场景](mountain-lake.md) | 官方资源、网格转高度场、材质 VT 与湖面 |
 | [TSAA](tsaa.md) | 运动向量、重投影、历史裁剪与截图复现 |

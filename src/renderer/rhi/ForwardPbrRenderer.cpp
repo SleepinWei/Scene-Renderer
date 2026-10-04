@@ -651,6 +651,11 @@ std::vector<float> ForwardPbrRenderer::readShadowDepth() {
         throw std::invalid_argument("Shadows unavailable on this path");
     return shadows_->readDepth();
 }
+ShadowParameters ForwardPbrRenderer::shadowParameters() const {
+    resources_.device->checkThread();
+    if (!shadows_) throw std::invalid_argument("Shadows unavailable on this path");
+    return shadows_->data();
+}
 std::vector<float> ForwardPbrRenderer::readGBuffer(uint32_t attachment) {
     if (path_ == PbrPath::Forward || attachment >= (path_ == PbrPath::Scene ? 6u : 4u))
         throw std::invalid_argument("Renderer: invalid G-buffer attachment");

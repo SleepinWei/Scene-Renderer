@@ -1,5 +1,6 @@
 #include "renderer/rhi/FeatureScenes.h"
 #include "renderer/rhi/SceneAdapter.h"
+#include "renderer/rhi/GalleryDiagnostics.h"
 #include "rhi/ShaderAssets.h"
 #include "renderer/RenderScene.h"
 #include "system/RenderManager.h"
@@ -29,7 +30,9 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
     std::vector<std::string> names;
     if(selection.empty() || selection=="core")names={"bunny","helmet","cornell"};
     else if(selection=="gi")names={"sponza","san-miguel"};
-    else if(selection=="benchmarks")names={"dragon","buddha","armadillo","sibenik"};else names={selection};
+    else if(selection=="benchmarks")names={"dragon","buddha","armadillo","sibenik"};
+    else if(selection=="diagnostics")names={"terrain","shadow-test"};else names={selection};
+    const bool diagnostics=selection=="diagnostics";
     const bool water=selection=="ocean" || selection=="ocean-clear" || selection=="mountain-lake" || selection=="mountain-lake-ground" || selection=="mountain-lake-beach";int width=water?1920:960,height=water?1080:720;
 #ifdef __APPLE__
     glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER,GLFW_FALSE);
@@ -42,14 +45,43 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
             auto scene=makeClassicScene(name);scene->mainCamera()->setAspect(float(width)/height);
             {
                 SceneAdapter adapter(device);ForwardPbrRenderer renderer(device,rhi::defaultShaderDirectory(),width,height,PbrPath::Scene);
+                FrameData lastFrame;
+                SceneSnapshotBuilder diagnosticBuilder;
+                auto collect=[&]() {
+                    if(!diagnostics)return adapter.collect(scene,8);
+                    // Prepare CPU sources synchronously, then exercise the editor's
+                    // asynchronous page IO and depth-feedback path on the GPU.
+                    auto snapshot=*diagnosticBuilder.capture(scene,8,width,height,true);
+                    snapshot.asynchronousStreaming=true;
+                    return adapter.resolve(snapshot);
+                };
                 auto capture=[&](const std::string& suffix,bool rsm,bool only,bool sun,bool sky){
                     renderer.resetTemporal();
-                    for(int i=0;i<16;++i){glfwPollEvents();device->beginFrame();auto frame=adapter.collect(scene,8);frame.frame.shadows=manager->setting.enableShadow;frame.frame.ssao=manager->setting.enableSSAO;frame.frame.rsm=rsm;frame.frame.rsmSettings=manager->setting.rsmSettings;frame.frame.shadowSettings=manager->setting.shadowSettings;frame.frame.rsmSettings.indirectOnly=only;frame.frame.rsmSettings.sunBounce=sun;frame.frame.rsmSettings.skyBounce=sky;renderer.render(frame.frame,frame.packets,frame.exposure);device->copyToBackbuffer(renderer.output());device->present();}
+                    for(int i=0;i<(diagnostics?64:16);++i){
+                        glfwPollEvents();device->beginFrame();auto frame=collect();
+                        frame.frame.shadows=manager->setting.enableShadow;frame.frame.ssao=manager->setting.enableSSAO;
+                        frame.frame.rsm=rsm;frame.frame.rsmSettings=manager->setting.rsmSettings;
+                        frame.frame.shadowSettings=manager->setting.shadowSettings;
+                        frame.frame.rsmSettings.indirectOnly=only;frame.frame.rsmSettings.sunBounce=sun;frame.frame.rsmSettings.skyBounce=sky;
+                        renderer.render(frame.frame,frame.packets,frame.exposure);
+                        if(diagnostics){
+                            auto feedbackFrame=frame.frame;feedbackFrame.viewProjection=renderer.renderedViewProjection();
+                            adapter.recordVirtualFeedback(feedbackFrame,renderer.depthView(),renderer.shadowVisibilityViews());
+                        }
+                        lastFrame=frame.frame;device->copyToBackbuffer(renderer.output());device->present();
+                    }
                     auto hdr=renderer.readHDR();double energy=0;float peak=0;for(size_t i=0;i<hdr.size();i+=4)for(int c=0;c<3;++c){if(!std::isfinite(hdr[i+c]))throw std::runtime_error("Nonfinite gallery HDR");energy+=hdr[i+c];peak=std::max(peak,hdr[i+c]);}
                     std::cout<<name<<suffix<<" HDR mean RGB "<<energy/(3*width*height)<<", peak "<<peak<<"\n";
                     auto pixels=renderer.readOutput();const auto path=(std::filesystem::path(directory)/(name+suffix+".png")).string();if(!stbi_write_png(path.c_str(),width,height,4,pixels.data(),width*4))throw std::runtime_error("Cannot save "+path);std::cout<<"Rendered "<<path<<'\n';
                 };
                 const bool gi=manager->setting.enableRSM;if(gi)capture("-direct",false,false,true,true);capture("",gi,false,true,true);
+                if(diagnostics)exportGalleryDiagnostics(directory,name,device,adapter,renderer,lastFrame);
+                if(name=="shadow-test") {
+                    const auto previous=manager->setting.shadowSettings;
+                    manager->setting.shadowSettings.pcss=false;capture("-pcf",false,false,true,true);
+                    manager->setting.shadowSettings.pcss=true;manager->setting.shadowSettings.sunAngularRadius=.04f;
+                    capture("-pcss-wide",false,false,true,true);manager->setting.shadowSettings=previous;
+                }
                 if(name=="terrain"){
                     auto terrain=std::static_pointer_cast<TerrainComponent>(scene->terrain()->GetComponent("TerrainComponent"));
                     terrain->setPolyMode(GL_LINE);capture("-wireframe",false,false,true,true);terrain->setPolyMode(GL_FILL);

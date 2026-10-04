@@ -49,6 +49,7 @@ struct DrawPacket {
 };
 enum class PbrPath { Forward, Deferred, Scene };
 class ShadowRenderer;
+struct ShadowParameters;
 class ForwardPbrRenderer {
 public:
     ForwardPbrRenderer(std::shared_ptr<rhi::GraphicsDevice>, const std::string& shaderDirectory, uint32_t width, uint32_t height, PbrPath path = PbrPath::Forward);
@@ -65,6 +66,7 @@ public:
     std::vector<float> readBackDepth();
     std::vector<float> readSSAO();
     std::vector<float> readShadowDepth();
+    ShadowParameters shadowParameters() const; // Value snapshot for render-thread diagnostics.
     std::vector<float> readGBuffer(uint32_t attachment);
     const rhi::GraphicsDevice* owner() const { return resources_.device.get(); }
     static rhi::BindingLayout frameLayout();

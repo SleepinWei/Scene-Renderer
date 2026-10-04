@@ -6,7 +6,7 @@
 
 ![本项目在 Metal 上渲染的 Sponza 中庭](img/metal/sponza.png)
 
-[快速运行](#快速运行) · [经典场景](#场景与效果) · [天空与太阳](#大气天空与太阳) · [海洋与水体](#高清海洋与透明水体) · [虚拟纹理地形](#虚拟纹理地形) · [CPU/GPU 路径追踪](#cpu-路径追踪) · [系统设计](#整体系统设计) · [技术与限制](#渲染技术) · [验证](#构建验证与限制)
+[快速运行](#快速运行) · [经典场景](#场景与效果) · [天空与太阳](#大气天空与太阳) · [海洋与水体](#高清海洋与透明水体) · [虚拟纹理地形](#虚拟纹理地形) · [CSM 与 PCSS](#级联阴影与-pcss-软阴影) · [CPU/GPU 路径追踪](#cpu-路径追踪) · [系统设计](#整体系统设计) · [技术与限制](#渲染技术) · [验证](#构建验证与限制)
 
 项目的主要实验内容包括 PBR 材质及特殊材质、太阳／天空驱动的 RSM 间接光照、大气散射、高清 FFT 海洋与透明水体、高度与材质 Virtual Texture 地形／草和 TSAA。编辑器可实时调整相机、灯光及效果参数；离屏画廊提供固定时间、固定视角的真实渲染图和开关对照。CPU 与 Metal/Vulkan GPU 路径追踪提供离线渲染入口。
 
@@ -64,7 +64,7 @@ python3 tools/fetch_gi_assets.py
 
 ## 场景与效果
 
-下面的实时效果图已使用本项目的**新 RHI／原生 Metal** 在 Apple M4 上重新生成：经典场景与天空为 **960 × 720**，海洋为 **1920 × 1080**。每张图独立清空 TSAA 历史并累积 16 帧，导入场景使用真实模型与纹理。GI 场景使用统一的 PBR 材质近似，以太阳方向光和大气天空作为直接光照及 RSM 反弹的来源；当前曝光、相机及光源配置见 [ClassicScenes.cpp](src/renderer/rhi/ClassicScenes.cpp)。
+下面的实时效果图已使用本项目的**新 RHI／原生 Metal** 在 Apple M4 上重新生成：经典场景与天空为 **960 × 720**，海洋为 **1920 × 1080**。常规画廊每张图独立清空 TSAA 历史并累积 16 帧，后文 VT／阴影诊断画廊运行 64 帧；导入场景使用真实模型与纹理。GI 场景使用统一的 PBR 材质近似，以太阳方向光和大气天空作为直接光照及 RSM 反弹的来源；当前曝光、相机及光源配置见 [ClassicScenes.cpp](src/renderer/rhi/ClassicScenes.cpp)。
 
 ### Sponza：中庭与多层拱廊
 
@@ -228,7 +228,7 @@ python3 tools/prepare_mountain_lake.py # 先按说明下载两个官方归档；
 
 GPU 四叉树按分块高度界、FOV、分辨率和距离估计屏幕误差，叶节点预算耗尽时保留父节点。公共整数网格与高度 morph 保持不同 LOD 的接缝一致，草附着于同一变形后的三角形表面，边界法线按实际差分跨度计算。默认网格从约 237.5 MiB 降至 19 MiB；8192² 虚拟尺寸下，网格与两套默认 VT 资源合计约 30.16 MiB，不包含草、阴影和其他渲染目标。
 
-![Metal 虚拟纹理地形与草](img/metal/terrain.png)
+![Metal 虚拟纹理地形与草：异步分页和 GPU 深度反馈](img/diagnostics/terrain.png)
 
 ```bash
 ./build/Scene-Renderer --classic terrain
@@ -240,15 +240,65 @@ GPU 四叉树按分块高度界、FOV、分辨率和距离估计屏幕误差，�
 <details>
 <summary>查看同一视角的 LOD 网格</summary>
 
-![Metal 地形 LOD 网格](img/metal/terrain-wireframe.png)
+![Metal 地形 LOD 网格](img/diagnostics/terrain-wireframe.png)
 
 </details>
+
+### VT 的物理缓存、页表与回退
+
+以下中间产物于 **2026-10-05** 在 Apple M4／原生 Metal 上捕获。程序生成地形使用 **1024² 虚拟尺寸**，高度和五层材质各有 **64 个物理槽位**；每页包含 64² 内容及四边各 2 texel 的 apron，物理图集为 **544²**。两套图集与页表约 **10.18 MiB**，不含几何、反馈缓冲和其他渲染目标。捕获走异步页读取、GPU 深度反馈和阴影视图预测，每张最终画面单独清空 TSAA 历史并运行 64 帧。
+
+![VT 实际 GPU 高度、底色、法线和粗糙度物理图集](img/diagnostics/vt-cache.png)
+
+上图直接读取 GPU 物理图集：高度归一化为灰度，底色保持原编码；此程序场景的切线法线和粗糙度为常量，几何法线另由高度差分生成。格线标出缓存槽位；相邻槽位可存放完全不同的虚拟页，物理图集里的格线并不代表地形接缝。
+
+![VT 实际页表与首个驻留祖先的回退层级](img/diagnostics/vt-residency.png)
+
+上排按 mip 解码实际 GPU 页表，深色表示缺页；下排在整个虚拟 UV 域请求 mip 0，并着色显示找到的**首个驻留祖先**。绿色是细页，黄色／橙色是粗页，紫色根页始终驻留。高度与材质的 V 方向相反，因此布局会翻转。下排是页表诊断，未模拟 shader 在缺页边缘的连续祖先混合，也不代表最终材质颜色。页驻留和后台 IO 仍可继续变化，本次计数见 [捕获数据](img/diagnostics/capture-summary.json)。
+
+## 级联阴影与 PCSS 软阴影
+
+### CSM：近处精细、远处扩大覆盖
+
+方向光采用 **5 级 CSM**，混合对数／线性深度分割，将有限图集分辨率优先分配给近处接收面。使用未抖动相机投影、光空间 texel 对齐和世界单位偏移；级联末段 10% 混合到下一级，最后一级末段淡出。下面的 `shadow-test` 全部由程序生成，含 4／10／16 m 高的近处立柱及延伸至远处的遮挡物；相机远裁剪 500 m，阴影距离 300 m。
+
+![CSM 最终阴影与五个级联分区、过渡带](img/diagnostics/csm-cascades.png)
+
+右图根据同帧 GPU 世界坐标 G-buffer、实际级联分割和过渡参数生成伪彩色：绿、蓝、黄、橙、紫对应 C0–C4，灰色表示末级淡出及阴影距离外区域。它展示接收面的级联分配，不是阴影可见度。
+
+![CSM 实际 GPU 深度图集](img/diagnostics/csm-atlas.png)
+
+上图来自实际 **1792² Depth32Float 阴影附件**。单个太阳的五个 tile 使用 3×3 布局，每 tile 597²；彩框对应五个级联。所有 tile 使用同一灰度拉伸范围，白色为清除深度或背景。各 tile 是光空间投影，因此不会与相机画面具有相同形状。
+
+<details>
+<summary>逐级查看 CSM 深度投影</summary>
+
+![五个 CSM 级联的独立深度 tile](img/diagnostics/csm-tiles.png)
+
+</details>
+
+### PCSS：接触处清晰，远离遮挡物时变软
+
+PCSS 用 24 个样本搜索遮挡物，以线性光空间深度和发光体尺寸估计半影，再进行最多 32 点圆盘过滤；小半影退回 3×3 PCF。下面保持相机、几何、材质、光照方向和曝光相同，对比 **PCF、默认太阳角半径 0.00465 rad 的 PCSS、放大角半径至 0.04 rad 的 PCSS**。PCF／PCSS 自动使用各自的图集投影保护边界。
+
+![PCF、默认太阳 PCSS 与放大发光体 PCSS，同一区域的局部放大](img/diagnostics/pcss-comparison.png)
+
+下排为同一像素区域的局部放大。默认太阳尺寸较小，变化更细微；右列专门放大发光体以展示半影随遮挡物距离增长，**不是默认太阳配置**。这组截图验证方向光，点光源跨立方体面连续过滤尚未实现。算法、参数和此前修复见 [VT／CSM／PCSS 修复记录](docs/vt-csm-pcss-fixes.md)。
+
+所有图可从仓库根目录复现，无需模型资源下载；原始 GPU 缓冲写入指定临时目录，排版图及中文说明见 [效果捕获说明](docs/render-diagnostics-gallery.md)。
+
+```sh
+./build/Scene-Renderer --classic shadow-test
+./build/Scene-Renderer --render-gallery /tmp/scene-renderer-diagnostics diagnostics
+python3 -m pip install numpy pillow
+python3 tools/visualize_render_diagnostics.py /tmp/scene-renderer-diagnostics img/diagnostics
+```
 
 ## TSAA 时域超采样抗锯齿
 
 新 RHI 的完整场景渲染默认启用 TSAA，前向／延迟着色共用后处理。它使用 16 点 Halton 子像素抖动，在 HDR 色调映射前重投影并累积历史颜色。线性深度检查、YCoCg 邻域裁剪和自适应权重减少残影；海面使用前后两帧 FFT 位移生成运动信息，处理波浪自身运动。
 
-GUI 的 `Enable TSAA` 可关闭此效果。场景切换、窗口尺寸、明显相机跳变以及太阳／大气参数变化会重置历史。当前 Metal 效果图均已重新生成，每张图运行 16 帧，静态表面累积 TSAA，各开关对照单独清空历史；地形视图、模型及驻留页稳定时复用确切生成几何并允许历史累积；LOD／页发生变化的地形及动态草使用 reactive 标记；历史图片仍保留历史标记。具体设计、测试与边界见 [TSAA 实现说明](docs/tsaa.md)。
+GUI 的 `Enable TSAA` 可关闭此效果。场景切换、窗口尺寸、明显相机跳变以及太阳／大气参数变化会重置历史。当前 Metal 效果图均已重新生成，常规画廊每张运行 16 帧，VT／阴影诊断画廊运行 64 帧，静态表面累积 TSAA，各开关对照单独清空历史；地形视图、模型及驻留页稳定时复用确切生成几何并允许历史累积；LOD／页发生变化的地形及动态草使用 reactive 标记；历史图片仍保留历史标记。具体设计、测试与边界见 [TSAA 实现说明](docs/tsaa.md)。
 
 ## 整体系统设计
 
