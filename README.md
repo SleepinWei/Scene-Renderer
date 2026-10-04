@@ -112,6 +112,33 @@ python3 tools/fetch_gi_assets.py
 ./build/Scene-Renderer --classic helmet
 ```
 
+### 更多经典测试场景
+
+新增三个 Stanford 重建网格与 Sibenik Cathedral，全部通过新 RHI 的实时 PBR、CSM／PCSS 和 SSAO 渲染。扫描模型采用本项目设置的金属／非金属材质，教堂保留上游石材纹理；固定视角的导入规模如下。
+
+| 场景 | 三角形 | 主要测试内容 |
+| --- | --- | --- |
+| Stanford Dragon | 871,414 | 金色金属、复杂曲面高光与轮廓阴影 |
+| Happy Buddha | 1,087,716 | 浅色非金属、扫描细节与接触遮蔽 |
+| Armadillo | 345,944 | 粗糙金属、壳面纹理几何与法线 |
+| Sibenik Cathedral | 75,284 | 中殿、拱顶、石材材质与间接光对照 |
+
+| Stanford Dragon | Happy Buddha |
+| --- | --- |
+| ![Metal Stanford Dragon](img/metal/dragon.png) | ![Metal Happy Buddha](img/metal/buddha.png) |
+
+| Armadillo | Sibenik Cathedral |
+| --- | --- |
+| ![Metal Armadillo](img/metal/armadillo.png) | ![Metal Sibenik Cathedral](img/metal/sibenik.png) |
+
+```sh
+python3 tools/fetch_benchmark_assets.py
+./build/Scene-Renderer --classic dragon       # 也可选择 buddha、armadillo、sibenik
+./build/Scene-Renderer --render-gallery img/metal benchmarks
+```
+
+模型留在本地，仓库提供固定下载 URL、SHA-256、场景代码和实际截图。Buddha／Armadillo 使用保留 Stanford 来源的固定修订原格式镜像；Stanford 模型与 Sibenik 均有使用条件，详见 [资源说明](samples/README.md) 和 [新增场景与验收](docs/classic-benchmarks.md)。Sibenik 还会输出 RSM 开关及纯间接光对照，当前 RSM 为局部一次反弹近似。
+
 ## 大气天空与太阳
 
 天空使用 Rayleigh／Mie 散射、臭氧吸收和各向同性高阶散射近似，按相机的米制海拔计算透射率与地平线。**太阳盘在背景片元中解析绘制**，其真实角半径独立于天空 LUT 分辨率；默认角直径约 0.573°。大气顶层的太阳辐照度同时驱动天空、PBR、RSM 和海洋，直接光乘大气透射及地球遮挡，日落时逐渐变红、衰减，太阳盘完全被地球遮住后不再提供直接照明，天空散射仍可保留暮光。
@@ -513,10 +540,11 @@ CPU、Metal/Vulkan GPU PT 现已接入当前高度／材质 VT、沙滩 PBR、�
 | 命令 | 用途 |
 | --- | --- |
 | `--demo` | 自动生成的功能演示，无需历史资产包 |
-| `--classic <name>` | 选择 `cornell`、`bunny`、`helmet`、`sponza`、`san-miguel`、`sky`、`ocean`、`ocean-clear`、`terrain`、`mountain-lake`、`mountain-lake-ground` 或 `mountain-lake-beach` |
+| `--classic <name>` | 选择 `cornell`、`bunny`、`dragon`、`buddha`、`armadillo`、`helmet`、`sponza`、`san-miguel`、`sibenik`、`sky`、`ocean`、`ocean-clear`、`terrain`、`mountain-lake`、`mountain-lake-ground` 或 `mountain-lake-beach` |
 | `--frames <N>` | 窗口渲染 N 帧后退出 |
 | `--render-gallery <目录> core` | 离屏生成三个随仓库提供的基础示例 |
 | `--render-gallery <目录> gi` | 生成两个 GI 场景、RSM 开关对照及纯间接光／太阳／天空贡献图 |
+| `--render-gallery <目录> benchmarks` | 生成 Dragon、Buddha、Armadillo 与 Sibenik，含教堂 RSM 对照 |
 | `--render-gallery <目录> <场景名>` | 仅生成指定场景 |
 | `--render-gallery <目录>` | 默认生成三个基础示例 |
 | `--gpu-resource-budget-mib <N>` | 原生编辑器的 RHI buffer／texture 逻辑负载配额；默认 0 不限额；双线程编辑器超限保留成功画面并重试，无法恢复的冷启动报错；不含 driver heap 等隐式开销 |

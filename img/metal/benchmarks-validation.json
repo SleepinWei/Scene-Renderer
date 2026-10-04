@@ -1,0 +1,90 @@
+{
+  "backend": "Metal",
+  "api_validation": true,
+  "shader_validation": true,
+  "width": 960,
+  "height": 720,
+  "frames_per_capture": 16,
+  "animation_time_seconds": 8,
+  "base_commit": "66214186e7fd9f87f2f578555ccba2509fafe781",
+  "tests": {
+    "metal_ctest": "16/16",
+    "obj_normal_reconstruction": "passed",
+    "cold_download_sha256_and_notices": "passed",
+    "corrupt_cached_archive_rejection": "passed",
+    "sibenik_threaded_editor": {
+      "frames": 16,
+      "pending_mesh_uploads": 0,
+      "rejected_publications": 0,
+      "fallback_frames": 0
+    }
+  },
+  "scenes": {
+    "dragon": {
+      "meshes": 1,
+      "triangles": 871414
+    },
+    "buddha": {
+      "meshes": 1,
+      "triangles": 1087716
+    },
+    "armadillo": {
+      "meshes": 1,
+      "triangles": 345944
+    },
+    "sibenik": {
+      "meshes": 15,
+      "triangles": 75284
+    }
+  },
+  "images": [
+    {
+      "file": "img/metal/dragon.png",
+      "sha256": "2ea040cc195945fb0b40b06eee39c2de0f5d53e4aaaf5e724da410d4d6380062",
+      "mean_rgb": 0.0995835,
+      "peak": 14.1953
+    },
+    {
+      "file": "img/metal/buddha.png",
+      "sha256": "90c6e48f6d2534826eaf468f439bc1eda791c758210c6f3379a7d9261ff9a615",
+      "mean_rgb": 0.120325,
+      "peak": 1.28223
+    },
+    {
+      "file": "img/metal/armadillo.png",
+      "sha256": "db2d2ddd2ac34ba34c04a3674f001c984da45e02b8acbcb458ab0760e49ff9d5",
+      "mean_rgb": 0.10329,
+      "peak": 0.65332
+    },
+    {
+      "file": "img/metal/sibenik.png",
+      "sha256": "cc5c690f9e3ec319b37ccd8edff5fb328b34f0f2d37427bb8693b4274df0835a",
+      "mean_rgb": 0.0331395,
+      "peak": 0.280518
+    },
+    {
+      "file": "img/metal/sibenik-direct.png",
+      "sha256": "83d105d7205d01fa301eea319c52984a40761f637b1a21a30c4ae3904fdd6fec",
+      "mean_rgb": 0.0329736,
+      "peak": 0.280518
+    },
+    {
+      "file": "img/metal/sibenik-indirect.png",
+      "sha256": "ec26e51bd8797a249eec3c9e4d305f688c4b3b069c736460d8b52a22fe5597a0",
+      "mean_rgb": 0.000165703,
+      "peak": 0.0156403
+    },
+    {
+      "file": "img/metal/sibenik-sun-indirect.png",
+      "sha256": "c193993e2274a00f460c4b0f03d5358589525a938130f465b9e4da8893857dca",
+      "mean_rgb": 0.000147255,
+      "peak": 0.0148544
+    },
+    {
+      "file": "img/metal/sibenik-sky-indirect.png",
+      "sha256": "56087d62264b8064f40e029d6d8ed023cf7fe9caf79ec31a12ce2d405e8c8b76",
+      "mean_rgb": 1.8266e-05,
+      "peak": 0.00133228
+    }
+  ]
+}

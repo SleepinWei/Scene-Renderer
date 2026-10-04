@@ -1,0 +1,54 @@
+{
+  "dragon": {
+    "url": "https://graphics.stanford.edu/pub/3Dscanrep/dragon/dragon_recon.tar.gz",
+    "sha256": "74ac1d90989c9b1732edee82d57e9ce71452144cf4355f108d8c9c616d28d02f",
+    "cache": "samples/downloads/stanford-dragon-recon.tar.gz",
+    "kind": "tar",
+    "member": "dragon_recon/dragon_vrip.ply",
+    "model": "samples/assets/benchmarks/dragon/dragon_vrip.ply",
+    "credit": "Stanford University Computer Graphics Laboratory",
+    "source_page": "https://graphics.stanford.edu/data/3Dscanrep/",
+    "notices": [
+      "dragon_recon/README"
+    ],
+    "mesh_sha256": "fea87ff48f2aba22fb53e7b67c3ff3f7b8c2a3b3a0653af62c48bba67c6d5744"
+  },
+  "buddha": {
+    "url": "https://raw.githubusercontent.com/alecjacobson/common-3d-test-models/8a4f8642acaf43f9cd7b67858a1502e1055ef202/data/happy.zip",
+    "sha256": "1564cc067c7a10fb73f8f13e583e4ec0c09d981e565b15f3f1ec6be020897c5b",
+    "cache": "samples/downloads/classic-benchmarks/happy.zip",
+    "kind": "zip",
+    "member": "happy/happy_recon/happy_vrip.ply",
+    "model": "samples/assets/benchmarks/buddha/happy_vrip.ply",
+    "mesh_sha256": "2283371216d748a08376a3c88698e283cc8f18d10ced348d6d133051bcf217ab",
+    "credit": "Stanford University Computer Graphics Laboratory",
+    "source_page": "https://graphics.stanford.edu/data/3Dscanrep/",
+    "mirror_revision": "8a4f8642acaf43f9cd7b67858a1502e1055ef202",
+    "original_url": "https://graphics.stanford.edu/pub/3Dscanrep/happy/happy_recon.tar.gz"
+  },
+  "armadillo": {
+    "url": "https://raw.githubusercontent.com/alecjacobson/common-3d-test-models/8a4f8642acaf43f9cd7b67858a1502e1055ef202/data/armadillo.zip",
+    "sha256": "d1faa6722154e4cce6afdf146952e46f18451b5dbf2d676f5bc8de33baee974e",
+    "cache": "samples/downloads/classic-benchmarks/armadillo.zip",
+    "kind": "zip",
+    "member": "Armadillo.ply",
+    "model": "samples/assets/benchmarks/armadillo/Armadillo.ply",
+    "mesh_sha256": "483563fca686b66168e1e45339c50e71a5dc8a526a04a545a16b9237d5eaa023",
+    "credit": "Stanford University Computer Graphics Laboratory",
+    "source_page": "https://graphics.stanford.edu/data/3Dscanrep/",
+    "mirror_revision": "8a4f8642acaf43f9cd7b67858a1502e1055ef202",
+    "original_url": "https://graphics.stanford.edu/pub/3Dscanrep/armadillo/Armadillo.ply.gz"
+  },
+  "sibenik": {
+    "url": "https://casual-effects.com/g3d/data10/research/model/sibenik/sibenik.zip",
+    "sha256": "b7980306d30d4cc93deb3596082cfa63831b3902e51892e386f5e3721ed06e5c",
+    "cache": "samples/downloads/classic-benchmarks/sibenik.zip",
+    "kind": "zip",
+    "member": "sibenik.obj",
+    "model": "samples/assets/benchmarks/sibenik/sibenik.obj",
+    "credit": "Marko Dabrovic; Kenzie Lamar / Vicarious Visions; Morgan McGuire",
+    "source_page": "https://casual-effects.com/g3d/data10/research/model/sibenik/info.js",
+    "license": "CC BY-NC (as stated by upstream)",
+    "mesh_sha256": "786134de73f1b40b0975af2e7bd969bc9a07d7411e6ad4ba1e30f3a5bde63bf8"
+  }
+}

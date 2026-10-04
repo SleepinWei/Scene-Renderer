@@ -28,7 +28,8 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
     glfwWindowHint(GLFW_VISIBLE,GLFW_FALSE);GLFWwindow* window=nullptr;
     std::vector<std::string> names;
     if(selection.empty() || selection=="core")names={"bunny","helmet","cornell"};
-    else if(selection=="gi")names={"sponza","san-miguel"};else names={selection};
+    else if(selection=="gi")names={"sponza","san-miguel"};
+    else if(selection=="benchmarks")names={"dragon","buddha","armadillo","sibenik"};else names={selection};
     const bool water=selection=="ocean" || selection=="ocean-clear" || selection=="mountain-lake" || selection=="mountain-lake-ground" || selection=="mountain-lake-beach";int width=water?1920:960,height=water?1080:720;
 #ifdef __APPLE__
     glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER,GLFW_FALSE);
@@ -74,7 +75,7 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
                     pointSun(0,20,2);capture("-sunset",false,false,true,true);
                     pointSun(-5,30,0);capture("-night",false,false,true,true);
                 }
-                if(gi && (name=="sponza" || name=="san-miguel")){capture("-indirect",true,true,true,true);capture("-sun-indirect",true,true,true,false);capture("-sky-indirect",true,true,false,true);}
+                if(gi && (name=="sponza" || name=="san-miguel" || name=="sibenik")){capture("-indirect",true,true,true,true);capture("-sun-indirect",true,true,true,false);capture("-sky-indirect",true,true,false,true);}
             }
             scene->destroy();
         }

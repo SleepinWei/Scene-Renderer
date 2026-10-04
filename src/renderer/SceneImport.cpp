@@ -124,18 +124,36 @@ ImportedScene importOBJScene(const std::string& input,float height) {
         if (!(src->mPrimitiveTypes&aiPrimitiveType_TRIANGLE)) continue;
         auto mesh=std::make_shared<Mesh>();mesh->setName(src->mName.C_Str());mesh->setMaterial(materials.at(src->mMaterialIndex));
         std::vector<Vertex> vertices(src->mNumVertices);std::vector<unsigned> indices;indices.reserve(size_t(src->mNumFaces)*3);
+        bool needsNormals=false;
         for (unsigned i=0;i<src->mNumVertices;++i) {
             auto& v=vertices[i];v=Vertex{};
             v.Position={src->mVertices[i].x,src->mVertices[i].y,src->mVertices[i].z};
-            v.Normal=src->HasNormals()?glm::normalize(glm::vec3(src->mNormals[i].x,src->mNormals[i].y,src->mNormals[i].z)):glm::vec3(0,1,0);
+            v.Normal=src->HasNormals()?glm::vec3(src->mNormals[i].x,src->mNormals[i].y,src->mNormals[i].z):glm::vec3(0);
+            // Degenerate OBJ faces can yield zero/NaN generated normals.
+            const float normalLength=glm::dot(v.Normal,v.Normal);
+            if(std::isfinite(normalLength) && normalLength>1e-12f)v.Normal/=std::sqrt(normalLength);
+            else {v.Normal=glm::vec3(0);needsNormals=true;}
             v.TexCoords=src->HasTextureCoords(0)?glm::vec2(src->mTextureCoords[0][i].x,src->mTextureCoords[0][i].y):glm::vec2(v.Position.x,v.Position.z);
-            auto axis=std::abs(v.Normal.y)<.95f?glm::vec3(0,1,0):glm::vec3(1,0,0);
-            v.Tangent=glm::normalize(glm::cross(axis,v.Normal));v.Bitangent=glm::cross(v.Normal,v.Tangent);
             result.low=glm::min(result.low,v.Position);result.high=glm::max(result.high,v.Position);
         }
         for (unsigned i=0;i<src->mNumFaces;++i) {
             auto& face=src->mFaces[i];if(face.mNumIndices!=3)continue;
             indices.insert(indices.end(),face.mIndices,face.mIndices+3);
+        }
+        std::vector<glm::vec3> reconstructed(needsNormals?vertices.size():0,glm::vec3(0));
+        if(needsNormals)for(size_t i=0;i<indices.size();i+=3){
+            const auto a=indices[i],b=indices[i+1],c=indices[i+2];
+            const auto area=glm::cross(vertices[b].Position-vertices[a].Position,vertices[c].Position-vertices[a].Position);
+            if(std::isfinite(glm::dot(area,area))){reconstructed[a]+=area;reconstructed[b]+=area;reconstructed[c]+=area;}
+        }
+        for(size_t i=0;i<vertices.size();++i){
+            auto& v=vertices[i];
+            if(glm::dot(v.Normal,v.Normal)==0){
+                const float length=glm::dot(reconstructed[i],reconstructed[i]);
+                v.Normal=std::isfinite(length)&&length>1e-12f?reconstructed[i]/std::sqrt(length):glm::vec3(0,1,0);
+            }
+            auto axis=std::abs(v.Normal.y)<.95f?glm::vec3(0,1,0):glm::vec3(1,0,0);
+            v.Tangent=glm::normalize(glm::cross(axis,v.Normal));v.Bitangent=glm::cross(v.Normal,v.Tangent);
         }
         mesh->setGeometry(std::move(vertices),std::move(indices));
         result.triangles+=mesh->getIndices().size()/3; result.meshes.push_back(mesh);

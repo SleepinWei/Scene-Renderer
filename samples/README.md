@@ -1,6 +1,12 @@
 # 经典场景与资源来源
 
-这些场景用于演示本项目的原生 Metal 实时渲染。README 中的截图由本项目输出，不是上游示例图。Bunny 和 Helmet 的模型与纹理随仓库提供；Sponza 和 San Miguel 通过下载脚本获取，无需原始 `asset/` 资源包。
+这些场景用于演示本项目的原生 Metal 实时渲染。README 中的截图由本项目输出，不是上游示例图。Bunny 和 Helmet 的模型与纹理随仓库提供；Sponza、San Miguel 及新增扫描模型／Sibenik 通过下载脚本获取，无需原始 `asset/` 资源包。
+
+## 新增实时测试场景
+
+`python3 tools/fetch_benchmark_assets.py` 获取 Stanford Dragon、Happy Buddha、Armadillo 与 Sibenik Cathedral。前三者使用 Stanford 原格式重建 PLY；Buddha 和 Armadillo 来自 Alec Jacobson 的固定修订镜像，原始 Stanford 来源与使用条件保留。Sibenik 为 Marko Dabrovic 建模，Kenzie Lamar／Vicarious Visions 修复洞，Morgan McGuire 制作高清贴图；上游标注 CC BY-NC。说明文件随解压保留，大型模型不提交 Git。
+
+运行 `--classic dragon`、`buddha`、`armadillo`、`sibenik`，或使用 `--render-gallery img/metal benchmarks`。完整来源与校验值见 [benchmark-assets.json](benchmark-assets.json)，转换、场景规模和验收见 [经典测试场景说明](../docs/classic-benchmarks.md)。Dragon 实时演示使用金色金属，与下方离线玻璃 PT 的材质设置不同。
 
 ## Stanford Bunny
 

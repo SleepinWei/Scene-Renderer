@@ -224,6 +224,25 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
             addMeshes(target, "Stanford Bunny " + std::to_string(i), imported("samples/assets/bunny/bun_zipper.ply", 3, true),
                       pbr(colors[i], i==1?.23f:.55f, i==1?1.f:0.f), {float(i-1)*3.1f,0,0}, glm::vec3(1), {0,15,0});
         floor(target); atmosphere(target); sun(target, {2.5f,2.4f,2.3f}, {-.5f,-1,-.4f}); point(target, {32,40,50}, {5,6,5});
+    } else if (name == "dragon" || name == "buddha" || name == "armadillo") {
+        std::ifstream input("samples/benchmark-assets.json");
+        if(!input)throw std::runtime_error("Missing benchmark manifest; see samples/README.md");
+        nlohmann::json manifest;input>>manifest;
+        const auto path=manifest.at(name).at("model").get<std::string>();
+        if(!std::filesystem::exists(path))throw std::runtime_error("Missing "+name+"; run python3 tools/fetch_benchmark_assets.py --scene "+name);
+        const bool dragon=name=="dragon",buddha=name=="buddha";
+        auto meshes=importOBJScene(path,dragon?3.f:4.f).meshes;
+        size_t triangles=0;for(const auto& mesh:meshes)triangles+=mesh->getIndices().size()/3;
+        std::cout<<"Classic "<<name<<": "<<meshes.size()<<" meshes, "<<triangles<<" triangles\n";
+        auto material=pbr(dragon?glm::vec3(.82f,.52f,.19f):buddha?glm::vec3(.78f,.83f,.79f):glm::vec3(.38f,.43f,.5f),
+                          dragon?.27f:buddha?.3f:.48f,buddha?0.f:1.f);
+        addMeshes(target,name,meshes,material,{0,.35f,0},glm::vec3(1),{0,dragon?-15.f:buddha?20.f:200.f,0});
+        addMeshes(target,"Scan plinth",box(),pbr({.19f,.21f,.25f},.7f),{0,.175f,0},{dragon?4.f:1.5f,.175f,dragon?2.f:1.5f});
+        const glm::vec3 eye=dragon?glm::vec3(6,4.5f,9):glm::vec3(4.8f,3.2f,8);
+        const auto direction=glm::normalize(glm::vec3(0,dragon?1.8f:2.2f,0)-eye);
+        target->setCamera(std::make_shared<Camera>(eye,glm::vec3(0,1,0),glm::degrees(std::atan2(direction.z,direction.x)),glm::degrees(std::asin(direction.y))));
+        target->mainCamera()->setZoom(48);target->mainCamera()->setExposure(1.2f);
+        floor(target);atmosphere(target);sun(target,{3,2.9f,2.7f},{-.5f,-1,-.5f});point(target,{20,26,34},{4,5,4});
     } else if (name == "helmet") {
         target->setCamera(std::make_shared<Camera>(glm::vec3(4.2f,3.5f,7), glm::vec3(0,1,0), -121, -9));
         auto material = pbr(glm::vec3(1));
@@ -265,11 +284,14 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
         spotObject->addComponent(spotLight); target->addObject(spotObject);
         manager->setting.enableRSM = true;
 
-    } else if (name == "sponza" || name == "san-miguel") {
-        std::ifstream input("samples/gi-assets.json");
-        if (!input) throw std::runtime_error("Run python3 tools/fetch_gi_assets.py first");
+    } else if (name == "sponza" || name == "san-miguel" || name == "sibenik") {
+        const bool cathedral=name=="sibenik";
+        std::ifstream input(cathedral?"samples/benchmark-assets.json":"samples/gi-assets.json");
+        if (!input) throw std::runtime_error(cathedral?"Run python3 tools/fetch_benchmark_assets.py --scene sibenik first":"Run python3 tools/fetch_gi_assets.py first");
         nlohmann::json manifest; input >> manifest;
-        const auto importedScene = importOBJScene(manifest.at(name).at("model").get<std::string>(), 12);
+        const auto modelPath=manifest.at(name).at("model").get<std::string>();
+        if(cathedral && !std::filesystem::exists(modelPath))throw std::runtime_error("Missing sibenik; run python3 tools/fetch_benchmark_assets.py --scene sibenik");
+        const auto importedScene = importOBJScene(modelPath, 12);
         auto object = std::make_shared<GameObject>(); object->name = name;
         object->addComponent(std::make_shared<Transform>());
         auto filter = std::make_shared<MeshFilter>();
@@ -277,13 +299,19 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
         object->addComponent(filter);
         auto renderer = std::make_shared<MeshRenderer>();renderer->setShader(ShaderType::PBR);
         object->addComponent(renderer);object->setDeferred(true);target->addObject(object);
-        if (name == "sponza")
+        if(cathedral)
+            target->setCamera(std::make_shared<Camera>(glm::vec3(6,1.6f,0),glm::vec3(0,1,0),180,10));
+        else if (name == "sponza")
             target->setCamera(std::make_shared<Camera>(glm::vec3(-8.5f,2.2f,0),glm::vec3(0,1,0),0,6));
         else
             target->setCamera(std::make_shared<Camera>(glm::vec3(7,2.4f,8),glm::vec3(0,1,0),-115,-3));
         target->mainCamera()->setZoom(58); target->mainCamera()->setExposure(1.1f);
         atmosphere(target);sun(target,{2.8f,2.6f,2.3f},{-.35f,-1,-.2f});
+        if(cathedral){
+            target->mainCamera()->setExposure(1.8f);
+            point(target,{8,7,6},{4,5,0});
+        }
         manager->setting.enableRSM = true;
-    } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose terrain, mountain-lake, sky, bunny, helmet, cornell, sponza, san-miguel, ocean or ocean-clear");
+    } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose terrain, mountain-lake, sky, bunny, dragon, buddha, armadillo, helmet, cornell, sponza, san-miguel, sibenik, ocean or ocean-clear");
     return target;
 }

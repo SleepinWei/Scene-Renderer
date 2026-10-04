@@ -7,6 +7,7 @@
 #include "component/Mesh_Filter.h"
 #include "component/Transform.h"
 #include "renderer/Material.h"
+#include "renderer/SceneImport.h"
 #include "renderer/rhi/SceneSnapshot.h"
 #include "renderer/rhi/GpuImageCache.h"
 #include "renderer/rhi/GraphTextures.h"
@@ -36,6 +37,23 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
         if (!value)
             throw std::runtime_error(reason);
     };
+    {
+        const auto directory=std::filesystem::temp_directory_path()/
+            ("scene-renderer-degenerate-obj-"+std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+        std::filesystem::create_directories(directory);
+        struct Cleanup{std::filesystem::path path;~Cleanup(){std::error_code error;std::filesystem::remove_all(path,error);}} cleanup{directory};
+        const auto path=directory/"zero-normals.obj";
+        {std::ofstream out(path);out<<"v 0 0 0\nv 1 0 0\nv 0 1 0\nv 2 1 0\nvn 0 0 0\nf 1//1 2//1 3//1\nf 4//1 4//1 4//1\n";}
+        const auto imported=importOBJScene(path.string(),1);
+        check(!imported.meshes.empty() && imported.triangles>=1,"Degenerate OBJ lost valid geometry");
+        bool reconstructed=false;
+        for(const auto& mesh:imported.meshes)for(const auto& v:mesh->getVertices()){
+            check(std::isfinite(glm::length(v.Normal)) && std::abs(glm::length(v.Normal)-1)<1e-5f,"OBJ normal repair produced nonfinite or nonunit normals");
+            reconstructed|=v.Normal.z>.99f;
+        }
+        check(reconstructed,"Invalid OBJ normals did not use geometric face normals");
+        std::cout<<"OBJ zero/degenerate normal reconstruction passed\n";
+    }
     {
         // Checked write boundaries reject before mutation and maintain independent versions.
         Camera camera;
