@@ -103,3 +103,5 @@ Apple M4/macOS Release、320×240、256 spp 预算、16 次反弹、seed 1、曝
 固定时刻地形、草丛与 FFT 水面现已通过共享捕获层进入 Metal/Vulkan PT；水面 IOR、泡沫和水下吸收使用同一材质 ABI。入口、精度预算、数值验证及介质限制见 [程序化 PT](path-tracing-procedural.md)。
 
 水体／玉石的 RGB 体积输运、HG 和介质栈现已接入同一 CPU／Metal／Vulkan 内核，见 [随机游走 BSSRDF](path-tracing-subsurface.md)。体积场景暂禁用 GPU guiding/cache；surface BDPT 尚未覆盖体积策略和 MIS。
+
+介电边界现支持各向同性 GGX VNDF 反射／折射，与 CPU 共用相同数学和随机维度约定。`PackedMaterial.absorption.w` 存储独立介电 roughness，128 字节 ABI 不变；玉石默认 0.22、水体默认 0。粗糙边界参与 NEE／MIS，透射阴影段选择出射侧介质。实现、对照及限制见 [粗糙介电说明](path-tracing-rough-dielectric.md)，原生 RT 求交仍在 [后续计划](path-tracing-appearance-plan.md) 中。

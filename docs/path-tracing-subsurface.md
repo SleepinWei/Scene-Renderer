@@ -1,10 +1,10 @@
 # 水体体积散射与 Stanford Jade Dragon
 
-CPU、Metal 和 Vulkan PT 使用同一套均匀介质模型。水体沿折射后的实际路径进行 RGB 吸收、多次散射和 Henyey–Greenstein（HG）相位采样。玉石以平滑 dielectric 表面进入模型，在内部随机游走，再从其他表面位置出射，因此形成隐式随机游走 BSSRDF。
+CPU、Metal 和 Vulkan PT 使用同一套均匀介质模型。水体沿折射后的实际路径进行 RGB 吸收、多次散射和 Henyey–Greenstein（HG）相位采样。玉石以支持 GGX 粗糙反射／折射的 dielectric 表面进入模型，在内部随机游走，再从其他表面位置出射，因此形成隐式随机游走 BSSRDF。
 
 ## 传输与材质
 
-`SnapshotDraw` 的 `pathTracingIor`、`pathTracingAbsorption`、`pathTracingScattering`、`pathTracingAnisotropy` 保存独立于实时着色器的光学参数；`pathTracingKind=4` 表示有封闭边界的次表面材质。系数是每世界长度单位的逆长度；本例将两单位高的龙作为两米高的物体。玉石预设是展示用参数，未标定为实测矿物光谱。
+`SnapshotDraw` 的 `pathTracingIor`、`pathTracingAbsorption`、`pathTracingScattering`、`pathTracingAnisotropy`、`pathTracingRoughness` 保存独立于实时着色器的光学参数；`pathTracingKind=4` 表示有封闭边界的次表面材质。系数是每世界长度单位的逆长度；本例将两单位高的龙作为两米高的物体。玉石预设是展示用参数，未标定为实测矿物光谱。
 
 | 材质 | IOR | RGB σa | RGB σs | HG g |
 | --- | --- | --- | --- | --- |
@@ -19,7 +19,7 @@ CPU、Metal 和 Vulkan PT 使用同一套均匀介质模型。水体沿折射后
 
 介质栈最多保存八种介质。水作为宿主，实心物体内部优先使用物体的参数；玉龙内部的水面不产生额外空气折射。初始相机介质通过朝上射线的有向穿越总数确定；同一扫描材质的重叠区域保留穿越计数（最多 64），内部界面不会重复折射。不同非水材质必须正确嵌套，非嵌套交叉退出明确报错。
 
-GPU 材质 ABI 为 128 字节，参数块为 288 字节，包含相机介质 ID 和穿越计数。两个后端共用 `path-trace.comp` 经 GLSL→SPIR-V→MSL 编译的内核。JSON 保存 `media`（σa/σs/g/IOR）、`volume_scattering_events`、`scattering_meshes` 和 `subsurface_meshes`，同时保留原始采样及降噪信息。
+GPU 材质 ABI 为 128 字节，参数块为 288 字节，包含相机介质 ID 和穿越计数。两个后端共用 `path-trace.comp` 经 GLSL→SPIR-V→MSL 编译的内核。`PackedMaterial.absorption.w` 保存介电 roughness，布局尺寸不变。JSON 保存 `media`（σa/σs/g/IOR/`dielectric_roughness`）、`volume_scattering_events`、`scattering_meshes` 和 `subsurface_meshes`，同时保留原始采样及降噪信息。
 
 ## 网格与场景
 
@@ -39,13 +39,13 @@ python3 tools/fetch_dragon.py
 # 独立玉龙：CPU 也可执行此命令，将入口改为 --path-trace。
 ./build/pt/Scene-Renderer --path-trace-gpu dragon-jade \
   --pt-size 640x480 --pt-samples 512 --pt-bounces 96 --pt-fixed \
-  --pt-no-sky --pt-denoise-color-only \
+  --pt-no-sky --pt-sss-roughness 0 --pt-denoise-color-only \
   --pt-output build/path-tracing/subsurface/dragon-jade
 
 # 玉龙、FFT 水体随机游走和海面反射／折射。
 ./build/pt/Scene-Renderer --path-trace-gpu dragon-jade-ocean \
   --pt-time 8 --pt-size 640x480 --pt-samples 2048 --pt-bounces 96 --pt-fixed \
-  --pt-sun-radius 2 --pt-ocean-floor-depth 20 --pt-denoise \
+  --pt-sun-radius 2 --pt-ocean-floor-depth 20 --pt-sss-roughness 0 --pt-denoise \
   --pt-output build/path-tracing/subsurface/dragon-jade-ocean-preview
 
 # Vulkan 使用同一组参数与内核。
@@ -66,6 +66,6 @@ python3 tools/fetch_dragon.py
 
 `pt-native-sky` 对照 CPU 与 GPU 的实际 FFT 水体、水下散射、嵌套水／玉石及内部相机，并确认实际产生体积散射事件。另包含 +10 km 场景平移的面积光阴影段回归，验证按起点和终点坐标精度修正可见性距离，避免光源自身遮挡。完整龙模型在 320×240、128 spp 的 CPU/Vulkan 对照中，相对 L1 为 0.00413、总 RGB 能量比为 1.00011。实际渲染、测试结果、PNG SHA256 和原始报告保存于 [次表面验收记录](../img/path-tracing/subsurface-validation.json)。README 同时保留原始图与 OIDN color-only 降噪图。 本机最终完整回归为 Metal 17/17、Vulkan/MoltenVK 18/18；ASan/UBSan CPU、介质、程序化测试为 3/3，补充边界输入检查后的 CPU/介质/程序化/OIDN 为 4/4。
 
-当前介质是 RGB 均匀模型；尚未包含非均匀玉石纹理、晶粒、光谱色散或粗糙折射边界。海洋仍是有限捕获域内的开放界面，下方按均匀半空间处理，没有水体侧壁／底面；应将捕获域覆盖相机路径涉及的场景，域外水边界不适合作为封闭水槽验收。体积和玉石场景暂禁用 GPU guiding/cache；现有 surface BDPT 未实现体积策略密度及连接 MIS，含散射或水体的 BDPT 请求明确拒绝。已有透明玻璃龙 BDPT 焦散示例继续独立保留。
+当前介质是 RGB 均匀模型；尚未包含非均匀玉石纹理、晶粒或光谱色散。粗糙折射边界已经实现，当前玉龙默认 roughness=0.22；本页历史预览命令显式设置 0 保留原图条件。粗糙水体默认 0，可用 `--pt-water-roughness` 覆盖；参数和新对照见 [粗糙介电说明](path-tracing-rough-dielectric.md)。海洋仍是有限捕获域内的开放界面，下方按均匀半空间处理，没有水体侧壁／底面；应将捕获域覆盖相机路径涉及的场景，域外水边界不适合作为封闭水槽验收。体积和玉石场景暂禁用 GPU guiding/cache；现有 surface BDPT 未实现体积策略密度及连接 MIS，含散射或水体的 BDPT 请求明确拒绝。已有透明玻璃龙 BDPT 焦散示例继续独立保留。
 
 模型和公式参考：[PBRT 体积距离采样](https://pbr-book.org/3ed-2018/Light_Transport_II_Volume_Rendering/Sampling_Volume_Scattering)、[PBRT 次表面反射采样](https://www.pbr-book.org/3ed-2018/Light_Transport_II_Volume_Rendering/Sampling_Subsurface_Reflection_Functions)。

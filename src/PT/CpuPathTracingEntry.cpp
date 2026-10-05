@@ -46,8 +46,8 @@ float realNumber(const std::string &s,const char *name,bool zero=false) {size_t 
 int runCommandLine(int argc,char **argv) {
     const bool gpu=argc>1 && std::string(argv[1])=="--path-trace-gpu";
     if(gpu && rhi::requestedBackend()==rhi::Backend::OpenGL)throw std::invalid_argument("GPU PT requires Metal or Vulkan");
-    Options options;DenoiseOptions denoiseOptions;CaptureOptions captureOptions;float time=8,sssScale=1,sssScatteringScale=1,waterScatteringScale=1,sunRadius=0,floorDepth=20;std::string denoiseInput,dragonPath="samples/assets/pt/dragon/dragon_vrip.ply";
-    std::string name="sponza",prefix,environmentPath;bool sky=true,glass=true,filter=false,depthExplicit=false,floorExplicit=false;int argument=2;
+    Options options;DenoiseOptions denoiseOptions;CaptureOptions captureOptions;float time=8,sssScale=1,sssScatteringScale=1,waterScatteringScale=1,sunRadius=0,floorDepth=20,sssRoughness=.22f,waterRoughness=0;std::string denoiseInput,dragonPath="samples/assets/pt/dragon/dragon_vrip.ply";
+    std::string name="sponza",prefix,environmentPath;bool sky=true,glass=true,filter=false,depthExplicit=false,floorExplicit=false,sssRoughExplicit=false,waterRoughExplicit=false;int argument=2;
     if(argument<argc && std::string(argv[argument]).rfind("--",0)!=0)name=argv[argument++];
     for(int i=argument;i<argc;++i) {
         const std::string flag=argv[i];auto value=[&](){if(++i>=argc)throw std::invalid_argument("PT: missing argument for "+flag);return std::string(argv[i]);};
@@ -62,6 +62,8 @@ int runCommandLine(int argc,char **argv) {
         else if(flag=="--pt-cache")options.radianceCache=true;
         else if(flag=="--pt-bdpt"){options.bdpt=true;options.adaptive=false;}
         else if(flag=="--pt-no-glass")glass=false;
+        else if(flag=="--pt-sss-roughness"){sssRoughness=realNumber(value(),"jade roughness",true);sssRoughExplicit=true;if(sssRoughness>1)throw std::invalid_argument("PT: jade roughness must be in [0,1]");}
+        else if(flag=="--pt-water-roughness"){waterRoughness=realNumber(value(),"water roughness",true);waterRoughExplicit=true;if(waterRoughness>1)throw std::invalid_argument("PT: water roughness must be in [0,1]");}
         else if(flag=="--pt-sss-scale")sssScale=realNumber(value(),"subsurface coefficient scale",true);
         else if(flag=="--pt-sss-scattering-scale")sssScatteringScale=realNumber(value(),"subsurface scattering scale",true);
         else if(flag=="--pt-water-scattering-scale")waterScatteringScale=realNumber(value(),"water scattering scale",true);
@@ -95,6 +97,7 @@ int runCommandLine(int argc,char **argv) {
     }
     if(!depthExplicit&&(name=="dragon-jade"||name=="dragon-jade-ocean"))options.maxDepth=96;
     if(floorExplicit&&name!="dragon-jade-ocean")throw std::invalid_argument("PT: ocean floor depth requires dragon-jade-ocean");
+    if(sssRoughExplicit&&name!="dragon-jade"&&name!="dragon-jade-ocean")throw std::invalid_argument("PT: jade roughness requires a jade dragon scene");
     if(sunRadius>0&&(!sky||!environmentPath.empty()||!denoiseInput.empty()))throw std::invalid_argument("PT: sun radius requires a rendered scene with baked sky");
     if(filter&&!denoiserAvailable())throw std::runtime_error("Open Image Denoise is not enabled in this build; see docs/path-tracing-denoising.md");
     if(denoiseOptions.device!="auto"&&denoiseOptions.device!="cpu"&&denoiseOptions.device!="metal")throw std::invalid_argument("PT: denoise device must be auto, cpu or metal");
@@ -112,7 +115,7 @@ int runCommandLine(int argc,char **argv) {
     const auto parent=std::filesystem::path(prefix).parent_path();if(!parent.empty())std::filesystem::create_directories(parent);
     std::shared_ptr<RenderScene> scene;std::vector<DielectricMaterial> dielectrics;
     std::shared_ptr<const render::RenderWorldSnapshot> snapshot;
-    if(name=="dragon-jade"||name=="dragon-jade-ocean"){auto validation=makeJadeDragonScene(options.width,options.height,dragonPath,name=="dragon-jade-ocean",floorDepth);validation.snapshot.frame.timeSeconds=time;for(auto &draw:validation.snapshot.draws)if(draw.pathTracingKind==4){draw.pathTracingAbsorption*=sssScale;draw.pathTracingScattering*=sssScale*sssScatteringScale;}for(auto &ocean:validation.snapshot.frame.oceans)ocean.scattering*=waterScatteringScale;snapshot=std::make_shared<render::RenderWorldSnapshot>(std::move(validation.snapshot));}
+    if(name=="dragon-jade"||name=="dragon-jade-ocean"){auto validation=makeJadeDragonScene(options.width,options.height,dragonPath,name=="dragon-jade-ocean",floorDepth);validation.snapshot.frame.timeSeconds=time;for(auto &draw:validation.snapshot.draws)if(draw.pathTracingKind==4){draw.pathTracingRoughness=sssRoughness;draw.pathTracingAbsorption*=sssScale;draw.pathTracingScattering*=sssScale*sssScatteringScale;}for(auto &ocean:validation.snapshot.frame.oceans)ocean.scattering*=waterScatteringScale;snapshot=std::make_shared<render::RenderWorldSnapshot>(std::move(validation.snapshot));}
     else if(name=="caustics"||name=="dragon-caustics"){auto validation=name=="caustics"?makeCausticsScene(options.width,options.height,glass):makeDragonScene(options.width,options.height,dragonPath,glass);snapshot=std::make_shared<render::RenderWorldSnapshot>(std::move(validation.snapshot));dielectrics=std::move(validation.dielectrics);}
     else {scene=render::makeClassicScene(name);scene->mainCamera()->setAspect(float(options.width)/options.height);render::SceneSnapshotBuilder builder;snapshot=builder.capture(scene,time,options.width,options.height);}
     if(waterScatteringScale!=1&&name!="dragon-jade-ocean"){auto scaled=std::make_shared<render::RenderWorldSnapshot>(*snapshot);for(auto &ocean:scaled->frame.oceans)ocean.scattering*=waterScatteringScale;snapshot=scaled;}
@@ -123,6 +126,7 @@ int runCommandLine(int argc,char **argv) {
     if(gpu || proceduralDevice || (sky && environmentPath.empty() && snapshot->frame.sky))context.open();
     if(sky && environmentPath.empty() && snapshot->frame.sky)baked=render::bakeAtmosphere(rhi::graphicsDevice(),snapshot->frame);
     snapshot=std::make_shared<render::RenderWorldSnapshot>(captureProcedural(*snapshot,proceduralDevice?rhi::graphicsDevice():nullptr,captureOptions));
+    if(waterRoughExplicit){auto adjusted=std::make_shared<render::RenderWorldSnapshot>(*snapshot);bool found=false;for(auto &draw:adjusted->draws)if(draw.pathTracingKind==3){draw.pathTracingRoughness=waterRoughness;found=true;}if(!found)throw std::invalid_argument("PT: water roughness requires a captured ocean");snapshot=adjusted;}
     if(!gpu)context.close();
     CpuScene cpu(*snapshot,dielectrics);
     if(options.bdpt&&cpu.scatteringCount())cpu.validateBidirectional();

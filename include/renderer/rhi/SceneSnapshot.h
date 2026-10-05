@@ -27,6 +27,7 @@ struct SnapshotDraw {
     bool subdivision = false, wireframe = false;
     // Detached optical data for frozen procedural PT geometry. Raster passes ignore it.
     float pathTracingIor = 0;
+    float pathTracingRoughness = 0; // Dielectric boundary only; zero is delta.
     glm::vec3 pathTracingAbsorption{0},pathTracingScattering{0};
     float pathTracingAnisotropy=0;
     float pathTracingNormalScale = 1;

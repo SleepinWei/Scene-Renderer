@@ -1,0 +1,562 @@
+{
+  "date": "2026-10-05",
+  "platform": "Apple M4, macOS arm64; Vulkan through MoltenVK",
+  "phase": 1,
+  "base_commit": "5ac40f035cf75c3f2c356a6628719a2b4cb9f316",
+  "source_sha256": {
+    "include/PT/CpuPathTracer.h": "7601f66e99ed89b6ecb59a8f81f91eaeb441e66814119b5cad23dd57743a801b",
+    "include/PT/SceneData.h": "8e04cd5115d43fa04d9191ab9f805ef905861f64fca37cca16bbc921605f27f6",
+    "include/renderer/rhi/SceneSnapshot.h": "677bef5e7670d9fef43a63f7742c31b7df62bafb945a9324ef602ecbd970627b",
+    "src/PT/CpuPathTracer.cpp": "a6744d7ae0fe4d236d6f26247af4c2a52b42e287be7fd83c06f5d5f1854a400f",
+    "src/PT/CpuPathTracingEntry.cpp": "76ee0d9fa0c588c7d78c52697ae23174851d80e0eacbe16b938d591fd2e1b7c2",
+    "src/PT/DragonScene.cpp": "efdb53e266928bcef408c822c40c748488d401a03e193eadcbbfee028bcd40da",
+    "src/PT/PathTracingValidation.cpp": "10c94fccb4d495ba587284459d27683043eb7da4a611c8407d527a5230155c83",
+    "src/rhi/shaders/path-trace.comp": "7abdfb53b125eaa39413ac8357090454e2127646626d6259837c5c6c4a92c70d",
+    "src/rhi/shaders/pt-dielectric.glsl": "9b258286e23220cb580a6ef6b4e07b5c45af964d35f529dfc181d53a78106c82",
+    "tests/PT/CpuPathTracerTests.cpp": "8b8bdb1ac11e5a0f776e821667709964720c0c7f9798cc729367dc2d3e8aaea9"
+  },
+  "images": {
+    "img/path-tracing/jade-smooth-boundary.png": "848bd582c3ac331dd6daccb25822dcc4ff7f20581ab9b0f5d40de6ccddfc89cb",
+    "img/path-tracing/jade-polished-boundary.png": "6d6f6d3478dae531ec7884cb403667be739c19a8190c6209139d09e1af9aa061",
+    "img/path-tracing/jade-rough-boundary.png": "3498ab851ee8a15bc737d64626374781eae7bf9a69514c6336bba564ad78ff0c",
+    "img/path-tracing/jade-polished-boundary-raw.png": "fec49896241a42f783a0ed5356e4ec120d413dbc83e6bad41bbae33273c16479"
+  },
+  "material_model": "isotropic single-scatter GGX VNDF, alpha=r^2; r<0.02 delta; homogeneous RGB random walk",
+  "parameters": {
+    "jade_ior": 1.54,
+    "sigma_a": [
+      9,
+      0.7,
+      3.5
+    ],
+    "sigma_s": [
+      35,
+      45,
+      38
+    ],
+    "hg_g": 0.45,
+    "height_world_units": 2,
+    "interpretation": "artist preset; one world unit interpreted as one meter, not measured mineral coefficients"
+  },
+  "test_results": {
+    "Metal": {
+      "passed": 5,
+      "failed": 0,
+      "test_names": [
+        "pt-cpu",
+        "pt-medium",
+        "pt-denoiser",
+        "pt-procedural",
+        "pt-native-sky"
+      ],
+      "rough_nested_cpu_gpu_relative_L1": 9.79311e-06,
+      "inside_rough_jade_cpu_gpu_relative_L1": 4.28276e-05
+    },
+    "Vulkan/MoltenVK": {
+      "passed": 5,
+      "failed": 0,
+      "test_names": [
+        "pt-cpu",
+        "pt-medium",
+        "pt-denoiser",
+        "pt-procedural",
+        "pt-native-sky"
+      ],
+      "rough_nested_cpu_gpu_relative_L1": 9.79311e-06,
+      "inside_rough_jade_cpu_gpu_relative_L1": 4.28276e-05
+    },
+    "ASan/UBSan": {
+      "passed": 3,
+      "failed": 0,
+      "test_names": [
+        "pt-cpu",
+        "pt-medium",
+        "pt-procedural"
+      ]
+    }
+  },
+  "rough_exit_NEE": {
+    "sample_paths": 60000,
+    "independent_quadrature": [
+      512,
+      512
+    ],
+    "observed": 1.18741,
+    "reference": 1.18627
+  },
+  "cpu_vulkan_dragon": {
+    "cpu_report": {
+      "absolute_error": 0.0005000000237487257,
+      "adaptive": false,
+      "average_spp": 128.0,
+      "bdpt": false,
+      "bvh_nodes": 306575,
+      "cache_depth": 2,
+      "cache_hits": 0,
+      "cache_minimum": 64,
+      "converged_pixels": 0,
+      "denoise_auxiliary": false,
+      "denoise_device": "",
+      "denoise_seconds": 0.0,
+      "denoiser": "",
+      "dielectric_meshes": 1,
+      "execution": "CPU",
+      "exposure": 2.0,
+      "frozen_time_seconds": 8.0,
+      "geometry_bvh_bytes": 52274848,
+      "gpu_buffer_bytes": 0,
+      "grass_meshes": 0,
+      "guide_cell_size": 0.0,
+      "guide_hits": 0,
+      "guiding": false,
+      "height": 120,
+      "integrator": "RGB homogeneous random walk BSSRDF/volume, HG phase, dielectric boundaries, environment/sun/emitter NEE + MIS, Russian roulette",
+      "max_depth": 96,
+      "media": [
+        {
+          "dielectric_roughness": 0.2199999988079071,
+          "hg_g": 0.44999998807907104,
+          "id": 6,
+          "ior": 1.5399999618530273,
+          "kind": 4,
+          "sigma_a": [
+            9.0,
+            0.699999988079071,
+            3.5
+          ],
+          "sigma_s": [
+            35.0,
+            45.0,
+            38.0
+          ]
+        }
+      ],
+      "meshes": 6,
+      "minimum_samples": 64,
+      "non_finite_samples": 0,
+      "ocean_interfaces": 0,
+      "radiance_cache": false,
+      "rays": 13284546,
+      "relative_error": 0.029999999329447746,
+      "render_seconds": 1.773891583,
+      "requested_threads": 8,
+      "sample_budget": 128,
+      "sampler": "dyadic-permuted padded 2D Sobol",
+      "samples": 128,
+      "scattering_meshes": 1,
+      "scene": "dragon-jade",
+      "seed": 1,
+      "setup_seconds": 0.0,
+      "subsurface_meshes": 1,
+      "sun_irradiance": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "sun_radius_degrees": 0.0,
+      "terrain_meshes": 0,
+      "terrain_ocean": "frozen procedural meshes",
+      "total_samples": 2457600,
+      "trace_and_training_seconds": 1.773891583,
+      "trace_training_denoise_seconds": 1.773891583,
+      "trained_cells": 0,
+      "training_rays": 0,
+      "training_seconds": 0.0,
+      "training_spp": 0,
+      "triangles": 871296,
+      "volume_scattering_events": 1776621,
+      "width": 160
+    },
+    "vulkan_report": {
+      "absolute_error": 0.0005000000237487257,
+      "adaptive": false,
+      "average_spp": 128.0,
+      "bdpt": false,
+      "bvh_nodes": 306575,
+      "cache_depth": 2,
+      "cache_hits": 0,
+      "cache_minimum": 64,
+      "converged_pixels": 0,
+      "denoise_auxiliary": false,
+      "denoise_device": "",
+      "denoise_seconds": 0.0,
+      "denoiser": "",
+      "dielectric_meshes": 1,
+      "execution": "GPU Vulkan compute BVH",
+      "exposure": 2.0,
+      "frozen_time_seconds": 8.0,
+      "geometry_bvh_bytes": 52274848,
+      "gpu_buffer_bytes": 39227240,
+      "grass_meshes": 0,
+      "guide_cell_size": 0.0,
+      "guide_hits": 0,
+      "guiding": false,
+      "height": 120,
+      "integrator": "RGB homogeneous random walk BSSRDF/volume, HG phase, dielectric boundaries, environment/sun/emitter NEE + MIS, Russian roulette",
+      "max_depth": 96,
+      "media": [
+        {
+          "dielectric_roughness": 0.2199999988079071,
+          "hg_g": 0.44999998807907104,
+          "id": 6,
+          "ior": 1.5399999618530273,
+          "kind": 4,
+          "sigma_a": [
+            9.0,
+            0.699999988079071,
+            3.5
+          ],
+          "sigma_s": [
+            35.0,
+            45.0,
+            38.0
+          ]
+        }
+      ],
+      "meshes": 6,
+      "minimum_samples": 64,
+      "non_finite_samples": 0,
+      "ocean_interfaces": 0,
+      "radiance_cache": false,
+      "rays": 13292903,
+      "relative_error": 0.029999999329447746,
+      "render_seconds": 2.210674375,
+      "requested_threads": 0,
+      "sample_budget": 128,
+      "sampler": "dyadic-permuted padded 2D Sobol",
+      "samples": 128,
+      "scattering_meshes": 1,
+      "scene": "dragon-jade",
+      "seed": 1,
+      "setup_seconds": 3.368030167,
+      "subsurface_meshes": 1,
+      "sun_irradiance": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "sun_radius_degrees": 0.0,
+      "terrain_meshes": 0,
+      "terrain_ocean": "frozen procedural meshes",
+      "total_samples": 2457600,
+      "trace_and_training_seconds": 2.210674375,
+      "trace_training_denoise_seconds": 2.210674375,
+      "trained_cells": 0,
+      "training_rays": 0,
+      "training_seconds": 0.0,
+      "training_spp": 0,
+      "triangles": 871296,
+      "volume_scattering_events": 1776524,
+      "width": 160
+    },
+    "relative_L1": 0.00764045212417841,
+    "rgb_energy_ratio": 1.0038331747055054,
+    "relative_L1_formula": "sum_pixels(length_RGB(GPU-CPU))/sum_pixels(length_RGB(CPU)), raw linear PFM; Euclidean RGB norm per pixel",
+    "componentwise_relative_L1": 0.004862383662680829,
+    "rgb_energy_ratio_formula": "sum(GPU.rgb)/sum(CPU.rgb), raw linear PFM"
+  },
+  "preview_reports": {
+    "smooth": {
+      "absolute_error": 0.0005000000237487257,
+      "adaptive": false,
+      "average_spp": 512.0,
+      "bdpt": false,
+      "bvh_nodes": 306575,
+      "cache_depth": 2,
+      "cache_hits": 0,
+      "cache_minimum": 64,
+      "converged_pixels": 0,
+      "denoise_auxiliary": false,
+      "denoise_device": "Metal",
+      "denoise_seconds": 0.241461416,
+      "denoiser": "Open Image Denoise 2.5.1",
+      "dielectric_meshes": 1,
+      "execution": "GPU Metal compute BVH",
+      "exposure": 2.0,
+      "frozen_time_seconds": 8.0,
+      "geometry_bvh_bytes": 52274848,
+      "gpu_buffer_bytes": 62267240,
+      "grass_meshes": 0,
+      "guide_cell_size": 0.0,
+      "guide_hits": 0,
+      "guiding": false,
+      "height": 480,
+      "integrator": "RGB homogeneous random walk BSSRDF/volume, HG phase, dielectric boundaries, environment/sun/emitter NEE + MIS, Russian roulette",
+      "max_depth": 96,
+      "media": [
+        {
+          "dielectric_roughness": 0.0,
+          "hg_g": 0.44999998807907104,
+          "id": 6,
+          "ior": 1.5399999618530273,
+          "kind": 4,
+          "sigma_a": [
+            9.0,
+            0.699999988079071,
+            3.5
+          ],
+          "sigma_s": [
+            35.0,
+            45.0,
+            38.0
+          ]
+        }
+      ],
+      "meshes": 6,
+      "minimum_samples": 64,
+      "non_finite_samples": 0,
+      "ocean_interfaces": 0,
+      "radiance_cache": false,
+      "rays": 830742829,
+      "relative_error": 0.029999999329447746,
+      "render_seconds": 49.589245125,
+      "requested_threads": 0,
+      "sample_budget": 512,
+      "sampler": "dyadic-permuted padded 2D Sobol",
+      "samples": 512,
+      "scattering_meshes": 1,
+      "scene": "dragon-jade",
+      "seed": 1,
+      "setup_seconds": 0.016761375,
+      "subsurface_meshes": 1,
+      "sun_irradiance": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "sun_radius_degrees": 0.0,
+      "terrain_meshes": 0,
+      "terrain_ocean": "frozen procedural meshes",
+      "total_samples": 157286400,
+      "trace_and_training_seconds": 49.589245125,
+      "trace_training_denoise_seconds": 49.830706541,
+      "trained_cells": 0,
+      "training_rays": 0,
+      "training_seconds": 0.0,
+      "training_spp": 0,
+      "triangles": 871296,
+      "volume_scattering_events": 114864364,
+      "width": 640
+    },
+    "polished": {
+      "absolute_error": 0.0005000000237487257,
+      "adaptive": false,
+      "average_spp": 512.0,
+      "bdpt": false,
+      "bvh_nodes": 306575,
+      "cache_depth": 2,
+      "cache_hits": 0,
+      "cache_minimum": 64,
+      "converged_pixels": 0,
+      "denoise_auxiliary": false,
+      "denoise_device": "Metal",
+      "denoise_seconds": 0.143282958,
+      "denoiser": "Open Image Denoise 2.5.1",
+      "dielectric_meshes": 1,
+      "execution": "GPU Metal compute BVH",
+      "exposure": 2.0,
+      "frozen_time_seconds": 8.0,
+      "geometry_bvh_bytes": 52274848,
+      "gpu_buffer_bytes": 62267240,
+      "grass_meshes": 0,
+      "guide_cell_size": 0.0,
+      "guide_hits": 0,
+      "guiding": false,
+      "height": 480,
+      "integrator": "RGB homogeneous random walk BSSRDF/volume, HG phase, dielectric boundaries, environment/sun/emitter NEE + MIS, Russian roulette",
+      "max_depth": 96,
+      "media": [
+        {
+          "dielectric_roughness": 0.2199999988079071,
+          "hg_g": 0.44999998807907104,
+          "id": 6,
+          "ior": 1.5399999618530273,
+          "kind": 4,
+          "sigma_a": [
+            9.0,
+            0.699999988079071,
+            3.5
+          ],
+          "sigma_s": [
+            35.0,
+            45.0,
+            38.0
+          ]
+        }
+      ],
+      "meshes": 6,
+      "minimum_samples": 64,
+      "non_finite_samples": 0,
+      "ocean_interfaces": 0,
+      "radiance_cache": false,
+      "rays": 849937437,
+      "relative_error": 0.029999999329447746,
+      "render_seconds": 51.042575,
+      "requested_threads": 0,
+      "sample_budget": 512,
+      "sampler": "dyadic-permuted padded 2D Sobol",
+      "samples": 512,
+      "scattering_meshes": 1,
+      "scene": "dragon-jade",
+      "seed": 1,
+      "setup_seconds": 0.019100583,
+      "subsurface_meshes": 1,
+      "sun_irradiance": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "sun_radius_degrees": 0.0,
+      "terrain_meshes": 0,
+      "terrain_ocean": "frozen procedural meshes",
+      "total_samples": 157286400,
+      "trace_and_training_seconds": 51.042575,
+      "trace_training_denoise_seconds": 51.185857958,
+      "trained_cells": 0,
+      "training_rays": 0,
+      "training_seconds": 0.0,
+      "training_spp": 0,
+      "triangles": 871296,
+      "volume_scattering_events": 113769195,
+      "width": 640
+    },
+    "rough": {
+      "absolute_error": 0.0005000000237487257,
+      "adaptive": false,
+      "average_spp": 512.0,
+      "bdpt": false,
+      "bvh_nodes": 306575,
+      "cache_depth": 2,
+      "cache_hits": 0,
+      "cache_minimum": 64,
+      "converged_pixels": 0,
+      "denoise_auxiliary": false,
+      "denoise_device": "Metal",
+      "denoise_seconds": 0.137152708,
+      "denoiser": "Open Image Denoise 2.5.1",
+      "dielectric_meshes": 1,
+      "execution": "GPU Metal compute BVH",
+      "exposure": 2.0,
+      "frozen_time_seconds": 8.0,
+      "geometry_bvh_bytes": 52274848,
+      "gpu_buffer_bytes": 62267240,
+      "grass_meshes": 0,
+      "guide_cell_size": 0.0,
+      "guide_hits": 0,
+      "guiding": false,
+      "height": 480,
+      "integrator": "RGB homogeneous random walk BSSRDF/volume, HG phase, dielectric boundaries, environment/sun/emitter NEE + MIS, Russian roulette",
+      "max_depth": 96,
+      "media": [
+        {
+          "dielectric_roughness": 0.5,
+          "hg_g": 0.44999998807907104,
+          "id": 6,
+          "ior": 1.5399999618530273,
+          "kind": 4,
+          "sigma_a": [
+            9.0,
+            0.699999988079071,
+            3.5
+          ],
+          "sigma_s": [
+            35.0,
+            45.0,
+            38.0
+          ]
+        }
+      ],
+      "meshes": 6,
+      "minimum_samples": 64,
+      "non_finite_samples": 0,
+      "ocean_interfaces": 0,
+      "radiance_cache": false,
+      "rays": 825284983,
+      "relative_error": 0.029999999329447746,
+      "render_seconds": 30.855727333,
+      "requested_threads": 0,
+      "sample_budget": 512,
+      "sampler": "dyadic-permuted padded 2D Sobol",
+      "samples": 512,
+      "scattering_meshes": 1,
+      "scene": "dragon-jade",
+      "seed": 1,
+      "setup_seconds": 0.018510875,
+      "subsurface_meshes": 1,
+      "sun_irradiance": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "sun_radius_degrees": 0.0,
+      "terrain_meshes": 0,
+      "terrain_ocean": "frozen procedural meshes",
+      "total_samples": 157286400,
+      "trace_and_training_seconds": 30.855727333,
+      "trace_training_denoise_seconds": 30.992880041,
+      "trained_cells": 0,
+      "training_rays": 0,
+      "training_seconds": 0.0,
+      "training_spp": 0,
+      "triangles": 871296,
+      "volume_scattering_events": 102850193,
+      "width": 640
+    }
+  },
+  "raw_pfm_sha256": {
+    "smooth": "305dca2757c2a71847ea88ea4f371878cea13f9a3671a9a6749a7c85f6db9c9c",
+    "polished": "0133c0414ca8e2b051be5abf543a57335d678d4e48e98c9a0169677dbe54439e",
+    "rough": "b99c540c36f81926de82c7ea22cb62cd12061f10cfd3a7cbbe1fa13c273ba5e8"
+  },
+  "limitations": [
+    "single-scatter microfacet model loses energy at high roughness; no microfacet multiple-scatter compensation",
+    "rough dielectric and volume BDPT strategy densities not yet implemented",
+    "NEE visibility stops at other dielectric boundaries",
+    "homogeneous artist jade preset; no heterogeneous mineral calibration",
+    "preview denoising is not transport validation",
+    "concurrent rendering load; recorded timings do not prove speed improvement",
+    "raw PFM retained under ignored build output; reports and hashes archived here"
+  ],
+  "bsdf_quadrature": {
+    "paths_per_case": 150000,
+    "quadrature_resolution": [
+      768,
+      1024
+    ],
+    "mode": "importance",
+    "results": [
+      {
+        "front": 1.0,
+        "roughness": 0.35,
+        "accepted_probability": 0.99782,
+        "pdf_integral": 0.997789,
+        "sample_energy": 0.996689,
+        "independent_energy": 0.996662
+      },
+      {
+        "front": 1.0,
+        "roughness": 0.65,
+        "accepted_probability": 0.98018,
+        "pdf_integral": 0.980126,
+        "sample_energy": 0.960437,
+        "independent_energy": 0.96023
+      },
+      {
+        "front": 0.0,
+        "roughness": 0.35,
+        "accepted_probability": 0.985273,
+        "pdf_integral": 0.984993,
+        "sample_energy": 0.971216,
+        "independent_energy": 0.970843
+      },
+      {
+        "front": 0.0,
+        "roughness": 0.65,
+        "accepted_probability": 0.865433,
+        "pdf_integral": 0.864429,
+        "sample_energy": 0.757838,
+        "independent_energy": 0.756656
+      }
+    ]
+  }
+}

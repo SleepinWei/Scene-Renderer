@@ -29,7 +29,7 @@ ValidationScene makeDragonScene(uint32_t width,uint32_t height,const std::string
 ValidationScene makeJadeDragonScene(uint32_t width,uint32_t height,const std::string &path,bool ocean,float floorDepth){
     if(!std::isfinite(floorDepth)||floorDepth<=0)throw std::invalid_argument("PT: ocean floor depth must be positive");
     auto result=makeDragonScene(width,height,path,false);auto &s=result.snapshot;auto &dragon=s.draws.back();auto mesh=std::make_shared<render::MeshPayload>(*dragon.mesh);auto closure=closeSubsurfaceMesh(*mesh);dragon.mesh=mesh;
-    dragon.parameters.albedoAlpha=glm::vec4(1);dragon.pathTracingIor=1.54f;dragon.pathTracingAbsorption={9,.7f,3.5f};dragon.pathTracingScattering={35,45,38};dragon.pathTracingAnisotropy=.45f;dragon.pathTracingKind=4;
+    dragon.parameters.albedoAlpha=glm::vec4(1);dragon.pathTracingIor=1.54f;dragon.pathTracingRoughness=.22f;dragon.pathTracingAbsorption={9,.7f,3.5f};dragon.pathTracingScattering={35,45,38};dragon.pathTracingAnisotropy=.45f;dragon.pathTracingKind=4;
     std::cout<<"Jade scan closure: "<<closure.weldedVertices<<" welded vertices, "<<closure.removedFaces<<" removed faces, "<<closure.filledHoles<<" filled holes, "<<closure.boundaryEdges<<" boundary edges, "<<mesh->indices.size()/3<<" solid triangles\n";
     if(ocean){
         auto jade=dragon;s.draws.clear();s.draws.push_back(jade);

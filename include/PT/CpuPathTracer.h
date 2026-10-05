@@ -37,17 +37,18 @@ struct Surface {
     float foam = 0;
     glm::vec3 absorption{0};
     float exteriorIor=1;
+    float transmissionRoughness=0;
     uint32_t mediumId=0;
     uint32_t primitive = UINT32_MAX;
     bool frontFace = true;
 };
 enum class TransportMode {Radiance, Importance};
 struct DielectricMaterial {uint64_t objectId;float ior=1.5f;};
-struct MediumInfo {uint32_t id=0,kind=0;float ior=1;Medium volume;};
+struct MediumInfo {uint32_t id=0,kind=0;float ior=1;Medium volume;float roughness=0;};
 struct EmitterSample {Surface surface;float pdfArea=0;};
 struct BsdfSample { glm::vec3 direction{0}, value{0}; float pdf = 0; bool delta=false, transmission=false; };
 float dielectricFresnel(float cosine,float etaI,float etaT);
-glm::vec3 evaluateBsdf(const Surface &, glm::vec3 view, glm::vec3 light);
+glm::vec3 evaluateBsdf(const Surface &, glm::vec3 view, glm::vec3 light,TransportMode = TransportMode::Radiance);
 float bsdfPdf(const Surface &, glm::vec3 view, glm::vec3 light);
 BsdfSample sampleBsdf(const Surface &, glm::vec3 view, Random &,TransportMode = TransportMode::Radiance);
 struct Options {

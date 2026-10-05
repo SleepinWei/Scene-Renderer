@@ -6,8 +6,8 @@ struct alignas(16) PackedVertex {glm::vec4 positionU, normalV;};
 struct alignas(16) PackedNode {glm::vec4 low, high;}; // w stores uint bits: first/count.
 struct alignas(16) PackedMaterial {
     glm::vec4 albedo, emission, factors;
-    glm::vec4 optics{0}; // x: smooth dielectric IOR; zero uses basic PBR.
-    glm::vec4 absorption{0},scattering{0}; // scattering.w: HG anisotropy.
+    glm::vec4 optics{0}; // x: dielectric IOR; zero uses basic PBR.
+    glm::vec4 absorption{0},scattering{0}; // absorption.w: dielectric roughness; scattering.w: HG g.
     glm::uvec4 textures, extra; // extra: AO image, two-sided, emissive-albedo.
 };
 struct alignas(16) PackedEmitter {glm::vec4 primitiveAreaCDF, normal;};

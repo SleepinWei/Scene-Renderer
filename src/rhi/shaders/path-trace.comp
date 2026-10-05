@@ -49,7 +49,7 @@ vec4 textureValue(uint id,vec2 uv){
     return mix(mix(imagePixel(image,i.x,i.y),imagePixel(image,i.x+1,i.y),f.x),mix(imagePixel(image,i.x,i.y+1),imagePixel(image,i.x+1,i.y+1),f.x),f.y);
 }
 struct Hit {uint primitive;float distance;vec2 bary;};
-struct Surface {vec3 position,gn,n,albedo,emission;float roughness,metallic,opacity,ior,foam,exteriorIor;vec3 absorption;uint primitive,mediumId;bool frontFace,water;};
+struct Surface {vec3 position,gn,n,albedo,emission;float roughness,metallic,opacity,ior,foam,exteriorIor,transmissionRoughness;vec3 absorption;uint primitive,mediumId;bool frontFace,water;};
 bool boxHit(Node node,vec3 o,vec3 d,float maximum,out float nearDistance){
     float minimum=rayEpsilon;
     for(int i=0;i<3;++i){if(abs(d[i])<1e-30){if(o[i]<node.low[i]||o[i]>node.high[i])return false;continue;}
@@ -94,7 +94,7 @@ Surface makeSurface(Hit hit,vec3 o,vec3 d){
     if(dot(normal,-d)<=0)normal=dot(n,-d)>0?n:gn;
     vec4 base=textureValue(m.textures.x,uv)*m.albedo;vec3 albedo=pow(max(base.xyz,vec3(0)),vec3(2.2));
     vec3 emission=frontFace||m.extra.y!=0u?m.emission.xyz:vec3(0);if(m.extra.z!=0u&&luminance(emission)==0)emission=albedo;
-    return Surface(o+d*hit.distance,gn,normal,albedo,emission,clamp(textureValue(m.textures.w,uv).g*m.factors.y,.045,1),clamp(textureValue(m.textures.z,uv).b*m.factors.x,0,1),m.factors.w>0?(base.a<m.factors.w?0:1):clamp(base.a,0,1),m.optics.x,water&&m.textures.z!=0xffffffffu?textureValue(m.textures.z,uv*m.optics.z).r:0,1,m.absorption.xyz,hit.primitive,m.optics.x>0?index.w+1u:0u,frontFace,water);
+    return Surface(o+d*hit.distance,gn,normal,albedo,emission,clamp(textureValue(m.textures.w,uv).g*m.factors.y,.045,1),clamp(textureValue(m.textures.z,uv).b*m.factors.x,0,1),m.factors.w>0?(base.a<m.factors.w?0:1):clamp(base.a,0,1),m.optics.x,water&&m.textures.z!=0xffffffffu?textureValue(m.textures.z,uv*m.optics.z).r:0,1,m.absorption.w,m.absorption.xyz,hit.primitive,m.optics.x>0?index.w+1u:0u,frontFace,water);
 }
 bool transitionMedium(inout uint media[8],inout uint winding[8],inout uint count,Surface s){
     uint found=count;for(uint j=0u;j<count;++j)if(media[j]==s.mediumId)found=j;
@@ -105,19 +105,17 @@ bool transitionMedium(inout uint media[8],inout uint winding[8],inout uint count
 }
 float distribution(float nh,float roughness){float a=roughness*roughness,a2=a*a,q=nh*nh*(a2-1)+1;return a2/(PI*q*q);}
 float smith(float cosine,float roughness){if(cosine<=0)return 0;float a=roughness*roughness;return 2*cosine/(cosine+sqrt(a*a+(1-a*a)*cosine*cosine));}
+#include "pt-dielectric.glsl"
 float specularChance(Surface s){float spec=luminance(mix(vec3(.04),s.albedo,s.metallic)),diffuse=luminance(s.albedo)*(1-s.metallic);return clamp(spec/(spec+diffuse+1e-20),.1,.9);}
-vec3 bsdf(Surface s,vec3 v,vec3 l){if(s.ior>0)return s.water&&dot(s.n,v)>0&&dot(s.n,l)>0&&dot(s.gn,l)>0?s.foam*s.albedo/PI:vec3(0);float nv=dot(s.n,v),nl=dot(s.n,l);if(nv<=0||nl<=0||dot(s.gn,v)<=0||dot(s.gn,l)<=0)return vec3(0);
+vec3 bsdf(Surface s,vec3 v,vec3 l){if(s.ior>0){float foam=s.water?s.foam:0;vec2 f=s.transmissionRoughness>=.02?roughDielectric(s,v,l):vec2(0);return (1-foam)*f.x*(dot(s.n,l)<0?s.albedo:vec3(1))+(foam>0&&dot(s.n,v)>0&&dot(s.n,l)>0&&dot(s.gn,l)>0?foam*s.albedo/PI:vec3(0));}float nv=dot(s.n,v),nl=dot(s.n,l);if(nv<=0||nl<=0||dot(s.gn,v)<=0||dot(s.gn,l)<=0)return vec3(0);
     vec3 h=unit(v+l,s.n);float nh=max(0,dot(s.n,h)),vh=max(0,dot(v,h));vec3 f0=mix(vec3(.04),s.albedo,s.metallic),f=f0+(1-f0)*pow(1-vh,5);
     return (1-f)*s.albedo*(1-s.metallic)/PI+f*(distribution(nh,s.roughness)*smith(nv,s.roughness)*smith(nl,s.roughness)/(4*nv*nl));
 }
-float bsdfPdf(Surface s,vec3 v,vec3 l){if(s.ior>0)return s.water&&dot(s.n,v)>0?s.foam*max(0,dot(s.n,l))/PI:0;float nv=dot(s.n,v),nl=dot(s.n,l);if(nv<=0||nl<=0)return 0;vec3 h=unit(v+l,s.n);if(dot(v,h)<=0)return 0;float chance=specularChance(s);return (1-chance)*nl/PI+chance*distribution(max(0,dot(s.n,h)),s.roughness)*smith(nv,s.roughness)/(4*nv);}
+float bsdfPdf(Surface s,vec3 v,vec3 l){if(s.ior>0){float foam=s.water?s.foam:0;return (1-foam)*(s.transmissionRoughness>=.02?roughDielectric(s,v,l).y:0)+(dot(s.n,v)>0?foam*max(0,dot(s.n,l))/PI:0);}float nv=dot(s.n,v),nl=dot(s.n,l);if(nv<=0||nl<=0)return 0;vec3 h=unit(v+l,s.n);if(dot(v,h)<=0)return 0;float chance=specularChance(s);return (1-chance)*nl/PI+chance*distribution(max(0,dot(s.n,h)),s.roughness)*smith(nv,s.roughness)/(4*nv);}
 vec3 sampleBsdf(Surface s,vec3 v){
     float selection=randomValue();vec2 uv=randomPair();
     if(selection<specularChance(s)){
-        vec3 tangent=unit(cross(abs(s.n.y)<.99?vec3(0,1,0):vec3(1,0,0),s.n),vec3(1,0,0)),bitangent=cross(s.n,tangent);float a=s.roughness*s.roughness;
-        vec3 vh=unit(vec3(a*dot(v,tangent),a*dot(v,bitangent),dot(v,s.n)),vec3(0,0,1));float len=vh.x*vh.x+vh.y*vh.y;
-        vec3 t1=len>0?vec3(-vh.y,vh.x,0)/sqrt(len):vec3(1,0,0),t2=cross(vh,t1);float radius=sqrt(uv.x),phi=2*PI*uv.y,x=radius*cos(phi),blend=.5*(1+vh.z),y=mix(sqrt(max(0,1-x*x)),radius*sin(phi),blend);
-        vec3 nh=t1*x+t2*y+vh*sqrt(max(0,1-x*x-y*y)),ne=unit(vec3(a*nh.x,a*nh.y,max(0,nh.z)),vec3(0,0,1));vec3 halfVector=tangent*ne.x+bitangent*ne.y+s.n*ne.z,l=reflect(-v,halfVector);
+        vec3 halfVector=visibleNormal(v,s.n,s.roughness,uv),l=reflect(-v,halfVector);
         if(dot(v,halfVector)<=0||dot(l,s.n)<=0)return vec3(0);return l;
     }
     float q=uv.x,phi=2*PI*uv.y;return localVector(vec3(sqrt(q)*cos(phi),sqrt(q)*sin(phi),sqrt(1-q)),s.n);
@@ -134,7 +132,7 @@ vec3 offsetOrigin(Surface s,vec3 d){return s.position+s.gn*((dot(d,s.gn)>=0?1:-1
 float visibility(vec3 o,vec3 d,float maximum){float transmission=1;Hit hit;for(int i=0;i<128;++i){if(!intersectScene(o,d,maximum,hit))return transmission;Surface s=makeSurface(hit,o,d);transmission*=1-s.opacity;if(transmission<1e-5)return 0;if(maximum<INF){maximum-=hit.distance+rayEpsilon;if(maximum<=rayEpsilon)return transmission;}o=s.position+d*rayEpsilon;}return 0;}
 #include "pt-learning.glsl"
 vec3 mediumAbsorption,mediumScattering,phaseForward;
-float mediumG;bool volumeVertex;
+float mediumG;bool volumeVertex;uint currentMedium,outerMedium;
 vec3 mediumTransmission(float distance){
     vec3 extinction=mediumAbsorption+mediumScattering;
     if(distance>=INF)return vec3(extinction.x>0?0:1,extinction.y>0?0:1,extinction.z>0?0:1);
@@ -144,11 +142,14 @@ float phaseHG(float cosine,float g){float d=max(1e-8,1+g*g-2*g*cosine);return (1
 vec3 samplePhaseHG(vec3 forward,float g){vec2 uv=randomPair();float cosine=2*uv.x-1;if(abs(g)>.001){float q=(1-g*g)/(1-g+2*g*uv.x);cosine=clamp((1+g*g-q*q)/(2*g),-1,1);}else{float x=cosine;cosine=clamp((2*x+g*(x*x+3)+2*g*g*x+g*g*g*(x*x-1))/(2*(1+g*x)*(1+g*x)),-1,1);}float sine=sqrt(max(0,1-cosine*cosine)),phi=2*PI*uv.y;return localVector(vec3(sine*cos(phi),sine*sin(phi),cosine),forward);}
 float pointBias(vec3 point){return max(rayEpsilon,8*1.1920929e-7*max(abs(point.x),max(abs(point.y),abs(point.z))));}
 vec3 directLight(Surface s,vec3 view,vec3 l,vec3 energy,float pdf,float distance,bool delta){
-    if(pdf<=0)return vec3(0);float cosine=volumeVertex?1:max(0,dot(s.n,l));if(cosine==0)return vec3(0);
+    if(pdf<=0)return vec3(0);float cosine=volumeVertex?1:s.ior>0?abs(dot(s.n,l)):max(0,dot(s.n,l));if(cosine==0)return vec3(0);
     float phase=phaseHG(dot(phaseForward,l),mediumG);vec3 f=volumeVertex?vec3(phase):bsdf(s,view,l);if(luminance(f)<=0)return vec3(0);
     float weight=delta?1:mis(pdf,volumeVertex?phase:continuationPdf(s,view,l));
     float maximum=distance<INF?max(rayEpsilon,distance-2*max(pointBias(s.position),pointBias(s.position+l*distance))):distance;
-    return f*energy*mediumTransmission(distance)*(cosine*visibility(volumeVertex?s.position+l*pointBias(s.position):offsetOrigin(s,l),l,maximum)*weight/pdf);
+    uint shadowMedium=currentMedium;if(!volumeVertex&&s.ior>0&&dot(l,s.gn)<0)shadowMedium=s.frontFace?s.mediumId:outerMedium;
+    vec3 extinction=shadowMedium>0u?materials[shadowMedium-1u].absorption.xyz+materials[shadowMedium-1u].scattering.xyz:vec3(0);
+    vec3 attenuation=distance>=INF?vec3(extinction.x>0?0:1,extinction.y>0?0:1,extinction.z>0?0:1):exp(-min(extinction*distance,vec3(80)));
+    return f*energy*attenuation*(cosine*visibility(volumeVertex?s.position+l*pointBias(s.position):offsetOrigin(s,l),l,maximum)*weight/pdf);
 }
 vec3 sampleSun(float sunCos){float cosine=mix(1,sunCos,randomValue()),sine=sqrt(max(0,1-cosine*cosine)),phi=2*PI*randomValue();return localVector(vec3(sine*cos(phi),sine*sin(phi),cosine),p.sunDirectionRadius.xyz);}
 vec3 tracePath(vec3 origin,vec3 direction){
@@ -156,7 +157,7 @@ vec3 tracePath(vec3 origin,vec3 direction){
     vec3 throughput=vec3(1),radiance=vec3(0),previousPoint=vec3(0);float previousPdf=0,previousEnvironmentPdf=0,radius=p.sunDirectionRadius.w,sunCos=cos(radius),sunPdf=radius>0?1/(2*PI*(1-sunCos)):0;uint bounce=0u,transparent=0u;
     bool recorded=false;Surface record;vec3 prefix=vec3(1),before=vec3(0),recordDirection=vec3(0,1,0);float recordEnvironmentWeight=0;vec3 recordEnvironmentDirection=vec3(0,1,0);
     while(true){Hit hit;uint base=2u+bounce*256u;
-        uint mediumId=mediaCount>0u?media[mediaCount-1u]:0u;
+        uint mediumId=mediaCount>0u?media[mediaCount-1u]:0u;currentMedium=mediumId;outerMedium=mediaCount>1u?media[mediaCount-2u]:0u;
         mediumAbsorption=mediumId>0u?materials[mediumId-1u].absorption.xyz:vec3(0);
         mediumScattering=mediumId>0u?materials[mediumId-1u].scattering.xyz:vec3(0);
         mediumG=mediumId>0u?materials[mediumId-1u].scattering.w:0;
@@ -172,7 +173,7 @@ vec3 tracePath(vec3 origin,vec3 direction){
             if(radius>0&&dot(direction,p.sunDirectionRadius.xyz)>=sunCos)radiance+=throughput*p.sunIrradiance.xyz/(PI*sin(radius)*sin(radius))*(previousPdf>0?mis(previousPdf,sunPdf):1);break;
         }
         Surface s;
-        if(volumeVertex){if(bounce>=p.control.x)break;++volumeEvents;s=Surface(origin+direction*maximum,vec3(0,1,0),vec3(0,1,0),vec3(1),vec3(0),1,0,1,0,0,1,vec3(0),0xffffffffu,0u,true,false);}
+        if(volumeVertex){if(bounce>=p.control.x)break;++volumeEvents;s=Surface(origin+direction*maximum,vec3(0,1,0),vec3(0,1,0),vec3(1),vec3(0),1,0,1,0,0,1,0,vec3(0),0xffffffffu,0u,true,false);}
         else {
             s=makeSurface(hit,origin,direction);
             if((s.water&&mediumId>0u&&materials[mediumId-1u].optics.y==0)||(s.mediumId==mediumId&&mediumId>0u&&(s.frontFace||winding[mediaCount-1u]>1u))){
@@ -207,6 +208,15 @@ vec3 tracePath(vec3 origin,vec3 direction){
         }
         radiance+=throughput*direct;
         if(volumeVertex){dimension=base+36u;vec3 l=samplePhaseHG(direction,mediumG);previousPdf=phaseHG(dot(direction,l),mediumG);previousEnvironmentPdf=environmentPdf(l);previousPoint=s.position;origin=s.position;direction=l;++bounce;dimension=base+16u;if(bounce>=3u){float survive=clamp(max(throughput.x,max(throughput.y,throughput.z)),.05,.95);if(randomValue()>=survive)break;throughput/=survive;}continue;}
+        if(s.ior>0&&s.transmissionRoughness>=.02&&s.ior!=s.exteriorIor){
+            dimension=base+12u;float choice=randomValue();vec2 uv=randomPair();vec3 l;bool transmission=false;
+            if(s.water&&choice<s.foam){float radius=sqrt(uv.x),phi=2*PI*uv.y;l=localVector(vec3(radius*cos(phi),radius*sin(phi),sqrt(1-uv.x)),s.n);}
+            else{vec3 h=visibleNormal(view,s.n,s.transmissionRoughness,uv);float etaI=s.frontFace?s.exteriorIor:s.ior,etaT=s.frontFace?s.ior:s.exteriorIor,F=dielectricFresnel(dot(view,h),etaI,etaT);if(randomValue()<F)l=reflect(-view,h);else{l=refract(-view,h,etaI/etaT);transmission=true;}}
+            if(dot(l,l)<1e-12||(dot(l,s.n)>0)==transmission||(dot(l,s.gn)>0)==transmission)break;
+            float pdf=bsdfPdf(s,view,l);if(pdf<=1e-20)break;throughput*=bsdf(s,view,l)*(abs(dot(s.n,l))/pdf);
+            if(transmission&&!transitionMedium(media,winding,mediaCount,s))return vec3(uintBitsToFloat(0x7fc00000u));
+            previousPdf=pdf;previousEnvironmentPdf=environmentPdf(l);previousPoint=s.position;origin=offsetOrigin(s,l);direction=l;++bounce;continue;
+        }
         if(s.ior>0){float etaI=s.frontFace?s.exteriorIor:s.ior,etaT=s.frontFace?s.ior:s.exteriorIor,eta=etaI/etaT,c=abs(dot(s.n,view)),st=eta*sqrt(max(0,1-c*c)),f=1;
             if(st<1){float ct=sqrt(1-st*st),a=(etaT*c-etaI*ct)/(etaT*c+etaI*ct),b=(etaI*c-etaT*ct)/(etaI*c+etaT*ct);f=.5*(a*a+b*b);}
             dimension=base+12u;vec3 l;float foam=s.water?s.foam:0;

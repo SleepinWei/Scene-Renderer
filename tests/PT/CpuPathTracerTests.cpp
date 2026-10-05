@@ -29,6 +29,38 @@ void samplers() {
         check(std::abs(double(quadrant)/count-.25)<.012,"Sobol cross-bounce quadrant integral is correlated");
     }
 }
+void roughDielectric() {
+    for(bool front:{true,false})for(float roughness:{.35f,.65f}){
+        pt::Surface s;s.normal=s.geometricNormal={0,0,1};s.ior=1.54f;s.frontFace=front;s.transmissionRoughness=roughness;
+        glm::vec3 view=glm::normalize(glm::vec3(.7f,0,1));pt::Random rng(813);double accepted=0,pdfIntegral=0,sampleEnergy=0,integralEnergy=0;
+        constexpr int samples=150000;for(int i=0;i<samples;++i){auto sample=pt::sampleBsdf(s,view,rng,pt::TransportMode::Importance);if(sample.pdf<=0)continue;++accepted;
+            check(!sample.delta&&sample.transmission==(sample.direction.z<0),"Rough boundary flags or medium transition hemisphere differ");
+            check(std::abs(sample.pdf-pt::bsdfPdf(s,view,sample.direction))<1e-5f,"Rough dielectric sample/pdf disagree");
+            auto weight=sample.value*std::abs(sample.direction.z)/sample.pdf;check(std::isfinite(weight.x)&&weight.x>=0&&weight.x<=1.0001f,"Single-scatter dielectric gains energy");sampleEnergy+=weight.x;
+            pt::Surface reverse=s;if(sample.transmission){reverse.frontFace=!front;reverse.normal=reverse.geometricNormal=-s.normal;}
+            auto reciprocal=pt::evaluateBsdf(reverse,sample.direction,view,pt::TransportMode::Radiance);
+            if(glm::length(reciprocal-sample.value)>=.003f*std::max(1.f,sample.value.x))std::cerr<<"Reciprocity r "<<roughness<<", front "<<front<<", trans "<<sample.transmission<<", direction "<<sample.direction.x<<", "<<sample.direction.y<<", "<<sample.direction.z<<", value "<<sample.value.x<<", reverse "<<reciprocal.x<<'\n';
+            check(glm::length(reciprocal-sample.value)<.003f*std::max(1.f,sample.value.x),"Rough transmission radiance/importance reciprocity failed");
+        }
+        // Independent equal-solid-angle quadrature, not samples from the tested PDF.
+        constexpr int nz=768,np=1024;for(int z=0;z<nz;++z)for(int p=0;p<np;++p){float cosine=-1+2.f*(z+.5f)/nz,phi=2*pi*(p+.5f)/np,sine=std::sqrt(1-cosine*cosine);glm::vec3 l{sine*std::cos(phi),sine*std::sin(phi),cosine};pdfIntegral+=pt::bsdfPdf(s,view,l)*4*pi/(nz*np);integralEnergy+=pt::evaluateBsdf(s,view,l,pt::TransportMode::Importance).x*std::abs(cosine)*4*pi/(nz*np);}
+        std::cout<<"Rough dielectric front "<<front<<", r "<<roughness<<", accepted/pdf "<<accepted/samples<<" / "<<pdfIntegral<<", energy sample/integral "<<sampleEnergy/samples<<" / "<<integralEnergy<<'\n';
+        check(std::abs(pdfIntegral-accepted/samples)<.025,"Rough dielectric PDF integral misses reflection/transmission mass");
+        check(std::abs(integralEnergy-sampleEnergy/samples)<.025,"Rough dielectric estimator disagrees with independent integration");
+    }
+    pt::Surface matched;matched.normal=matched.geometricNormal={0,0,1};matched.ior=matched.exteriorIor=1.54f;matched.transmissionRoughness=.5f;pt::Random random(18);auto pass=pt::sampleBsdf(matched,{0,0,1},random);check(pass.delta&&pass.transmission&&near(pass.direction,{0,0,-1}),"Matched IOR did not become transparent delta boundary");
+    auto source=pt::makeCausticsScene(8,8);source.snapshot.draws.back().pathTracingIor=1.54f;source.snapshot.draws.back().pathTracingRoughness=.4f;pt::CpuScene scene(source.snapshot);check(scene.exportData().materials.back().absorption.w==.4f,"Dielectric roughness ABI mismatch");bool rejected=false;try{scene.validateBidirectional();}catch(const std::invalid_argument &){rejected=true;}check(rejected,"BDPT accepted unimplemented rough strategy densities");
+    for(float invalid:{-1.f,1.1f,NAN}){source.snapshot.draws.back().pathTracingRoughness=invalid;rejected=false;try{pt::CpuScene bad(source.snapshot);}catch(const std::invalid_argument &){rejected=true;}check(rejected,"Invalid dielectric roughness accepted");}
+    // From the center of an absorbing cube, the first exit is one unit away.
+    // Its transmitted environment connection lies in air, not the cube medium.
+    auto box=pt::makeMediumValidationScene(8,8,true).snapshot;box.draws[0].pathTracingScattering=glm::vec3(0);box.draws[0].pathTracingAbsorption=glm::vec3(.4f);box.draws[0].pathTracingRoughness=.65f;
+    pt::CpuScene exit(box);exit.environment=std::make_shared<pt::Environment>(8,4,std::vector<glm::vec3>(32,glm::vec3(1)));
+    pt::Surface face;check(exit.intersect({0,0,0},{0,0,1},0,2,face),"Rough exit fixture missed boundary");face.exteriorIor=1;
+    double expected=0,observed=0;constexpr int nz=512,np=512;
+    for(int z=0;z<nz;++z)for(int p=0;p<np;++p){float cosine=(z+.5f)/nz,phi=2*pi*(p+.5f)/np,sine=std::sqrt(1-cosine*cosine);glm::vec3 l{sine*std::cos(phi),sine*std::sin(phi),cosine};expected+=pt::evaluateBsdf(face,{0,0,-1},l).x*cosine*2*pi/(nz*np)*std::exp(-.4f);}
+    uint64_t rays=0;for(int i=0;i<60000;++i){pt::Random rng(i+101);observed+=exit.trace({0,0,0},{0,0,1},rng,1,rays).x/60000;}
+    std::cout<<"Rough exit medium NEE sample/reference "<<observed<<" / "<<expected<<'\n';check(std::abs(observed-expected)<.015,"Transmitted NEE attenuated an air shadow segment with interior extinction");
+}
 void geometry() {
     auto s=snapshot();s.draws.push_back(triangle({-1,-1,0},{1,-1,0},{0,1,0},{.5f,.2f,.1f}));pt::CpuScene scene(s);pt::Surface hit;
     check(scene.meshCount()==1 && scene.triangles()==1,"Single-mesh objects must be imported");
@@ -116,4 +148,4 @@ void dielectricAndBdpt() {
 }
 
 }
-int main(){try{samplers();geometry();environment();bsdf();transport();rendering();dielectricAndBdpt();std::cout<<"CPU path tracing geometry, HDR PDF, GGX, MIS/render scheduling and output tests passed\n";return 0;}catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}}
+int main(){try{samplers();roughDielectric();geometry();environment();bsdf();transport();rendering();dielectricAndBdpt();std::cout<<"CPU path tracing geometry, HDR PDF, GGX, MIS/render scheduling and output tests passed\n";return 0;}catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}}

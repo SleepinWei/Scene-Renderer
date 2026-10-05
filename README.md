@@ -548,9 +548,9 @@ CPU、Metal/Vulkan GPU PT 现已接入当前高度／材质 VT、沙滩 PBR、�
 
 ### 水体 BSSRDF 与 Jade Stanford Dragon
 
-CPU、Metal 和 Vulkan PT 已支持均匀介质随机游走。水体沿实际折射路径计算 RGB 吸收、多次散射和 HG 相位；玉龙以 IOR 1.54 的抛光表面进入模型，在内部散射后从其他位置出射，形成隐式 BSSRDF。独立使用原扫描的运行时修复副本，最终龙体有 871,286 个三角形；原始资源不变。
+CPU、Metal 和 Vulkan PT 已支持均匀介质随机游走。水体沿实际折射路径计算 RGB 吸收、多次散射和 HG 相位；玉龙以 IOR 1.54 的介电表面进入模型，在内部散射后从其他位置出射，形成隐式 BSSRDF。独立使用原扫描的运行时修复副本，最终龙体有 871,286 个三角形；原始资源不变。
 
-下面的独立玉龙图为 **640×480、512 spp、最大深度 96** 的实际 Metal GPU PT，经 OIDN color-only 降噪。无散射对照保留相同的吸收、折射、模型和灯光。
+下面保留的早期平滑边界玉龙图为 **640×480、512 spp、最大深度 96** 的实际 Metal GPU PT，经 OIDN color-only 降噪。无散射对照保留相同的吸收、折射、模型和灯光。
 
 | Jade 随机游走 BSSRDF | 关闭玉石散射的有色玻璃对照 |
 | --- | --- |
@@ -593,15 +593,42 @@ CPU、Metal 和 Vulkan PT 已支持均匀介质随机游走。水体沿实际折
 python3 tools/fetch_dragon.py
 ./build/pt/Scene-Renderer --path-trace-gpu dragon-jade \
   --pt-size 640x480 --pt-samples 512 --pt-bounces 96 --pt-fixed \
-  --pt-no-sky --pt-denoise-color-only --pt-output build/path-tracing/subsurface/dragon-jade
+  --pt-no-sky --pt-sss-roughness 0 --pt-denoise-color-only --pt-output build/path-tracing/subsurface/dragon-jade
 ./build/pt/Scene-Renderer --path-trace-gpu dragon-jade-ocean \
   --pt-time 8 --pt-size 640x480 --pt-samples 2048 --pt-bounces 96 --pt-fixed \
-  --pt-sun-radius 2 --pt-ocean-floor-depth 20 --pt-denoise \
+  --pt-sun-radius 2 --pt-ocean-floor-depth 20 --pt-sss-roughness 0 --pt-denoise \
   --pt-output build/path-tracing/subsurface/dragon-jade-ocean-preview
 # CPU：入口改为 --path-trace；Vulkan：使用 Vulkan 构建并追加 --backend Vulkan。
 ```
 
-两场景默认深度 96；`--pt-sss-scale` 调整玉石自由程，`--pt-sss-scattering-scale 0` 关闭玉石散射，`--pt-water-scattering-scale 0` 关闭水体散射。当前是均匀 RGB 模型、平滑折射边界；**体积 BDPT 和体积 guiding/cache 尚未接入**。材质参数、封孔、能量守恒、CPU/GPU 对照和范围限制见 [水体／玉石 PT 说明](docs/path-tracing-subsurface.md)，原始 JSON 与图片校验值见 [次表面验收记录](img/path-tracing/subsurface-validation.json)，新预览与雾状伪影诊断见 [诊断记录](img/path-tracing/ocean-fog-validation.json)。
+两场景默认深度 96；`--pt-sss-scale` 调整玉石自由程，`--pt-sss-scattering-scale 0` 关闭玉石散射，`--pt-water-scattering-scale 0` 关闭水体散射。当前是均匀 RGB 模型；介电边界已支持 GGX 粗糙反射／折射，玉石默认 roughness=0.22、水体默认 0；**体积 BDPT 和体积 guiding/cache 尚未接入**。材质参数、封孔、能量守恒、CPU/GPU 对照和范围限制见 [水体／玉石 PT 说明](docs/path-tracing-subsurface.md)，原始 JSON 与图片校验值见 [次表面验收记录](img/path-tracing/subsurface-validation.json)，新预览与雾状伪影诊断见 [诊断记录](img/path-tracing/ocean-fog-validation.json)。
+
+### 粗糙介电边界与半抛光玉石
+
+CPU、Metal、Vulkan 已接入各向同性 GGX VNDF 反射／折射、精确 Fresnel、全内反射和透射 PDF，粗糙表面参与 NEE／MIS。玉龙默认 `--pt-sss-roughness 0.22`，`0` 保留平滑玻璃边界；`--pt-water-roughness` 可增加 FFT 网格未解析的微表面粗糙度，默认 `0`。
+
+下面三图均为实际 Metal PT：**640×480、512 spp、深度 96、曝光 2、同一灯光和均匀玉石系数**，仅改变边界粗糙度，使用 OIDN color-only。半抛光改变高光与透射的方向分布；较粗糙对照更明显。内部色根、杂质与晶粒尚未建模。
+
+| 平滑边界，r=0 | 半抛光，r=0.22 | 较粗糙，r=0.5 |
+| --- | --- | --- |
+| ![平滑玉龙](img/path-tracing/jade-smooth-boundary.png) | ![半抛光玉龙](img/path-tracing/jade-polished-boundary.png) | ![较粗糙玉龙](img/path-tracing/jade-rough-boundary.png) |
+
+<details>
+<summary>查看未经降噪的半抛光玉龙</summary>
+
+![半抛光玉龙原始采样](img/path-tracing/jade-polished-boundary-raw.png)
+
+</details>
+
+```sh
+./build/pt/Scene-Renderer --path-trace-gpu dragon-jade \
+  --pt-size 640x480 --pt-samples 512 --pt-bounces 96 --pt-fixed --pt-no-sky \
+  --pt-sss-roughness 0.22 --pt-denoise-color-only \
+  --pt-output build/path-tracing/appearance/jade-polished
+# 将 roughness 改为 0 或 0.5 得到两张对照。
+```
+
+相关回归 Metal **5/5**、Vulkan/MoltenVK **5/5**，ASan/UBSan 的 CPU／介质／程序化测试 **3/3**；完整玉龙 160×120、128 spp 的 CPU/Vulkan 原始线性图逐像素 RGB 向量长度的相对 L1 为 **0.00764**、总 RGB 能量比（GPU/CPU）为 **1.00383**。单次散射 GGX 在高粗糙度下会损失能量，尚未补偿微表面多次散射；粗糙介电与体积 BDPT 仍明确拒绝。实现和数值验证见 [粗糙介电说明](docs/path-tracing-rough-dielectric.md) 与 [验收记录](img/path-tracing/rough-dielectric-validation.json)。[外观与加速迭代计划](docs/path-tracing-appearance-plan.md) 第一阶段已完成，原生 GPU 求交、体积 BDPT／VCM／SMS、非均匀玉石按后续阶段推进。
 
 ## 目录与模块
 
@@ -665,6 +692,7 @@ python3 tools/fetch_dragon.py
 | `--pt-sampler sobol/pcg` / `--pt-fixed` | CPU 采样器对照与完整固定 spp；GPU 使用 Sobol |
 | `--pt-environment <HDR>` / `--pt-no-sky` | 复用环境贴图及太阳 sidecar，或跳过实时天空烘焙 |
 | `--pt-sun-radius <DEG>` | 调整烘焙天空的太阳角半径，0 < DEG < 5.73；保持辐照度，扩大太阳用于软光预览 |
+| `--pt-sss-roughness <R>` / `--pt-water-roughness <R>` | 玉龙／捕获水面的介电粗糙度，范围 [0,1]，默认分别 0.22／0；小于 0.02 使用平滑 delta 边界 |
 | `--pt-ocean-floor-depth <METERS>` | 设置 `dragon-jade-ocean` 海床深度，默认 20 m；2.2 m 恢复旧浅水设置 |
 | `--pt-self-test` | Metal／Vulkan 天空桥和 GPU PT 求交、采样与积分自检 |
 
