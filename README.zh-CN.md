@@ -16,7 +16,7 @@
 
 ### 经典场景与 PBR
 
-Sponza、San Miguel 与 Sibenik 用于观察建筑材质、阴影和太阳／天空 RSM 间接光照；Stanford 扫描模型及 Damaged Helmet 展示金属、非金属与纹理材质。[AO 对照](docs/ambient-occlusion.md)展示地平线积分与边缘保留滤波相对原 SSAO 的效果。
+Sponza、San Miguel 与 Sibenik 用于观察建筑材质、阴影和太阳／天空 RSM 间接光照；Stanford 扫描模型及 Damaged Helmet 展示金属、非金属与纹理材质。
 
 | San Miguel 庭院 | Sibenik Cathedral |
 | --- | --- |
@@ -25,6 +25,18 @@ Sponza、San Miguel 与 Sibenik 用于观察建筑材质、阴影和太阳／天
 | Stanford Bunny：三种材质 | Damaged Helmet：PBR 纹理 |
 | --- | --- |
 | ![Metal Stanford Bunny](img/metal/bunny.png) | ![Metal Damaged Helmet](img/metal/helmet.png) |
+
+### 环境遮蔽 AO
+
+地平线积分 AO 配合几何法线重建与边缘保留滤波，减少柱脚和拱廊附近的采样条带。以下 Sponza 对照关闭 RSM 与 TSAA，保持相同光照和曝光，单独展示 AO 的效果。[算法说明与更多对照](docs/ambient-occlusion.md)。
+
+| 原 24 点 SSAO：AO 缓冲 | 地平线 AO + 边缘保留滤波：AO 缓冲 |
+| --- | --- |
+| ![Sponza 原 SSAO 可见性](img/ao/sponza-ao-legacy-visibility.png) | ![Sponza 地平线积分与滤波后的 AO](img/ao/sponza-ao-gtao-visibility.png) |
+
+| AO 关闭：最终画面 | AO 开启：最终画面 |
+| --- | --- |
+| ![Sponza 关闭 AO](img/ao/sponza-ao-off.png) | ![Sponza 开启地平线 AO](img/ao/sponza-ao-gtao.png) |
 
 ### 天空与太阳
 

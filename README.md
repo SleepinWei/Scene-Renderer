@@ -18,7 +18,7 @@ All images below were rendered by this project. Real-time images use native Meta
 
 ### Classic scenes and PBR
 
-Sponza, San Miguel, and Sibenik showcase architectural materials, shadows, and sun/sky RSM indirect lighting. Stanford scans and Damaged Helmet demonstrate metallic, nonmetallic, and textured materials. [Ambient occlusion comparisons](docs/ambient-occlusion.md) show horizon-based AO and edge-aware filtering against the original SSAO.
+Sponza, San Miguel, and Sibenik showcase architectural materials, shadows, and sun/sky RSM indirect lighting. Stanford scans and Damaged Helmet demonstrate metallic, nonmetallic, and textured materials.
 
 | San Miguel courtyard | Sibenik Cathedral |
 | --- | --- |
@@ -27,6 +27,18 @@ Sponza, San Miguel, and Sibenik showcase architectural materials, shadows, and s
 | Stanford Bunny: three materials | Damaged Helmet: PBR textures |
 | --- | --- |
 | ![Metal Stanford Bunny](img/metal/bunny.png) | ![Metal Damaged Helmet](img/metal/helmet.png) |
+
+### Ambient occlusion
+
+Horizon-based AO with geometric normal reconstruction and edge-aware filtering reduces sampling bands around pillars and arches. These Sponza captures disable RSM and TSAA to isolate AO, with matching lighting and exposure. See [algorithm notes and more comparisons](docs/ambient-occlusion.md).
+
+| Original 24-sample SSAO: AO buffer | Horizon AO + edge-aware filtering: AO buffer |
+| --- | --- |
+| ![Sponza original SSAO visibility](img/ao/sponza-ao-legacy-visibility.png) | ![Sponza horizon AO with edge-aware filtering](img/ao/sponza-ao-gtao-visibility.png) |
+
+| AO disabled: final scene | AO enabled: final scene |
+| --- | --- |
+| ![Sponza with AO disabled](img/ao/sponza-ao-off.png) | ![Sponza with horizon AO enabled](img/ao/sponza-ao-gtao.png) |
 
 ### Atmosphere and sun
 
