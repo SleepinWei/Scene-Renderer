@@ -47,6 +47,25 @@ Metal 启用 API／Shader Validation；Vulkan 用 MoltenVK 数值回归，本机
 
 README 山湖图片由修复后的渲染器实际生成，无 UI、固定动画时间。
 
+## Sponza README 旧图修正
+
+2026-10-05：README 页首及 Sponza 对照使用的 `img/metal/sponza*.png` 最后更新于 `edb0bec`（2026-10-03），早于阴影修复 `6621418`（2026-10-04）。因此 README 仍展示旧 CSM 路径的地面三角形块状阴影，即使当前着色器已修复。此次纠正的是画廊产物与代码版本不一致；没有额外改动阴影算法或调整光照掩盖问题。
+
+| README 原图 | 当前 CSM／PCSS 重渲染 |
+| --- | --- |
+| ![旧版 Sponza 阴影](../img/diagnostics/sponza-shadow-before.png) | ![修复后的 Sponza 阴影](../img/metal/sponza.png) |
+
+使用提交 `860ddc7` 的独立 Release 构建，在 Apple M4／Metal 上重渲染五张图片：RSM 关闭、合成、纯间接、太阳间接、天空间接。分辨率 960×720，各自清空 TSAA 历史并运行 16 帧，固定时间 8 s。相机位置 `(-8.5, 2.2, 0)`、yaw 0°、pitch 6°、FOV 58°、曝光 1.1 及原太阳配置均保持不变。现图的地面阴影轮廓连续，旧图中的大块三角形明暗切割消失；这是特定固定视角的视觉验证，不意味着全部场景阴影均无瑕疵。
+
+Metal API／Shader Validation 下五张图均成功导出，HDR 读回检查未出现 NaN／Inf；启用与关闭校验的图片逐通道最多相差一个 8 位色阶，差异数据保存在验收 JSON。代码未变化，未为本次图片刷新新增合成测试。保留原图以便核对；所有图片都是渲染输出，没有图像修补。
+
+RSM 关闭时平均线性 HDR RGB 为 0.0337116，合成后为 0.0356235，增量约 **5.67%**；README 数值同步更新。源版本、配置、全部图片 SHA-256 和五种贡献均值见 [验收记录](../img/diagnostics/sponza-shadow-validation.json)。均值包含背景，日志精度为六位有效数字，不是独立阴影 pass 的性能测量。
+
+```sh
+MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 \
+  ./build/Scene-Renderer --render-gallery build/sponza-shadow sponza
+```
+
 ## 参考
 
 - [NVIDIA PCSS Integration](https://developer.download.nvidia.com/assets/gamedev/docs/PCSS_Integration.pdf)：blocker 搜索、半影估计与过滤。

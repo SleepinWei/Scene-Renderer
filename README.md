@@ -69,6 +69,8 @@ python3 tools/fetch_gi_assets.py
 
 ### Sponza：中庭与多层拱廊
 
+2026-10-05 已用 CSM／PCSS 修复后的版本重新生成本节及页首的五张 Sponza 图片，替换旧图中地面的异常三角形阴影；相机、太阳和曝光保持一致。[问题原因、前后对照与验收](docs/vt-csm-pcss-fixes.md#sponza-readme-旧图修正)。
+
 使用 Frank Meinl / Crytek 的 Sponza 模型：262,267 个三角形、25 个导入网格。中庭、彩色布帘和阴影区域适合观察间接光照及材质表现。图中为本项目设置的灯光，不是上游参考渲染的复现。
 
 | RSM 关闭 | RSM 开启 |
@@ -83,7 +85,7 @@ python3 tools/fetch_gi_assets.py
 | --- | --- |
 | ![San Miguel：RSM 关闭](img/metal/san-miguel-direct.png) | ![San Miguel：RSM 开启](img/metal/san-miguel.png) |
 
-两组对照保持相机、曝光、直接光照、天空 IBL 和 SSAO 一致，只切换 RSM。`*-direct.png` 文件名表示 RSM 关闭，画面仍包含环境光和环境遮蔽。默认强度为 1，RSM 在色调映射前使 Sponza 的平均 RGB 亮度增加 **5.62%**，San Miguel 增加 **3.01%**。这些数值衡量当前固定视角的增量，不代表与参考 GI 的准确度。它近似局部的一次漫反射间接照明，有限采样会产生噪声，且不提供完整间接遮挡、多次反弹或焦散。
+两组对照保持相机、曝光、直接光照、天空 IBL 和 SSAO 一致，只切换 RSM。`*-direct.png` 文件名表示 RSM 关闭，画面仍包含环境光和环境遮蔽。默认强度为 1，RSM 在色调映射前使 Sponza 的平均 RGB 亮度增加 **5.67%**，San Miguel 增加 **3.01%**。这些数值衡量当前固定视角的增量，不代表与参考 GI 的准确度。它近似局部的一次漫反射间接照明，有限采样会产生噪声，且不提供完整间接遮挡、多次反弹或焦散。
 
 <details>
 <summary>查看太阳与天空各自的间接光贡献</summary>

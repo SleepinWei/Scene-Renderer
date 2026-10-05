@@ -1,0 +1,95 @@
+{
+  "date": "2026-10-05",
+  "scene": "sponza",
+  "backend": "Metal",
+  "hardware": "Apple M4",
+  "renderer_commit": "860ddc7b478530e594194f563f3edfb438e6454a",
+  "previous_image_commit": "edb0bec",
+  "shadow_fix_commit": "6621418",
+  "width": 960,
+  "height": 720,
+  "frames_per_capture": 16,
+  "time_seconds": 8,
+  "independent_tsaa_history": true,
+  "exposure": 1.1,
+  "camera_position": [
+    -8.5,
+    2.2,
+    0
+  ],
+  "yaw_degrees": 0,
+  "pitch_degrees": 6,
+  "vertical_fov_degrees": 58,
+  "light_camera_exposure_unchanged": true,
+  "validation": {
+    "metal_api": true,
+    "metal_shader": true,
+    "finite_hdr_checked": true,
+    "validation_on_off_pixel_comparison": {
+      "sponza": {
+        "max_rgba_byte_difference": 1.0,
+        "mean_rgba_byte_difference": 4.593460648148148e-05,
+        "changed_rgb_pixels": 115
+      },
+      "sponza-direct": {
+        "max_rgba_byte_difference": 1.0,
+        "mean_rgba_byte_difference": 4.991319444444445e-05,
+        "changed_rgb_pixels": 126
+      },
+      "sponza-indirect": {
+        "max_rgba_byte_difference": 1.0,
+        "mean_rgba_byte_difference": 1.193576388888889e-05,
+        "changed_rgb_pixels": 33
+      },
+      "sponza-sun-indirect": {
+        "max_rgba_byte_difference": 1.0,
+        "mean_rgba_byte_difference": 1.3744212962962963e-05,
+        "changed_rgb_pixels": 38
+      },
+      "sponza-sky-indirect": {
+        "max_rgba_byte_difference": 1.0,
+        "mean_rgba_byte_difference": 1.0127314814814815e-05,
+        "changed_rgb_pixels": 28
+      }
+    }
+  },
+  "rsm_rgb_increase_percent": 5.671341615349013,
+  "previous_image": {
+    "path": "img/diagnostics/sponza-shadow-before.png",
+    "sha256": "9d03d7060e45806c279f46b61a613f63a3f455c8bae96883c3d18e99bb90b458"
+  },
+  "captures": {
+    "sponza": {
+      "path": "img/metal/sponza.png",
+      "sha256": "f0aa36950d2cf35da92ae1d9e8c48efd5a0fb221901ac5720df3a74858e46266",
+      "mean_linear_hdr_rgb": 0.0356235,
+      "peak_linear_hdr": 1.60059
+    },
+    "sponza-direct": {
+      "path": "img/metal/sponza-direct.png",
+      "sha256": "923b519d0eb609cbe0ef3e3b3da7bc859e632363619ca3217db3d49bd9d1c4fa",
+      "mean_linear_hdr_rgb": 0.0337116,
+      "peak_linear_hdr": 1.60059
+    },
+    "sponza-indirect": {
+      "path": "img/metal/sponza-indirect.png",
+      "sha256": "bc15fe041265cc525edb7443ae8fdc94a8c127f56b56e6dc9cf8666a31c78a4c",
+      "mean_linear_hdr_rgb": 0.00302075,
+      "peak_linear_hdr": 1.60059
+    },
+    "sponza-sun-indirect": {
+      "path": "img/metal/sponza-sun-indirect.png",
+      "sha256": "405ff301f5ca817a8dac6bde49a7946332f144db19678cad39fc32248b6bdb11",
+      "mean_linear_hdr_rgb": 0.00282473,
+      "peak_linear_hdr": 1.60059
+    },
+    "sponza-sky-indirect": {
+      "path": "img/metal/sponza-sky-indirect.png",
+      "sha256": "dc6c3d58478c731f827fcf5c76409b2d12b4cf0c14c9ce3c4f0f67f04cc96bb5",
+      "mean_linear_hdr_rgb": 0.00130121,
+      "peak_linear_hdr": 1.60059
+    }
+  },
+  "command": "./build/Scene-Renderer --render-gallery build/sponza-shadow sponza",
+  "measurement": "Linear HDR values reported by gallery, before tone mapping and TSAA; log prints six significant digits. No isolated shadow-pass timing was measured."
+}
