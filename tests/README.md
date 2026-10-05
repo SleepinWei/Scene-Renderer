@@ -1,6 +1,6 @@
 # 测试说明
 
-当前跨平台测试由根目录 `CMakeLists.txt` 注册；构建选项与平台限制见 [项目 README](../README.md#快速运行)。
+当前跨平台测试由根目录 `CMakeLists.txt` 注册；构建选项与平台限制见 [构建与运行](../docs/getting-started.md#快速运行)。
 
 ## CMake／CTest
 

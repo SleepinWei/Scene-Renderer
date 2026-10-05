@@ -4,7 +4,7 @@
 
 ## 运行
 
-沿用 [构建说明](../README.md#快速运行)。本机验证目录为 `build/pt`（Metal）、`build/pt-vulkan`（Vulkan/MoltenVK）。
+沿用 [构建说明](getting-started.md#快速运行)。本机验证目录为 `build/pt`（Metal）、`build/pt-vulkan`（Vulkan/MoltenVK）。
 
 ```sh
 # 训练 64 spp 后冻结方向表，再运行 GPU PT。

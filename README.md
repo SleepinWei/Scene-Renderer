@@ -1,832 +1,99 @@
 # Scene Renderer
 
-一个用于学习和实验的 C++17 图形渲染项目，起源于同济大学计算机图形学课程小组作业。项目把**实时光栅化渲染、自然场景的 GPU 计算和独立的 CPU/GPU 路径追踪**放在同一套代码中，用可运行的场景展示材质、光照、阴影和几何生成之间的关系。
+一个用于学习和实验的 **C++17 图形渲染器**，起源于同济大学计算机图形学课程项目。通过经典测试场景与自然环境，展示实时光照、材质、GPU 计算和 CPU／GPU 路径追踪。
 
-实时渲染通过统一 **RHI** 支持原生 **Metal** 与 **Vulkan**，macOS 默认 Metal。默认编辑器、特殊材质、阴影、RSM、大气、GPU Driven 体积云、FFT 海洋、地形/草、计算细分、TSAA 和 ImGui 均走新路径；默认构建不编译旧 Metal GL 兼容桥。OpenGL 保留桌面兼容路径；macOS OpenGL 4.1 不支持这些计算效果，OpenGL 4.3+ 的计算路径尚未迁移。实现、验收和剩余平台边界见 [RHI 重构计划](docs/rhi-refactor-plan.md)，历史 Metal 迁移见 [旧迁移说明](docs/metal.md)。
+实时渲染采用统一 **RHI**，支持原生 **Metal／Vulkan**；编辑器提供相机漫游和效果参数调整。主要功能包括 PBR、CSM／PCSS、RSM、SSAO、大气与体积云、FFT 海洋、高度／材质 Virtual Texture、植被和 TSAA。
 
-![本项目在 Metal 上渲染的 Sponza 中庭](img/metal/sponza.png)
+[构建与运行](docs/getting-started.md) · [完整图集与参数](docs/rendering-gallery.md) · [系统设计](docs/system-design.md) · [技术文档与修改记录](docs/README.md)
 
-[快速运行](#快速运行) · [经典场景](#场景与效果) · [天空与太阳](#大气天空与太阳) · [三维体素云](#可穿越三维体素云) · [远景云层](#gpu-driven-体积云) · [海洋与水体](#高清海洋与透明水体) · [虚拟纹理地形](#虚拟纹理地形) · [CSM 与 PCSS](#级联阴影与-pcss-软阴影) · [CPU/GPU 路径追踪](#cpu-路径追踪) · [系统设计](#整体系统设计) · [技术与限制](#渲染技术) · [验证](#构建验证与限制)
-
-项目的主要实验内容包括 PBR 材质及特殊材质、太阳／天空驱动的 RSM 间接光照、大气散射、GPU 驱动的体积云、高清 FFT 海洋与透明水体、高度与材质 Virtual Texture 地形／草和 TSAA。编辑器可实时调整相机、灯光及效果参数；离屏画廊提供固定时间、固定视角的真实渲染图和开关对照。CPU 与 Metal/Vulkan GPU 路径追踪提供离线渲染入口。
-
-## 快速运行
-
-以下命令从**仓库根目录**执行。首次运行可直接使用程序生成的 `--demo`、`--classic sky`、`--classic ocean` 或 `--classic terrain`，无需下载大型场景。
-
-### macOS：原生 Metal
-
-需要 macOS、Xcode（含 Metal Toolchain）、CMake、Python 3.9+ 和 Homebrew：
-
-```sh
-brew install glfw assimp yaml-cpp glslang spirv-cross
-cmake -S . -B build -DSCENERENDERER_RHI_BACKEND=Metal -DSCENERENDERER_LEGACY_METAL=OFF -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j 8
-./build/Scene-Renderer --demo
-
-# 单独查看自然场景
-./build/Scene-Renderer --classic sky
-./build/Scene-Renderer --classic clouds
-./build/Scene-Renderer --classic ocean
-```
-
-### Vulkan
-
-Vulkan 主后端需要 Vulkan SDK、GLFW 3.4、Assimp、yaml-cpp、glslangValidator 与 spirv-cross。macOS 使用 MoltenVK；可通过 `Vulkan_INCLUDE_DIR` / `Vulkan_LIBRARY` 指定 SDK 位置。
-
-```sh
-cmake -S . -B build/vulkan -DSCENERENDERER_RHI_BACKEND=Vulkan -DCMAKE_BUILD_TYPE=Release
-cmake --build build/vulkan -j 8
-./build/vulkan/Scene-Renderer --demo
-ctest --test-dir build/vulkan --output-on-failure
-```
-
-macOS 上也可以在 Metal 构建中同时编译 Vulkan，再通过启动参数选择：
-
-```sh
-cmake -S . -B build -DSCENERENDERER_RHI_BACKEND=Metal -DSCENERENDERER_VULKAN_PROTOTYPE=ON
-cmake --build build -j 8
-./build/Scene-Renderer --demo --backend Vulkan
-```
-
-原生编辑器默认主逻辑／渲染双线程，逻辑使用 60 Hz 固定步长，支持暂停及速度控制；普通帧队列满时跳过快照，主线程继续处理输入和模拟。`--single-thread` 可切换同步对照。`--asset-root DIR` 指定模型及场景资源根目录；JSON 内资源优先相对该文档解析。`--auto-quality` 显式启用配额压力下的效果品质降级。`--forward` 使用完整场景的前向光照；`--frames N` 有界运行，`--time 8` 固定海洋/草时间，`--size 800x450` 与 `--resize 640x360` 用于窗口回归，`--frames-in-flight 1` 可对照默认的 3 个在途提交。`--screenshot path.ppm` 保存包括 UI 的最后一帧。`--render-gallery directory core` 保存无 UI 的经典场景 PNG。本机 Metal 回归启用 API／Shader Validation；Vulkan／MoltenVK 通过 GPU 数值测试验证。本机没有 Khronos validation layer，不能把这些结果视为 Vulkan layer 验证；对 MoltenVK 开启 MetalTools 的已知阻塞组合由 CTest 单独关闭。
-
-### 示例资源
-
-`--demo` 自动生成材质、天空、海洋、地形和草；仓库未包含历史 `asset/` 资源包，配置场景缺失时也会回退到此演示。Cornell 风格场景、Bunny 和 Helmet 可直接运行，Sponza 与 San Miguel 需单独下载；高清海洋和透明浅水场景由程序生成，可直接运行。
-
-```sh
-python3 tools/fetch_gi_assets.py
-./build/Scene-Renderer --classic sponza
-./build/Scene-Renderer --classic san-miguel
-```
-
-下载脚本获取上游模型、校验 SHA-256，并选取运行所需的 OBJ、MTL、纹理和原始说明。Sponza 压缩包约 78 MB，San Miguel 约 536 MB（511 MiB）；后者选用上游低面数版本，导入后仍有约 **562 万个三角形**，首次加载需要较长时间和较多内存。大型模型及下载缓存不提交到 Git，截图、下载清单和代码随仓库提供。资源归属和使用条件见[场景资源说明](samples/README.md)。
+![原生 Metal 渲染的 Sponza 中庭](img/metal/sponza.png)
 
 ## 场景与效果
 
-下面的实时效果图已使用本项目的**新 RHI／原生 Metal** 在 Apple M4 上重新生成：经典场景与天空为 **960 × 720**，海洋为 **1920 × 1080**。常规画廊每张图独立清空 TSAA 历史并累积 16 帧，云画廊运行 32 帧，后文 VT／阴影诊断画廊运行 64 帧；导入场景使用真实模型与纹理。GI 场景使用统一的 PBR 材质近似，以太阳方向光和大气天空作为直接光照及 RSM 反弹的来源；当前曝光、相机及光源配置见 [ClassicScenes.cpp](src/renderer/rhi/ClassicScenes.cpp)。
+以下图片由本项目实际渲染。实时效果使用原生 Metal；路径追踪图标明积分方式与降噪。复现命令、采样配置、开关对照和中间产物见[完整图集](docs/rendering-gallery.md)。
 
-### Sponza：中庭与多层拱廊
+### 经典场景与 PBR
 
-2026-10-05 已用 CSM／PCSS 修复后的版本重新生成本节及页首的五张 Sponza 图片，替换旧图中地面的异常三角形阴影；相机、太阳和曝光保持一致。[问题原因、前后对照与验收](docs/vt-csm-pcss-fixes.md#sponza-readme-旧图修正)。
+Sponza、San Miguel 与 Sibenik 用于观察建筑材质、阴影和太阳／天空 RSM 间接光照；Stanford 扫描模型及 Damaged Helmet 展示金属、非金属与纹理材质。
 
-使用 Frank Meinl / Crytek 的 Sponza 模型：262,267 个三角形、25 个导入网格。中庭、彩色布帘和阴影区域适合观察间接光照及材质表现。图中为本项目设置的灯光，不是上游参考渲染的复现。
-
-| RSM 关闭 | RSM 开启 |
+| San Miguel 庭院 | Sibenik Cathedral |
 | --- | --- |
-| ![Sponza：RSM 关闭](img/metal/sponza-direct.png) | ![Sponza：RSM 开启](img/metal/sponza.png) |
+| ![Metal San Miguel](img/metal/san-miguel.png) | ![Metal Sibenik Cathedral](img/metal/sibenik.png) |
 
-### San Miguel：植物、喷泉与庭院
-
-使用 Guillermo M. Leal Llaguno 的 San Miguel 场景及上游改进版本，导入 281 个网格、5,617,451 个三角形。保留桌椅、树木、花盆、喷泉及原始材质贴图；叶片使用透明裁切与双面绘制，阴影和 RSM 通道也采用相同的裁切规则。
-
-| RSM 关闭 | RSM 开启 |
+| Stanford Bunny：三种材质 | Damaged Helmet：PBR 纹理 |
 | --- | --- |
-| ![San Miguel：RSM 关闭](img/metal/san-miguel-direct.png) | ![San Miguel：RSM 开启](img/metal/san-miguel.png) |
+| ![Metal Stanford Bunny](img/metal/bunny.png) | ![Metal Damaged Helmet](img/metal/helmet.png) |
 
-两组对照保持相机、曝光、直接光照、天空 IBL 和 SSAO 一致，只切换 RSM。`*-direct.png` 文件名表示 RSM 关闭，画面仍包含环境光和环境遮蔽。默认强度为 1，RSM 在色调映射前使 Sponza 的平均 RGB 亮度增加 **5.67%**，San Miguel 增加 **3.01%**。这些数值衡量当前固定视角的增量，不代表与参考 GI 的准确度。它近似局部的一次漫反射间接照明，有限采样会产生噪声，且不提供完整间接遮挡、多次反弹或焦散。
+### 天空与太阳
 
-<details>
-<summary>查看太阳与天空各自的间接光贡献</summary>
+大气散射与解析太阳盘共享光照参数，驱动场景、间接光照和海面。远景云层支持天气分布与风速变化。
 
-以下几何表面仅显示 RSM 一次反弹，经相同曝光和色调映射输出，不叠加表面的直接光或天空 IBL；背景天空和自发光表面仍保留。
-
-| 场景 | 太阳反弹 | 天空反弹 |
+| 白天天空 | 地平线日落 | 日落云层 |
 | --- | --- | --- |
-| Sponza | ![Sponza 太阳间接光](img/metal/sponza-sun-indirect.png) | ![Sponza 天空间接光](img/metal/sponza-sky-indirect.png) |
-| San Miguel | ![San Miguel 太阳间接光](img/metal/san-miguel-sun-indirect.png) | ![San Miguel 天空间接光](img/metal/san-miguel-sky-indirect.png) |
+| ![Metal 白天天空](img/metal/sky-day.png) | ![Metal 日落太阳](img/metal/sky-sunset.png) | ![Metal 日落体积云](img/metal/clouds-sunset.png) |
 
-</details>
+### 可穿越三维体素云
 
-实现、原有问题、能量公式、历史 GPU 数值测试和 Xcode 捕获方法见[中文 RSM 说明](docs/rsm.md)。界面可独立切换太阳／天空反弹、查看纯间接光，并调整正交覆盖范围、采样半径和采样数。
+128³ XYZ 密度场结合保守距离场、GPU 间接步进和太阳光照缓存，支持靠近及进入云体。下图采用 1080p 全分辨率，关闭云时域累积；风暴预设包含内部体积闪光。
 
-### Cornell 风格场景、Bunny 与 Helmet
-
-| 场景 | 展示内容 | Metal 实际渲染 |
-| --- | --- | --- |
-| Cornell Box 风格 | 自行生成红绿侧墙、两个箱体和顶灯面板；PBR、点光源阴影、SSAO、RSM、HDR。顶灯面板的自发光外观与实际点光源照明分别处理，另有弱补光；不是原始 Cornell 测量基准。 | ![Cornell 风格场景](img/metal/cornell.png) |
-| Stanford Bunny | 官方 PLY 网格，展示白色非金属、金色金属和蓝色非金属三种材质。 | ![Stanford Bunny](img/metal/bunny.png) |
-| Damaged Helmet | Khronos glTF 示例，使用原始底色、法线、金属度／粗糙度和 AO 纹理；资源包含非商业使用要求。 | ![Damaged Helmet](img/metal/helmet.png) |
-
-```sh
-./build/Scene-Renderer --classic cornell
-./build/Scene-Renderer --classic bunny
-./build/Scene-Renderer --classic helmet
-```
-
-### 更多经典测试场景
-
-新增三个 Stanford 重建网格与 Sibenik Cathedral，全部通过新 RHI 的实时 PBR、CSM／PCSS 和 SSAO 渲染。扫描模型采用本项目设置的金属／非金属材质，教堂保留上游石材纹理；固定视角的导入规模如下。
-
-| 场景 | 三角形 | 主要测试内容 |
-| --- | --- | --- |
-| Stanford Dragon | 871,414 | 金色金属、复杂曲面高光与轮廓阴影 |
-| Happy Buddha | 1,087,716 | 浅色非金属、扫描细节与接触遮蔽 |
-| Armadillo | 345,944 | 粗糙金属、壳面纹理几何与法线 |
-| Sibenik Cathedral | 75,284 | 中殿、拱顶、石材材质与间接光对照 |
-
-| Stanford Dragon | Happy Buddha |
+| 三维云体 | 风暴形态与内部闪光 |
 | --- | --- |
-| ![Metal Stanford Dragon](img/metal/dragon.png) | ![Metal Happy Buddha](img/metal/buddha.png) |
+| ![Metal 三维体素云](img/metal/cloud-volume.png) | ![Metal 三维风暴云](img/metal/cloud-vortex.png) |
 
-| Armadillo | Sibenik Cathedral |
+### FFT 海洋与透明水体
+
+主波与短波 FFT 叠加，表现浪峰、细小波纹与泡沫；折射、RGB 吸收和近似单次散射表现浅水透射与透亮浪尖。
+
+| 大浪海面 | 浅水折射与散射 |
 | --- | --- |
-| ![Metal Armadillo](img/metal/armadillo.png) | ![Metal Sibenik Cathedral](img/metal/sibenik.png) |
+| ![Metal FFT 海洋](img/metal/ocean.png) | ![Metal 透明水体](img/metal/ocean-clear.png) |
 
-```sh
-python3 tools/fetch_benchmark_assets.py
-./build/Scene-Renderer --classic dragon       # 也可选择 buddha、armadillo、sibenik
-./build/Scene-Renderer --render-gallery img/metal benchmarks
-```
+### 大地形、湖泊与植被
 
-模型留在本地，仓库提供固定下载 URL、SHA-256、场景代码和实际截图。Buddha／Armadillo 使用保留 Stanford 来源的固定修订原格式镜像；Stanford 模型与 Sibenik 均有使用条件，详见 [资源说明](samples/README.md) 和 [新增场景与验收](docs/classic-benchmarks.md)。Sibenik 还会输出 RSM 开关及纯间接光对照，当前 RSM 为局部一次反弹近似。
+Mountain Lake 展示 8×8 km 山湖地形：高度与材质 VT 分页、LOD、FFT 湖面、随距离变化的草地密度，以及湿沙和沙滩 PBR 材质。
 
-## 大气天空与太阳
+![Metal Mountain Lake 山湖场景](img/metal/mountain-lake.png)
 
-天空使用 Rayleigh／Mie 散射、臭氧吸收和各向同性高阶散射近似，按相机的米制海拔计算透射率与地平线。**太阳盘在背景片元中解析绘制**，其真实角半径独立于天空 LUT 分辨率；默认角直径约 0.573°。大气顶层的太阳辐照度同时驱动天空、PBR、RSM 和海洋，直接光乘大气透射及地球遮挡，日落时逐渐变红、衰减，太阳盘完全被地球遮住后不再提供直接照明，天空散射仍可保留暮光。
-
-| 白天天空 | 太阳特写 | 地平线日落 |
-| --- | --- | --- |
-| ![新 RHI 白天天空](img/metal/sky-day.png) | ![新 RHI 解析太阳盘](img/metal/sky-sun-closeup.png) | ![新 RHI 地平线日落](img/metal/sky-sunset.png) |
-
-GUI 可修改太阳仰角、方位、角半径、多次散射强度、地面反照率与海平面。第一盏启用的方向光是太阳来源，面板与灯光保持同步。太阳盘不写进 IBL LUT，避免与直接方向光重复计算；显示、材质、RSM 和海面共享球面采样编码。实现、历史问题、能量公式和 Metal／Vulkan 回归数值见 [天空与太阳修复记录](docs/sky-and-sun-review.md)。
-
-```sh
-./build/Scene-Renderer --classic sky
-./build/Scene-Renderer --render-gallery img/metal sky
-```
-
-太阳盘使用 `L = E_top × T / (π × sin²(radius))`，增大角半径同时降低盘内辐亮度，保持总能量一致。零散射回归中，半径加倍后的离散总能量变化约 **0.62%**；极小角半径触发 RGBA16F 的 65000 显示上限时会损失能量，具体边界见修复记录。
-
-`sky` 画廊还输出 10° 太阳和 -5° 暮光；纯天空示例没有地表几何，地球遮挡部分为暗色。RGB 光强尚未做绝对光度标定，该纯天空示例关闭云，星空和自动曝光尚未实现。
-
-## 可穿越三维体素云
-
-新增 **XYZ 体素密度 → 量化保守有符号距离场 → 加速间接步进 → 三维太阳光照缓存** 路径，支持靠近、进入、穿过和离开有限云体。专用预设使用 **128³ 密度、1080p 全分辨率、关闭云时域累积**；云形状由三维建模及噪声扰动生成，风暴预设具有扭曲漏斗形态和内部体积闪光。
-
-![原生 Metal 1080p 三维体素云](img/metal/cloud-volume.png)
-
-| 云体内部视角 | 风暴内部闪光 |
+| 湖岸草地 | 沙滩与湿沙 |
 | --- | --- |
-| ![体素云内部](img/metal/cloud-inside.png) | ![三维风暴与内部发光](img/metal/cloud-vortex.png) |
+| ![Metal 湖岸植被](img/metal/mountain-lake-ground.png) | ![Metal 湖岸沙滩](img/metal/mountain-lake-beach.png) |
 
-空空间通过保守距离下界跳跃，恒密度内核在独立距离界内合并积分，边缘保留细步进；太阳透射率按三维缓存查询，细节侵蚀随视距过滤。无云历史模式直接合成，比六张屏幕积分／历史纹理少分配约 **94.9 MiB**。GUI 可调整体积中心、三轴大小、64³／128³ 分辨率及两种加速开关。
+### Virtual Texture 与软阴影
 
-Apple M4／Metal 实测 1080p 云外视角：同样全分辨率的整帧 GPU 时间从关闭两种步进加速的 **23.57 ms** 降至 **11.82 ms**；无云基线 **6.06 ms**。数据包含整帧和呈现复制，排除启动阶段；云内视角更昂贵，完整结果见 [体素云测量](docs/immersive-voxel-clouds.md)。Metal **17/17**、Vulkan/MoltenVK **18/18** 隔离回归通过，距离场逐砖块对照 CPU，空空间跳跃与内核近似分别验收。
+高度／材质 VT 使用物理页缓存、页表、祖先回退与 GPU 深度反馈；五级 CSM 分配近远阴影精度，PCSS 估计随遮挡物距离变化的半影。
 
-```sh
-./build/Scene-Renderer --classic cloud-volume
-./build/Scene-Renderer --classic cloud-inside
-./build/Scene-Renderer --classic cloud-vortex
-./build/Scene-Renderer --render-gallery img/metal cloud-volume-gallery
-```
-
-<details>
-<summary>查看体素密度、距离场与太阳光照中间切片</summary>
-
-| XYZ 密度 | 保守有符号距离场 | 缓存太阳透射率 |
-| --- | --- | --- |
-| ![128³ 密度切片](img/metal/cloud-volume-density-slice.png) | ![距离场切片](img/metal/cloud-volume-distance-slice.png) | ![太阳透射缓存切片](img/metal/cloud-volume-light-slice.png) |
-
-距离场红色表示空空间正距离、蓝色表示云内负距离；太阳缓存显示 `exp(-tau)`。画廊还输出 `*-reference.png`（关闭空空间跳跃／内核合并）、`*-no-flash.png`（关闭内部闪光）和无云对照。
-
-</details>
-
-这里采用程序化三维建模和量化 Chebyshev 距离下界，尚无流体模拟、VDB 导入或多级稀疏体素流式 LOD；风暴形态随风平移，未做流体演化。地面云阴影、IBL／RSM 天气调制与海面云反射仍待接入。完整算法、压缩存储口径、近似误差、GPU 回归和性能数据见 [三维体素云说明](docs/immersive-voxel-clouds.md)。
-
-## GPU Driven 体积云
-
-云层采用 **GPU tile 分类与压缩队列 → 间接 dispatch 体积步进 → 风速补偿时域重建 → 深度引导上采样**。GPU 生成周期 Worley／value noise 和天气图，球面云壳与不透明深度共同决定可见区间；默认半分辨率、最多 72 次主步进及 6 次太阳采样，空密度跳过光照采样，低透射率提前结束。交互帧无需把可见性结果读回 CPU。
-
-| 晴天积云 | 日落云层 | 阴天 |
-| --- | --- | --- |
-| ![Metal 晴天体积云](img/metal/clouds.png) | ![Metal 日落体积云](img/metal/clouds-sunset.png) | ![Metal 阴天体积云](img/metal/clouds-storm.png) |
-
-云共享大气的太阳方向与辐照度，包含云内自遮蔽、双 HG 相位和多次散射近似；太阳盘作为背景被云透射率衰减。独立历史处理云的风速运动，云覆盖像素拒绝通用天空 TSAA 历史，避免重复累积。GUI 的 **Volumetric clouds** 可开启带大气的现有场景，调整覆盖、高度、厚度、风速、密度、侵蚀和分辨率；其他场景默认关闭云。
-
-Apple M4／Metal 实测：960×720 输出、480×360 云缓冲，晴天整帧平均 GPU 时间由 **3.16 ms** 增至 **6.97 ms**，增量约 **3.80 ms**；该视角剔除约 **26.7%** 的 tile。计时包含整帧与呈现复制，排除前四帧的启动阶段，不是云 pass 的独立计时。三种截图各累积 32 帧，完整数据见 [晴天记录](img/metal/clouds-metrics.json)。
-
-<details>
-<summary>查看无云对照与 GPU 不透明度中间产物</summary>
-
-| 同视角无云背景 | 云历史缓冲的 1−T |
+| VT 实际 GPU 物理缓存 | CSM 阴影与级联分区 |
 | --- | --- |
-| ![无云对照](img/metal/clouds-clear.png) | ![GPU 半分辨率不透明度](img/metal/clouds-opacity.png) |
+| ![VT 高度与材质物理图集](img/diagnostics/vt-cache.png) | ![CSM 级联与过渡带](img/diagnostics/csm-cascades.png) |
 
-三种预设都输出 `*-clear.png`、`*-opacity.png` 和 `*-metrics.json`；白色表示更不透明，中间产物没有色调映射。截图来自实际渲染，未使用生成图片。
+![PCF、默认太阳 PCSS 与放大光源 PCSS 对照](img/diagnostics/pcss-comparison.png)
 
-</details>
+PCSS 对照依次为 PCF、默认太阳和放大光源；第三列用于展示更宽的半影。[页表、阴影图集与完整诊断](docs/render-diagnostics-gallery.md)。
 
-```sh
-./build/Scene-Renderer --classic clouds
-./build/Scene-Renderer --classic clouds-sunset  # clouds-storm 为阴天
-./build/Scene-Renderer --render-gallery img/metal cloud-gallery
-```
+### 路径追踪、焦散与次表面散射
 
-云对地面的投影阴影、天空 IBL／RSM 天空反弹的天气调制，以及海面反射中的云尚未接入；64³ 周期噪声与有限步数限制近处细节和薄云，快速运动仍可能出现时域模糊。实现、参数、GPU 流程、性能记录及双后端验证见 [体积云中文说明](docs/gpu-driven-clouds.md)。
+CPU／Metal／Vulkan 路径追踪支持多次反弹、纹理材质、折射和均匀介质随机游走；CPU BDPT 用于平滑玻璃焦散。程序化地形、植被与 FFT 水面可冻结为离线场景。
 
-## 高清海洋与透明水体
-
-海洋使用 **1024×1024 主 FFT、256×256 短波 FFT 和 513×513 水面网格**。主频谱表现长波，独立短波补充细小波纹；水面读取场景太阳和线性 HDR 天空，使用 Fresnel／GGX 光照及基于 Jacobian 的泡沫。
-
-`--classic ocean` 默认展示波涛汹涌的深海：28 m/s 风速、1.8 倍高度和更陡的浪峰，配合压缩区域的白沫及透亮浪尖。GUI 可继续调整风速、`HeightScale` 与 `Choppiness`；`ocean-clear` 保留较平缓的浅水配置。
-
-水体采用按水深计算的屏幕空间折射、RGB Beer–Lambert 吸收和近似单次散射，表现浅水透射及背光浪尖。GUI 可调吸收、散射、折射和短波细节。算法修复、数值测试、开关对照与限制见 [FFT 海洋与透明水体修复记录](docs/ocean-fft-and-rendering-review.md)。
-
-| 高清大浪海面 | 浅水透射与散射 |
+| Stanford Dragon：CPU BDPT 玻璃焦散＋OIDN | Jade Dragon：Metal PT 次表面散射＋OIDN |
 | --- | --- |
-| ![Metal 高清大浪海洋](img/metal/ocean.png) | ![Metal 透明水体](img/metal/ocean-clear.png) |
+| ![Stanford 透明龙与焦散](img/path-tracing/dragon-glass.png) | ![半抛光玉龙](img/path-tracing/jade-polished-boundary.png) |
 
-截图为 1920×1080 原生 Metal 渲染，开启 TSAA 并累积 16 帧；浅水场景中的材质球和底面用于观察透射。散射与折射是实时近似，尚未实现体积多次散射、焦散或屏幕外折射。
-
-```sh
-./build/Scene-Renderer --classic ocean
-./build/Scene-Renderer --classic ocean-clear
-./build/Scene-Renderer --render-gallery img/metal ocean
-./build/Scene-Renderer --render-gallery img/metal ocean-clear
-```
-
-综合 `--demo` 使用 512×512 主 FFT，专用海洋场景使用上述高清配置。
-
-<details>
-<summary>查看短波、散射和透明水体的开关对照</summary>
-
-主波、相机、曝光与时间保持一致，各图独立清空 TSAA 历史。深海对照分别关闭短波或散射；浅水对照同时关闭折射和散射，以显示透射路径的作用。
-
-| 深海关闭短波 | 深海关闭散射 |
+| Mountain Lake：Metal PT＋OIDN | 浅水折射：Metal PT＋OIDN |
 | --- | --- |
-| ![关闭短波 FFT](img/metal/ocean-no-detail.png) | ![关闭水体散射](img/metal/ocean-no-scattering.png) |
+| ![路径追踪山湖与倒影](img/path-tracing/pt-mountain-lake.png) | ![路径追踪 FFT 浅水](img/path-tracing/pt-ocean-clear.png) |
 
-| 浅水透射与散射开启 | 浅水关闭折射与散射 |
+## 系统概览
+
+主逻辑管理世界、输入和编辑器，通过不可变场景快照向独立渲染线程发布数据。渲染线程准备 GPU 资源并调度各效果，RHI 统一资源、管线、命令与呈现；Metal／Vulkan 复用共享 GLSL 生成的着色器。详细流程、资源管理和平台边界见[系统设计](docs/system-design.md)。
+
+## 文档
+
+| 入口 | 内容 |
 | --- | --- |
-| ![浅水透射](img/metal/ocean-clear.png) | ![浅水不透明对照](img/metal/ocean-clear-opaque.png) |
-
-</details>
-
-## 虚拟纹理地形
-
-### Mountain Lake：山地与湖泊
-
-导入 [ill_drakon 的 Mountain Lake](https://sketchfab.com/3d-models/mountain-lake-3043ead27ac74144950e634197a1490b)（CC BY 4.0），从原始规则网格重建 **1025×1025 高度场**，结合作者同分辨率的地表颜色图，接入高度／材质 VT。按米制解释原始坐标，演示范围为 **8×8 km**；湖面使用源水位、独立 512 m 频谱周期的 FFT、折射及近似体散射；生图水域 mask 限定岸线，GPU 草丛按距离、坡度、水位与 mask 过滤。VT 的 2048 存储尺寸来自重采样，不增加原始细节；当前水面反射只包含天空。下载、署名、转换和限制见 [山湖场景说明](docs/mountain-lake.md)。
-
-![新 RHI／Metal Mountain Lake 山湖场景](img/metal/mountain-lake.png)
-
-```sh
-python3 tools/prepare_mountain_lake.py # 先按说明下载两个官方归档；沙滩贴图已随仓库提供
-./build/Scene-Renderer --classic mountain-lake
-./build/Scene-Renderer --classic mountain-lake-ground # 湖岸植被近景
-./build/Scene-Renderer --classic mountain-lake-beach  # 沙滩 PBR 近景
-./build/Scene-Renderer --render-gallery img/metal mountain-lake
-```
-
-草丛采用四片弯叶、360° 随机朝向，按世界距离调节密度：10 m 内约 15 cm 间距，逐渐过渡到 70 m 处的 3.5 m 间距，120–180 m 淡出。近区优先使用 GPU 实例预算，满密度目标约 42 丛／169 片草叶每平方米，实际数量受坡度、水域与视锥过滤影响。密集草块共享地形角点；水面省去完全干燥区域的网格单元。修复与验收见 [植被与 FFT 湖面](docs/vegetation-and-lake-water.md) 和 [沙滩与草地密度](docs/beach-and-grass-density.md)。
-
-![Metal 湖岸草丛近景](img/metal/mountain-lake-ground.png)
-
-湖岸新增 [Poly Haven Aerial Beach 01](https://polyhaven.com/a/aerial_beach_01) 沙滩材质（Rob Tuytel，CC0），包含底色、法线、粗糙度和 AO。30 m 世界坐标平铺与 mip 过滤补充近景细节；岸线距离、相对水位和坡度控制混合，湿沙更暗、更光滑，草在沙地区域退让。
-
-![Metal 湖岸沙滩近景](img/metal/mountain-lake-beach.png)
-
-### 程序生成地形与草
-
-地形高度图和五层 PBR 材质使用软件 **Virtual Texture**：固定物理 tile 缓存、mip 页表、祖先回退、边框过滤和区域上传。细页与缺页祖先在边界及对角角点连续混合，高度生成与草共用页采样；旧 float32 高度文件可直接按页读取，大场景可使用离线 pack，使高度和材质均无需在运行时完整解码。
-
-大场景延迟渲染的世界坐标使用 float32，避免半精度位置量化产生地形阴影条纹；CSM 使用未抖动投影和世界单位偏移，PCSS 按太阳角半径／局部光尺寸估计半影。参数、修复原因和 GPU 验证见 [VT、CSM 与 PCSS 修复记录](docs/vt-csm-pcss-fixes.md)。
-
-GPU 四叉树按分块高度界、FOV、分辨率和距离估计屏幕误差，叶节点预算耗尽时保留父节点。公共整数网格与高度 morph 保持不同 LOD 的接缝一致，草附着于同一变形后的三角形表面，边界法线按实际差分跨度计算。默认网格从约 237.5 MiB 降至 19 MiB；8192² 虚拟尺寸下，网格与两套默认 VT 资源合计约 30.16 MiB，不包含草、阴影和其他渲染目标。
-
-![Metal 虚拟纹理地形与草：异步分页和 GPU 深度反馈](img/diagnostics/terrain.png)
-
-```bash
-./build/Scene-Renderer --classic terrain
-./build/Scene-Renderer --render-gallery img/metal terrain
-```
-
-示例由程序生成 1024² 高度与底色，无需额外下载。请求结合真实渲染深度的异步 GPU feedback、CPU 保守视锥预测，以及上一帧阴影／RSM 的辅助视图；每帧限制页读取／上传数量。原生双线程编辑器使用有界后台 IO，快速移动时可暂时回退到粗 mip。离线分页命令、配置、修复记录与验证见 [地形 Virtual Texture 说明](docs/terrain-virtual-texture.md)。
-
-<details>
-<summary>查看同一视角的 LOD 网格</summary>
-
-![Metal 地形 LOD 网格](img/diagnostics/terrain-wireframe.png)
-
-</details>
-
-### VT 的物理缓存、页表与回退
-
-以下中间产物于 **2026-10-05** 在 Apple M4／原生 Metal 上捕获。程序生成地形使用 **1024² 虚拟尺寸**，高度和五层材质各有 **64 个物理槽位**；每页包含 64² 内容及四边各 2 texel 的 apron，物理图集为 **544²**。两套图集与页表约 **10.18 MiB**，不含几何、反馈缓冲和其他渲染目标。捕获走异步页读取、GPU 深度反馈和阴影视图预测，每张最终画面单独清空 TSAA 历史并运行 64 帧。
-
-![VT 实际 GPU 高度、底色、法线和粗糙度物理图集](img/diagnostics/vt-cache.png)
-
-上图直接读取 GPU 物理图集：高度归一化为灰度，底色保持原编码；此程序场景的切线法线和粗糙度为常量，几何法线另由高度差分生成。格线标出缓存槽位；相邻槽位可存放完全不同的虚拟页，物理图集里的格线并不代表地形接缝。
-
-![VT 实际页表与首个驻留祖先的回退层级](img/diagnostics/vt-residency.png)
-
-上排按 mip 解码实际 GPU 页表，深色表示缺页；下排在整个虚拟 UV 域请求 mip 0，并着色显示找到的**首个驻留祖先**。绿色是细页，黄色／橙色是粗页，紫色根页始终驻留。高度与材质的 V 方向相反，因此布局会翻转。下排是页表诊断，未模拟 shader 在缺页边缘的连续祖先混合，也不代表最终材质颜色。页驻留和后台 IO 仍可继续变化，本次计数见 [捕获数据](img/diagnostics/capture-summary.json)。
-
-## 级联阴影与 PCSS 软阴影
-
-### CSM：近处精细、远处扩大覆盖
-
-方向光采用 **5 级 CSM**，混合对数／线性深度分割，将有限图集分辨率优先分配给近处接收面。使用未抖动相机投影、光空间 texel 对齐和世界单位偏移；级联末段 10% 混合到下一级，最后一级末段淡出。下面的 `shadow-test` 全部由程序生成，含 4／10／16 m 高的近处立柱及延伸至远处的遮挡物；相机远裁剪 500 m，阴影距离 300 m。
-
-![CSM 最终阴影与五个级联分区、过渡带](img/diagnostics/csm-cascades.png)
-
-右图根据同帧 GPU 世界坐标 G-buffer、实际级联分割和过渡参数生成伪彩色：绿、蓝、黄、橙、紫对应 C0–C4，灰色表示末级淡出及阴影距离外区域。它展示接收面的级联分配，不是阴影可见度。
-
-![CSM 实际 GPU 深度图集](img/diagnostics/csm-atlas.png)
-
-上图来自实际 **1792² Depth32Float 阴影附件**。单个太阳的五个 tile 使用 3×3 布局，每 tile 597²；彩框对应五个级联。所有 tile 使用同一灰度拉伸范围，白色为清除深度或背景。各 tile 是光空间投影，因此不会与相机画面具有相同形状。
-
-<details>
-<summary>逐级查看 CSM 深度投影</summary>
-
-![五个 CSM 级联的独立深度 tile](img/diagnostics/csm-tiles.png)
-
-</details>
-
-### PCSS：接触处清晰，远离遮挡物时变软
-
-PCSS 用 24 个样本搜索遮挡物，以线性光空间深度和发光体尺寸估计半影，再进行最多 32 点圆盘过滤；小半影退回 3×3 PCF。下面保持相机、几何、材质、光照方向和曝光相同，对比 **PCF、默认太阳角半径 0.00465 rad 的 PCSS、放大角半径至 0.04 rad 的 PCSS**。PCF／PCSS 自动使用各自的图集投影保护边界。
-
-![PCF、默认太阳 PCSS 与放大发光体 PCSS，同一区域的局部放大](img/diagnostics/pcss-comparison.png)
-
-下排为同一像素区域的局部放大。默认太阳尺寸较小，变化更细微；右列专门放大发光体以展示半影随遮挡物距离增长，**不是默认太阳配置**。这组截图验证方向光，点光源跨立方体面连续过滤尚未实现。算法、参数和此前修复见 [VT／CSM／PCSS 修复记录](docs/vt-csm-pcss-fixes.md)。
-
-所有图可从仓库根目录复现，无需模型资源下载；原始 GPU 缓冲写入指定临时目录，排版图及中文说明见 [效果捕获说明](docs/render-diagnostics-gallery.md)。
-
-```sh
-./build/Scene-Renderer --classic shadow-test
-./build/Scene-Renderer --render-gallery /tmp/scene-renderer-diagnostics diagnostics
-python3 -m pip install numpy pillow
-python3 tools/visualize_render_diagnostics.py /tmp/scene-renderer-diagnostics img/diagnostics
-```
-
-## TSAA 时域超采样抗锯齿
-
-新 RHI 的完整场景渲染默认启用 TSAA，前向／延迟着色共用后处理。它使用 16 点 Halton 子像素抖动，在 HDR 色调映射前重投影并累积历史颜色。线性深度检查、YCoCg 邻域裁剪和自适应权重减少残影；海面使用前后两帧 FFT 位移生成运动信息，处理波浪自身运动。
-
-GUI 的 `Enable TSAA` 可关闭此效果。场景切换、窗口尺寸、明显相机跳变以及太阳／大气参数变化会重置历史。当前 Metal 效果图均已重新生成，常规画廊每张运行 16 帧，VT／阴影诊断画廊运行 64 帧，静态表面累积 TSAA，各开关对照单独清空历史；地形视图、模型及驻留页稳定时复用确切生成几何并允许历史累积；LOD／页发生变化的地形及动态草使用 reactive 标记；历史图片仍保留历史标记。具体设计、测试与边界见 [TSAA 实现说明](docs/tsaa.md)。
-
-## 整体系统设计
-
-项目按主逻辑、不可变场景快照、CPU 资产任务、渲染调度和 GPU 后端分层。主线程拥有 `RenderScene`、输入、相机和 ImGui，`SceneSnapshotBuilder` 准备可共享的 const CPU payload；独立 `RenderRuntime` 从有界队列消费快照，`SceneAdapter.resolve` 只在渲染线程创建 GPU 网格／材质和绘制包。`RenderManager` 保留编辑器设置及旧兼容调度。
-
-```mermaid
-flowchart TD
-    A[JSON / Assimp / glTF / 程序场景] --> J[有界 CPU 解码与加载事务]
-    J --> B[主线程：RenderScene 与组件]
-    I[GLFW / 输入 / Camera / ImGui] --> B
-    B --> S[SceneSnapshotBuilder：不可变 CPU 数据]
-    S --> Q[有界帧队列：2 个等待包]
-    Q --> D[渲染线程：SceneAdapter.resolve]
-    D --> E[RenderGraph / ForwardPbrRenderer / TSAA]
-    D --> F[大气 / 海洋 / 地形 / 草 / 细分]
-    D --> T[VT 预测与有界异步 IO]
-    T --> F
-    E --> G[RHI：设备线程归属 / 显式命令与资源]
-    F --> G
-    G --> H[Metal / CAMetalLayer]
-    G --> V[Vulkan / Swapchain]
-    B -. Connector .-> K[CPU PTScene / BVH / 多线程积分]
-```
-
-新 Metal／Vulkan 路径直接使用 RHI 的缓冲区、纹理、管线、资源绑定和命令列表。GL 风格组件字段仍用于读取历史场景数据，但原生 GPU 效果由 `src/renderer/rhi/` 调度；旧 `RenderPass` 与 Metal GL 兼容桥只属于保留的兼容路径。RHI 后端负责资源生命周期、状态转换、上传／读回、提交及呈现，支持多个在途帧；算法与 backend 分开，CPU 路径追踪保持独立。
-
-### 一帧如何生成
-
-1. 主线程收集相机、几何、材质、太阳及局部灯光，复制 GUI draw data，发布不可变快照；CPU jobs 准备新资产，渲染线程接纳有预算的上传并更新地形 LOD、草和细分。
-2. 统一太阳状态和观察高度；按参数缓存或更新大气 LUT，更新海洋 FFT、位移、法线与泡沫。
-3. `ShadowRenderer` 渲染稳定五级 CSM、点光源六面及聚光灯阴影，按实际灯数分配 atlas，使用 PCSS 软阴影与级联重叠混合；可选捕获太阳／天空 RSM 的位置、法线与反射功率。
-4. 不透明对象写入 G-buffer，计算 SSAO；全屏合成 PBR、天空与 RSM；前向模式改用共享材质公式绘制场景。前后表面深度用于近似 SSS。
-5. 拷贝不透明 HDR 场景，绘制排序透明材质与折射／吸收／散射水面，并生成物体和海面的运动信息。
-6. TSAA 在 HDR 中检查深度、重投影与裁剪历史，然后统一曝光、色调映射，绘制 ImGui 并呈现。
-
-组件通过 weak owner 避免对象引用环，网格／材质／组件使用稳定 ID 与内容版本。RenderScene 结构、组件注册表与 owner 私有，具体类型查询采用索引；增删组件自动维护灯光索引。Transform／Light／Camera 的核心参数、Mesh／Material／Texture 的 CPU 数据、MeshRenderer 设置及大气／海洋／地形配置通过检查接口访问；配置以整组校验后提交。几何及共享图片修改自动更新内容版本，材质快照保留独立只读像素，材质标量复用图片缓存。后台任务只提交 ID／值命令，由主线程限量执行，场景替换使旧入口失效。
-
-资源缓存合并同 key 的解码；同设备普通 GPU 图片按内容共享，空闲 LRU 默认 64 MiB，sampler 独立。静态网格与材质图片按每帧 8 MiB、每块 256 KiB 及共享 2 ms CPU 软目标增量上传，分别限制四个已分配的未完成任务；完整写入后才发布。每设备管线共享 native 对象，调用持有独立 handle，空闲 LRU 默认 64 项；Metal Binary Archive／Vulkan Pipeline Cache 支持磁盘复用，首次 cache miss 编译仍同步。
-
-Loader 后台构建并封存 CPU staging，渲染线程准备独立 GPU 缓存和试绘。GPU ready 后才替换 CPU 世界并按 token 激活缓存；加载失败、取消或过期候选保留旧世界。RHI buffer／texture 可配置统一逻辑字节配额，超限保留上一张成功画面并重试；显式开启自动品质策略可降低 FFT、海洋网格、地形叶子及 VT 缓存规格，原始 CPU 参数不变。统计区分 RHI 逻辑字节与驱动内存，记录 CPU p95／p99、GPU 提交时间和输入采样到完成确认的延迟。
-
-大气、海洋、阴影／RSM 进入有序 RenderGraph；编译检查逐 mip／layer 初始化、读写依赖和 transient 生命周期。Metal／Vulkan 支持指定纹理子资源上传、复制与异步读回；SSS 临时深度与场景深度在不重叠区间共用物理纹理。当前图按声明顺序执行，尚未自动重排或实现多队列调度。全部实施、验收及剩余边界见 [Engine 后续计划实施](docs/engine-runtime-completion.md)，线程协议见 [多线程说明](docs/engine-multithreading.md)，评价见 [设计审查](docs/engine-design-review.md)。
-
-`--forward` 在同一场景调度中改用前向材质光照，保留阴影、环境光、水体和后处理。核心实现见 [ForwardPbrRenderer.cpp](src/renderer/rhi/ForwardPbrRenderer.cpp)、[SceneAdapter.cpp](src/renderer/rhi/SceneAdapter.cpp) 与 [RenderManager.cpp](src/system/RenderManager.cpp)。
-
-### 统一着色器构建
-
-```mermaid
-flowchart LR
-    A[src/rhi/shaders：共享 GLSL] --> B[glslang：SPIR-V 与反射]
-    B --> V[Vulkan 管线]
-    B --> C[SPIRV-Cross：MSL]
-    C --> D[Xcode Metal Toolchain：metallib]
-    D --> E[Metal 管线]
-    B --> F[JSON：RHI 资源接口校验]
-```
-
-[compile_rhi_shaders.py](tools/compile_rhi_shaders.py) 在构建期生成 `.spv`、Metal `.metallib`、反射信息和 OpenGL 可用的 shader 版本。运行时按后端加载二进制及接口描述，C++ 校验统一缓冲区布局与绑定。阴影由主机分别提交各级联／六面；细分使用共享 GPU 计算生成可绘制几何，使 Metal／Vulkan 复用同一效果代码。
-
-## 渲染技术
-
-| 技术 | 实现与用途 | 当前边界 |
-| --- | --- | --- |
-| PBR 与材质变体 | 底色、法线、金属度、粗糙度、AO；各向异性、清漆层、近似 SSS、细分位移 | 新 RHI 场景前向／延迟共享材质着色公式；SSS 使用前后表面深度近似厚度 |
-| 延迟与前向渲染 | G-buffer 解耦几何与光照，完整场景可切换前向着色，HDR 合成后色调映射 | 尚未实现自动曝光 |
-| 阴影 | 稳定五级 CSM、重叠混合、自适应 atlas 分区；太阳／局部光 PCSS，窄半影 3×3 PCF | 默认 300 世界单位距离；有限采样及过滤半径；点光尚无跨面的连续 PCSS |
-| TSAA | Halton 投影抖动、深度重投影、物体／海洋运动信息、HDR／YCoCg 历史裁剪与自适应累积 | 新 RHI 场景前向／延迟共用后处理；快速运动和透明表面仍可能模糊或拖影 |
-| SSAO | 屏幕空间采样核与噪声纹理，增强接触处的遮蔽 | 不包含屏幕外几何的信息，不等同于 GI |
-| RSM | 太阳方向正交投影；太阳辐照度＋大气天空漫反射 LUT；每纹素反射功率、显式采样 PDF、G-buffer 全屏合成；支持聚光灯回退 | 单个投影仅记录最近表面，天空入射未计算遮蔽；局部一次漫反射反弹，可能漏光、有采样噪声 |
-| 大气与 IBL | 共享太阳状态、相机海拔、解析太阳盘；Rayleigh／Mie／臭氧、透射率、高阶散射近似、天空与 E/π 卷积 LUT | RGB 模型；太阳盘 HDR 上限 65000；未实现完整场景反射探针或环境遮挡 |
-| 三维体素云 | XYZ 密度、量化保守距离场、太阳缓存、空空间跳跃／恒密度内核积分、全分辨率无历史路径 | 有限程序化云体；非气象流体求解；无稀疏体素流式 LOD |
-| GPU Driven 体积云 | 程序化密度／天气图、球壳深度剔除、GPU tile 队列和间接步进、云内自遮蔽、风速历史与上采样 | RGB 散射近似；地面云阴影、IBL／RSM 天气调制和海面云反射尚未接入 |
-| FFT 海洋与水体 | 共轭 Phillips 频谱、归一化二维 IFFT、主波与短波叠加、法线与 Jacobian 泡沫；深度折射、RGB 消光、近似单次散射与 HDR 光照 | 周期有限海面；折射限于屏幕空间，散射厚度是近似；不是流体求解器 |
-| 地形与草 | 高度／五层材质 VT、深度 feedback／多视图预测、有预算屏幕误差 LOD、拼接与高度 morph、附着草 | feedback 可能带入包围范围内其他几何；页／LOD 变化时 reactive，尚无逐顶点前帧变形历史 |
-| 模型导入 | Assimp、glTF；GI 示例增加 OBJ/MTL 材质、透明遮罩与高度图转法线 | OBJ 的传统材质参数近似转换为 PBR，玻璃／水不做真实折射 |
-| CPU/GPU 路径追踪 | 冻结场景、纹理 PBR、SAH BVH、天空/太阳/发光面 NEE + MIS；scrambled Sobol、GGX VNDF、自适应采样；Metal/Vulkan compute 路径 | 静态 mesh 与基础 PBR；GPU 使用软件 BVH；OIDN 为可选依赖，程序化地形/海洋及特殊 lobe 未接入 |
-
-### CPU 路径追踪
-
-`src/PT/` 通过不可变场景快照保留物体变换、纹理、法线图、金属度／粗糙度、透明裁剪和灯光。CPU 使用扁平 SAH BVH 加速求交，以 Lambert + GGX 材质追踪多次反弹；天空、有限角半径太阳和发光面使用重要性采样与 MIS。天空先由 **Metal 或 Vulkan 的实时大气**烘焙为 HDR 环境贴图，保存后可以完全在 CPU 上复用。
-
-下面保留首次 PCG/NDF 固定采样的 CPU 图：本项目在 Apple M4 上生成的 **640×480、256 spp、最大 8 次反弹**结果，曝光为 3。当前默认采样已更新为 Sobol/VNDF 与自适应模式，见下方 GPU 与采样优化说明。阴影区仍有采样噪声，尚未加入降噪器；这些图不是收敛参考解。
-
-| Sponza | San Miguel |
-| --- | --- |
-| ![CPU Path Tracing：Sponza，256 spp](img/path-tracing/sponza.png) | ![CPU Path Tracing：San Miguel，256 spp](img/path-tracing/san-miguel.png) |
-
-| 场景 | 有效三角形 | 320×240 / 8 spp 预览 | 640×480 / 256 spp | 非有限样本 |
-| --- | --- | --- | --- | --- |
-| Sponza | 262,266 | 1.30 秒 | 124.55 秒 | 0 |
-| San Miguel | 5,602,728 | 2.04 秒 | 197.08 秒 | 0 |
-
-预览使用 6 个 worker，最终图使用 8 个 worker。时间包括追踪期间的 checkpoint 保存，不包括模型导入、BVH 构建及首次天空烘焙；运行时存在其他开发负载，不作为严格性能基准。
-
-从仓库根目录运行，先生成预览，再复用天空提高采样：
-
-```sh
-python3 tools/fetch_gi_assets.py
-
-# 烘焙实时天空，生成两个场景的预览。
-for scene in sponza san-miguel; do
-    ./build/Scene-Renderer --path-trace "$scene" --pt-size 320x240 \
-        --pt-samples 8 --pt-bounces 6 --pt-threads 6 \
-        --pt-output "build/path-tracing/$scene-preview"
-done
-
-# 复用 HDR 及太阳参数，无需创建 GPU/context。
-for scene in sponza san-miguel; do
-    ./build/Scene-Renderer --path-trace "$scene" \
-        --pt-environment "build/path-tracing/$scene-preview-environment.hdr" \
-        --pt-size 640x480 --pt-samples 256 --pt-bounces 8 \
-        --pt-threads 8 --pt-exposure 3 --pt-output "build/path-tracing/$scene"
-done
-```
-
-输出位于 `build/path-tracing/`：渐进 PNG、线性 HDR PFM、albedo/normal 诊断图、JSON 参数记录，以及环境 HDR 和太阳参数 sidecar。前 4、16 spp 和后续每增加 32 spp 保存 checkpoint；当前每次运行从零开始。编辑器 `R` 键冻结当前场景并阻塞渲染，输出 `build/path-tracing/editor.*`。
-
-CPU 路径支持静态 mesh 和基础 PBR；程序化地形／草、FFT 海面、计算细分后的几何及 clearcoat／anisotropy／SSS 特殊 lobe 尚未接入。macOS OpenGL 4.1 可通过已保存的 HDR 或 `--pt-no-sky` 运行 CPU 追踪。实现、数学边界、全部参数及验证见 [CPU Path Tracing 说明](docs/path-tracing-cpu.md)。
-
-<details>
-<summary>历史 Cornell 实验（100 spp，最大深度 10）</summary>
-
-旧独立 Cornell 实验仍保留 `out.ppm` 路径。
-
-![CPU 路径追踪历史效果](img/ray_tracing.png)
-
-</details>
-
-### GPU 路径追踪与采样优化
-
-新增 `--path-trace-gpu`，通过共享 RHI compute shader 在 **Metal/Vulkan** 上执行软件 BVH 遍历、材质求值、多次反弹及累积。CPU 构建 BVH 并上传冻结场景，天空由实时大气烘焙为 HDR；CPU/GPU 共用 scrambled Sobol、GGX VNDF 和自适应采样规则，CPU 另保留 PCG 对照。
-
-| GPU Sponza | GPU San Miguel |
-| --- | --- |
-| ![Metal GPU Path Tracing：Sponza](img/path-tracing/gpu-sponza.png) | ![Metal GPU Path Tracing：San Miguel](img/path-tracing/gpu-san-miguel.png) |
-
-上图为 **640×480、256 spp 预算、16 次反弹**，实际平均采样约 245 / 220 spp；追踪耗时约 21.03 / 32.68 秒，非有限样本均为 0。阴影仍有噪声，未增加艺术提亮或降噪。
-
-同一 Apple M4，320×240、固定 256 spp、16 次反弹、CPU 8 workers 的串行对照：
-
-| 场景 | CPU | Metal GPU | Vulkan GPU | Metal 追踪加速 |
-| --- | --- | --- | --- | --- |
-| Sponza | 34.44 秒 | 5.42 秒 | 5.58 秒 | 6.35× |
-| San Miguel | 52.03 秒 | 9.34 秒 | 9.47 秒 | 5.57× |
-
-计时包括追踪期间 checkpoint 保存，排除模型导入、CPU BVH 构建及 GPU 准备；完整命令耗时和测量边界见 [GPU Path Tracing 与采样优化](docs/path-tracing-gpu.md)。自适应模式默认最少 64 spp，连续两次满足 RGB 方差阈值后停止；这是有偏的启发式预算分配，`--pt-fixed` 可保留完整采样。Sobol 的阴影误差在此次对照中降低，但全图误差并未优于 PCG，文档保留了具体结果。
-
-```sh
-./build/Scene-Renderer --path-trace-gpu sponza --pt-size 640x480 \
-    --pt-samples 256 --pt-bounces 16 --pt-exposure 3 \
-    --pt-output build/path-tracing/gpu/sponza
-./build/Scene-Renderer --path-trace-gpu san-miguel --pt-size 640x480 \
-    --pt-samples 256 --pt-bounces 16 --pt-exposure 3 \
-    --pt-output build/path-tracing/gpu/san-miguel
-# 固定 spp / CPU PCG 对照
-./build/Scene-Renderer --path-trace sponza --pt-sampler pcg --pt-fixed --pt-samples 256
-```
-
-JSON 新增执行后端、实际平均 spp、总样本数及 GPU buffer 负载；`*-samples.png` 展示采样分配。GPU 通过命令行运行，编辑器 `R` 键继续使用 CPU 静态渲染。
-
-### 收敛优化与 BDPT 焦散
-
-GPU PT 新增显式的 `--pt-guiding` 和 `--pt-cache`。Guiding 冻结训练得到的 BSDF/可见天空方向分布，以完整混合 PDF 更新 NEE/MIS；Cache 复用粗糙漫反射的深层延续贡献，是有偏的预览近似。训练时间、命中率及同耗时误差记录见 [收敛优化与焦散说明](docs/path-tracing-convergence.md)。当前默认仍是普通 PT，不能仅凭采样数或平滑程度判断更快收敛。
-
-新增 **CPU BDPT** 面积光参考：相机/光源子路径、连接策略 MIS、针孔相机投影和 film splat，并支持平滑玻璃 Fresnel 反射、折射及全内反射。下图是程序生成的玻璃球聚光，另有 `*-caustics.png/.pfm` 输出真实 specular-to-diffuse 路径贡献，并以无玻璃图做对照。
-
-| BDPT 原始渲染 | OIDN 降噪 |
-| --- | --- |
-| ![BDPT 玻璃焦散原始图](img/path-tracing/bdpt-caustics.png) | ![OIDN 降噪后的 BDPT 玻璃焦散](img/path-tracing/oidn-bdpt-caustics.png) |
-
-两图来自同一份 **640×480、512 spp、8 次反弹**的 BDPT 结果；右图对原始线性 PFM 做 color-only 降噪。
-
-<details>
-<summary>查看未经降噪的独立焦散路径贡献</summary>
-
-![BDPT 独立焦散路径贡献](img/path-tracing/bdpt-caustics-only.png)
-
-</details>
-
-```sh
-./build/pt/Scene-Renderer --path-trace caustics --pt-bdpt --pt-size 640x480 --pt-samples 512 --pt-bounces 8 --pt-threads 8 --pt-exposure 2 --pt-output build/path-tracing/caustics
-```
-
-BDPT 首版为 CPU 数学参考，支持有限面积光源、针孔相机、基础 PBR 和平滑玻璃；HDR/太阳及点光端点尚未接入，会明确报错。Metal/Vulkan 的 GPU 单向 PT 也支持这种 PT 专用玻璃覆盖；GPU BDPT 尚未实现。
-
-### OIDN 降噪
-
-CPU、Metal/Vulkan PT 和 CPU BDPT 可以加 `--pt-denoise` 使用 **Open Image Denoise**，在线性 HDR 上结合 albedo/normal AOV 降噪。原始 PNG/PFM 保留，降噪另存为 `*-denoised.png/.pfm`；还支持 `--pt-denoise-input FILE.pfm` 离线处理。构建方式、设备选择和焦散细节边界见 [降噪说明](docs/path-tracing-denoising.md)。
-
-```sh
-./build/pt/Scene-Renderer --path-trace-gpu sponza --pt-size 640x480 --pt-samples 64 --pt-bounces 16 --pt-fixed --pt-denoise --pt-output build/path-tracing/denoise/sponza
-```
-
-| 场景 | 原始 64 spp | OIDN 降噪 |
-| --- | --- | --- |
-| Sponza | ![Sponza 64 spp 原始渲染](img/path-tracing/oidn-sponza-raw.png) | ![Sponza 64 spp OIDN 降噪](img/path-tracing/oidn-sponza.png) |
-| San Miguel | ![San Miguel 64 spp 原始渲染](img/path-tracing/oidn-san-miguel-raw.png) | ![San Miguel 64 spp OIDN 降噪](img/path-tracing/oidn-san-miguel.png) |
-
-上图为 **320×240、固定 64 spp、16 次反弹**的 Metal GPU PT，降噪使用 albedo/normal AOV；左右采用相同曝光。BDPT 焦散的原始／降噪对照见上一节。
-
-### Stanford Dragon 透明玻璃与 BDPT 焦散
-
-使用 [Stanford University Computer Graphics Laboratory 的 Dragon 扫描](https://graphics.stanford.edu/data/3Dscanrep/)，完整原始网格为 **871,414 个三角形**，覆盖 IOR 1.5 玻璃。下图由本项目 CPU BDPT 输出：**640×480、512 spp、12 次反弹**，保留原始渲染与 OIDN 降噪结果。
-
-| 原始 BDPT | OIDN 降噪 |
-| --- | --- |
-| ![Stanford 透明龙 BDPT 原始图](img/path-tracing/dragon-glass-raw.png) | ![Stanford 透明龙 OIDN](img/path-tracing/dragon-glass.png) |
-
-<details>
-<summary>查看独立的真实焦散路径贡献</summary>
-
-![Stanford 龙的真实 BDPT 焦散](img/path-tracing/dragon-caustics.png)
-
-焦散图保留原始采样噪声，曝光与 beauty 相同；同网格改为不透明材质的对照中，焦散能量为 0。原扫描含小孔，未做闭合修复，因此不是严格闭合玻璃基准。模型使用条件见 [资源声明](samples/licenses/stanford-dragon.txt)。
-
-</details>
-
-```sh
-python3 tools/fetch_dragon.py
-./build/pt/Scene-Renderer --path-trace dragon-caustics --pt-bdpt \
-  --pt-size 640x480 --pt-samples 512 --pt-bounces 12 --pt-threads 8 \
-  --pt-exposure 2 --pt-denoise --pt-output build/path-tracing/procedural/dragon-glass
-```
-
-### 地形与海洋的固定时刻 Path Tracing
-
-CPU、Metal/Vulkan GPU PT 现已接入当前高度／材质 VT、沙滩 PBR、原生草丛姿态及大波／短波 FFT。湖水包含真实场景反射、IOR 1.333 折射、岸线 mask、泡沫和按路径长度计算的 RGB 水下吸收；天空由实时大气烘焙为 HDR。下图为 **640×480、time=8 s** 的实际 Metal GPU PT，经 OIDN 降噪。
-
-| 地形与草丛，128 spp | Mountain Lake，128 spp |
-| --- | --- |
-| ![地形与草丛 Path Tracing](img/path-tracing/pt-terrain.png) | ![Mountain Lake 地形倒影 Path Tracing](img/path-tracing/pt-mountain-lake.png) |
-
-| 湖岸沙滩，256 spp | 浅水折射与水下物体，256 spp |
-| --- | --- |
-| ![湖岸沙滩 Path Tracing](img/path-tracing/pt-mountain-lake-beach.png) | ![FFT 浅水折射 Path Tracing](img/path-tracing/pt-ocean-clear.png) |
-
-![FFT 大浪海洋 Path Tracing，256 spp](img/path-tracing/pt-ocean.png)
-
-```sh
-./build/pt/Scene-Renderer --path-trace-gpu mountain-lake --pt-time 8 \
-  --pt-size 640x480 --pt-samples 128 --pt-bounces 12 --pt-fixed --pt-denoise \
-  --pt-output build/path-tracing/procedural/mountain-lake
-# 改为 --path-trace 即使用 CPU 积分；FFT／草丛捕获仍需要 Metal/Vulkan。
-```
-
-默认捕获完整高度场，网格边长最多 1025；可用 `--pt-terrain-grid`、`--pt-ocean-grid`、`--pt-texture-size` 调整精度。草丛受当前视点与预算约束，默认最多 16,384 丛；`--pt-no-grass` 可以跳过。编辑器 `R` 键冻结当前时刻，随后静态渲染。水体已支持均匀 RGB 吸收、多次散射、HG 相位与介质栈，见下方 Jade Dragon 联合场景；**BDPT 水体介质连接仍未支持**，Dragon 焦散使用现有玻璃 BDPT。捕获设计、完整命令、CPU/GPU 数值对照和限制见 [Dragon／程序化 PT 说明](docs/path-tracing-procedural.md)。
-
-此前程序化捕获版本在 Apple M4/macOS 上通过 Metal **16/16**、Vulkan/MoltenVK **17/17** 和 ASan/UBSan **3/3** 回归；上面的实际渲染非有限样本均为 0。图片校验值、场景三角形数量、采样和耗时见 [验收记录](img/path-tracing/procedural-validation.json)。
-
-### 水体 BSSRDF 与 Jade Stanford Dragon
-
-CPU、Metal 和 Vulkan PT 已支持均匀介质随机游走。水体沿实际折射路径计算 RGB 吸收、多次散射和 HG 相位；玉龙以 IOR 1.54 的介电表面进入模型，在内部散射后从其他位置出射，形成隐式 BSSRDF。独立使用原扫描的运行时修复副本，最终龙体有 871,286 个三角形；原始资源不变。
-
-下面保留的早期平滑边界玉龙图为 **640×480、512 spp、最大深度 96** 的实际 Metal GPU PT，经 OIDN color-only 降噪。无散射对照保留相同的吸收、折射、模型和灯光。
-
-| Jade 随机游走 BSSRDF | 关闭玉石散射的有色玻璃对照 |
-| --- | --- |
-| ![Jade Stanford Dragon BSSRDF](img/path-tracing/dragon-jade.png) | ![关闭散射的 Stanford Dragon](img/path-tracing/dragon-jade-no-scattering.png) |
-
-**玉龙位于原生 FFT 海面上**，足部部分浸水；玉石内部优先使用玉石介质，出射后再切换至水或空气。time=8 s，联合场景有 2,968,440 个三角形。新预览为 **640×480、2048 spp、最大深度 96**，使用原生水体系数、20 m 海床、2° 角半径的软太阳和 OIDN 辅助 AOV 降噪。软太阳改变光源形状，便于预览；默认真实太阳设置继续保留。
-
-![Jade Stanford Dragon 与 FFT 水体多次散射](img/path-tracing/dragon-jade-ocean-preview.png)
-
-旧图的“雾”不是空气体积：浅色的两米海床、四倍水体散射和未收敛的太阳焦散被 color-only 降噪混合成云斑。关闭水体散射和 CPU PCG 对照仍出现云斑。另修复了 Sobol 不同反弹之间仅做 XOR 移位的相关性；新增解析积分与 CPU/Metal/Vulkan 一致性回归。诊断和预览参数见 [水体／玉石 PT 说明](docs/path-tracing-subsurface.md)。
-
-| 海面预览设置 | 旧图（伪影记录） | 新图 |
-| --- | --- | --- |
-| 分辨率／固定采样 | 640×480／512 spp | 640×480／2048 spp |
-| 静水面至海床深度 | 2.2 m | 20 m |
-| 水体散射倍率 | 4× | 1×（原生系数） |
-| 太阳角半径 | 大气默认，约 0.27° | 2° 软太阳，保持辐照度 |
-| OIDN 输入 | color-only | color + 预滤波 albedo／normal |
-
-新图在 Apple M4 上追踪约 **191.8 秒**。降噪／原始积分的全图平均 RGB 比值由旧图约 **0.629** 改善为新图约 **0.984**；两图的场景参数不同，这些数值只记录降噪偏移，不构成同场景收敛或焦散能量正确性的证明。本次最终相关回归包含 CPU、介质、降噪、程序化捕获与原生天空／GPU 一致性：Metal **5/5**、Vulkan **5/5**。真实小太阳下的折射焦散仍有高方差，折射界面光源采样和体积 BDPT 待实现。
-
-<details>
-<summary>查看原始采样、旧图伪影和关闭散射诊断</summary>
-
-| 玉龙原始采样 | 玉龙／海洋原始采样 |
-| --- | --- |
-| ![Jade 原始 Path Tracing](img/path-tracing/dragon-jade-raw.png) | ![Jade Ocean 原始 Path Tracing](img/path-tracing/dragon-jade-ocean-preview-raw.png) |
-
-旧版 512 spp、浅海床、四倍散射的降噪图，保留作伪影记录：
-
-![旧图的焦散噪声与降噪云斑](img/path-tracing/dragon-jade-ocean.png)
-
-旧设置关闭水体散射仍出现云斑；该图不能与上方新场景直接比较散射能量：
-
-![关闭水体散射，保留玉石散射和水下吸收](img/path-tracing/dragon-jade-ocean-no-water-scattering.png)
-
-</details>
-
-```sh
-python3 tools/fetch_dragon.py
-./build/pt/Scene-Renderer --path-trace-gpu dragon-jade \
-  --pt-size 640x480 --pt-samples 512 --pt-bounces 96 --pt-fixed \
-  --pt-no-sky --pt-sss-roughness 0 --pt-denoise-color-only --pt-output build/path-tracing/subsurface/dragon-jade
-./build/pt/Scene-Renderer --path-trace-gpu dragon-jade-ocean \
-  --pt-time 8 --pt-size 640x480 --pt-samples 2048 --pt-bounces 96 --pt-fixed \
-  --pt-sun-radius 2 --pt-ocean-floor-depth 20 --pt-sss-roughness 0 --pt-denoise \
-  --pt-output build/path-tracing/subsurface/dragon-jade-ocean-preview
-# CPU：入口改为 --path-trace；Vulkan：使用 Vulkan 构建并追加 --backend Vulkan。
-```
-
-两场景默认深度 96；`--pt-sss-scale` 调整玉石自由程，`--pt-sss-scattering-scale 0` 关闭玉石散射，`--pt-water-scattering-scale 0` 关闭水体散射。当前是均匀 RGB 模型；介电边界已支持 GGX 粗糙反射／折射，玉石默认 roughness=0.22、水体默认 0；**体积 BDPT 和体积 guiding/cache 尚未接入**。材质参数、封孔、能量守恒、CPU/GPU 对照和范围限制见 [水体／玉石 PT 说明](docs/path-tracing-subsurface.md)，原始 JSON 与图片校验值见 [次表面验收记录](img/path-tracing/subsurface-validation.json)，新预览与雾状伪影诊断见 [诊断记录](img/path-tracing/ocean-fog-validation.json)。
-
-### 粗糙介电边界与半抛光玉石
-
-CPU、Metal、Vulkan 已接入各向同性 GGX VNDF 反射／折射、精确 Fresnel、全内反射和透射 PDF，粗糙表面参与 NEE／MIS。玉龙默认 `--pt-sss-roughness 0.22`，`0` 保留平滑玻璃边界；`--pt-water-roughness` 可增加 FFT 网格未解析的微表面粗糙度，默认 `0`。
-
-下面三图均为实际 Metal PT：**640×480、512 spp、深度 96、曝光 2、同一灯光和均匀玉石系数**，仅改变边界粗糙度，使用 OIDN color-only。半抛光改变高光与透射的方向分布；较粗糙对照更明显。内部色根、杂质与晶粒尚未建模。
-
-| 平滑边界，r=0 | 半抛光，r=0.22 | 较粗糙，r=0.5 |
-| --- | --- | --- |
-| ![平滑玉龙](img/path-tracing/jade-smooth-boundary.png) | ![半抛光玉龙](img/path-tracing/jade-polished-boundary.png) | ![较粗糙玉龙](img/path-tracing/jade-rough-boundary.png) |
-
-<details>
-<summary>查看未经降噪的半抛光玉龙</summary>
-
-![半抛光玉龙原始采样](img/path-tracing/jade-polished-boundary-raw.png)
-
-</details>
-
-```sh
-./build/pt/Scene-Renderer --path-trace-gpu dragon-jade \
-  --pt-size 640x480 --pt-samples 512 --pt-bounces 96 --pt-fixed --pt-no-sky \
-  --pt-sss-roughness 0.22 --pt-denoise-color-only \
-  --pt-output build/path-tracing/appearance/jade-polished
-# 将 roughness 改为 0 或 0.5 得到两张对照。
-```
-
-相关回归 Metal **5/5**、Vulkan/MoltenVK **5/5**，ASan/UBSan 的 CPU／介质／程序化测试 **3/3**；完整玉龙 160×120、128 spp 的 CPU/Vulkan 原始线性图逐像素 RGB 向量长度的相对 L1 为 **0.00764**、总 RGB 能量比（GPU/CPU）为 **1.00383**。单次散射 GGX 在高粗糙度下会损失能量，尚未补偿微表面多次散射；粗糙介电与体积 BDPT 仍明确拒绝。实现和数值验证见 [粗糙介电说明](docs/path-tracing-rough-dielectric.md) 与 [验收记录](img/path-tracing/rough-dielectric-validation.json)。[外观与加速迭代计划](docs/path-tracing-appearance-plan.md) 第一阶段已完成，原生 GPU 求交、体积 BDPT／VCM／SMS、非均匀玉石按后续阶段推进。
-
-## 目录与模块
-
-完整目录约定与依赖管理见 [仓库结构说明](docs/repository-layout.md)，技术文档见 [文档索引](docs/README.md)，测试入口见 [测试说明](tests/README.md)。
-
-| 路径 | 职责 |
-| --- | --- |
-| `src/main.cpp` | 程序入口、命令行、窗口与主循环 |
-| `include/component/`、`src/component/` | GameObject 组件、网格、灯光、大气、海洋和地形逻辑 |
-| `include/renderer/`、`src/renderer/` | 场景、材质、纹理、渲染通道 |
-| `src/system/` | 渲染、输入、资源与界面管理 |
-| `src/buffer/` | 顶点、索引、统一与图像缓冲区接口 |
-| `src/metal/` | 退役的 Metal GL 兼容桥及历史自检；默认构建不编译 |
-| `src/rhi/shaders/` | 统一 PBR、阴影、RSM、SSAO、大气、体积云、海洋、地形及 TSAA shader |
-| `src/renderer/rhi/`、`src/rhi/` | 效果调度、GPU 资源、原生后端与验证入口 |
-| `src/shader/` | 旧 OpenGL / Metal 兼容路径效果源码 |
-| `src/engine/`、`include/engine/` | 有界任务与帧队列、资源 cache、资产 ID、render graph 与渲染线程 |
-| `src/PT/` | CPU/GPU 路径追踪、冻结场景转换、Sobol/VNDF 与采样预算 |
-| `tools/` | 着色器转换及可复现的资源下载脚本 |
-| `tests/`、`tests/legacy/` | 当前 CMake／Python 回归与历史反射实验源码 |
-| `external/`、`lib/` | 随仓库保留的第三方源码／头文件与 Windows CMake 构建所需 `.lib` |
-| `samples/`、`img/metal/`、`img/path-tracing/` | 示例资产与来源清单、实时渲染与 CPU 路径追踪截图 |
-| `docs/metal.md`、`docs/rsm.md` | 中文 Metal 迁移说明与太阳／天空 RSM 实现、验证说明 |
-| `docs/archive/` | 早期架构笔记与开发计划，供历史参考 |
-| `docs/sky-and-sun-review.md` | 历史天空问题、新 RHI 太阳／大气修复、能量与 GPU 回归 |
-| `docs/engine-multithreading.md`、`docs/engine-design-review.md`、`docs/engine-followup-fixes.md` | 主逻辑／渲染分离、资源事务与快照、GPU 图片共享与修复、设计评价及下一步 |
-| `docs/engine-world-commands.md` | 私有组件注册表、线程封存移交、后台值命令与 RHI 统一资源配额 |
-| `docs/engine-runtime-completion.md` | 联合世界加载、图片增量上传、固定逻辑时钟、mip／layer、transient 复用、GPU feedback、磁盘管线缓存、降级与验收 |
-| `docs/engine-data-boundaries.md` | 核心数据私有化、资产移交、自动版本失效、参数校验与剩余边界 |
-| `docs/engine-gpu-publication.md` | 内存压力回收、候选 GPU 缓存事务、失败画面保留与恢复、成本与验收 |
-| `docs/engine-streaming-and-pipeline-cache.md` | 静态网格跨帧上传、字节／用时预算、管线独立句柄与共享 native、LRU 与验收 |
-| `docs/path-tracing-denoising.md` | OIDN 构建、HDR/AOV 降噪与离线处理 |
-| `docs/path-tracing-convergence.md` | GPU Guiding、Radiance Cache、BDPT 与玻璃焦散验证 |
-| `docs/path-tracing-gpu.md` | Sobol/VNDF、自适应采样、Metal/Vulkan compute PT、性能与误差对照 |
-| `docs/path-tracing-cpu.md` | CPU 物体渲染、HDR 天空桥、两个大型场景输出与复现、数值验证及限制 |
-| `docs/tsaa.md` | TSAA 重投影、海洋运动信息、历史处理与截图复现 |
-| `docs/ocean-fft-and-rendering-review.md` | 海洋 FFT、高清波纹、透明与散射的修复和验证记录 |
-
-## 命令与操作
-
-| 命令 | 用途 |
-| --- | --- |
-| `--demo` | 自动生成的功能演示，无需历史资产包 |
-| `--classic <name>` | 选择 `cornell`、`bunny`、`dragon`、`buddha`、`armadillo`、`helmet`、`sponza`、`san-miguel`、`sibenik`、`sky`、`ocean`、`ocean-clear`、`terrain`、`mountain-lake`、`mountain-lake-ground` 或 `mountain-lake-beach` |
-| `--frames <N>` | 窗口渲染 N 帧后退出 |
-| `--render-gallery <目录> core` | 离屏生成三个随仓库提供的基础示例 |
-| `--render-gallery <目录> gi` | 生成两个 GI 场景、RSM 开关对照及纯间接光／太阳／天空贡献图 |
-| `--render-gallery <目录> benchmarks` | 生成 Dragon、Buddha、Armadillo 与 Sibenik，含教堂 RSM 对照 |
-| `--render-gallery <目录> <场景名>` | 仅生成指定场景 |
-| `--render-gallery <目录>` | 默认生成三个基础示例 |
-| `--gpu-resource-budget-mib <N>` | 原生编辑器的 RHI buffer／texture 逻辑负载配额；默认 0 不限额；双线程编辑器超限保留成功画面并重试，无法恢复的冷启动报错；不含 driver heap 等隐式开销 |
-| `--auto-quality` | 显式允许配额失败时最多降低三个效果品质等级；默认关闭，关闭后恢复请求规格 |
-| `--asset-root <DIR>` | 指定模型／纹理／JSON 资源根目录；JSON 子资源优先相对文档解析 |
-| `--single-thread` | 原生编辑器同步对照；默认 Metal／Vulkan 使用独立渲染线程 |
-| `--rhi-self-test` | 所选 RHI 后端的 GPU 正确性自检 |
-| `--path-trace <场景名>` | CPU 路径追踪，默认 Sponza；使用 `--pt-size`、`--pt-samples`、`--pt-bounces` 等设置输出 |
-| `--pt-guiding` / `--pt-cache` | GPU 方向训练与可选有偏的漫反射延续缓存 |
-| `--pt-denoise` / `--pt-denoise-device` / `--pt-denoise-input` | OIDN 最终图降噪、设备选择与已有 PFM 离线处理 |
-| `--pt-bdpt` / `--pt-no-glass` | CPU BDPT 面积光参考与 `caustics` 无玻璃对照 |
-| `--path-trace-gpu <场景名>` | Metal/Vulkan GPU 路径追踪，共用 `--pt-*` 输出参数 |
-| `--pt-sampler sobol/pcg` / `--pt-fixed` | CPU 采样器对照与完整固定 spp；GPU 使用 Sobol |
-| `--pt-environment <HDR>` / `--pt-no-sky` | 复用环境贴图及太阳 sidecar，或跳过实时天空烘焙 |
-| `--pt-sun-radius <DEG>` | 调整烘焙天空的太阳角半径，0 < DEG < 5.73；保持辐照度，扩大太阳用于软光预览 |
-| `--pt-sss-roughness <R>` / `--pt-water-roughness <R>` | 玉龙／捕获水面的介电粗糙度，范围 [0,1]，默认分别 0.22／0；小于 0.02 使用平滑 delta 边界 |
-| `--pt-ocean-floor-depth <METERS>` | 设置 `dragon-jade-ocean` 海床深度，默认 20 m；2.2 m 恢复旧浅水设置 |
-| `--pt-self-test` | Metal／Vulkan 天空桥和 GPU PT 求交、采样与积分自检 |
-
-`W/A/S/D` 移动，`E/Q` 上下移动，按住 `Shift` 加速；按住鼠标右键调整视角。ImGui 用于修改渲染选项和场景参数。经典场景和离屏画廊支持 Metal/Vulkan；同时编译两后端时加 `--backend Vulkan`。`--rhi-self-test` 同时支持 OpenGL 基础路径。历史 `--metal-self-test` 仅在显式启用 `SCENERENDERER_LEGACY_METAL` 时提供。
-
-### 复现 README 图集
-
-下载 GI 资源后，使用原生 Metal 构建生成全部当前效果图：
-
-```sh
-python3 tools/fetch_gi_assets.py
-for scene in core gi sky ocean ocean-clear terrain; do
-    MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 \
-        ./build/Scene-Renderer --render-gallery img/metal "$scene"
-done
-```
-
-`core` 输出 Bunny、Helmet、Cornell 及 Cornell 的 RSM 关闭图；`gi` 输出 Sponza／San Miguel 的 RSM 开关和三种间接光图；`sky` 输出五种太阳高度／视角；`cloud-gallery` 输出三种体积云及无云／不透明度对照；海洋命令同时输出短波、散射或透射对照。文件统一写入 `img/metal/`。Vulkan 构建可使用相同画廊命令，另选输出目录，并省略 Metal 验证环境变量。
-
-## 构建、验证与限制
-
-基础 CTest 无需大型 GI 模型。下载模型后可另外运行新 RHI 画廊：
-
-```sh
-MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 ctest --test-dir build --output-on-failure
-ctest --test-dir build/vulkan --output-on-failure
-./build/Scene-Renderer --render-gallery build/rhi/gallery-metal gi
-./build/vulkan/Scene-Renderer --render-gallery build/rhi/gallery-vulkan gi
-./build/Scene-Renderer --demo --frames 3
-```
-
-GPU 验证覆盖上传/异步读回、延迟释放、MRT、前向/延迟 PBR、SSS 深度、透明排序、三类阴影、SSAO、太阳/天空 RSM、大气 LUT、GPU 体积云间接队列／球壳／历史／遮挡、完整海洋 IFFT、地形/草的 VT 区域上传、页淘汰与回退、流式高度、网格预算和闭合接缝、计算细分及 TSAA。CPU 数值参考和限定的像素比较用于检查结果；编辑器测试同时覆盖真实 resize、UI 与窗口呈现。画廊提供实际模型和贴图的视觉回归，不以历史截图作为物理参考图像。
-
-2026-10-05 体积云最终完整回归在 Apple M4/macOS 验收：Metal **17/17**、Vulkan/MoltenVK **18/18**；云间接队列、零工作清理、深度遮挡、球壳观察位置、风速／投影历史及 resize 均进入实际 GPU 验证。带云编辑器在 Metal API／Shader Validation 下通过双线程与单线程各 8 帧运行，详见 [体积云验收](docs/gpu-driven-clouds.md)。
-
-2026-10-03 CPU Path Tracing 在 Apple M4/macOS 验收：包含新增 PT 回归的完整 CTest 为 Metal **14/14**、Vulkan/MoltenVK **15/15**；CPU 测试通过 AddressSanitizer 和 UndefinedBehaviorSanitizer。覆盖 BVH 与暴力求交对照、材质／alpha／法线贴图、环境 PDF、GGX 数值积分、MIS、遮挡与发光面、确定性多线程、渐进累加和输出格式；另验证 Cornell 场景入口及设备线程上的天空烘焙。两个大型场景均输出 256 spp 图像，非有限样本为 0；完整记录见 [CPU Path Tracing 说明](docs/path-tracing-cpu.md)。
-
-2026-10-04 Engine 后续回归在 Apple M4/macOS 验收：Metal **11/11**、Vulkan/MoltenVK **12/12**、OpenGL **8/8**。覆盖线程归属／封存移交、CPU/GPU 联合加载与失败回退、增量 mesh／图片上传、磁盘管线缓存、纹理子资源隔离、transient 复用、真实深度 VT feedback、高度 morph／草附着，以及冷启动和已有画面下的自动降级。CPU 并发与 RHI graphics 契约分别通过 ThreadSanitizer；隔离本轮提交的全量 Metal 构建及完整 CTest **14/14**（含既有 PT 测试）通过。完整应用未在 TSan 下验收。经典大型场景持续运行、命令、预算及统计口径见 [本轮实施与验收](docs/engine-runtime-completion.md)。
-
-2026-10-03 天空修复在 Apple M4/macOS 验收：Metal **8/8**、Vulkan/MoltenVK **9/9**，包含太阳角半径／能量、地平线及几何遮挡、控制同步、观察高度与极限参数。OpenGL 4.1 的历史 RHI 验收为 7/7，本轮未重复运行。Metal 开启 API/Shader Validation；本机没有 Khronos validation layer，Windows/Linux 与 OpenGL 4.3+ 尚未实机验收。Metal/Vulkan 使用单队列、最多三帧并行提交；单次吞吐测量和算法边界见 [RHI 重构计划](docs/rhi-refactor-plan.md)。大规模 OBJ 导入仍需较多 CPU 内存与启动时间。
-
-`Cloud` 已通过新 RHI 实现 GPU Driven 体积云；地面云阴影与环境光照调制尚未实现。自动曝光尚未实现；CPU/GPU 路径追踪当前覆盖静态物体及基础 PBR；历史资产缺失也限制了原场景的视觉回归。Sponza 和 San Miguel 的实时图采用 RSM 一次反弹近似，CPU 路径追踪图采用有最大深度限制的多次反弹；两条路径的近似与尚未支持的效果见各自说明。
-
-旧 OpenGL 后端可使用独立目录构建：
-
-```sh
-cmake -S . -B build/opengl -DSCENERENDERER_RHI_BACKEND=OpenGL -DCMAKE_BUILD_TYPE=Release
-cmake --build build/opengl -j 8
-```
-
-依赖包括 GLFW、Assimp、yaml-cpp，以及随仓库提供的 GLM、ImGui、stb、tinygltf 和 glad 等。Metal 额外需要 Xcode Metal Toolchain、glslang、SPIRV-Cross；OpenGL 构建需要平台 OpenGL 库。
-
-## 历史效果与项目成员
-
-<details>
-<summary>查看历史场景截图（不作为本次 Metal 渲染结果）</summary>
-
-| 场景 | 效果 |
-| --- | --- |
-| 头盔 | ![历史头盔](img/helmet_mine.png) |
-| 天空与海洋 | ![历史天空海洋](img/sky.png) ![历史天空海洋 2](img/sky2.png) ![历史天空海洋 3](img/sky3.png) |
-| 地形与 LOD | ![历史地形](img/terrain.png) ![历史地形 LOD](img/terrain_dynamic_lod.png) |
-| 室内 | ![历史室内](img/house.png) ![历史室内 2](img/house2.png) |
-
-</details>
-
-原课程项目成员：[zyw](https://github.com/SleepinWei)、[jyx](https://github.com/1696762169)、[ljw](https://github.com/XiaoXKKK)、[zzl](https://github.com/qbdl)、[ckx](https://github.com/Moondok)、[lkj](https://github.com/qbdl)。模型、纹理及第三方代码的权利归各自作者；请阅读[资源归属与许可](samples/README.md)，尤其是非商业及研究／教育使用限制。
+| [构建与运行](docs/getting-started.md) | 依赖、后端选择、场景下载、启动指令、操作与截图复现 |
+| [完整效果图集](docs/rendering-gallery.md) | 各效果的配置、对照图、中间产物、测量与算法边界 |
+| [系统设计](docs/system-design.md) | 逻辑／渲染分离、每帧流程、RHI、着色器构建与模块划分 |
+| [技术文档索引](docs/README.md) | 实现说明、修改记录、验证结果与后续计划 |
+| [资源归属与许可](samples/README.md) | 模型、纹理的来源、作者和使用条件 |
+
+本项目用于学习与实验；截图、数据和功能范围对应各文档记录的配置。[课程成员与历史效果](docs/archive/historical-gallery.md)。

@@ -1,6 +1,15 @@
 # 文档索引
 
-运行、截图与命令行入口见 [项目 README](../README.md)。文件放置与依赖管理见 [仓库结构说明](repository-layout.md)，测试入口见 [测试说明](../tests/README.md)，示例资源来源与使用条件见 [场景资源说明](../samples/README.md)。
+项目介绍与精选效果见 [项目 README](../README.md)。构建、运行和截图复现见 [构建与运行](getting-started.md)，完整参数与效果对照见 [图集说明](rendering-gallery.md)。文件放置与依赖管理见 [仓库结构说明](repository-layout.md)，测试入口见 [测试说明](../tests/README.md)，示例资源来源与使用条件见 [场景资源说明](../samples/README.md)。
+
+## 使用与项目概览
+
+| 文档 | 内容 |
+| --- | --- |
+| [构建与运行](getting-started.md) | 依赖、Metal／Vulkan 构建、资源下载、命令与操作、画廊复现及平台范围 |
+| [完整效果图集](rendering-gallery.md) | 全部场景说明、采样配置、开关对照、中间产物与专题入口 |
+| [系统设计](system-design.md) | 逻辑／渲染线程、快照、每帧流程、RHI、shader 构建与目录模块 |
+| [课程成员与历史效果](archive/historical-gallery.md) | 原课程项目署名与历史截图 |
 
 ## 渲染与效果
 
