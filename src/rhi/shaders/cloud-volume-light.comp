@@ -1,0 +1,17 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+layout(local_size_x=8,local_size_y=8) in;
+#include "cloud-parameters.glsl"
+#include "cloud-volume-sampling.glsl"
+layout(set=1,binding=0) uniform sampler2D cloudVoxels;
+layout(set=1,binding=1,rgba16f) writeonly uniform image2D cloudVoxelLight;
+void main(){
+    ivec2 at=ivec2(gl_GlobalInvocationID.xy);if(any(greaterThanEqual(at,imageSize(cloudVoxelLight))))return;
+    ivec2 tile=at/66,p=at%66-1;int z=tile.y*8+tile.x;
+    vec3 uv=(vec3(p,z)+.5)/64.;float tau=0.,reach=length(cloudVolumeSize.xyz);int count=cloudQuality.y*4;
+    for(int j=0;j<count;j++){
+        float a=float(j)/float(count),b=float(j+1)/float(count),lo=a*a*reach,hi=b*b*reach;
+        tau+=cloudVolumeSample(cloudVoxels,uv+cloudSun.xyz*(lo+hi)*.5/cloudVolumeSize.xyz,int(cloudVolumeQuality.x)).r*cloudLayer.w*(hi-lo);
+    }
+    imageStore(cloudVoxelLight,at,vec4(min(tau,65000.),0,0,1));
+}

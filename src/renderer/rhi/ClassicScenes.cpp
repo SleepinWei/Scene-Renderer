@@ -234,7 +234,15 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
         atmosphere(target);
         const float angle=glm::radians(name=="clouds-sunset"?5.f:35.f),azimuth=glm::radians(name=="clouds-sunset"?20.f:120.f);
         sun(target,glm::vec3(20),{-std::cos(angle)*std::sin(azimuth),-std::sin(angle),std::cos(angle)*std::cos(azimuth)});
-        target->sky()->getComponent<Cloud>()->updateSettings([&](auto& c){c.enabled=true;c.coverage=name=="clouds-storm"?.78f:.52f;c.density=name=="clouds-storm"?.01f:.007f;});
+        target->sky()->getComponent<Cloud>()->updateSettings([&](auto& c){c.enabled=true;c.voxel=false;c.coverage=name=="clouds-storm"?.78f:.52f;c.density=name=="clouds-storm"?.01f:.007f;});
+        manager->setting.enableSSAO=false;manager->setting.enableShadow=false;
+    } else if (name == "cloud-volume" || name == "cloud-inside" || name == "cloud-vortex") {
+        const bool inside=name=="cloud-inside";
+        target->setCamera(std::make_shared<Camera>(inside?glm::vec3(-1100,2100,-3600):glm::vec3(0,1100,1800),glm::vec3(0,1,0),-90,inside?10:12));
+        target->mainCamera()->setZoom(70);target->mainCamera()->setExposure(1);
+        atmosphere(target);sun(target,glm::vec3(20),{-.5f,-.7f,-.3f});
+        target->sky()->getComponent<Cloud>()->updateSettings([&](auto& c){c.enabled=true;c.voxel=true;c.downsample=1;c.temporal=false;c.steps=128;c.density=.004f;c.coverage=.8f;c.wind={12,4};
+            if(name=="cloud-vortex"){c.storm=1;c.lightning=2;c.density=.006f;}});
         manager->setting.enableSSAO=false;manager->setting.enableShadow=false;
     } else if (name == "sky") {
         target->setCamera(std::make_shared<Camera>(glm::vec3(0,2,0),glm::vec3(0,1,0),-90,10));
@@ -336,6 +344,6 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
             point(target,{8,7,6},{4,5,0});
         }
         manager->setting.enableRSM = true;
-    } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose terrain, mountain-lake, sky, clouds, clouds-sunset, clouds-storm, shadow-test, bunny, dragon, buddha, armadillo, helmet, cornell, sponza, san-miguel, sibenik, ocean or ocean-clear");
+    } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose terrain, mountain-lake, sky, cloud-volume, cloud-inside, cloud-vortex, clouds, clouds-sunset, clouds-storm, shadow-test, bunny, dragon, buddha, armadillo, helmet, cornell, sponza, san-miguel, sibenik, ocean or ocean-clear");
     return target;
 }

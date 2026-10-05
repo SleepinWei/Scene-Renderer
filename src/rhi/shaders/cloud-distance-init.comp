@@ -1,0 +1,21 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+layout(local_size_x=8,local_size_y=8) in;
+#include "cloud-parameters.glsl"
+#include "cloud-volume-sampling.glsl"
+layout(set=1,binding=0) uniform sampler2D cloudVoxels;
+layout(set=1,binding=1,rgba8) writeonly uniform image2D cloudDistance;
+void main(){
+    ivec2 at=ivec2(gl_GlobalInvocationID.xy);if(any(greaterThanEqual(at,imageSize(cloudDistance))))return;
+    ivec3 brick=ivec3(at%32,(at.y/32)*8+at.x/32);int n=int(cloudVolumeQuality.x),span=n/32;bool occupied=false,core=true;
+    // Include neighboring density centers: trilinear reconstruction cannot
+    // introduce density outside this dilated occupancy envelope.
+    for(int z=-1;z<=span;z++)for(int y=-1;y<=span;y++)for(int x=-1;x<=span;x++){
+        ivec3 p=brick*span+ivec3(x,y,z);
+        if(all(greaterThanEqual(p,ivec3(0))) && all(lessThan(p,ivec3(n)))){
+            float density=texelFetch(cloudVoxels,cloudVoxelTexel(p,n),0).r;
+            occupied=occupied || density>0.;core=core && density==1.;
+        }else core=false;
+    }
+    imageStore(cloudDistance,at,vec4(occupied?0.:127./255.,occupied?127./255.:0.,occupied?1.:0.,core?127./255.:0.));
+}

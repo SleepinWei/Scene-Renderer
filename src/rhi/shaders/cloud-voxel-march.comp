@@ -1,0 +1,67 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+layout(local_size_x=8,local_size_y=8) in;
+#include "cloud-parameters.glsl"
+#include "cloud-intersection.glsl"
+#include "cloud-volume-sampling.glsl"
+layout(set=0,binding=1) uniform sampler2D cloudSkyIrradiance;
+layout(set=1,binding=0,std430) readonly buffer CloudTiles {uint tiles[];};
+layout(set=1,binding=1) uniform sampler2D sceneDepth;
+layout(set=1,binding=2) uniform sampler2D cloudVoxels;
+layout(set=1,binding=3) uniform sampler2D cloudDistance;
+layout(set=1,binding=4) uniform sampler2D cloudVoxelLight;
+layout(set=1,binding=5) uniform sampler2D cloudNoiseAtlas;
+layout(set=1,binding=6,rgba16f) writeonly uniform image2D cloudRaw;
+layout(set=1,binding=7,rgba32f) writeonly uniform image2D cloudRawDepth;
+#include "cloud-atlas-noise.glsl"
+#include "sky-mapping.glsl"
+float phaseHG(float mu,float g){return (1.-g*g)/(12.5663706*pow(max(1.+g*g-2.*g*mu,.001),1.5));}
+void main(){
+    uint tile=tiles[gl_WorkGroupID.x];ivec2 p=ivec2(tile%uint(cloudGrid.z),tile/uint(cloudGrid.z))*8+ivec2(gl_LocalInvocationID.xy);
+    if(any(greaterThanEqual(p,cloudGrid.xy)))return;
+    vec2 uv=(vec2(p)+.5)/vec2(cloudGrid.xy);vec3 ray=cloudRay(uv);float surface=cloudSurface(uv,textureLod(sceneDepth,uv,0).r);
+    vec2 interval=cloudInterval(ray,surface);if(interval.y<=interval.x)return;
+    float stepLength=(interval.y-interval.x)/float(cloudQuality.x);
+    float rayCone=length(cloudRay(uv+vec2(1./float(cloudGrid.x),0))-ray);
+    float jitter=cloudSun.w>.5?fract(sin(dot(vec2(p),vec2(12.9898,78.233)))*43758.5453+float(cloudGrid.w)*.618033989):.5;
+    float T=1.,moment=0.,weight=0.;vec3 L=vec3(0),ambient=sampleSkyLut(cloudSkyIrradiance,vec3(0,1,0))/3.14159265;
+    float phase=.85*phaseHG(dot(ray,cloudSun.xyz),.65)+.15*phaseHG(dot(ray,cloudSun.xyz),-.25);
+    float flash=cloudVolumeQuality.w*pow(max(cos(cloudCameraTime.w*1.57079633),0.),64.);
+    int sampleIndex=0,visited=0,skipped=0;
+    for(int i=0;i<cloudQuality.x && sampleIndex<cloudQuality.x;i++){
+        float t=interval.x+(float(sampleIndex)+jitter)*stepLength;vec3 world=cloudCameraTime.xyz+ray*t,local=cloudVolumeUV(world);
+        ivec3 brick=clamp(ivec3(local*32.),ivec3(0),ivec3(31));vec4 distanceCodes=round(texelFetch(cloudDistance,cloudBrickTexel(brick),0)*255.);float distance=distanceCodes.r;
+        float safe=max(distance-2.,0.)*min(min(cloudVolumeSize.x,cloudVolumeSize.y),cloudVolumeSize.z)/32.;
+        if(cloudVolumeQuality.y>.5 && safe>stepLength*2.){
+            int advance=max(int(floor(safe/stepLength))-1,1);advance=min(advance,cloudQuality.x-sampleIndex);sampleIndex+=advance;skipped+=advance;continue;
+        }
+        float density=cloudVolumeSample(cloudVoxels,local,int(cloudVolumeQuality.x)).r;
+        int advance=1;
+        // Alpha bounds the nearest non-unit-density brick. Within this bound
+        // extinction is exactly constant; only cached illumination is sampled
+        // at the segment midpoint. Keep a small cap for lighting variation.
+        float coreDistance=max(distanceCodes.a-1.,0.)*min(min(cloudVolumeSize.x,cloudVolumeSize.y),cloudVolumeSize.z)/32.;
+        if(cloudVolumeQuality.z>.5 && density==1. && coreDistance>stepLength*2.){
+            advance=clamp(int(floor(coreDistance/stepLength))-1,1,8);
+            advance=min(advance,cloudQuality.x-sampleIndex);
+            local=cloudVolumeUV(world+ray*(float(advance)-1.)*stepLength*.5);
+        }
+        if(density>0.){
+            // Up-resolution only erodes the cached density. This preserves the
+            // conservative empty-space envelope and avoids skipping fine detail.
+            vec3 material=world-vec3(cloudWindHistory.x,0,cloudWindHistory.y)*cloudCameraTime.w;
+            float detailScale=max(cloudShape.x*.22,100.),detailCell=detailScale/24.;
+            float detailWeight=1.-smoothstep(detailCell*.75,detailCell*2.,t*rayCone);
+            if(density<.8 && cloudShape.z*detailWeight>0.)density*=clamp(1.-(1.-cloudNoiseSample(material/detailScale).y)*cloudShape.z*detailWeight,0.,1.);
+            float tau=cloudVolumeSample(cloudVoxelLight,local,64).r;
+            vec3 lighting=ambient*(.3+.7*clamp(local.y,0.,1.))+cloudSunColor.rgb*(phase*exp(-tau)+.045*exp(-.25*tau)+.015*exp(-.06*tau));
+            vec3 flashPoint=(local-vec3(.5,.6,.5))*cloudVolumeSize.xyz;
+            lighting+=vec3(.55,.7,1)*flash*exp(-dot(flashPoint,flashPoint)/800000.);
+            float segment=exp(-density*cloudLayer.w*stepLength*float(advance)),w=T*(1.-segment);L+=w*lighting*.98;moment+=w*(t+(float(advance)-1.)*stepLength*.5);weight+=w;T*=segment;
+            if(T<.01){visited++;break;}
+        }
+        visited++;sampleIndex+=advance;
+    }
+    imageStore(cloudRaw,p,vec4(min(L,vec3(65000)),clamp(T,0.,1.)));
+    imageStore(cloudRawDepth,p,vec4(weight>1e-6?moment/weight:0.,surface,float(visited),float(skipped)));
+}

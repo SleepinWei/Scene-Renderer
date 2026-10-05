@@ -73,6 +73,9 @@ public:
     std::vector<float> readGBuffer(uint32_t attachment);
     std::vector<float> readClouds();
     std::vector<float> readCloudMetadata();
+    std::vector<uint8_t> readCloudVoxels();
+    std::vector<uint8_t> readCloudDistance();
+    std::vector<float> readCloudLight();
     std::array<uint32_t,2> cloudTileCounts(); // Explicit diagnostic readback: active,total.
     const rhi::GraphicsDevice* owner() const { return resources_.device.get(); }
     static rhi::BindingLayout frameLayout();

@@ -262,6 +262,17 @@ public:
                 auto value=cloud->settings();
                 ImGui::Checkbox("Enable clouds",&value.enabled);
                 ImGui::Checkbox("Cloud temporal reconstruction",&value.temporal);
+                ImGui::Checkbox("Immersive voxel cloud",&value.voxel);
+                if(value.voxel){
+                    ImGui::Checkbox("Empty-space distance skipping",&value.distanceSkipping);
+                    ImGui::Checkbox("Homogeneous core integration",&value.coreIntegration);
+                    int res=value.voxelResolution==128?1:0;
+                    if(ImGui::Combo("Voxel density resolution",&res,"64 cubed\0 128 cubed\0"))value.voxelResolution=res?128:64;
+                    ImGui::DragFloat3("Cloud volume center (m)",&value.volumeCenter.x,10);
+                    ImGui::SliderFloat3("Cloud volume size (m)",&value.volumeSize.x,100,50000);
+                    ImGui::SliderFloat("Storm vortex",&value.storm,0,1);
+                    ImGui::SliderFloat("Internal lightning",&value.lightning,0,100);
+                }
                 int quality=value.downsample==1?0:value.downsample==2?1:2;
                 if(ImGui::Combo("Cloud resolution",&quality,"Full\0Half\0Quarter\0"))value.downsample=1u<<quality;
                 ImGui::SliderFloat("Cloud coverage",&value.coverage,0,1);

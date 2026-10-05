@@ -1,6 +1,6 @@
 # GPU Driven 体积云
 
-2026-10-05：把原来只有声明的 `Cloud` 组件接入新 RHI，Metal 与 Vulkan 共用计算 shader 和渲染调度。默认半分辨率执行体积积分，可在编辑器切换完整、半、四分之一分辨率；经典场景提供晴天积云、日落和阴天三种预设。旧场景默认关闭云，避免改变已有的对照图与性能。
+2026-10-05：把原来只有声明的 `Cloud` 组件接入新 RHI，Metal 与 Vulkan 共用计算 shader 和渲染调度。默认半分辨率执行体积积分，可在编辑器切换完整、半、四分之一分辨率；经典场景提供晴天积云、日落和阴天三种预设。旧场景默认关闭云，避免改变已有的对照图与性能。后续增加了 [可穿越三维体素云](immersive-voxel-clouds.md)，本文的球壳流程和测量对应 `voxel=false` 的远景模式。
 
 方案参考了 Guerrilla 的实时体积云公开资料：[2015 年云景渲染](https://www.guerrilla-games.com/read/the-real-time-volumetric-cloudscapes-of-horizon-zero-dawn)、[Nubis, Evolved](https://www.guerrilla-games.com/read/nubis-evolved)。本项目采用程序化密度、有限步进和时域重建，并自行实现 GPU tile 压缩队列；并未复现完整 Nubis 系统，其性能数字也不适用于这里。
 
@@ -23,6 +23,7 @@
 {
   "clouds": {
     "enabled": true,
+    "voxel": false,
     "temporal": true,
     "baseHeight": 1200,
     "thickness": 1600,

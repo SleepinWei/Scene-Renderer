@@ -220,6 +220,7 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
                     shadows.sunAngularRadius,shadows.localLightRadius,shadows.maxFilterTexels})hashShadow(value);
     hashShadow(frame.clouds.enabled?1.f:0.f);
     if(frame.clouds.enabled){const auto& c=frame.clouds;for(float value:{c.baseHeight,c.thickness,c.coverage,c.density,c.shapeScale,c.weatherScale,c.erosion,c.maxDistance,c.wind.x,c.wind.y,float(c.steps),float(c.lightSteps),float(c.downsample),float(c.seed),c.temporal?1.f:0.f})hashShadow(value);}
+    if(frame.clouds.enabled){const auto& c=frame.clouds;for(float value:{c.voxel?1.f:0.f,c.distanceSkipping?1.f:0.f,c.coreIntegration?1.f:0.f,c.volumeCenter.x,c.volumeCenter.y,c.volumeCenter.z,c.volumeSize.x,c.volumeSize.y,c.volumeSize.z,float(c.voxelResolution),c.storm,c.lightning})hashShadow(value);}
     const auto shadowViewProjection=frame.viewProjection;
     if(temporal_){const auto projection=frame.viewProjection*glm::inverse(frame.view);float difference=0;for(int c=0;c<4;++c)for(int r=0;r<4;++r)difference=std::max(difference,std::abs(projection[c][r]-previousProjection_[c][r]));
         // Compare the unjittered projection so FOV/near/far cuts invalidate
@@ -681,6 +682,9 @@ std::vector<float> ForwardPbrRenderer::readGBuffer(uint32_t attachment) {
 }
 std::vector<float> ForwardPbrRenderer::readClouds(){if(!clouds_)throw std::logic_error("Clouds disabled");return clouds_->read();}
 std::vector<float> ForwardPbrRenderer::readCloudMetadata(){if(!clouds_)throw std::logic_error("Clouds disabled");return clouds_->readMetadata();}
+std::vector<uint8_t> ForwardPbrRenderer::readCloudVoxels(){if(!clouds_)throw std::logic_error("Clouds disabled");return clouds_->readVoxels();}
+std::vector<uint8_t> ForwardPbrRenderer::readCloudDistance(){if(!clouds_)throw std::logic_error("Clouds disabled");return clouds_->readDistance();}
+std::vector<float> ForwardPbrRenderer::readCloudLight(){if(!clouds_)throw std::logic_error("Clouds disabled");return clouds_->readLight();}
 std::array<uint32_t,2> ForwardPbrRenderer::cloudTileCounts(){if(!clouds_)throw std::logic_error("Clouds disabled");return {clouds_->readDispatch()[0],clouds_->totalTiles()};}
 rhi::TextureHandle ForwardPbrRenderer::output() const { return targets_->output; }
 std::vector<float> ForwardPbrRenderer::readHDR() {

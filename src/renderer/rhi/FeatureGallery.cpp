@@ -37,8 +37,9 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
     else if(selection=="benchmarks")names={"dragon","buddha","armadillo","sibenik"};
     else if(selection=="diagnostics")names={"terrain","shadow-test"};else names={selection};
     if(selection=="cloud-gallery")names={"clouds","clouds-sunset","clouds-storm"};
+    if(selection=="cloud-volume-gallery")names={"cloud-volume","cloud-inside","cloud-vortex"};
     const bool diagnostics=selection=="diagnostics";
-    const bool water=selection=="ocean" || selection=="ocean-clear" || selection=="mountain-lake" || selection=="mountain-lake-ground" || selection=="mountain-lake-beach";int width=water?1920:960,height=water?1080:720;
+    const bool water=selection.rfind("cloud-",0)==0 || selection=="ocean" || selection=="ocean-clear" || selection=="mountain-lake" || selection=="mountain-lake-ground" || selection=="mountain-lake-beach";int width=water?1920:960,height=water?1080:720;
 #ifdef __APPLE__
     glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER,GLFW_FALSE);
 #endif
@@ -51,7 +52,7 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
             {
                 SceneAdapter adapter(device);ForwardPbrRenderer renderer(device,rhi::defaultShaderDirectory(),width,height,PbrPath::Scene);
                 FrameData lastFrame;
-                const bool cloudScene=name.rfind("clouds",0)==0;
+                const bool cloudScene=name.rfind("cloud",0)==0;
                 nlohmann::json cloudMetrics;
                 SceneSnapshotBuilder diagnosticBuilder;
                 auto collect=[&]() {
@@ -85,6 +86,7 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
                             {"width",width},{"height",height},{"frames",captureFrames},{"time_seconds",8},
                             {"coverage",settings.coverage},{"density",settings.density},{"enabled",settings.enabled},
                             {"primary_steps",settings.steps},{"light_steps",settings.lightSteps},{"downsample",settings.downsample},
+                            {"voxel",settings.voxel},{"voxel_resolution",settings.voxelResolution},{"temporal",settings.temporal},{"distance_skipping",settings.distanceSkipping},{"core_integration",settings.coreIntegration},{"storm",settings.storm},{"lightning",settings.lightning},
                             {"base_height",settings.baseHeight},{"thickness",settings.thickness},{"seed",settings.seed},
                             {"measurement","whole frame native command buffer, including presentation copy; first 4 frames excluded"},
                             {"gpu_ms_samples",gpuTimes}};
@@ -96,7 +98,7 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
                 };
                 const bool gi=manager->setting.enableRSM;if(gi)capture("-direct",false,false,true,true);capture("",gi,false,true,true);
                 if(diagnostics)exportGalleryDiagnostics(directory,name,device,adapter,renderer,lastFrame);
-                if(name=="clouds" || name=="clouds-sunset" || name=="clouds-storm") {
+                if(cloudScene) {
                     auto counts=renderer.cloudTileCounts();auto cloud=renderer.readClouds();auto meta=renderer.readCloudMetadata();
                     const auto factor=scene->sky()->getComponent<Cloud>()->settings().downsample;
                     const int cw=(width+factor-1)/factor,ch=(height+factor-1)/factor;std::vector<uint8_t> transmittance(size_t(cw)*ch*4);
@@ -104,7 +106,34 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
                     auto path=(std::filesystem::path(directory)/(name+"-opacity.png")).string();if(!stbi_write_png(path.c_str(),cw,ch,4,transmittance.data(),cw*4))throw std::runtime_error("Cannot save cloud opacity");
                     std::cout<<"Cloud tiles "<<counts[0]<<"/"<<counts[1]<<", mean opacity "<<opacity/(cw*ch)<<", mean primary steps "<<steps/(cw*ch)<<"\n";
                     cloudMetrics[name]["active_tiles"]=counts[0];cloudMetrics[name]["total_tiles"]=counts[1];cloudMetrics[name]["mean_opacity"]=opacity/(cw*ch);cloudMetrics[name]["mean_primary_steps"]=steps/(cw*ch);
-                    auto component=scene->sky()->getComponent<Cloud>();component->updateSettings([](auto& s){s.enabled=false;});capture("-clear",false,false,true,true);
+                    auto settings=scene->sky()->getComponent<Cloud>()->settings();
+                    if(settings.voxel){
+                        double skipped=0;for(size_t i=3;i<meta.size();i+=4)skipped+=meta[i];cloudMetrics[name]["mean_skipped_samples"]=skipped/(cw*ch);
+                        auto density=renderer.readCloudVoxels();auto distance=renderer.readCloudDistance();auto light=renderer.readCloudLight();
+                        const int n=settings.voxelResolution,columns=n==128?16:8,z=n/2;
+                        std::vector<uint8_t> slice(n*n*4);for(int y=0;y<n;y++)for(int x=0;x<n;x++){
+                            size_t source=(((z/columns)*(n+2)+y+1)*(n+2)*columns+(z%columns)*(n+2)+x+1)*4;
+                            size_t dest=(y*n+x)*4;for(int c=0;c<3;c++)slice[dest+c]=density[source];slice[dest+3]=255;
+                        }
+                        auto save=[&](const std::string& suffix,int w,int h,const std::vector<uint8_t>& pixels){auto path=(std::filesystem::path(directory)/(name+suffix+".png")).string();if(!stbi_write_png(path.c_str(),w,h,4,pixels.data(),w*4))throw std::runtime_error("Cannot save voxel diagnostic");};
+                        save("-density-slice",n,n,slice);
+                        slice.resize(32*32*4);for(int y=0;y<32;y++)for(int x=0;x<32;x++){
+                            size_t source=((2*32+y)*256+x)*4,dest=(y*32+x)*4;
+                            slice[dest]=std::min(int(distance[source])*8,255);slice[dest+1]=0;
+                            slice[dest+2]=distance[source+2]?std::min(int(distance[source+1])*16+40,255):0;slice[dest+3]=255;
+                        }save("-distance-slice",32,32,slice);
+                        slice.resize(64*64*4);for(int y=0;y<64;y++)for(int x=0;x<64;x++){
+                            size_t source=((4*66+y+1)*528+x+1)*4,dest=(y*64+x)*4;
+                            for(int c=0;c<3;c++)slice[dest+c]=uint8_t(std::clamp(std::exp(-light[source]),0.f,1.f)*255);slice[dest+3]=255;
+                        }save("-light-slice",64,64,slice);
+                    }
+                    auto component=scene->sky()->getComponent<Cloud>();
+                    if(settings.voxel){
+                        component->updateSettings([](auto& s){s.distanceSkipping=false;s.coreIntegration=false;});capture("-reference",false,false,true,true);
+                        component->setSettings(settings);
+                        if(settings.lightning>0){component->updateSettings([](auto& s){s.lightning=0;});capture("-no-flash",false,false,true,true);component->setSettings(settings);}
+                    }
+                    component->updateSettings([](auto& s){s.enabled=false;});capture("-clear",false,false,true,true);
                     auto metricPath=std::filesystem::path(directory)/(name+"-metrics.json");std::ofstream metricFile(metricPath);metricFile<<cloudMetrics.dump(2)<<'\n';if(!metricFile)throw std::runtime_error("Cannot save cloud metrics");
                 }
                 if(name=="shadow-test") {

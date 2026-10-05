@@ -17,7 +17,11 @@ public:
     std::vector<float> readMetadata();
     std::array<uint32_t,3> readDispatch();
     uint32_t totalTiles() const;
+    std::vector<uint8_t> readVoxels();
+    std::vector<uint8_t> readDistance();
+    std::vector<float> readLight();
 private:
+    struct Volume;std::unique_ptr<Volume> volume_;bool voxelBaked_=false;glm::vec3 previousSun_{0};
     struct Targets;std::unique_ptr<Targets> targets_;
     Resources resources_;rhi::SamplerHandle linear_,nearest_;
     rhi::TextureHandle noise_,weather_;rhi::TextureViewHandle noiseView_,weatherView_;
