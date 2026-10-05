@@ -20,6 +20,7 @@
 | [可穿越三维体素云](immersive-voxel-clouds.md) | 量化体素、保守有符号距离场、太阳缓存、1080p 无云历史步进与风暴内部闪光 |
 | [GPU Driven 体积云](gpu-driven-clouds.md) | GPU tile 队列与间接步进、程序化密度、风速历史、真实截图与性能 |
 | [天空与太阳](sky-and-sun-review.md) | 大气散射、太阳能量与 GPU 回归 |
+| [环境遮蔽 AO](ambient-occlusion.md) | 原 SSAO 审查、GTAO 式地平线积分、边缘保留滤波、真实对照与优化顺序 |
 | [RSM 实现与验证](rsm.md) | 太阳／天空间接光、算法边界与捕获方法 |
 | [FFT 海洋与透明水体](ocean-fft-and-rendering-review.md) | 频谱、高清波纹、折射与散射 |
 | [地形与 Virtual Texture](terrain-virtual-texture.md) | 四叉树、分页、预算与离线工具 |

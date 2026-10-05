@@ -31,6 +31,8 @@ struct FrameData {
     uint64_t historyKey=0;
     uint32_t viewportWidth=1280,viewportHeight=720;
     float aoRadius=1,aoBias=.025f,aoPower=1.5f;
+    bool aoHorizon=true,aoDenoise=true;
+    int aoSlices=4,aoSteps=4;
     bool toneMapping=true,forwardShading=false;
     RsmSettings rsmSettings;
     ShadowSettings shadowSettings;
@@ -68,6 +70,7 @@ public:
     std::vector<uint8_t> readOutput();
     std::vector<float> readBackDepth();
     std::vector<float> readSSAO();
+    std::vector<float> readRawAO();
     std::vector<float> readShadowDepth();
     ShadowParameters shadowParameters() const; // Value snapshot for render-thread diagnostics.
     std::vector<float> readGBuffer(uint32_t attachment);
@@ -98,7 +101,7 @@ private:
     rhi::BufferHandle skyParameters_;rhi::TextureViewHandle skyView_,irradianceView_;
     rhi::BufferHandle effects_;
     rhi::BindingSetHandle effectsBindings_;
-    rhi::PipelineHandle ssaoPipeline_,sceneForward_,sceneForwardInstanced_,sceneForwardWire_,sceneForwardWireInstanced_;
+    rhi::PipelineHandle ssaoPipeline_,aoFilterPipeline_,sceneForward_,sceneForwardInstanced_,sceneForwardWire_,sceneForwardWireInstanced_;
     rhi::BindingLayout sceneForwardLayout_;
     rhi::BufferHandle camera_, lighting_, tone_, quad_;
     rhi::PipelineHandle forward_, instanced_,wireframe_,wireframeInstanced_,tonePipeline_, deferredPipeline_;

@@ -38,6 +38,7 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
     else if(selection=="diagnostics")names={"terrain","shadow-test"};else names={selection};
     if(selection=="cloud-gallery")names={"clouds","clouds-sunset","clouds-storm"};
     if(selection=="cloud-volume-gallery")names={"cloud-volume","cloud-inside","cloud-vortex"};
+    if(selection=="ao")names={"cornell","sponza"};
     const bool diagnostics=selection=="diagnostics";
     const bool water=selection.rfind("cloud-",0)==0 || selection=="ocean" || selection=="ocean-clear" || selection=="mountain-lake" || selection=="mountain-lake-ground" || selection=="mountain-lake-beach";int width=water?1920:960,height=water?1080:720;
 #ifdef __APPLE__
@@ -69,6 +70,8 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
                     for(int i=0;i<captureFrames;++i){
                         glfwPollEvents();device->beginFrame();auto frame=collect();
                         frame.frame.shadows=manager->setting.enableShadow;frame.frame.ssao=manager->setting.enableSSAO;
+                        const auto& ao=manager->setting;frame.frame.aoRadius=ao.aoRadius;frame.frame.aoBias=ao.aoBias;frame.frame.aoPower=ao.aoPower;frame.frame.aoHorizon=ao.aoHorizon;frame.frame.aoDenoise=ao.aoDenoise;frame.frame.aoSlices=ao.aoSlices;frame.frame.aoSteps=ao.aoSteps;
+                        if(selection=="ao")frame.frame.taa=false;
                         frame.frame.rsm=rsm;frame.frame.rsmSettings=manager->setting.rsmSettings;
                         frame.frame.shadowSettings=manager->setting.shadowSettings;
                         frame.frame.rsmSettings.indirectOnly=only;frame.frame.rsmSettings.sunBounce=sun;frame.frame.rsmSettings.skyBounce=sky;
@@ -96,6 +99,26 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
                     std::cout<<name<<suffix<<" HDR mean RGB "<<energy/(3*width*height)<<", peak "<<peak<<"\n";
                     auto pixels=renderer.readOutput();const auto path=(std::filesystem::path(directory)/(name+suffix+".png")).string();if(!stbi_write_png(path.c_str(),width,height,4,pixels.data(),width*4))throw std::runtime_error("Cannot save "+path);std::cout<<"Rendered "<<path<<'\n';
                 };
+                if(selection=="ao"){
+                    const auto previous=manager->setting;nlohmann::json metrics;
+                    for(const auto& mode:std::vector<std::string>{"off","legacy","gtao-raw","gtao"}){
+                        auto& setting=manager->setting;setting.enableSSAO=mode!="off";
+                        setting.aoHorizon=mode!="legacy";setting.aoDenoise=mode=="gtao";
+                        capture("-ao-"+mode,false,false,true,true);
+                        auto visibility=renderer.readSSAO(),positions=renderer.readGBuffer(0);std::vector<uint8_t> image(visibility.size());
+                        double sum=0;size_t covered=0;
+                        for(size_t i=0;i<visibility.size();i+=4){
+                            if(!std::isfinite(visibility[i]))throw std::runtime_error("Nonfinite AO gallery");
+                            if(positions[i+3]>0){sum+=visibility[i];++covered;}
+                            for(int c=0;c<3;++c)image[i+c]=uint8_t(glm::clamp(visibility[i],0.f,1.f)*255);image[i+3]=255;
+                        }
+                        auto path=(std::filesystem::path(directory)/(name+"-ao-"+mode+"-visibility.png")).string();
+                        if(!stbi_write_png(path.c_str(),width,height,4,image.data(),width*4))throw std::runtime_error("Cannot save AO visibility");
+                        metrics[mode]={{"mean_visibility_on_geometry",sum/std::max(size_t(1),covered)},{"covered_pixels",covered},{"radius",setting.aoRadius},{"bias",setting.aoBias},{"power",setting.aoPower},{"horizon",setting.aoHorizon},{"denoise",setting.aoDenoise},{"slices",setting.aoSlices},{"steps_per_side",setting.aoSteps}};
+                    }
+                    manager->setting=previous;metrics["capture"]={{"backend",rhi::requestedBackend()==rhi::Backend::Metal?"Metal":"Vulkan"},{"width",width},{"height",height},{"rsm",false},{"taa",false},{"time_seconds",8},{"frames_per_mode",16}};
+                    std::ofstream file(std::filesystem::path(directory)/(name+"-ao-metrics.json"));file<<metrics.dump(2)<<'\n';if(!file)throw std::runtime_error("Cannot save AO metrics");
+                } else {
                 const bool gi=manager->setting.enableRSM;if(gi)capture("-direct",false,false,true,true);capture("",gi,false,true,true);
                 if(diagnostics)exportGalleryDiagnostics(directory,name,device,adapter,renderer,lastFrame);
                 if(cloudScene) {
@@ -168,6 +191,7 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
                     pointSun(-5,30,0);capture("-night",false,false,true,true);
                 }
                 if(gi && (name=="sponza" || name=="san-miguel" || name=="sibenik")){capture("-indirect",true,true,true,true);capture("-sun-indirect",true,true,true,false);capture("-sky-indirect",true,true,false,true);}
+                } // Regular gallery selection.
             }
             scene->destroy();
         }

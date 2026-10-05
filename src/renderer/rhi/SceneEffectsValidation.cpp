@@ -4,6 +4,7 @@
 #include <iostream>
 #include <cmath>
 #include <algorithm>
+#include <limits>
 namespace render {
 namespace {void check(bool v,const char* text){if(!v)throw std::runtime_error(text);}}
 void validateSceneEffects(std::shared_ptr<rhi::GraphicsDevice> device,const std::string& directory){
@@ -136,6 +137,68 @@ void validateSceneEffects(std::shared_ptr<rhi::GraphicsDevice> device,const std:
     }
     f.ssao=true;renderer.render(f,draws);const auto ao=renderer.readSSAO();size_t occluded=0;
     for(size_t i=0;i<ao.size();i+=4){check(std::isfinite(ao[i])&&ao[i]>=0&&ao[i]<=1,"SSAO range invalid");if(ao[i]<.99f)++occluded;}check(occluded>8,"SSAO did not detect blocker contact");
+    {
+        auto test=f;test.shadows=false;test.rsm=false;test.aoPower=1;test.aoDenoise=false;
+        auto validAo=[&](const std::vector<float>& values){
+            for(size_t i=0;i<values.size();i+=4)check(std::isfinite(values[i])&&values[i]>=0&&values[i]<=1,"AO visibility outside 0..1");
+        };
+        auto openPlane=[&](const glm::mat4& transform){
+            renderer.render(test,{{plane,material,transform}});
+            auto visibility=renderer.readSSAO(),world=renderer.readGBuffer(0);validAo(visibility);
+            size_t covered=0;for(size_t i=0;i<world.size();i+=4)if(world[i+3]>0){++covered;check(visibility[i]>.999f,"GTAO self-occluded an isolated plane or screen border");}
+            check(covered>100,"AO plane validation did not cover geometry");
+        };
+        openPlane(glm::mat4(1));openPlane(glm::rotate(glm::mat4(1),glm::radians(30.f),glm::vec3(0,1,0)));
+        test.aoDenoise=true;openPlane(glm::mat4(1));
+        MaterialDesc mapped;mapped.parameters.factors={0,.8f,1,0};mapped.images[1]={1,1,{220,128,220,255}};
+        auto mappedMaterial=std::make_shared<GpuMaterial>(device,mapped);
+        renderer.render(test,{{plane,mappedMaterial,glm::mat4(1)}});auto mappedAo=renderer.readSSAO(),mappedWorld=renderer.readGBuffer(0);
+        for(size_t i=0;i<mappedWorld.size();i+=4)if(mappedWorld[i+3]>0)check(mappedAo[i]>.999f,"Normal map caused GTAO self-occlusion on flat geometry");
+        test.aoDenoise=false;renderer.render(test,draws);auto raw=renderer.readRawAO(),world=renderer.readGBuffer(0);
+        validAo(raw);size_t receiverOccluded=0;
+        for(size_t i=0;i<world.size();i+=4)if(world[i+3]>0&&std::abs(world[i+2])<.01f&&raw[i]<.98f)++receiverOccluded;
+        check(receiverOccluded>8,"GTAO did not occlude the receiver near a blocker");
+        test.aoDenoise=true;renderer.render(test,draws);auto filtered=renderer.readSSAO();validAo(filtered);
+        for(size_t i=0;i<world.size();i+=4)if(world[i+3]==0)check(filtered[i]==1,"AO filter bled into the background");
+        // A blocker beyond the world-space radius must not leave a receiver halo.
+        auto separated=draws;separated[1].model[3].z=1.5f;renderer.render(test,separated);
+        auto distant=renderer.readSSAO(),distantWorld=renderer.readGBuffer(0);
+        for(size_t i=0;i<distantWorld.size();i+=4)if(distantWorld[i+3]>0&&std::abs(distantWorld[i+2])<.01f)check(distant[i]>.999f,"GTAO world-radius rejection left a detached halo");
+        // AO modulates ambient light, never direct illumination.
+        test.ambient=0;test.ssao=false;renderer.render(test,draws);auto direct=renderer.readHDR();
+        test.ssao=true;renderer.render(test,draws);check(direct==renderer.readHDR(),"AO changed direct lighting");
+        test.ambient=.3f;test.ssao=false;renderer.render(test,draws);auto ambientOpen=renderer.readHDR();
+        test.ssao=true;renderer.render(test,draws);auto ambientOccluded=renderer.readHDR();size_t ambientDarker=0;
+        for(size_t i=0;i<world.size();i+=4)if(world[i+3]>0&&ambientOpen[i]-ambientOccluded[i]>.003f)++ambientDarker;
+        check(ambientDarker>8,"AO did not attenuate ambient light");
+        test.forwardShading=true;renderer.render(test,draws);auto aoForward=renderer.readHDR();float aoDifference=0;
+        for(size_t i=0;i<aoForward.size();++i)aoDifference=std::max(aoDifference,std::abs(aoForward[i]-ambientOccluded[i]));
+        check(aoDifference<.025f,"AO forward/deferred composition disagreed");test.forwardShading=false;
+        if(device->computeLimits().maxStorageImages){
+            test.taa=true;test.historyKey=93;test.aoHorizon=false;
+            renderer.render(test,draws);renderer.render(test,draws);test.aoHorizon=true;renderer.render(test,draws);
+            auto switched=renderer.readHDR();renderer.resetTemporal();renderer.render(test,draws);
+            check(switched==renderer.readHDR(),"AO method change retained stale TSAA history");
+            test.aoRadius=.4f;renderer.render(test,draws);auto resizedRadius=renderer.readHDR();
+            renderer.resetTemporal();renderer.render(test,draws);check(resizedRadius==renderer.readHDR(),"AO radius change retained stale TSAA history");
+            test.taa=false;test.aoRadius=1;
+        }
+        test.aoHorizon=false;test.aoDenoise=false;renderer.render(test,draws);validAo(renderer.readSSAO());
+        for(int mode=0;mode<2;mode++){
+            test.ssao=mode==1;test.aoRadius=mode==1?0.f:1.f;renderer.render(test,draws);
+            for(float v:renderer.readSSAO())check(v==1,"Disabled/zero-radius AO was not white");
+            for(float v:renderer.readRawAO())check(v==1,"Disabled/zero-radius raw AO was not white");
+        }
+        test.ssao=true;test.aoRadius=1;test.aoHorizon=true;
+        test.viewProjection=correction*glm::ortho(-2.f,2.f,-2.f,2.f,.1f,20.f)*test.view;openPlane(glm::mat4(1));
+        auto bad=test;bad.aoPower=std::numeric_limits<float>::quiet_NaN();bool rejected=false;
+        try{renderer.render(bad,draws);}catch(const std::invalid_argument&){rejected=true;}check(rejected,"AO accepted nonfinite parameters");
+        bad=test;bad.aoSteps=0;rejected=false;try{renderer.render(bad,draws);}catch(const std::invalid_argument&){rejected=true;}check(rejected,"AO accepted zero quality steps");
+        // Odd-size target rebuilding must replace both AO attachments/bindings.
+        renderer.resize(65,49);renderer.render(test,draws);validAo(renderer.readSSAO());
+        check(renderer.readRawAO().size()==65*49*4,"Raw AO resize did not rebuild attachments");renderer.resize(96,96);
+        std::cout<<"GTAO isolated/inclined/orthographic planes, receiver occlusion, radius, ambient-only composition, disabled state and odd resize passed; receiver pixels "<<receiverOccluded<<"\n";
+    }
     f.rsm=true;renderer.render(f,draws);for(float v:renderer.readHDR())check(std::isfinite(v),"RSM lighting nonfinite");
     // Six independent point faces and one spot tile, including read-only D32 sampling.
     ShadowRenderer atlas(device,directory,32);f.lights={{{0,0,2,1},{2,2,2,0},{0,0,0,0}},{{0,0,3,2},{2,2,2,.95f},{0,0,-1,.75f}}};atlas.render(f,draws);

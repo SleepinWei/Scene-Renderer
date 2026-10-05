@@ -170,11 +170,18 @@ public:
 				setting.enableDirectional= enableDirectional;
 			}
 
-			ImGui::Toggle("Enable SSAO", &setting.enableSSAO);
+			ImGui::Toggle(nativeUi_?"Enable ambient occlusion":"Enable SSAO", &setting.enableSSAO);
             ImGui::Toggle("Enable TSAA", &setting.enableTSAA);
             if(nativeUi_)ImGui::Checkbox("Automatic quality under memory pressure",&setting.automaticQuality);
             if(nativeUi_){ImGui::Checkbox("Deferred shading",&setting.useDefer);ImGui::Checkbox("HDR tone mapping",&setting.enableHDR);}
-			if(nativeUi_)ImGui::SliderFloat("SSAO radius",&setting.aoRadius,0.f,5.f);else ImGui::SliderFloat("SSAO radius", &(RenderManager::GetInstance()->ssaoPass->radius),0.0f,0.5f);
+			if(nativeUi_){
+                ImGui::Checkbox("GTAO horizon integration",&setting.aoHorizon);
+                ImGui::Checkbox("AO edge-aware denoise",&setting.aoDenoise);
+                ImGui::SliderFloat("AO radius (world units)",&setting.aoRadius,0.f,5.f);
+                ImGui::SliderFloat("AO bias (world units)",&setting.aoBias,0.f,.2f);
+                ImGui::SliderFloat("AO contrast",&setting.aoPower,.1f,4.f);
+                if(setting.aoHorizon){ImGui::SliderInt("AO slices",&setting.aoSlices,2,8);ImGui::SliderInt("AO steps per side",&setting.aoSteps,2,8);}
+            }else ImGui::SliderFloat("SSAO radius", &(RenderManager::GetInstance()->ssaoPass->radius),0.0f,0.5f);
 		}
 
 		ImGui::Separator();

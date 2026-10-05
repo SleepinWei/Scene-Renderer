@@ -29,6 +29,8 @@ struct RenderSetting {
     bool automaticQuality = false;
     float timeOverride = -1;
     float aoRadius = 1, aoBias = .025f, aoPower = 1.5f;
+    bool aoHorizon=true,aoDenoise=true;
+    int aoSlices=4,aoSteps=4;
     render::RsmSettings rsmSettings;
     render::ShadowSettings shadowSettings;
 };

@@ -14,9 +14,9 @@ namespace render {
 namespace {
 struct alignas(16) LightingBlock { glm::vec4 cameraAmbient;glm::ivec4 counts;std::array<LightData, 30> lights{}; };
 struct alignas(16) SkyBlock {glm::mat4 inverseVP;glm::vec4 camera,settings,sunDirectionRadius,sunRadiance;};
-struct alignas(16) EffectsBlock {glm::mat4 view,projection;glm::vec4 settings;};
+struct alignas(16) EffectsBlock {glm::mat4 view,projection;glm::vec4 settings,options;};
 static_assert(sizeof(SkyBlock)==128,"Sky display ABI");
-static_assert(sizeof(EffectsBlock)==144,"Effects ABI");
+static_assert(sizeof(EffectsBlock)==160,"Effects ABI");
 struct alignas(16) ObjectBlock { glm::mat4 model, normalMatrix; };
 static_assert(sizeof(LightData) == 48 && offsetof(LightData, colorInner) == 16 && offsetof(LightData, directionOuter) == 32, "Light std140 ABI changed");
 static_assert(sizeof(LightingBlock) == 1472 && offsetof(LightingBlock, counts) == 16 && offsetof(LightingBlock, lights) == 32, "Lighting std140 ABI changed");
@@ -42,8 +42,8 @@ struct ForwardPbrRenderer::Targets {
     uint32_t width, height;
     rhi::TextureHandle hdr, depth, output;
     rhi::TextureViewHandle hdrView, depthView, outputView;
-    rhi::BindingSetHandle toneBindings, deferredBindings, lightBindings,ssaoBindings,effectBindings;
-    rhi::TextureHandle ao,opaque,motion,backDepth,backTest; rhi::TextureViewHandle aoView,opaqueView,motionView,backDepthView,backTestView;
+    rhi::BindingSetHandle toneBindings, deferredBindings, lightBindings,ssaoBindings,aoFilterBindings,effectBindings;
+    rhi::TextureHandle ao,rawAo,opaque,motion,backDepth,backTest; rhi::TextureViewHandle aoView,rawAoView,opaqueView,motionView,backDepthView,backTestView;
     std::array<rhi::TextureHandle,6> gbuffer{};
     std::array<rhi::TextureViewHandle,6> gbufferViews{};
     Targets(std::shared_ptr<rhi::GraphicsDevice> d, uint32_t w, uint32_t h, rhi::BufferHandle tone, rhi::SamplerHandle sampler, rhi::BufferHandle lighting, PbrPath path,ShadowRenderer* shadow,rhi::BufferHandle effects,rhi::BufferHandle skyParams,rhi::TextureViewHandle sky,rhi::TextureViewHandle irradiance,rhi::SamplerHandle skySampler) : resources(std::move(d)), width(w), height(h) {
@@ -78,9 +78,12 @@ struct ForwardPbrRenderer::Targets {
                 effects.entries.push_back({2,BindingType::SampledTexture,ShaderStage::Fragment,"backDepthBuffer",0});effectEntries.push_back({2,{},0,0,backDepthView,sampler});effectBindings=resources.bindings({effects,effectEntries});
                 opaque=resources.texture({w,h,Format::RGBA16Float,TextureUsage::CopyDestination|TextureUsage::Sampled|TextureUsage::CopySource,"Opaque HDR snapshot"});opaqueView=resources.view(opaque);
                 motion=resources.texture({w,h,Format::RGBA16Float,TextureUsage::ColorAttachment|TextureUsage::Sampled|TextureUsage::CopySource,"Temporal motion"});motionView=resources.view(motion);
-                ao=resources.texture({w,h,Format::RGBA16Float,TextureUsage::ColorAttachment|TextureUsage::Sampled|TextureUsage::CopySource,"SSAO"});aoView=resources.view(ao);
+                ao=resources.texture({w,h,Format::RGBA16Float,TextureUsage::ColorAttachment|TextureUsage::Sampled|TextureUsage::CopySource,"Filtered ambient occlusion"});aoView=resources.view(ao);
+                rawAo=resources.texture({w,h,Format::RGBA16Float,TextureUsage::ColorAttachment|TextureUsage::Sampled|TextureUsage::CopySource,"Raw horizon/SSAO visibility"});rawAoView=resources.view(rawAo);
                 BindingLayout ssaoImages{1,{images.entries[0],images.entries[1]}};
                 ssaoBindings=resources.bindings({ssaoImages,{entries[0],entries[1]}});
+                auto filterImages=ssaoImages;filterImages.entries.push_back({3,BindingType::SampledTexture,ShaderStage::Fragment,"aoRawBuffer",0});
+                aoFilterBindings=resources.bindings({filterImages,{entries[0],entries[1],{3,{},0,0,rawAoView,sampler}}});
                 images.entries.push_back({5,BindingType::SampledTexture,ShaderStage::Fragment,"shadowAtlas",0});entries.push_back({5,{},0,0,shadow->view(),sampler});
                 images.entries.push_back({6,BindingType::SampledTexture,ShaderStage::Fragment,"aoBuffer",0});entries.push_back({6,{},0,0,aoView,sampler});
                 images.entries.push_back({7,BindingType::SampledTexture,ShaderStage::Fragment,"rsmFlux",0});entries.push_back({7,{},0,0,shadow->rsmSourceView(0),sampler});
@@ -132,11 +135,13 @@ ForwardPbrRenderer::ForwardPbrRenderer(std::shared_ptr<rhi::GraphicsDevice> devi
         else {auto black=resources_.texture({1,1,Format::RGBA8UNorm,TextureUsage::Sampled|TextureUsage::CopyDestination,"Unavailable atmosphere fallback"});const uint8_t data[]={0,0,0,255};resources_.device->writeTexture(black,data,4);skyView_=irradianceView_=resources_.view(black);}
         skyParameters_=resources_.buffer({128,BufferUsage::Uniform|BufferUsage::CopyDestination,"Sky display parameters"});
         shadows_=std::make_unique<ShadowRenderer>(resources_.device,directory,128,irradianceView_);
-        effects_=resources_.buffer({144,BufferUsage::Uniform|BufferUsage::CopyDestination,"SSAO parameters"});
+        effects_=resources_.buffer({160,BufferUsage::Uniform|BufferUsage::CopyDestination,"Ambient occlusion parameters"});
         p={};p.vertex=shader(directory,"tonemap.vert");p.fragment=shader(directory,"ssao.frag");p.vertexStride=16;p.attributes={{0,VertexFormat::Float2,0},{1,VertexFormat::Float2,8}};p.colorFormat=Format::RGBA16Float;
-        p.bindings={{0,{{0,BindingType::UniformBuffer,ShaderStage::Fragment,"EffectsParameters",144}}},{1,{{1,BindingType::SampledTexture,ShaderStage::Fragment,"positionBuffer",0},{2,BindingType::SampledTexture,ShaderStage::Fragment,"normalBuffer",0}}}};
-        effectsBindings_=resources_.bindings({p.bindings[0],{{0,effects_,0,144,{},{}}}});
-        checkBlock(p.fragment,"EffectsParameters",{{"effectView",0},{"effectProjection",64},{"aoSettings",128}},144);ssaoPipeline_=resources_.pipeline(p);
+        p.bindings={{0,{{0,BindingType::UniformBuffer,ShaderStage::Fragment,"EffectsParameters",160}}},{1,{{1,BindingType::SampledTexture,ShaderStage::Fragment,"positionBuffer",0},{2,BindingType::SampledTexture,ShaderStage::Fragment,"normalBuffer",0}}}};
+        effectsBindings_=resources_.bindings({p.bindings[0],{{0,effects_,0,160,{},{}}}});
+        checkBlock(p.fragment,"EffectsParameters",{{"effectView",0},{"effectProjection",64},{"aoSettings",128},{"aoOptions",144}},160);ssaoPipeline_=resources_.pipeline(p);
+        p.fragment=shader(directory,"ao-filter.frag");p.bindings[1].entries.push_back({3,BindingType::SampledTexture,ShaderStage::Fragment,"aoRawBuffer",0});
+        checkBlock(p.fragment,"EffectsParameters",{{"effectView",0},{"effectProjection",64},{"aoSettings",128},{"aoOptions",144}},160);aoFilterPipeline_=resources_.pipeline(p);
     }
     if(path_==PbrPath::Scene && resources_.device->computeLimits().maxStorageImages){
         temporal_=std::make_unique<GpuTemporal>(resources_.device,directory);p={};p.vertex=shader(directory,"motion.vert");p.fragment=shader(directory,"motion.frag");p.vertexStride=32;p.attributes=GpuMesh::attributes();motionLayout_={0,{{0,BindingType::UniformBuffer,ShaderStage::Vertex,"MotionCamera",192},{1,BindingType::UniformBuffer,ShaderStage::Vertex,"MotionObject",144}}};p.bindings={motionLayout_,GpuMaterial::shadowLayout()};p.colorFormat=Format::RGBA16Float;p.depthAttachment=p.depthTest=true;p.depthCompare=DepthCompare::LessEqual;motionPipeline_=resources_.pipeline(p);
@@ -182,6 +187,8 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
     SunState solar;
     if (!std::isfinite(exposure) || exposure < 0 || !std::isfinite(gamma) || gamma <= 0 || !std::isfinite(frame.ambient) || frame.ambient < 0 || frame.lights.size() > 30)
         throw std::invalid_argument("Renderer: invalid frame parameters");
+    for(float value:{frame.aoRadius,frame.aoBias,frame.aoPower})if(!std::isfinite(value))throw std::invalid_argument("AO: nonfinite parameter");
+    if(frame.aoRadius<0||frame.aoRadius>20||frame.aoBias<0||frame.aoBias>5||frame.aoPower<=0||frame.aoPower>4||frame.aoSlices<2||frame.aoSlices>8||frame.aoSteps<2||frame.aoSteps>8)throw std::invalid_argument("AO: parameter outside domain");
     finiteMatrix(frame.viewProjection);
     for (int i = 0; i < 3; ++i) if (!std::isfinite(frame.cameraPosition[i])) throw std::invalid_argument("Renderer: invalid camera position");
     if(frame.sky) {
@@ -218,6 +225,7 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
     const auto& shadows=frame.shadowSettings;
     for(float value:{frame.shadows?1.f:0.f,shadows.pcss?1.f:0.f,shadows.distance,shadows.cascadeBlend,shadows.depthBias,
                     shadows.sunAngularRadius,shadows.localLightRadius,shadows.maxFilterTexels})hashShadow(value);
+    for(float value:{frame.ssao?1.f:0.f,frame.aoRadius,frame.aoBias,frame.aoPower,frame.aoHorizon?1.f:0.f,frame.aoDenoise?1.f:0.f,float(frame.aoSlices),float(frame.aoSteps)})hashShadow(value);
     hashShadow(frame.clouds.enabled?1.f:0.f);
     if(frame.clouds.enabled){const auto& c=frame.clouds;for(float value:{c.baseHeight,c.thickness,c.coverage,c.density,c.shapeScale,c.weatherScale,c.erosion,c.maxDistance,c.wind.x,c.wind.y,float(c.steps),float(c.lightSteps),float(c.downsample),float(c.seed),c.temporal?1.f:0.f})hashShadow(value);}
     if(frame.clouds.enabled){const auto& c=frame.clouds;for(float value:{c.voxel?1.f:0.f,c.distanceSkipping?1.f:0.f,c.coreIntegration?1.f:0.f,c.volumeCenter.x,c.volumeCenter.y,c.volumeCenter.z,c.volumeSize.x,c.volumeSize.y,c.volumeSize.z,float(c.voxelResolution),c.storm,c.lightning})hashShadow(value);}
@@ -258,7 +266,7 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
     auto& device = *resources_.device;
     if(shadows_){const auto transmission=frame.sky?solarTransmittance(frame.atmosphere,solar,false):glm::vec3(0);
         const float diskArea=3.14159265359f*std::pow(std::sin(frame.atmosphere.radii.y),2);
-        SkyBlock sky{glm::inverse(frame.viewProjection),glm::vec4(frame.cameraPosition,0),{frame.sky?1.f:0.f,frame.forwardShading?1.f:0.f,frame.sky?atmosphereHorizon(frame.atmosphere,solar.observerHeightKm):0,1},glm::vec4(solar.direction,frame.atmosphere.radii.y),glm::vec4(solar.irradiance*transmission/std::max(diskArea,1e-8f),0)};device.writeBuffer(skyParameters_,0,sizeof(sky),&sky);finiteMatrix(frame.view);EffectsBlock effects{frame.view,frame.viewProjection*glm::inverse(frame.view),{frame.aoRadius,frame.aoBias,frame.aoPower,frame.ssao?1.f:0.f}};device.writeBuffer(effects_,0,sizeof(effects),&effects);}
+        SkyBlock sky{glm::inverse(frame.viewProjection),glm::vec4(frame.cameraPosition,0),{frame.sky?1.f:0.f,frame.forwardShading?1.f:0.f,frame.sky?atmosphereHorizon(frame.atmosphere,solar.observerHeightKm):0,1},glm::vec4(solar.direction,frame.atmosphere.radii.y),glm::vec4(solar.irradiance*transmission/std::max(diskArea,1e-8f),0)};device.writeBuffer(skyParameters_,0,sizeof(sky),&sky);finiteMatrix(frame.view);EffectsBlock effects{frame.view,frame.viewProjection*glm::inverse(frame.view),{frame.aoRadius,frame.aoBias,frame.aoPower,frame.ssao?1.f:0.f},{frame.aoHorizon?1.f:0.f,float(frame.aoSlices),float(frame.aoSteps),frame.aoDenoise?1.f:0.f}};device.writeBuffer(effects_,0,sizeof(effects),&effects);}
     device.writeBuffer(camera_,0,64,&frame.viewProjection);device.writeBuffer(lighting_,0,sizeof(lighting),&lighting);
     const glm::vec4 tone(exposure,gamma,frame.toneMapping?0.f:1.f,0);device.writeBuffer(tone_,0,16,&tone);
     while (objects_.size() < packets.size()) {
@@ -356,19 +364,26 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
                   pass.clearColor = {0, 0, 0, 1};
               });
     if (shadows_)
-        graph.add("ao", {{"gbuffer", A::Read}, {"ao", A::Write}}, [&] {
+        graph.add("ao-raw", {{"gbuffer", A::Read}, {"ao-raw", A::Write}}, [&] {
             if (shadows_) {
-                pass.color = targets_->aoView;
+                pass.color = targets_->rawAoView;
                 pass.clearColor = {1, 1, 1, 1};
                 commands.beginRenderPass(pass);
+                if(frame.ssao && frame.aoRadius>0){
                 commands.bindPipeline(ssaoPipeline_);
                 commands.bindBindingSet(effectsBindings_);
                 commands.bindBindingSet(targets_->ssaoBindings);
                 commands.bindVertexBuffer(quad_);
                 commands.draw(6);
+                }
                 commands.endRenderPass();
             }
         });
+    if(shadows_)graph.add("ao-filter",{{"ao-raw",A::Read},{"gbuffer",A::Read},{"ao",A::Write}},[&]{
+        pass.color=targets_->aoView;pass.clearColor={1,1,1,1};commands.beginRenderPass(pass);
+        if(frame.ssao && frame.aoRadius>0){commands.bindPipeline(aoFilterPipeline_);commands.bindBindingSet(effectsBindings_);commands.bindBindingSet(targets_->aoFilterBindings);commands.bindVertexBuffer(quad_);commands.draw(6);}
+        commands.endRenderPass();
+    });
     std::vector<engine::RenderGraph::Use> lightingUses{
         {"gbuffer", A::Read}, {"environment", A::Read}, {"hdr", A::Write}};
     if (shadows_) {
@@ -659,6 +674,10 @@ std::vector<float> ForwardPbrRenderer::readBackDepth() {
     if (!shadows_)
         throw std::invalid_argument("SSS unavailable on this path");
     return resources_.device->readTextureFloat(targets_->backDepth);
+}
+std::vector<float> ForwardPbrRenderer::readRawAO() {
+    if(!targets_->rawAo)throw std::invalid_argument("AO unavailable on this path");
+    return resources_.device->readTextureFloat(targets_->rawAo);
 }
 std::vector<float> ForwardPbrRenderer::readSSAO() {
     if (!shadows_)

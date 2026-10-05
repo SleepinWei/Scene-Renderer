@@ -4,7 +4,7 @@
 
 A **C++17 graphics renderer** for learning and experimentation, originating from a computer graphics course project at Tongji University. Classic benchmark scenes and natural environments demonstrate real-time lighting, materials, GPU compute, and CPU/GPU path tracing.
 
-Real-time rendering uses a shared **RHI** with native **Metal and Vulkan** backends. The editor provides camera navigation and interactive effect controls. Features include PBR, CSM/PCSS, RSM, SSAO, atmospheric scattering, volumetric clouds, FFT oceans, height/material virtual textures, vegetation, and TSAA.
+Real-time rendering uses a shared **RHI** with native **Metal and Vulkan** backends. The editor provides camera navigation and interactive effect controls. Features include PBR, CSM/PCSS, RSM, GTAO/SSAO, atmospheric scattering, volumetric clouds, FFT oceans, height/material virtual textures, vegetation, and TSAA.
 
 [Build and run](docs/getting-started.md) · [Full gallery and settings](docs/rendering-gallery.md) · [System design](docs/system-design.md) · [Technical docs and change records](docs/README.md)
 
@@ -18,7 +18,7 @@ All images below were rendered by this project. Real-time images use native Meta
 
 ### Classic scenes and PBR
 
-Sponza, San Miguel, and Sibenik showcase architectural materials, shadows, and sun/sky RSM indirect lighting. Stanford scans and Damaged Helmet demonstrate metallic, nonmetallic, and textured materials.
+Sponza, San Miguel, and Sibenik showcase architectural materials, shadows, and sun/sky RSM indirect lighting. Stanford scans and Damaged Helmet demonstrate metallic, nonmetallic, and textured materials. [Ambient occlusion comparisons](docs/ambient-occlusion.md) show horizon-based AO and edge-aware filtering against the original SSAO.
 
 | San Miguel courtyard | Sibenik Cathedral |
 | --- | --- |

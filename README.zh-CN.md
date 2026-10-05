@@ -4,7 +4,7 @@
 
 一个用于学习和实验的 **C++17 图形渲染器**，起源于同济大学计算机图形学课程项目。通过经典测试场景与自然环境，展示实时光照、材质、GPU 计算和 CPU／GPU 路径追踪。
 
-实时渲染采用统一 **RHI**，支持原生 **Metal／Vulkan**；编辑器提供相机漫游和效果参数调整。主要功能包括 PBR、CSM／PCSS、RSM、SSAO、大气与体积云、FFT 海洋、高度／材质 Virtual Texture、植被和 TSAA。
+实时渲染采用统一 **RHI**，支持原生 **Metal／Vulkan**；编辑器提供相机漫游和效果参数调整。主要功能包括 PBR、CSM／PCSS、RSM、GTAO／SSAO、大气与体积云、FFT 海洋、高度／材质 Virtual Texture、植被和 TSAA。
 
 [构建与运行](docs/getting-started.md) · [完整图集与参数](docs/rendering-gallery.md) · [系统设计](docs/system-design.md) · [技术文档与修改记录](docs/README.md)
 
@@ -16,7 +16,7 @@
 
 ### 经典场景与 PBR
 
-Sponza、San Miguel 与 Sibenik 用于观察建筑材质、阴影和太阳／天空 RSM 间接光照；Stanford 扫描模型及 Damaged Helmet 展示金属、非金属与纹理材质。
+Sponza、San Miguel 与 Sibenik 用于观察建筑材质、阴影和太阳／天空 RSM 间接光照；Stanford 扫描模型及 Damaged Helmet 展示金属、非金属与纹理材质。[AO 对照](docs/ambient-occlusion.md)展示地平线积分与边缘保留滤波相对原 SSAO 的效果。
 
 | San Miguel 庭院 | Sibenik Cathedral |
 | --- | --- |

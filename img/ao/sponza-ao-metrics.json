@@ -1,0 +1,55 @@
+{
+  "capture": {
+    "backend": "Metal",
+    "frames_per_mode": 16,
+    "height": 720,
+    "rsm": false,
+    "taa": false,
+    "time_seconds": 8,
+    "width": 960
+  },
+  "gtao": {
+    "bias": 0.02500000037252903,
+    "covered_pixels": 681245,
+    "denoise": true,
+    "horizon": true,
+    "mean_visibility_on_geometry": 0.862859716668892,
+    "power": 1.5,
+    "radius": 1.0,
+    "slices": 4,
+    "steps_per_side": 4
+  },
+  "gtao-raw": {
+    "bias": 0.02500000037252903,
+    "covered_pixels": 681245,
+    "denoise": false,
+    "horizon": true,
+    "mean_visibility_on_geometry": 0.8640588053477637,
+    "power": 1.5,
+    "radius": 1.0,
+    "slices": 4,
+    "steps_per_side": 4
+  },
+  "legacy": {
+    "bias": 0.02500000037252903,
+    "covered_pixels": 681245,
+    "denoise": false,
+    "horizon": false,
+    "mean_visibility_on_geometry": 0.8447527142069549,
+    "power": 1.5,
+    "radius": 1.0,
+    "slices": 4,
+    "steps_per_side": 4
+  },
+  "off": {
+    "bias": 0.02500000037252903,
+    "covered_pixels": 681245,
+    "denoise": false,
+    "horizon": true,
+    "mean_visibility_on_geometry": 1.0,
+    "power": 1.5,
+    "radius": 1.0,
+    "slices": 4,
+    "steps_per_side": 4
+  }
+}
