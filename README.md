@@ -78,13 +78,25 @@ The comparison shows PCF, PCSS with the default sun, and PCSS with a larger ligh
 
 CPU/Metal/Vulkan path tracing supports multiple bounces, textured materials, refraction, and random walks in homogeneous media. CPU BDPT renders smooth-glass caustics. Procedural terrain, vegetation, and FFT water can be frozen into offline scenes. The images below use Open Image Denoise (OIDN).
 
+The architectural and natural scenes shown above also have path-traced results. Sponza and San Miguel use Metal PT at 320×240, 64 spp, and 16 bounces; terrain, lake, and ocean captures use Metal PT at 640×480 with procedural animation frozen at 8 seconds. Sampling settings and raw images are available in the [path-tracing gallery](docs/rendering-gallery.md#路径追踪).
+
+| Sponza: Metal PT + OIDN, 64 spp | San Miguel: Metal PT + OIDN, 64 spp |
+| --- | --- |
+| ![Path-traced Sponza courtyard](img/path-tracing/oidn-sponza.png) | ![Path-traced San Miguel courtyard](img/path-tracing/oidn-san-miguel.png) |
+
 | Stanford Dragon: CPU BDPT glass caustics + OIDN | Jade Dragon: Metal PT subsurface scattering + OIDN |
 | --- | --- |
 | ![Glass Stanford Dragon and caustics](img/path-tracing/dragon-glass.png) | ![Polished jade dragon](img/path-tracing/jade-polished-boundary.png) |
 
-| Mountain Lake: Metal PT + OIDN | Shallow-water refraction: Metal PT + OIDN |
+| Terrain and grass: Metal PT + OIDN, 128 spp | Mountain Lake: Metal PT + OIDN, 128 spp |
 | --- | --- |
-| ![Path-traced mountain lake and reflections](img/path-tracing/pt-mountain-lake.png) | ![Path-traced FFT shallow water](img/path-tracing/pt-ocean-clear.png) |
+| ![Path-traced terrain and grass](img/path-tracing/pt-terrain.png) | ![Path-traced mountain lake and reflections](img/path-tracing/pt-mountain-lake.png) |
+
+| Lakeside beach: Metal PT + OIDN, 256 spp | Shallow-water refraction: Metal PT + OIDN, 256 spp |
+| --- | --- |
+| ![Path-traced lakeside beach and wet sand](img/path-tracing/pt-mountain-lake-beach.png) | ![Path-traced FFT shallow water](img/path-tracing/pt-ocean-clear.png) |
+
+![Path-traced FFT rough ocean: Metal PT + OIDN, 256 spp](img/path-tracing/pt-ocean.png)
 
 ## System overview
 

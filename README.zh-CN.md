@@ -76,13 +76,25 @@ PCSS 对照依次为 PCF、默认太阳和放大光源；第三列用于展示�
 
 CPU／Metal／Vulkan 路径追踪支持多次反弹、纹理材质、折射和均匀介质随机游走；CPU BDPT 用于平滑玻璃焦散。程序化地形、植被与 FFT 水面可冻结为离线场景。
 
+下面展示上文建筑与自然环境场景的路径追踪结果，均使用 Open Image Denoise（OIDN）降噪。Sponza 与 San Miguel 使用 Metal PT，分辨率为 320×240、64 spp、16 次反弹；地形、山湖与海洋使用 640×480 Metal PT，将程序化动画冻结在 8 秒时刻。采样配置与未降噪原图见[路径追踪图集](docs/rendering-gallery.md#路径追踪)。
+
+| Sponza：Metal PT＋OIDN，64 spp | San Miguel：Metal PT＋OIDN，64 spp |
+| --- | --- |
+| ![路径追踪 Sponza 中庭](img/path-tracing/oidn-sponza.png) | ![路径追踪 San Miguel 庭院](img/path-tracing/oidn-san-miguel.png) |
+
 | Stanford Dragon：CPU BDPT 玻璃焦散＋OIDN | Jade Dragon：Metal PT 次表面散射＋OIDN |
 | --- | --- |
 | ![Stanford 透明龙与焦散](img/path-tracing/dragon-glass.png) | ![半抛光玉龙](img/path-tracing/jade-polished-boundary.png) |
 
-| Mountain Lake：Metal PT＋OIDN | 浅水折射：Metal PT＋OIDN |
+| 地形与草丛：Metal PT＋OIDN，128 spp | Mountain Lake：Metal PT＋OIDN，128 spp |
 | --- | --- |
-| ![路径追踪山湖与倒影](img/path-tracing/pt-mountain-lake.png) | ![路径追踪 FFT 浅水](img/path-tracing/pt-ocean-clear.png) |
+| ![路径追踪地形与草丛](img/path-tracing/pt-terrain.png) | ![路径追踪山湖与倒影](img/path-tracing/pt-mountain-lake.png) |
+
+| 湖岸沙滩：Metal PT＋OIDN，256 spp | 浅水折射：Metal PT＋OIDN，256 spp |
+| --- | --- |
+| ![路径追踪湖岸沙滩与湿沙](img/path-tracing/pt-mountain-lake-beach.png) | ![路径追踪 FFT 浅水](img/path-tracing/pt-ocean-clear.png) |
+
+![路径追踪 FFT 大浪海洋：Metal PT＋OIDN，256 spp](img/path-tracing/pt-ocean.png)
 
 ## 系统概览
 
