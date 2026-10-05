@@ -17,6 +17,7 @@
 #include"component/Lights.h"
 #include"component/Transform.h"
 #include"component/Atmosphere.h"
+#include "component/Cloud.h"
 #include"component/TerrainComponent.h"
 #include"component/Ocean.h"
 #include "utils/Camera.h"
@@ -256,6 +257,22 @@ public:
 				ImGui::SliderFloat3("rayleigh_scattering", (float*)&atmosParam.rayleigh_scattering, 0.0f, 1.0f);
                 try{atmos->setSettings(atmosphereSettings);}catch(const std::exception& error){loadError_=error.what();}
 			}
+
+            if(auto cloud=scene->sky()->getComponent<Cloud>())if(ImGui::CollapsingHeader("Volumetric clouds")) {
+                auto value=cloud->settings();
+                ImGui::Checkbox("Enable clouds",&value.enabled);
+                ImGui::Checkbox("Cloud temporal reconstruction",&value.temporal);
+                int quality=value.downsample==1?0:value.downsample==2?1:2;
+                if(ImGui::Combo("Cloud resolution",&quality,"Full\0Half\0Quarter\0"))value.downsample=1u<<quality;
+                ImGui::SliderFloat("Cloud coverage",&value.coverage,0,1);
+                ImGui::SliderFloat("Cloud extinction (1/m)",&value.density,0,.01f,"%.4f");
+                ImGui::SliderFloat("Cloud base altitude (m)",&value.baseHeight,100,15000);
+                ImGui::SliderFloat("Cloud thickness (m)",&value.thickness,100,10000);
+                ImGui::SliderFloat("Cloud erosion",&value.erosion,0,1);
+                ImGui::SliderFloat2("Cloud wind (m/s)",&value.wind.x,-100,100);
+                int steps=int(value.steps);if(ImGui::SliderInt("Cloud ray steps",&steps,16,192))value.steps=uint32_t(steps);
+                try{cloud->setSettings(value);}catch(const std::exception& error){loadError_=error.what();}
+            }
 
 			//ImGui::SliderFloat("RayLeigh Scattering",0.0e-3,)
 		}

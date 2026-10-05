@@ -1,0 +1,49 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+layout(local_size_x=8,local_size_y=8) in;
+#include "cloud-parameters.glsl"
+#include "cloud-intersection.glsl"
+layout(set=1,binding=0,std430) readonly buffer CloudTiles {uint tiles[];};
+layout(set=1,binding=1) uniform sampler2D sceneDepth;
+layout(set=1,binding=2) uniform sampler2D cloudNoiseAtlas;
+layout(set=1,binding=3) uniform sampler2D cloudWeather;
+layout(set=1,binding=4) uniform sampler2D cloudSkyIrradiance;
+layout(set=1,binding=5,rgba16f) writeonly uniform image2D cloudRaw;
+layout(set=1,binding=6,rgba32f) writeonly uniform image2D cloudRawDepth;
+#include "cloud-density.glsl"
+#include "sky-mapping.glsl"
+float cloudPhase(float mu,float g){return (1.-g*g)/(12.5663706*pow(max(1.+g*g-2.*g*mu,.001),1.5));}
+void main(){
+    uint tile=tiles[gl_WorkGroupID.x];ivec2 p=ivec2(tile%uint(cloudGrid.z),tile/uint(cloudGrid.z))*8+ivec2(gl_LocalInvocationID.xy);
+    if(any(greaterThanEqual(p,cloudGrid.xy)))return;
+    vec2 uv=(vec2(p)+.5)/vec2(cloudGrid.xy);vec3 ray=cloudRay(uv);
+    float surface=cloudSurface(uv,textureLod(sceneDepth,uv,0).r);vec2 interval=cloudInterval(ray,surface);
+    if(interval.y<=interval.x)return;
+    float stepLength=(interval.y-interval.x)/float(cloudQuality.x);
+    float jitter=fract(sin(dot(vec2(p),vec2(12.9898,78.233)))*43758.5453+float(cloudGrid.w)*.618033989);
+    float T=1.,moment=0.,weight=0.;vec3 L=vec3(0);
+    vec3 ambient=sampleSkyLut(cloudSkyIrradiance,vec3(0,1,0))/3.14159265;
+    float phase=.85*cloudPhase(dot(ray,cloudSun.xyz),.65)+.15*cloudPhase(dot(ray,cloudSun.xyz),-.25);
+    int visited=0;
+    for(int i=0;i<cloudQuality.x;i++) {
+        float t=interval.x+(float(i)+jitter)*stepLength;vec3 point=cloudCameraTime.xyz+ray*t;
+        float density=cloudDensity(point);visited++;
+        if(density>1e-5) {
+            float lightTau=0.,lightDistance=min(cloudLayer.y*3.,6000.);
+            // Quadratically spaced sun samples preserve local detail and cover
+            // the whole cloud thickness with a small fixed secondary budget.
+            for(int j=0;j<cloudQuality.y;j++) {
+                float a=float(j)/float(cloudQuality.y),b=float(j+1)/float(cloudQuality.y);
+                float lo=a*a*lightDistance,hi=b*b*lightDistance;
+                lightTau+=cloudDensity(point+cloudSun.xyz*(lo+hi)*.5)*cloudLayer.w*(hi-lo);
+            }
+            vec3 light=ambient*(.5+.5*smoothstep(0.,1.,(point.y-cloudPlanet.y-cloudLayer.x)/cloudLayer.y))+
+                cloudSunColor.rgb*(phase*exp(-lightTau)+.045*exp(-.25*lightTau)+.015*exp(-.06*lightTau));
+            float segment=exp(-density*cloudLayer.w*stepLength),w=T*(1.-segment);
+            L+=w*light*.98;moment+=w*t;weight+=w;T*=segment;
+            if(T<.01)break;
+        }
+    }
+    imageStore(cloudRaw,p,vec4(min(L,vec3(65000)),clamp(T,0.,1.)));
+    imageStore(cloudRawDepth,p,vec4(weight>1e-6?moment/weight:0.,surface,float(visited),interval.x));
+}

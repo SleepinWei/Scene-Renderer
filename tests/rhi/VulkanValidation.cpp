@@ -4,6 +4,7 @@
 #include "renderer/rhi/ForwardPbrRenderer.h"
 #include "renderer/rhi/GpuOcean.h"
 #include "renderer/rhi/GpuTerrain.h"
+#include "renderer/rhi/GpuClouds.h"
 #include "renderer/rhi/GpuSubdivision.h"
 #include <iostream>
 int main() {
@@ -13,6 +14,7 @@ int main() {
         render::validateForwardRendering(device, SR_RHI_SHADER_DIR);
         render::validateSceneEffects(device,SR_RHI_SHADER_DIR);
         render::validateAtmosphereRhi(device,SR_RHI_SHADER_DIR);
+        render::validateCloudsRhi(device,SR_RHI_SHADER_DIR);
         render::validateTerrainRhi(device,SR_RHI_SHADER_DIR);
         render::validateSubdivisionRhi(device,rhi::defaultShaderDirectory());
         render::validateTemporalRhi(device,SR_RHI_SHADER_DIR);

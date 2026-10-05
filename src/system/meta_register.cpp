@@ -3,6 +3,7 @@
 #include"component/transform.h"
 #include"component/Component.h"
 #include"component/Lights.h"
+#include "component/Cloud.h"
 #include"system/meta_register.h"
 #include<glm/glm.hpp>
 
@@ -15,6 +16,7 @@ Meta::~Meta() {
 }
 
 std::shared_ptr<Component> Meta::generateComponent(const std::string& name) {
+    if(name=="Cloud")return std::make_shared<Cloud>();
 	if (name == "Transform") {
 		std::shared_ptr<Transform> transform = std::make_shared<Transform>();
 		return std::static_pointer_cast<Component>(transform);

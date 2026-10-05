@@ -7,6 +7,7 @@
 #include "renderer/rhi/ForwardPbrRenderer.h"
 #include "renderer/rhi/GpuOcean.h"
 #include "renderer/rhi/GpuTerrain.h"
+#include "renderer/rhi/GpuClouds.h"
 #include "renderer/rhi/GpuSubdivision.h"
 #include "rhi/ShaderAssets.h"
 #include "renderer/rhi/SceneAdapter.h"
@@ -252,6 +253,7 @@ int main(int argc, char** argv) {
             render::validateSceneSolarControls(rhi::graphicsDevice());
             render::validateSceneEffects(rhi::graphicsDevice(),rhi::defaultShaderDirectory());
         render::validateAtmosphereRhi(rhi::graphicsDevice(),rhi::defaultShaderDirectory());
+        render::validateCloudsRhi(rhi::graphicsDevice(),rhi::defaultShaderDirectory());
         render::validateTerrainRhi(rhi::graphicsDevice(),rhi::defaultShaderDirectory());
         render::validateSubdivisionRhi(rhi::graphicsDevice(),rhi::defaultShaderDirectory());
         render::validateTemporalRhi(rhi::graphicsDevice(),rhi::defaultShaderDirectory());

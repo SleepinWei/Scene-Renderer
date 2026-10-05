@@ -4,6 +4,7 @@
 #include "renderer/rhi/GpuAtmosphere.h"
 #include "renderer/rhi/OceanSurface.h"
 #include "renderer/rhi/GpuTemporal.h"
+#include "component/CloudSettings.h"
 namespace render {
 struct alignas(16) LightData {
     glm::vec4 positionType{0}; // 0 directional, 1 point, 2 spot; legacy constant point attenuation.
@@ -36,6 +37,7 @@ struct FrameData {
     bool directionalEnabled=true;
     bool inverseSquareLocalLights=false; // Legacy forward validation can retain constant point attenuation.
     AtmosphereSettings atmosphere;float sunAngle=10,sunAzimuth=0,seaLevelMeters=0,multipleScattering=1,groundAlbedo=.2f,timeSeconds=0;
+    CloudSettings clouds;
     std::vector<OceanSurfaceSettings> oceans;
     std::vector<LightData> lights;
 };
@@ -49,6 +51,7 @@ struct DrawPacket {
 };
 enum class PbrPath { Forward, Deferred, Scene };
 class ShadowRenderer;
+class GpuClouds;
 struct ShadowParameters;
 class ForwardPbrRenderer {
 public:
@@ -68,6 +71,9 @@ public:
     std::vector<float> readShadowDepth();
     ShadowParameters shadowParameters() const; // Value snapshot for render-thread diagnostics.
     std::vector<float> readGBuffer(uint32_t attachment);
+    std::vector<float> readClouds();
+    std::vector<float> readCloudMetadata();
+    std::array<uint32_t,2> cloudTileCounts(); // Explicit diagnostic readback: active,total.
     const rhi::GraphicsDevice* owner() const { return resources_.device.get(); }
     static rhi::BindingLayout frameLayout();
 private:
@@ -76,6 +82,7 @@ private:
     Resources resources_;
     std::unique_ptr<ShadowRenderer> shadows_;
     std::unique_ptr<GpuAtmosphere> atmosphere_;
+    std::unique_ptr<GpuClouds> clouds_;
     std::map<uint64_t,std::unique_ptr<OceanSurface>> oceans_;
     std::string directory_;
     std::unique_ptr<GpuTemporal> temporal_;

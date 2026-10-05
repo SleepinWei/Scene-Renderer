@@ -12,6 +12,7 @@
 #include "component/Lights.h"
 #include "component/Ocean.h"
 #include "component/Atmosphere.h"
+#include "component/Cloud.h"
 #include "object/SkyBox.h"
 #include "object/Terrain.h"
 #include "component/TerrainComponent.h"
@@ -278,6 +279,7 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
     result.frame.taa = true;
     result.frame.historyKey = scene->assetId ^ (scene->revision() * 0x9e3779b97f4a7c15ull);
     if (scene->sky()) {
+        if(auto cloud=scene->sky()->getComponent<Cloud>())result.frame.clouds=cloud->settings();
         auto atmo = scene->sky()->getComponent<Atmosphere>();
         if (atmo) {
             result.frame.sky = true;

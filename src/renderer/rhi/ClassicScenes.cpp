@@ -9,6 +9,7 @@
 #include "component/Mesh_Renderer.h"
 #include "component/Lights.h"
 #include "component/Atmosphere.h"
+#include "component/Cloud.h"
 #include "component/Ocean.h"
 #include "component/TerrainComponent.h"
 #include "component/Grass.h"
@@ -131,6 +132,7 @@ void point(const std::shared_ptr<RenderScene>& target, glm::vec3 color, glm::vec
 }
 void atmosphere(const std::shared_ptr<RenderScene>& target) {
     auto sky = std::make_shared<Sky>(); sky->addComponent(std::make_shared<Atmosphere>());
+    sky->addComponent(std::make_shared<Cloud>());
     sky->skybox->setInitialized(false); sky->skybox->addTexture(std::make_shared<Texture>(), "skybox");
     sky->width = sky->height = 4;
     for (int i = 0; i < 6; ++i) { sky->data[i] = static_cast<unsigned char*>(std::malloc(48)); std::fill(sky->data[i], sky->data[i]+48, 16); }
@@ -226,6 +228,14 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
         for(uint32_t y=0;y<1024;y++)for(uint32_t x=0;x<1024;x++){float xx=x/1023.f*2-1,zz=y/1023.f*2-1,h=elevation(xx,zz),noise=.5f+.5f*std::sin(xx*140)*std::cos(zz*153);glm::vec3 color=glm::mix(glm::vec3(.20f,.31f,.11f),glm::vec3(.40f,.36f,.27f),glm::smoothstep(.15f,.38f,h));color*=.85f+.15f*noise;auto at=(y*1024+x)*4;terrainPixels[at]=uint8_t(color.r*255);terrainPixels[at+1]=uint8_t(color.g*255);terrainPixels[at+2]=uint8_t(color.b*255);terrainPixels[at+3]=255;}
         texture->setPixels(1024,1024,4,std::move(terrainPixels));component->settings().material->addTexture(texture,"material.albedo");terrain->addComponent(component);terrain->addComponent(std::make_shared<Grass>());target->addTerrain(terrain);
         atmosphere(target);sun(target,glm::vec3(3),{-.5f,-1,-.4f});manager->setting.enableSSAO=true;
+    } else if (name == "clouds" || name == "clouds-sunset" || name == "clouds-storm") {
+        target->setCamera(std::make_shared<Camera>(glm::vec3(0,10,0),glm::vec3(0,1,0),-90,18));
+        target->mainCamera()->setZoom(70);target->mainCamera()->setExposure(1);
+        atmosphere(target);
+        const float angle=glm::radians(name=="clouds-sunset"?5.f:35.f),azimuth=glm::radians(name=="clouds-sunset"?20.f:120.f);
+        sun(target,glm::vec3(20),{-std::cos(angle)*std::sin(azimuth),-std::sin(angle),std::cos(angle)*std::cos(azimuth)});
+        target->sky()->getComponent<Cloud>()->updateSettings([&](auto& c){c.enabled=true;c.coverage=name=="clouds-storm"?.78f:.52f;c.density=name=="clouds-storm"?.01f:.007f;});
+        manager->setting.enableSSAO=false;manager->setting.enableShadow=false;
     } else if (name == "sky") {
         target->setCamera(std::make_shared<Camera>(glm::vec3(0,2,0),glm::vec3(0,1,0),-90,10));
         target->mainCamera()->setZoom(50);target->mainCamera()->setExposure(1);
@@ -326,6 +336,6 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
             point(target,{8,7,6},{4,5,0});
         }
         manager->setting.enableRSM = true;
-    } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose terrain, mountain-lake, sky, shadow-test, bunny, dragon, buddha, armadillo, helmet, cornell, sponza, san-miguel, sibenik, ocean or ocean-clear");
+    } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose terrain, mountain-lake, sky, clouds, clouds-sunset, clouds-storm, shadow-test, bunny, dragon, buddha, armadillo, helmet, cornell, sponza, san-miguel, sibenik, ocean or ocean-clear");
     return target;
 }

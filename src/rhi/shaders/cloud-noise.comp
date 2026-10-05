@@ -1,0 +1,16 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+layout(local_size_x=8,local_size_y=8) in;
+#include "cloud-parameters.glsl"
+#include "cloud-noise.glsl"
+layout(set=1,binding=0,rgba16f) writeonly uniform image2D noiseAtlas;
+void main(){
+    ivec2 at=ivec2(gl_GlobalInvocationID.xy);if(any(greaterThanEqual(at,imageSize(noiseAtlas))))return;
+    ivec2 tile=at/66,p=at%66-1;int z=tile.y*8+tile.x;
+    vec3 uv=vec3(p,z)/64.;
+    float perlin=.57*cloudValue(uv*4.,4)+.29*cloudValue(uv*8.,8)+.14*cloudValue(uv*16.,16);
+    float billows=.6*cloudWorley(uv*4.,4)+.25*cloudWorley(uv*8.,8)+.15*cloudWorley(uv*16.,16);
+    float shape=mix(billows,perlin,.35);
+    float detail=.65*cloudWorley(uv*12.,12)+.35*cloudWorley(uv*24.,24);
+    imageStore(noiseAtlas,at,vec4(shape,detail,perlin,1));
+}

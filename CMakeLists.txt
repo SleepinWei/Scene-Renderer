@@ -273,6 +273,7 @@ if(SCENERENDERER_VULKAN_PROTOTYPE)
         src/rhi/Validation.cpp src/rhi/FrameValidation.cpp src/rhi/GraphicsValidation.cpp src/rhi/ComputeValidation.cpp src/rhi/VulkanDevice.cpp
         src/renderer/rhi/GpuMesh.cpp src/renderer/rhi/GpuMaterial.cpp src/renderer/rhi/GpuImageCache.cpp src/renderer/rhi/ImageDecoder.cpp src/renderer/rhi/DdsDecoder.cpp
         src/renderer/rhi/ForwardPbrRenderer.cpp src/renderer/rhi/ForwardValidation.cpp
+        src/renderer/rhi/GpuClouds.cpp src/renderer/rhi/CloudValidation.cpp src/component/Cloud.cpp src/component/Component.cpp
         src/renderer/rhi/GpuOcean.cpp src/renderer/rhi/OceanValidation.cpp src/renderer/rhi/ShadowRenderer.cpp src/renderer/rhi/SceneEffectsValidation.cpp
         src/renderer/rhi/GpuAtmosphere.cpp src/renderer/rhi/OceanSurface.cpp src/renderer/rhi/AtmosphereValidation.cpp src/renderer/rhi/GpuSubdivision.cpp src/renderer/rhi/SubdivisionValidation.cpp src/renderer/rhi/GpuTerrain.cpp src/renderer/rhi/GpuVirtualTexture.cpp src/renderer/rhi/VirtualTextureValidation.cpp src/renderer/rhi/TerrainValidation.cpp src/renderer/rhi/GpuGrass.cpp src/renderer/rhi/GrassGeometry.cpp src/renderer/rhi/GpuTemporal.cpp src/renderer/rhi/TemporalValidation.cpp)
     target_include_directories(rhi-vulkan-validation BEFORE PRIVATE "$<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>")

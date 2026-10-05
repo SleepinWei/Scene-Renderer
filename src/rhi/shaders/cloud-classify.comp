@@ -1,0 +1,17 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+layout(local_size_x=8,local_size_y=8) in;
+#include "cloud-parameters.glsl"
+#include "cloud-intersection.glsl"
+layout(set=1,binding=0,std430) buffer CloudDispatch {uint groupsX,groupsY,groupsZ;};
+layout(set=1,binding=1,std430) writeonly buffer CloudTiles {uint tiles[];};
+layout(set=1,binding=2) uniform sampler2D sceneDepth;
+shared uint live;
+void main(){if(gl_LocalInvocationIndex==0)live=0;barrier();
+    ivec2 p=ivec2(gl_GlobalInvocationID.xy);
+    if(all(lessThan(p,cloudGrid.xy)) && cloudLayer.z>0. && cloudLayer.w>0.) {
+        vec2 uv=(vec2(p)+.5)/vec2(cloudGrid.xy);float surface=cloudSurface(uv,textureLod(sceneDepth,uv,0).r);
+        vec2 interval=cloudInterval(cloudRay(uv),surface);if(interval.y>interval.x)atomicOr(live,1u);
+    }barrier();
+    if(gl_LocalInvocationIndex==0 && live!=0u){uint slot=atomicAdd(groupsX,1u);tiles[slot]=gl_WorkGroupID.y*uint(cloudGrid.z)+gl_WorkGroupID.x;}
+}

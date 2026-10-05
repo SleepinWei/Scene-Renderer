@@ -1,0 +1,33 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+layout(local_size_x=8,local_size_y=8) in;
+#include "cloud-parameters.glsl"
+#include "cloud-intersection.glsl"
+layout(set=1,binding=0,rgba16f) writeonly uniform image2D cloudResolved;
+layout(set=1,binding=1,rgba32f) writeonly uniform image2D cloudResolvedDepth;
+layout(set=1,binding=2) uniform sampler2D cloudRaw;
+layout(set=1,binding=3) uniform sampler2D cloudRawDepth;
+layout(set=1,binding=4) uniform sampler2D cloudHistory;
+layout(set=1,binding=5) uniform sampler2D cloudHistoryDepth;
+void main(){
+    ivec2 p=ivec2(gl_GlobalInvocationID.xy);if(any(greaterThanEqual(p,cloudGrid.xy)))return;
+    vec4 current=texelFetch(cloudRaw,p,0),meta=texelFetch(cloudRawDepth,p,0),result=current;
+    vec2 uv=(vec2(p)+.5)/vec2(cloudGrid.xy);vec3 ray=cloudRay(uv);
+    float dt=cloudCameraTime.w-cloudPreviousCameraTime.w;
+    vec3 previousPoint=cloudCameraTime.xyz+ray*(meta.x>0.?meta.x:cloudShape.w)-vec3(cloudWindHistory.x,0,cloudWindHistory.y)*dt;
+    vec4 clip=cloudPreviousVP*vec4(previousPoint,1);vec2 oldUV=clip.xy/max(clip.w,1e-6)*vec2(.5,-.5)+.5;
+    if(cloudWindHistory.z>.5 && clip.w>0. && all(greaterThanEqual(oldUV,vec2(0))) && all(lessThanEqual(oldUV,vec2(1)))) {
+        vec4 oldMeta=textureLod(cloudHistoryDepth,oldUV,0),history=textureLod(cloudHistory,oldUV,0);
+        float expected=length(previousPoint-cloudPreviousCameraTime.xyz);
+        bool depths=(meta.x==0. && oldMeta.x==0.) || (meta.x>0. && oldMeta.x>0. && abs(oldMeta.x-expected)<max(100.,expected*.12));
+        bool surface=abs(meta.y-oldMeta.y)<max(20.,meta.y*.05);
+        if(depths && surface && !any(isnan(history)) && !any(isinf(history))) {
+            vec4 lo=vec4(1e20),hi=vec4(-1e20);
+            for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec4 v=texelFetch(cloudRaw,clamp(p+ivec2(x,y),ivec2(0),cloudGrid.xy-1),0);lo=min(lo,v);hi=max(hi,v);}
+            float weight=cloudWindHistory.w*(1.-clamp(abs(current.a-history.a)*3.,0.,1.));
+            result=mix(current,clamp(history,lo,hi),weight);
+        }
+    }
+    imageStore(cloudResolved,p,vec4(max(result.rgb,vec3(0)),clamp(result.a,0.,1.)));
+    imageStore(cloudResolvedDepth,p,meta);
+}

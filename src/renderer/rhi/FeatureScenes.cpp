@@ -11,6 +11,7 @@
 #include "component/Mesh_Renderer.h"
 #include "component/Lights.h"
 #include "component/Atmosphere.h"
+#include "component/Cloud.h"
 #include "component/TerrainComponent.h"
 #include "component/Grass.h"
 #include "component/Ocean.h"
@@ -60,7 +61,7 @@ std::shared_ptr<RenderScene> render::makeFeatureScene() {
     auto sun=std::make_shared<DirectionLight>();sun->setDirection(glm::normalize(glm::vec3(-.3f,-1,-.2f)));sun->setColor({3,3,3});light->addComponent(sun);result->addObject(light);
     auto point=std::make_shared<GameObject>();point->name="Point";auto pt=std::make_shared<Transform>();pt->setPosition({3,5,4});point->addComponent(pt);auto pl=std::make_shared<PointLight>();pl->setColor({20,15,10});point->addComponent(pl);result->addObject(point);
     auto spot=std::make_shared<GameObject>();spot->name="S0";auto st=std::make_shared<Transform>();st->setPosition({-4,7,6});spot->addComponent(st);auto sl=std::make_shared<SpotLight>();sl->setDirection(glm::normalize(-st->getPosition()));sl->setColor({2,2,2});spot->addComponent(sl);result->addObject(spot);
-    auto sky=std::make_shared<Sky>();sky->addComponent(std::make_shared<Atmosphere>());sky->skybox->setInitialized(false);sky->skybox->addTexture(std::make_shared<Texture>(),"skybox");sky->width=sky->height=4;
+    auto sky=std::make_shared<Sky>();sky->addComponent(std::make_shared<Atmosphere>());sky->addComponent(std::make_shared<Cloud>());sky->skybox->setInitialized(false);sky->skybox->addTexture(std::make_shared<Texture>(),"skybox");sky->width=sky->height=4;
     for(int face=0;face<6;face++){sky->data[face]=(unsigned char*)std::malloc(48);std::fill(sky->data[face],sky->data[face]+48,16);}result->addSky(sky);
     auto terrain=std::make_shared<Terrain>();auto tc=std::make_shared<TerrainComponent>();terrain->addComponent(tc);tc->initializeLegacyGrid();
     tc->updateSettings([&](auto& value){value.yScale=2;});tc->updateSettings([&](auto& value){value.yShift=-1;});tc->updateSettings([&](auto& value){value.model=glm::translate(glm::mat4(1),glm::vec3(0,-1,0))*glm::scale(glm::mat4(1),glm::vec3(100,2,100));});tc->updateSettings([&](auto& value){value.material=material({.35f,.48f,.18f});});

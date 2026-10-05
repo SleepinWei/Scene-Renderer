@@ -3,6 +3,7 @@
 #include "renderer/rhi/GraphTextures.h"
 #include "rhi/ShaderAssets.h"
 #include "renderer/rhi/ShadowRenderer.h"
+#include "renderer/rhi/GpuClouds.h"
 #include <glm/gtc/matrix_inverse.hpp>
 #include <json/json.hpp>
 #include <cmath>
@@ -173,6 +174,7 @@ void ForwardPbrRenderer::resize(uint32_t width, uint32_t height) {
     auto targets = std::make_unique<Targets>(resources_.device,width,height,tone_,hdrSampler_,lighting_,path_,shadows_.get(),effects_,skyParameters_,skyView_,irradianceView_,skySampler_);if(temporal_)temporal_->resize(width,height);targets_.swap(targets);previousModels_.clear();temporalOutput_=false;
 }
 void ForwardPbrRenderer::resetTemporal() {
+    if(clouds_)clouds_->reset();
     if(temporal_)temporal_->reset();previousModels_.clear();previousTaa_=false;temporalOutput_=false;
 }
 void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawPacket>& packets, float exposure, float gamma) {
@@ -205,13 +207,24 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
         const auto* parameters=reinterpret_cast<const float*>(&frame.atmosphere);for(size_t i=0;i<24;++i)hash(parameters[i]);
     }
     if(!frame.directionalEnabled)for(auto& light:frame.lights)if(light.positionType.w==0)light.colorInner=glm::vec4(0);
+    if(frame.clouds.enabled){
+        frame.clouds.validate();
+        if(path_!=PbrPath::Scene || !frame.sky || !resources_.device->computeLimits().maxStorageImages)
+            throw std::invalid_argument("Clouds require scene atmosphere and storage compute");
+        if(!clouds_)clouds_=std::make_unique<GpuClouds>(resources_.device,directory_);
+    }else if(clouds_)clouds_.reset();
     if(frame.taa && !temporal_)throw std::invalid_argument("Temporal compute unavailable on this path/backend");
     auto hashShadow=[&](float value){uint32_t bits;std::memcpy(&bits,&value,4);frame.historyKey^=uint64_t(bits)+0x9e3779b97f4a7c15ull+(frame.historyKey<<6)+(frame.historyKey>>2);};
     const auto& shadows=frame.shadowSettings;
     for(float value:{frame.shadows?1.f:0.f,shadows.pcss?1.f:0.f,shadows.distance,shadows.cascadeBlend,shadows.depthBias,
                     shadows.sunAngularRadius,shadows.localLightRadius,shadows.maxFilterTexels})hashShadow(value);
+    hashShadow(frame.clouds.enabled?1.f:0.f);
+    if(frame.clouds.enabled){const auto& c=frame.clouds;for(float value:{c.baseHeight,c.thickness,c.coverage,c.density,c.shapeScale,c.weatherScale,c.erosion,c.maxDistance,c.wind.x,c.wind.y,float(c.steps),float(c.lightSteps),float(c.downsample),float(c.seed),c.temporal?1.f:0.f})hashShadow(value);}
     const auto shadowViewProjection=frame.viewProjection;
     if(temporal_){const auto projection=frame.viewProjection*glm::inverse(frame.view);float difference=0;for(int c=0;c<4;++c)for(int r=0;r<4;++r)difference=std::max(difference,std::abs(projection[c][r]-previousProjection_[c][r]));
+        // Compare the unjittered projection so FOV/near/far cuts invalidate
+        // cloud history without discarding it for the normal TSAA jitter.
+        if(clouds_ && difference>1e-4f)clouds_->reset();
         if(!frame.taa || !previousTaa_ || historyKey_!=frame.historyKey || difference>1e-4f || glm::length(frame.cameraPosition-previousCamera_)>2) {temporal_->reset();previousModels_.clear();}
         if(frame.taa){const auto j=GpuTemporal::jitter(temporal_->samples());glm::mat4 shift(1);shift[3].x=j.x*2/targets_->width;shift[3].y=-j.y*2/targets_->height;frame.viewProjection=shift*frame.viewProjection;}
     }
@@ -498,6 +511,10 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
                 pass = {};
             }
         });
+    if(frame.clouds.enabled)
+        graph.add("clouds",{{"environment",A::Read},{"depth",A::Read},{"hdr",A::ReadWrite},{"motion",A::ReadWrite}},[&]{
+            clouds_->record(frameResources,commands,frame,solar,targets_->depthView,irradianceView_,targets_->hdrView,targets_->motionView);
+        });
     if (!frame.oceans.empty())
         graph.add("ocean-copy", {{"hdr", A::Read}, {"opaque", A::Write}},
                   [&] { commands.copyTexture(targets_->hdr, targets_->opaque); });
@@ -621,6 +638,7 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
     }
     graph.execute([&](const std::string& name){commands.setLabel(name);});
     device.submit(commands);
+    if(frame.clouds.enabled)clouds_->commit(frame);
     renderedVP_=frame.viewProjection;
     temporalOutput_ = frame.taa;
     if (frame.taa)
@@ -661,6 +679,9 @@ std::vector<float> ForwardPbrRenderer::readGBuffer(uint32_t attachment) {
         throw std::invalid_argument("Renderer: invalid G-buffer attachment");
     return resources_.device->readTextureFloat(targets_->gbuffer[attachment]);
 }
+std::vector<float> ForwardPbrRenderer::readClouds(){if(!clouds_)throw std::logic_error("Clouds disabled");return clouds_->read();}
+std::vector<float> ForwardPbrRenderer::readCloudMetadata(){if(!clouds_)throw std::logic_error("Clouds disabled");return clouds_->readMetadata();}
+std::array<uint32_t,2> ForwardPbrRenderer::cloudTileCounts(){if(!clouds_)throw std::logic_error("Clouds disabled");return {clouds_->readDispatch()[0],clouds_->totalTiles()};}
 rhi::TextureHandle ForwardPbrRenderer::output() const { return targets_->output; }
 std::vector<float> ForwardPbrRenderer::readHDR() {
     return temporalOutput_ ? temporal_->read() : resources_.device->readTextureFloat(targets_->hdr);

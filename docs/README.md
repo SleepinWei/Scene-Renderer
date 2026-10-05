@@ -8,6 +8,7 @@
 | --- | --- |
 | [RHI 重构计划](rhi-refactor-plan.md) | 后端分层、迁移进度、验证与平台限制 |
 | [新增经典测试场景](classic-benchmarks.md) | Dragon、Buddha、Armadillo、Sibenik 的资源、固定视角、导入修复与真实截图 |
+| [GPU Driven 体积云](gpu-driven-clouds.md) | GPU tile 队列与间接步进、程序化密度、风速历史、真实截图与性能 |
 | [天空与太阳](sky-and-sun-review.md) | 大气散射、太阳能量与 GPU 回归 |
 | [RSM 实现与验证](rsm.md) | 太阳／天空间接光、算法边界与捕获方法 |
 | [FFT 海洋与透明水体](ocean-fft-and-rendering-review.md) | 频谱、高清波纹、折射与散射 |

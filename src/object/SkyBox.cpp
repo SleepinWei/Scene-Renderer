@@ -6,6 +6,7 @@
 #include"system/RenderManager.h"
 #include"renderer/Material.h"
 #include"component/Atmosphere.h"
+#include "component/Cloud.h"
 #include"utils/Utils.h"
 
 std::shared_ptr<SkyBox> SkyBox::addShader(ShaderType st) {
@@ -192,6 +193,9 @@ void Sky::loadSkyBox(const std::string& folder_path) {
 
 void Sky::loadFromJson(json& data) {
 	this->GameObject::addComponent(std::make_shared<Atmosphere>());
+    auto cloud=std::make_shared<Cloud>();
+    if(data.contains("clouds"))cloud->loadFromJson(data.at("clouds"));
+    this->GameObject::addComponent(cloud);
 	if (data.find("skybox") != data.end()) {
 		this->loadSkyBox(data["skybox"].get<std::string>());
 	}

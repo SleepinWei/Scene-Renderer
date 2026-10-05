@@ -1,0 +1,11 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+layout(local_size_x=8,local_size_y=8) in;
+#include "cloud-parameters.glsl"
+#include "cloud-noise.glsl"
+layout(set=1,binding=0,rgba16f) writeonly uniform image2D weatherImage;
+void main(){ivec2 p=ivec2(gl_GlobalInvocationID.xy),n=imageSize(weatherImage);if(any(greaterThanEqual(p,n)))return;
+    vec3 uv=vec3((vec2(p)+.5)/vec2(n),.37);
+    float v=.6*cloudValue(uv*4.,4)+.27*cloudValue(uv*8.,8)+.13*cloudValue(uv*16.,16);
+    imageStore(weatherImage,p,vec4(v,cloudValue(uv*8.,8),0,1));
+}
