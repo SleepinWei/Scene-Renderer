@@ -1,6 +1,6 @@
 # 文档索引
 
-项目介绍与精选效果见 [项目 README](../README.md)。构建、运行和截图复现见 [构建与运行](getting-started.md)，完整参数与效果对照见 [图集说明](rendering-gallery.md)。文件放置与依赖管理见 [仓库结构说明](repository-layout.md)，测试入口见 [测试说明](../tests/README.md)，示例资源来源与使用条件见 [场景资源说明](../samples/README.md)。
+项目介绍与精选效果见 README：[English](../README.md)／[简体中文](../README.zh-CN.md)。构建、运行和截图复现见 [构建与运行](getting-started.md)，完整参数与效果对照见 [图集说明](rendering-gallery.md)。文件放置与依赖管理见 [仓库结构说明](repository-layout.md)，测试入口见 [测试说明](../tests/README.md)，示例资源来源与使用条件见 [场景资源说明](../samples/README.md)。
 
 ## 使用与项目概览
 
