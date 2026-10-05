@@ -102,9 +102,11 @@ CPU／Metal／Vulkan 路径追踪支持多次反弹、纹理材质、折射和�
 | --- | --- |
 | ![路径追踪地形与草丛](img/path-tracing/pt-terrain.png) | ![路径追踪山湖与倒影](img/path-tracing/pt-mountain-lake.png) |
 
-| 湖岸沙滩：Metal PT＋OIDN，256 spp | 浅水折射：Metal PT＋OIDN，256 spp |
+| 湖岸沙滩：Metal PT＋OIDN，1024 spp | 浅水折射：Metal PT＋OIDN，4096 spp |
 | --- | --- |
 | ![路径追踪湖岸沙滩与湿沙](img/path-tracing/pt-mountain-lake-beach.png) | ![路径追踪 FFT 浅水](img/path-tracing/pt-ocean-clear.png) |
+
+沙滩保留世界坐标纹理细节；水下太阳路径使用 BSDF／相位混合采样，保持原太阳与曝光。[沙滩原图](img/path-tracing/pt-mountain-lake-beach-raw.png) · [浅水原图](img/path-tracing/pt-ocean-clear-raw.png) · [修复与验证](docs/path-tracing-procedural.md#水下太阳路径采样)。
 
 ![路径追踪 FFT 大浪海洋：Metal PT＋OIDN，256 spp](img/path-tracing/pt-ocean.png)
 

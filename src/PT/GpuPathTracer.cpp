@@ -39,7 +39,7 @@ class Kernel {
         parameters_.sunDirectionRadius=glm::vec4(scene.sunDirection,scene.sunRadius);parameters_.sunIrradiance=glm::vec4(scene.sunIrradiance,0);
         parameters_.dimensions={options.width,options.height,0,0};parameters_.counts={uint32_t(data.nodes.size()),uint32_t(data.lights.size()),scene.environment?scene.environment->width():0,scene.environment?scene.environment->height():0};
         parameters_.control={options.maxDepth,uint32_t(options.seed),0,uint32_t(data.emitters.size())};parameters_.settings={float(data.emitterWeight),options.relativeError,options.absoluteError,data.inverseSquare?1.f:0.f};parameters_.adaptive={options.adaptive?1:0,options.minimumSamples,options.samples,1};
-        parameters_.learning={options.guiding||options.radianceCache?16384u:0u,(options.guiding?1u:0u)|(options.radianceCache?2u:0u),options.cacheMinimum,options.cacheDepth};
+        parameters_.learning={options.guiding||options.radianceCache?16384u:0u,(options.guiding?1u:0u)|(options.radianceCache?2u:0u)|(options.waterSunProposal?0u:4u),options.cacheMinimum,options.cacheDepth};
         float extent=1;if(!data.nodes.empty()){auto size=glm::vec3(data.nodes[0].high-data.nodes[0].low);extent=std::max({size.x,size.y,size.z,1.f});}
         parameters_.guideSettings={options.guideCellSize>0?options.guideCellSize:extent/48,.35f,.5f,scene.scatteringCount()?1.f:0.f};
         using namespace rhi;

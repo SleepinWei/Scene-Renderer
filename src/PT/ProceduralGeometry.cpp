@@ -26,38 +26,22 @@ public:
 void gridIndices(render::MeshPayload &m,uint32_t n){for(uint32_t y=0;y+1<n;++y)for(uint32_t x=0;x+1<n;++x){uint32_t a=y*n+x,b=a+1,c=a+n,d=c+1;m.indices.insert(m.indices.end(),{a,d,b,a,c,d});}}
 uint8_t byte(float f){return uint8_t(std::round(glm::clamp(f,0.f,1.f)*255));}
 glm::vec3 periodic(const std::vector<float> &image,uint32_t n,glm::vec2 uv){auto p=glm::fract(uv)*float(n);int x=int(std::floor(p.x)),y=int(std::floor(p.y));auto at=[&](int a,int b){size_t i=(size_t((b%int(n)+n)%n)*n+(a%int(n)+n)%n)*4;return glm::vec3(image[i],image[i+1],image[i+2]);};return glm::mix(glm::mix(at(x,y),at(x+1,y),p.x-x),glm::mix(at(x,y+1),at(x+1,y+1),p.x-x),p.y-y);}
-glm::vec4 imageSample(const render::ImageRGBA8 &image,glm::vec2 uv,bool repeat=false){
-    const int w=int(image.width),h=repeat?w:int(image.height);
-    if(w<=0||h<=0||(repeat&&image.height<image.width)||image.pixels.size()!=size_t(image.width)*image.height*4)throw std::invalid_argument("PT capture: invalid beach image");
-    auto p=(repeat?glm::fract(uv):glm::clamp(uv,0.f,1.f))*glm::vec2(w,h)-.5f;int x=int(std::floor(p.x)),y=int(std::floor(p.y));
-    auto at=[&](int a,int b){a=repeat?(a%w+w)%w:std::clamp(a,0,w-1);b=repeat?(b%h+h)%h:std::clamp(b,0,h-1);const auto *c=image.pixels.data()+(size_t(b)*w+a)*4;return glm::vec4(c[0],c[1],c[2],c[3])/255.f;};
-    return glm::mix(glm::mix(at(x,y),at(x+1,y),p.x-x),glm::mix(at(x,y+1),at(x+1,y+1),p.x-x),p.y-y);
-}
-void bakeShoreline(const render::SnapshotTerrain &terrain,Pages &height,render::MaterialPayload &material,render::MaterialParameters &parameters){
+void captureShoreline(const render::SnapshotTerrain &terrain,render::SnapshotDraw &draw){
     const auto &extension=terrain.extension;const auto &images=terrain.source->shorelineImages;
     if(!images[0]&&!(extension.features.x&int(render::MaterialFeature::Shoreline)))return;
-    for(auto &image:images)if(!image)throw std::invalid_argument("PT capture: missing beach material");
+    for(const auto &image:images)if(!image||!image->width||!image->height||image->pixels.size()!=size_t(image->width)*image->height*4)throw std::invalid_argument("PT capture: missing/invalid beach material");
     const auto H=extension.shoreHeight,S=extension.shoreSurface;
     for(auto v:{H,S})for(int k=0;k<4;++k)if(!std::isfinite(v[k]))throw std::invalid_argument("PT capture: nonfinite beach parameters");
     if(S.x<=0||H.y<=0||H.z+H.w<=0||S.y>=S.z)throw std::invalid_argument("PT capture: invalid beach parameters");
-    const uint32_t n=material.images[0]->width;std::array<std::shared_ptr<render::ImageRGBA8>,4> result;
-    for(auto &image:result){image=std::make_shared<render::ImageRGBA8>();image->width=image->height=n;image->pixels.resize(size_t(n)*n*4);}
-    const float delta=1.f/(terrain.source->height.extent-1);const auto normalMatrix=glm::inverseTranspose(glm::mat3(terrain.model));
-    for(uint32_t y=0;y<n;++y)for(uint32_t x=0;x<n;++x){glm::vec2 uv{(x+.5f)/n,(y+.5f)/n},at{uv.x,1-uv.y},lo=glm::max(at-glm::vec2(delta),glm::vec2(0)),hi=glm::min(at+glm::vec2(delta),glm::vec2(1));
-        float h=height.sample(at,0,true).x,dx=(height.sample({hi.x,at.y},0,true).x-height.sample({lo.x,at.y},0,true).x)/(2*(hi.x-lo.x)),dz=(height.sample({at.x,hi.y},0,true).x-height.sample({at.x,lo.y},0,true).x)/(2*(hi.y-lo.y));
-        auto N=glm::normalize(normalMatrix*glm::vec3(-dx,1,-dz));auto position=glm::vec3(terrain.model*glm::vec4(at.x*2-1,h,at.y*2-1,1));float altitude=position.y-H.x;
-        float weight=imageSample(*images[3],uv).r*(1-glm::smoothstep(H.y*.55f,H.y,altitude))*glm::smoothstep(S.y,S.z,std::abs(N.y))*glm::smoothstep(-4.f,-.5f,altitude);
-        float wet=1-glm::smoothstep(-H.z,H.w,altitude);glm::vec2 beachUV=glm::vec2(position.x,-position.z)/S.x;
-        auto base=imageSample(*material.images[0],uv)*parameters.albedoAlpha;auto sand=imageSample(*images[0],beachUV,true);auto orm=imageSample(*images[2],beachUV,true);
-        auto color=glm::pow(glm::mix(glm::pow(glm::vec3(base),glm::vec3(2.2f)),glm::pow(glm::vec3(sand),glm::vec3(2.2f))*glm::mix(1.f,.45f,wet),weight),glm::vec3(1/2.2f));
-        float rough=glm::clamp(glm::mix(parameters.factors.y,glm::mix(orm.g,std::max(.28f,orm.g*.5f),wet),weight),.045f,1.f);
-        auto T=glm::vec3(1,0,0)-N*N.x;auto mapped=N;
-        if(glm::dot(T,T)>1e-8f){T=glm::normalize(T);auto sample=glm::normalize(glm::vec3(imageSample(*images[1],beachUV,true))*2.f-1.f);sample.x*=S.w;sample.y*=S.w;mapped=glm::normalize(glm::mix(N,glm::normalize(T*sample.x+glm::cross(N,T)*sample.y+N*sample.z),weight));}
-        auto tangent=glm::mat3(terrain.model)*glm::vec3(1,dx,0),bitangent=glm::mat3(terrain.model)*glm::vec3(0,-dz,-1);tangent=glm::normalize(tangent-N*glm::dot(tangent,N));bitangent=glm::normalize(bitangent-N*glm::dot(bitangent,N));
-        auto encoded=glm::normalize(glm::inverse(glm::mat3(tangent,bitangent,N))*mapped)*.5f+.5f;size_t i=(size_t(y)*n+x)*4;
-        for(int k=0;k<3;++k){result[0]->pixels[i+k]=byte(color[k]);result[1]->pixels[i+k]=byte(encoded[k]);}result[0]->pixels[i+3]=byte(base.a);result[1]->pixels[i+3]=255;result[2]->pixels[i+3]=255;result[3]->pixels[i+1]=byte(rough);result[3]->pixels[i+3]=255;
+    draw.extension=extension;
+    for(size_t i=0;i<3;++i){
+        if(images[i]->height<images[i]->width)throw std::invalid_argument("PT capture: invalid beach mip atlas");
+        // Raster stores vertically stacked mips. PT repeats only the full-resolution square.
+        auto image=std::make_shared<render::ImageRGBA8>();image->width=image->height=images[i]->width;
+        image->pixels.assign(images[i]->pixels.begin(),images[i]->pixels.begin()+size_t(image->width)*image->height*4);
+        draw.pathTracingShoreline[i]=image;
     }
-    for(int i=0;i<4;++i)material.images[i]=result[i];parameters.albedoAlpha=glm::vec4(1);parameters.factors.x=0;parameters.factors.y=1;parameters.emissiveNormal.w=1;
+    draw.pathTracingShoreline[3]=images[3];
 }
 void validate(const OceanSamples &s){if(!s.size||s.displacement.size()!=size_t(s.size)*s.size*4||s.normal.size()!=s.displacement.size()||s.foam.size()!=s.displacement.size())throw std::invalid_argument("PT capture: invalid FFT readback");for(auto *v:{&s.displacement,&s.normal,&s.foam})for(float f:*v)if(!std::isfinite(f))throw std::invalid_argument("PT capture: nonfinite FFT readback");}
 }
@@ -69,7 +53,7 @@ render::SnapshotDraw freezeTerrain(const render::SnapshotTerrain &terrain,const 
         float dx=(height.sample({hi.x,uv.y},0,true).x-height.sample({lo.x,uv.y},0,true).x)/(2*(hi.x-lo.x)),dz=(height.sample({uv.x,hi.y},0,true).x-height.sample({uv.x,lo.y},0,true).x)/(2*(hi.y-lo.y));mesh->vertices.push_back({{uv.x*2-1,h,uv.y*2-1},glm::normalize(glm::vec3(-dx,1,-dz)),{uv.x,1-uv.y}});}
     gridIndices(*mesh,n);auto material=std::make_shared<render::MaterialPayload>();uint32_t mip=0;while((source.material.extent>>mip)>options.textureExtent)++mip;Pages colors(source.material,mip);const uint32_t extent=source.material.extent>>mip;
     for(uint32_t layer=0;layer<5;++layer){auto image=std::make_shared<render::ImageRGBA8>();image->width=image->height=extent;image->pixels.resize(size_t(extent)*extent*4);for(uint32_t y=0;y<extent;++y)for(uint32_t x=0;x<extent;++x){auto c=colors.pixel(x,y,layer);for(int k=0;k<4;++k)image->pixels[(size_t(y)*extent+x)*4+k]=byte(c[k]);}material->images[layer]=image;}
-    render::SnapshotDraw draw;draw.objectId=source.id;draw.mesh=mesh;draw.material=material;draw.model=terrain.model;draw.parameters=terrain.parameters;bakeShoreline(terrain,height,*material,draw.parameters);draw.pathTracingKind=1;return draw;
+    render::SnapshotDraw draw;draw.objectId=source.id;draw.mesh=mesh;draw.material=material;draw.model=terrain.model;draw.parameters=terrain.parameters;captureShoreline(terrain,draw);draw.pathTracingKind=1;return draw;
 }
 render::SnapshotDraw freezeOcean(const render::OceanSurfaceSettings &s,const OceanSamples &large,const OceanSamples &detail,const CaptureOptions &options){
     validate(options);validate(large);if(s.detailWaves)validate(detail);if(!std::isfinite(s.seaLevel)||!std::isfinite(s.spectrum.length)||s.spectrum.length<=0||glm::any(glm::lessThan(s.absorption,glm::vec3(0)))||!std::isfinite(glm::length(s.absorption))||glm::any(glm::lessThan(s.scattering,glm::vec3(0)))||!std::isfinite(glm::length(s.scattering))||!std::isfinite(s.anisotropy)||std::abs(s.anisotropy)>=.99f)throw std::invalid_argument("PT capture: invalid water optics");

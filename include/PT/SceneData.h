@@ -9,6 +9,8 @@ struct alignas(16) PackedMaterial {
     glm::vec4 optics{0}; // x: dielectric IOR; zero uses basic PBR.
     glm::vec4 absorption{0},scattering{0}; // absorption.w: dielectric roughness; scattering.w: HG g.
     glm::uvec4 textures, extra; // extra: AO image, two-sided, emissive-albedo.
+    glm::vec4 shoreHeight{0},shoreSurface{0};
+    glm::uvec4 shoreTextures{UINT32_MAX}; // beach albedo/normal/ORM, shoreline mask; disabled when x is UINT32_MAX.
 };
 struct alignas(16) PackedEmitter {glm::vec4 primitiveAreaCDF, normal;};
 struct SceneData {

@@ -32,6 +32,8 @@ struct SnapshotDraw {
     float pathTracingAnisotropy=0;
     float pathTracingNormalScale = 1;
     uint32_t pathTracingKind = 0; // 1 terrain, 2 grass, 3 ocean interface, 4 subsurface solid.
+    // Level-zero repeating beach maps and clamped terrain-UV shoreline mask.
+    std::array<std::shared_ptr<const ImageRGBA8>,4> pathTracingShoreline;
 };
 struct TerrainPayload {
     uint64_t id = 0, revision = 0;

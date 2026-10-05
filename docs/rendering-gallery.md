@@ -466,9 +466,11 @@ CPU、Metal/Vulkan GPU PT 现已接入当前高度／材质 VT、沙滩 PBR、�
 | --- | --- |
 | ![地形与草丛 Path Tracing](../img/path-tracing/pt-terrain.png) | ![Mountain Lake 地形倒影 Path Tracing](../img/path-tracing/pt-mountain-lake.png) |
 
-| 湖岸沙滩，256 spp | 浅水折射与水下物体，256 spp |
+| 湖岸沙滩，1024 spp | 浅水折射与水下物体，4096 spp |
 | --- | --- |
 | ![湖岸沙滩 Path Tracing](../img/path-tracing/pt-mountain-lake-beach.png) | ![FFT 浅水折射 Path Tracing](../img/path-tracing/pt-ocean-clear.png) |
+
+2026-10-05 已用 CSM／PCSS 修复后的版本重新生成本节及页首的五张 Sponza 图片，替换旧图中地面的异常三角形阴影；相机、太阳和曝光保持一致。[问题原因、前后对照与验收](vt-csm-pcss-fixes.md#sponza-readme-旧图修正)。
 
 ![FFT 大浪海洋 Path Tracing，256 spp](../img/path-tracing/pt-ocean.png)
 

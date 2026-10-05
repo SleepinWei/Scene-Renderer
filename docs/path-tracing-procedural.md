@@ -37,7 +37,7 @@ python3 tools/fetch_dragon.py
 
 地形捕获直接读取 VT 源页面，包含全部高度场，独立于实时四叉树的视锥与 LOD。高度使用 finest mip 的双线性采样，法线由高度导数和模型变换得到。默认网格边长为 `min(heightVT.extent, 1025)`；可以显式降低至 257 做快速预览。大面积场景的低分辨率网格会使近景岸线和细草位置不一致，应提高网格精度。
 
-五层材质选择不超过纹理预算的 VT mip。当前沙滩扩展按实际世界坐标、海拔、坡度、岸线 proximity、湿润度混合地表色、沙色、粗糙度与法线，并烘焙为普通 PT 材质。沙滩 mip atlas 只在 level 0 的方形区域内 repeat 采样；捕获后的细节受纹理分辨率限制。AO 不再乘入真实光传输。掠射角下背向入射射线的 shading normal 回退到有效基础／几何法线，避免整片黑带；完整 shading-normal 能量修正仍未实现。
+五层基础地表材质选择不超过纹理预算的 VT mip。沙滩保留原始底色／法线／ORM 的 level 0 方形区域及岸线 mask，由 CPU／Metal／Vulkan PT 在实际命中点按世界坐标重复采样，结合海拔、坡度、岸线 proximity 与湿润度混合材质。岸线 mask 使用地形 UV 与 clamp 采样。沙纹分辨率独立于整块地形的 `--pt-texture-size`，避免把 8 km 地形烘焙进 2048² 贴图后，每像素约 3.9 m 导致近景沙纹与法线丢失。AO 不再乘入真实光传输。掠射角下背向入射射线的 shading normal 回退到有效基础／几何法线，避免整片黑带；完整 shading-normal 能量修正仍未实现。
 
 草丛复用 `GpuGrass` 的原生生成和风动姿态、同一草叶几何，以及当前距离密度、坡度、水域和沙滩过滤。捕获的是当前相机与生成预算下的实例，不是整个世界无限密度的植被；默认最多 16,384 丛，可提高预算。草叶为双面非金属材质，使用与实时 shader 相同的根部／叶尖颜色。
 
@@ -81,6 +81,36 @@ done
 当前开放水面下已接入均匀 RGB 吸收／多次散射、HG 相位和介质栈，支持部分浸水的 Jade Dragon；实现、对照图与限制见 [水体／玉石随机游走](path-tracing-subsurface.md)。未构造水体侧壁／底面，未支持实时自定义泡沫色或动态运动模糊。既有 512 m 大波周期可完整包含 32 m 短波周期，其他不整除周期的组合未验收。水下焦散由单向 PT 采样，收敛可能较慢；**BDPT 尚未实现介质连接权重，含水面或散射材质的 BDPT 请求明确报错**。既有 BDPT 焦散验收对象为 Dragon 玻璃。
 
 
+## 水下太阳路径采样
+
+2026-10-05 增加水下太阳方向的延续采样 proposal：在水下漫反射表面或体积散射点，先用空气到水的折射方向和实际 FFT 水面法线估计太阳方向，再以 50% 概率采样其周围的有限锥体，另外 50% 保留原 BSDF／HG 采样。完整混合 PDF 同时用于路径权重和 NEE 的 MIS；路径仍需实际求交并经过 Fresnel 反射／折射及介质吸收／散射，没有直线透过水面的阴影近似，也没有扩大太阳或截断亮点。
+
+方向估计只有四次迭代，可能无法找到全部焦散路径；保留原采样确保未被 proposal 覆盖的方向仍有概率。`--pt-no-water-sun-proposal` 关闭该 proposal，供同灯光、同曝光的原始线性对照。固定 256 spp 的旧浅水图仍是未充分收敛的历史预览，不能用 OIDN 的平滑画面验收水下能量。
+
+| 湖岸旧图：整块地形烘焙 | 修复：世界坐标原始沙滩纹理，1024 spp |
+| --- | --- |
+| ![缺失近景沙纹的旧湖岸 PT](../img/path-tracing/pt-mountain-lake-beach-before.png) | ![修复后的湖岸沙滩 PT](../img/path-tracing/pt-mountain-lake-beach.png) |
+
+| 浅水旧图：256 spp | 修复：折射太阳混合采样，4096 spp |
+| --- | --- |
+| ![太阳焦散未收敛的旧浅水 PT](../img/path-tracing/pt-ocean-clear-before.png) | ![修复后的浅水 PT](../img/path-tracing/pt-ocean-clear.png) |
+
+[湖岸未降噪原图](../img/path-tracing/pt-mountain-lake-beach-raw.png) · [浅水未降噪原图](../img/path-tracing/pt-ocean-clear-raw.png) · [完整参数、测试与图片校验](../img/path-tracing/shoreline-water-fix-validation.json)。两张最终图均为 640×480、time=8 s，使用原太阳与曝光；湖岸为 1024 spp／32 次反弹，浅水为 4096 spp／64 次反弹。OIDN 图用于展示，原始线性结果用于检查能量。
+
+```sh
+./build/pt/Scene-Renderer --path-trace-gpu mountain-lake-beach --pt-time 8 \
+  --pt-texture-size 2048 --pt-size 640x480 --pt-samples 1024 \
+  --pt-bounces 32 --pt-fixed --pt-denoise \
+  --pt-output build/path-tracing/shore-fix/beach-final-1024
+./build/pt/Scene-Renderer --path-trace-gpu ocean-clear --pt-time 8 \
+  --pt-size 640x480 --pt-samples 4096 --pt-bounces 64 --pt-fixed --pt-denoise \
+  --pt-output build/path-tracing/shore-fix/ocean-final-4096
+```
+
+相关 Metal／Vulkan 回归分别通过 5/5，ASan／UBSan 的 CPU／介质／程序化捕获检查通过 3/3。解析平面水体测试独立计算 Fresnel、Beer 吸收及粗糙度为 1 的 PBR／GGX 反射，30,000 条路径得到红通道 0.0728707，参考为 0.0746024，偏差约 2.32%；相机避开太阳镜面反射。CPU／GPU 的沙滩材质相对 L1 为 7.46×10⁻⁸，折射太阳混合采样为 1.74×10⁻⁴。这些是解析能量和实现一致性检查，有限采样下仍可能有稀有焦散噪点，不表示整个波浪场景已严格收敛。
+
+捕获湖岸时还修复了透明／内部水面跳过路径的射线偏移：改用几何法线和坐标精度决定的偏移，避免千米级世界坐标下固定微小偏移被浮点舍入吞掉，重复求交同一边界。
+
 ## 参数与验证
 
 | 参数 | 默认与范围 |
@@ -92,7 +122,7 @@ done
 | `--pt-grass-limit N` | 16,384 丛，最多 1,048,576，受原生 capacity 约束 |
 | `--pt-no-grass` | 跳过原生草丛捕获；仅地形／已保存 HDR 可完全在 CPU 上运行 |
 
-JSON 新增 `terrain_meshes`、`grass_meshes`、`ocean_interfaces` 和 `frozen_time_seconds`；原有几何数量、非有限样本、曝光、采样、时间和降噪记录仍保留。GPU std430 材质现为 128 字节，参数块为 288 字节；两后端通过同一 GLSL→SPIR-V→MSL 工具链。
+JSON 新增 `terrain_meshes`、`grass_meshes`、`ocean_interfaces` 和 `frozen_time_seconds`；原有几何数量、非有限样本、曝光、采样、时间和降噪记录仍保留。GPU std430 材质现为 176 字节（新增独立沙滩参数与贴图索引），参数块为 288 字节；两后端通过同一 GLSL→SPIR-V→MSL 工具链。
 
 2026-10-04，Apple M4/macOS，完整 CTest 为 Metal **16/16**、Vulkan/MoltenVK **17/17**，ASan/UBSan CPU／程序化／denoiser **3/3**。回归包含：高度／法线／UV 与材质方向、损坏 VT 页面拒绝、沙滩湿润度／粗糙度、FFT 水面拓扑、Fresnel+Beer 能量、水下初始介质、零吸收通道极限、岸线 alpha、泡沫混合 PDF、掠射法线、未捕获水面与 BDPT 水体拒绝。设备线程测试验证 FFT 时刻变化及异常回传；32×24 / 512 spp 对照中，CPU/GPU 水面相对 L1 约 4.7×10⁻⁷，水下相机约 8.8×10⁻⁸。CPU、程序化捕获及 denoiser 另通过 ASan/UBSan。完整场景 PNG 已目视检查，非有限样本均为 0。性能数字受本机其他开发负载影响，不作为跨平台基准。
 

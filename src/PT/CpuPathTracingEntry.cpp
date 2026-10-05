@@ -84,6 +84,7 @@ int runCommandLine(int argc,char **argv) {
         else if(flag=="--pt-guide-cell")options.guideCellSize=realNumber(value(),"guide cell size");
         else if(flag=="--pt-cache-min")options.cacheMinimum=number(value(),"cache minimum",8192);
         else if(flag=="--pt-cache-depth")options.cacheDepth=number(value(),"cache depth",128);
+        else if(flag=="--pt-no-water-sun-proposal")options.waterSunProposal=false;
         else if(flag=="--pt-fixed")options.adaptive=false;
         else if(flag=="--pt-adaptive")options.adaptive=true;
         else if(flag=="--pt-min-samples")options.minimumSamples=number(value(),"minimum samples",1048576);

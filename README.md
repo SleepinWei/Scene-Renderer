@@ -104,9 +104,11 @@ The architectural and natural scenes shown above also have path-traced results. 
 | --- | --- |
 | ![Path-traced terrain and grass](img/path-tracing/pt-terrain.png) | ![Path-traced mountain lake and reflections](img/path-tracing/pt-mountain-lake.png) |
 
-| Lakeside beach: Metal PT + OIDN, 256 spp | Shallow-water refraction: Metal PT + OIDN, 256 spp |
+| Lakeside beach: Metal PT + OIDN, 1024 spp | Shallow-water refraction: Metal PT + OIDN, 4096 spp |
 | --- | --- |
 | ![Path-traced lakeside beach and wet sand](img/path-tracing/pt-mountain-lake-beach.png) | ![Path-traced FFT shallow water](img/path-tracing/pt-ocean-clear.png) |
+
+Beach textures are sampled at world scale; underwater solar paths use a BSDF/phase mixture proposal without changing the sun or exposure. [Raw beach](img/path-tracing/pt-mountain-lake-beach-raw.png) · [Raw shallow water](img/path-tracing/pt-ocean-clear-raw.png) · [Fix and validation](docs/path-tracing-procedural.md#水下太阳路径采样).
 
 ![Path-traced FFT rough ocean: Metal PT + OIDN, 256 spp](img/path-tracing/pt-ocean.png)
 

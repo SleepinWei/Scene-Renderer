@@ -55,7 +55,7 @@ struct Options {
     uint32_t width = 640, height = 480, samples = 64, maxDepth = 8, threads = 0;
     uint64_t seed = 1;
     float exposure = 1;
-    bool sobol = true, adaptive = true;
+    bool sobol = true, adaptive = true, waterSunProposal = true;
     uint32_t minimumSamples = 64;
     float relativeError = .03f, absoluteError = .0005f;
     bool guiding = false, radianceCache = false, bdpt = false;
@@ -93,7 +93,7 @@ class CpuScene {
     bool intersect(glm::vec3 origin, glm::vec3 direction, float minimum, float maximum,
                    Surface &, bool bruteForce = false) const;
     glm::vec3 trace(glm::vec3 origin, glm::vec3 direction, Random &, uint32_t maxDepth,
-                    uint64_t &rays,uint64_t *volumeEvents=nullptr) const;
+                    uint64_t &rays,uint64_t *volumeEvents=nullptr,bool waterSunProposal=true) const;
     void cameraRay(float u, float v, glm::vec3 &origin, glm::vec3 &direction) const;
     SceneData exportData() const;
     EmitterSample sampleEmitter(Random &) const;
