@@ -1,8 +1,9 @@
 #include "shoreline-coverage.glsl"
+#include "water-wet.glsl"
 bool hasShoreline(){return (materialFeatures.x & 2)!=0;}
 vec2 beachUV(){return worldPosition.xz*vec2(1,-1)/shoreSurface.x;}
 float beachWeight(){return hasShoreline()?shorelineCoverage(worldPosition.y-shoreHeight.x,normalize(worldNormal).y,texture(aoMap,uv).r,shoreHeight.y,shoreSurface.y,shoreSurface.z):0.;}
-float beachWetness(){return 1.-smoothstep(-shoreHeight.z,shoreHeight.w,worldPosition.y-shoreHeight.x);}
+float beachWetness(){vec4 h=waterGroundHistory();return mix(1.-smoothstep(-shoreHeight.z,shoreHeight.w,worldPosition.y-shoreHeight.x),h.y,h.w);}
 // Mips occupy vertically stacked square regions. Four texel fetches wrap within
 // each mip, so repeat filtering cannot bleed into an adjacent atlas region.
 vec4 beachMip(sampler2D map,vec2 at,int level){
@@ -26,11 +27,13 @@ vec4 mappedBase(){
         vec3 linearBase=pow(max(base.rgb,vec3(0)),vec3(2.2));
         base.rgb=pow(mix(linearBase,sand,beachWeight()),vec3(1./2.2));
     }
+    if(!hasShoreline())base.rgb*=pow(mix(1.,.45,groundWetness()),1./2.2);
+    base.rgb=mix(base.rgb,vec3(.9),clamp(groundFoam(),0.,1.));
     return base;
 }
 float mappedMetallic(){return hasShoreline()?0.:clamp(sampleMaterial(metallicMap,uv).b*factors.x,0.,1.);}
 float mappedRoughness(){
-    if(!hasShoreline())return clamp(sampleMaterial(roughnessMap,uv).g*factors.y,.045,1.);
+    if(!hasShoreline())return clamp(sampleMaterial(roughnessMap,uv).g*factors.y*mix(1.,.5,groundWetness()),.045,1.);
     float sand=beachSample(roughnessMap,beachUV()).g;
     sand=mix(sand,max(.28,sand*.5),beachWetness());
     return clamp(mix(factors.y,sand,beachWeight()),.045,1.);

@@ -4,6 +4,7 @@ layout(location=0) in vec3 worldPosition;
 layout(location=1) in vec3 worldNormal;
 layout(location=2) in vec2 uv;
 layout(location=0) out vec4 color;
+#define WATER_WET_ENABLED
 #include "pbr-material.glsl"
 #define RHI_TWO_SIDED (materialSettings.w>0.)
 #include "pbr-lighting.glsl"

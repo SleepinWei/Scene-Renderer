@@ -1,0 +1,14 @@
+Starting recording with the Metal System Trace template. Launching process: Scene-Renderer. Time limit: 20.0 s
+Ctrl-C to stop the recording
+Reached specified time limit, ending recording...
+Run issues were detected (trace is still ready to be viewed):
+* [Warning] Data stream: Signpost intervals with backdated timestamps were emitted that are not visualized on the timeline until immediate mode recording is stopped.
+
+* [Error] Fatal error reported in run 1
+
+	* [Error] Rules engine appears to be stuck
+
+	* [Error] Recovery Suggestion: Please file a radar describing the reproduction steps. Also save this trace and attach it to the radar.
+
+Recording failed with errors. Saving output file...
+Output file saved as: coastal-metal.trace

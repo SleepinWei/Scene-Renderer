@@ -10,6 +10,7 @@
 #include <json/json.hpp>
 #include <algorithm>
 #include <cstring>
+#include <cstdlib>
 #include <fstream>
 #include <map>
 #include <stdexcept>
@@ -27,6 +28,8 @@ class MetalDevice final : public rhi::GraphicsDevice {
 public:
     explicit MetalDevice(NativeState state) : GraphicsDevice({size_t(state.device.maxBufferLength),65536,256,32},{16384,16,3,8,8}),state_(std::move(state)) {
         if(@available(macOS 11.0,*)) {
+            if(std::getenv("SCENERENDERER_GPU_PROFILE") && [state_.device supportsFamily:MTLGPUFamilyApple1] && [state_.device supportsCounterSampling:MTLCounterSamplingPointAtStageBoundary])
+                for(id<MTLCounterSet> set in state_.device.counterSets)if([set.name isEqualToString:MTLCommonCounterSetTimestamp])counterSet_=set;
             auto version=[NSProcessInfo processInfo].operatingSystemVersion;
             cachePath_=pipelineDiskPath("metal-"+std::to_string(state_.device.registryID)+"-"+std::to_string(version.majorVersion)+"-"+std::to_string(version.minorVersion)+"-"+std::to_string(version.patchVersion)+".archive");
             NSError* error=nil;auto desc=[MTLBinaryArchiveDescriptor new];
@@ -37,6 +40,7 @@ public:
         }
     }
     ~MetalDevice() override {try{close();}catch(...){}}
+    std::vector<GpuProfileSample> drainGpuProfileImpl() override {auto result=std::move(profileSamples_);profileSamples_.clear();return result;}
     bool supportsWireframe() const override { return true; }
     rhi::ComputeLimits computeLimits() const override {
         auto size=state_.device.maxThreadsPerThreadgroup;
@@ -195,6 +199,8 @@ fragment float4 rhiPresentFragment(float4 position [[position]],texture2d<float>
         }
         endEncoders();command();auto pass=[MTLRenderPassDescriptor renderPassDescriptor];pass.colorAttachments[0].texture=state_.screen;
         pass.colorAttachments[0].loadAction=MTLLoadActionDontCare;pass.colorAttachments[0].storeAction=MTLStoreActionStore;
+        auto sample=profilePass("presentation","render",4);
+        if(sample.buffer){auto a=pass.sampleBufferAttachments[0];a.sampleBuffer=sample.buffer;a.startOfVertexSampleIndex=sample.index;a.endOfVertexSampleIndex=sample.index+1;a.startOfFragmentSampleIndex=sample.index+2;a.endOfFragmentSampleIndex=sample.index+3;}
         auto e=[state_.command renderCommandEncoderWithDescriptor:pass];require(e!=nil,"RHI presentation encoder failed");
         [e setRenderPipelineState:rhiPresentPipeline_];[e setFragmentTexture:rhiTextures_.at(id) atIndex:0];const float targetSize[2]={float(state_.screen.width),float(state_.screen.height)};[e setFragmentBytes:targetSize length:sizeof(targetSize) atIndex:0];[e drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];[e endEncoding];
     }
@@ -204,12 +210,14 @@ fragment float4 rhiPresentFragment(float4 position [[position]],texture2d<float>
         auto store=[](rhi::StoreOp value) {return value==rhi::StoreOp::Store?MTLStoreActionStore:MTLStoreActionDontCare;};
         for(const auto& pass:passes) {
             if(pass.copy) {
-                const auto& desc=textureDesc(pass.copySource);auto e=[state_.command blitCommandEncoder];e.label=[NSString stringWithUTF8String:pass.label.c_str()];
+                const auto& desc=textureDesc(pass.copySource);auto e=profileBlit(pass.label.empty()?"texture-copy":pass.label);e.label=[NSString stringWithUTF8String:pass.label.c_str()];
                 [e copyFromTexture:rhiTextures_.at(textureObject(pass.copySource)) sourceSlice:pass.sourceSubresource.layer sourceLevel:pass.sourceSubresource.mip sourceOrigin:MTLOriginMake(0,0,0) sourceSize:MTLSizeMake(std::max(1u,desc.width>>pass.sourceSubresource.mip),std::max(1u,desc.height>>pass.sourceSubresource.mip),1) toTexture:rhiTextures_.at(textureObject(pass.copyDestination)) destinationSlice:pass.destinationSubresource.layer destinationLevel:pass.destinationSubresource.mip destinationOrigin:MTLOriginMake(0,0,0)];[e endEncoding];continue;
             }
             if(pass.compute) {
                 const auto& dispatch=pass.dispatch;const auto& desc=computePipelineDesc(dispatch.pipeline);
-                auto e=[state_.command computeCommandEncoder];require(e!=nil,"RHI compute encoder creation failed");e.label=[NSString stringWithUTF8String:pass.label.c_str()];
+                auto computeDesc=[MTLComputePassDescriptor computePassDescriptor];auto sample=profilePass(pass.label.empty()?desc.label:pass.label,"compute",2);
+                if(sample.buffer){auto a=computeDesc.sampleBufferAttachments[0];a.sampleBuffer=sample.buffer;a.startOfEncoderSampleIndex=sample.index;a.endOfEncoderSampleIndex=sample.index+1;}
+                auto e=[state_.command computeCommandEncoderWithDescriptor:computeDesc];require(e!=nil,"RHI compute encoder creation failed");e.label=[NSString stringWithUTF8String:pass.label.c_str()];
                 const auto& pipeline=rhiComputePipelines_.at(computePipelineObject(dispatch.pipeline));[e setComputePipelineState:pipeline.pipeline];
                 for(auto set:dispatch.bindings)for(const auto& b:resolvedBindings(set)) {
                     if(b.buffer)[e setBuffer:state_.buffers.at(b.buffer).gpu offset:b.offset atIndex:b.layout.binding];
@@ -228,6 +236,8 @@ fragment float4 rhiPresentFragment(float4 position [[position]],texture2d<float>
             }
             if(pass.desc.depth) {d.depthAttachment.texture=rhiViews_.at(textureViewObject(pass.desc.depth));d.depthAttachment.loadAction=load(pass.desc.depthLoad);
                 d.depthAttachment.storeAction=store(pass.desc.depthStore);d.depthAttachment.clearDepth=pass.desc.clearDepth;}
+            auto sample=profilePass(pass.label.empty()?"render":pass.label,"render",4);
+            if(sample.buffer){auto a=d.sampleBufferAttachments[0];a.sampleBuffer=sample.buffer;a.startOfVertexSampleIndex=sample.index;a.endOfVertexSampleIndex=sample.index+1;a.startOfFragmentSampleIndex=sample.index+2;a.endOfFragmentSampleIndex=sample.index+3;}
             auto e=[state_.command renderCommandEncoderWithDescriptor:d];require(e!=nil,"RHI render encoder creation failed");e.label=[NSString stringWithUTF8String:pass.label.c_str()];
             const auto v=pass.desc.viewport.width?pass.desc.viewport:rhi::Viewport{0,0,desc.width,desc.height};
             [e setViewport:MTLViewport{double(v.x),double(v.y),double(v.width),double(v.height),0,1}];const auto clip=pass.desc.scissor.width?pass.desc.scissor:v;[e setScissorRect:MTLScissorRect{clip.x,clip.y,clip.width,clip.height}];[e setFrontFacingWinding:MTLWindingCounterClockwise];[e setCullMode:MTLCullModeNone];[e setTriangleFillMode:MTLTriangleFillModeFill];
@@ -279,7 +289,7 @@ fragment float4 rhiPresentFragment(float4 position [[position]],texture2d<float>
         endEncoders();command();
         auto staging=[state_.device newBufferWithBytes:data length:size options:MTLResourceStorageModeShared];
         require(staging!=nil,"RHI staging allocation failed");
-        auto e=[state_.command blitCommandEncoder];
+        auto e=profileBlit("buffer-upload");
         [e copyFromBuffer:staging sourceOffset:0 toBuffer:b.gpu destinationOffset:offset size:size];
         [e endEncoding];
     }
@@ -298,7 +308,7 @@ fragment float4 rhiPresentFragment(float4 position [[position]],texture2d<float>
         endEncoders();command();if(state_.drawable)[state_.command presentDrawable:state_.drawable];state_.drawable=nil;
     }
     uint64_t signalCompletionImpl() override {
-        endEncoders();command();auto cmd=state_.command;[cmd commit];state_.command=nil;const auto serial=++submitted_;pending_[serial]=cmd;return serial;
+        endEncoders();command();auto cmd=state_.command;profileCommit(cmd);[cmd commit];state_.command=nil;const auto serial=++submitted_;pending_[serial]=cmd;return serial;
     }
     bool completionReadyImpl(uint64_t serial) override {
         auto it=pending_.find(serial);if(it==pending_.end())return true;auto cmd=it->second;
@@ -308,15 +318,64 @@ fragment float4 rhiPresentFragment(float4 position [[position]],texture2d<float>
         auto it=pending_.find(serial);if(it!=pending_.end()){[it->second waitUntilCompleted];completionReadyImpl(serial);}
     }
     void waitIdleImpl() override { finish();while(!pending_.empty())waitCompletionImpl(pending_.begin()->first); }
-    void closeImpl() override {savePipelineDiskCacheImpl();archive_=nil;rhiPresentPipeline_=nil;state_=NativeState{};}
+    void closeImpl() override {
+        if(auto path=std::getenv("SCENERENDERER_GPU_PROFILE_OUTPUT")){json report;report["device"]=state_.device.name.UTF8String;report["supported"]=counterSet_!=nil;report["time_domain"]="Apple GPU counters, host monotonic milliseconds";report["samples"]=json::array();
+            for(const auto& s:profileSamples_)report["samples"].push_back({{"label",s.label},{"kind",s.kind},{"start_ms",s.startMilliseconds},{"end_ms",s.endMilliseconds},{"vertex_ms",s.vertexMilliseconds},{"fragment_ms",s.fragmentMilliseconds},{"commit_ms",s.commitMilliseconds},
+                {"vertex_start_ms",s.vertexStartMilliseconds},{"vertex_end_ms",s.vertexEndMilliseconds},{"fragment_start_ms",s.fragmentStartMilliseconds},{"fragment_end_ms",s.fragmentEndMilliseconds}});
+            std::ofstream(path)<<report.dump(2)<<'\n';}
+        savePipelineDiskCacheImpl();archive_=nil;rhiPresentPipeline_=nil;profiles_.clear();profileSamples_.clear();profileCounterPool_.clear();counterSet_=nil;state_=NativeState{};}
 private:
     GpuTimingStats gpuTiming_{true,0,0,"Metal command buffer"};
-    void recordTiming(id<MTLCommandBuffer> command){if(command.GPUEndTime>=command.GPUStartTime && command.GPUStartTime>0){gpuTiming_.milliseconds=(command.GPUEndTime-command.GPUStartTime)*1000;gpuTiming_.peakMilliseconds=std::max(gpuTiming_.peakMilliseconds,gpuTiming_.milliseconds);++gpuTiming_.samples;}}
+    void recordTiming(id<MTLCommandBuffer> command){resolveProfile(command);if(command.GPUEndTime>=command.GPUStartTime && command.GPUStartTime>0){gpuTiming_.milliseconds=(command.GPUEndTime-command.GPUStartTime)*1000;gpuTiming_.peakMilliseconds=std::max(gpuTiming_.peakMilliseconds,gpuTiming_.milliseconds);++gpuTiming_.samples;}}
+    struct PassMarker {std::string label,kind;NSUInteger index,count;};
+    struct ProfileBuffer {id<MTLCounterSampleBuffer> buffer=nil;NSUInteger used=0,dropped=0;double commit=0;std::vector<PassMarker> passes;};
+    struct SampleLocation {id<MTLCounterSampleBuffer> buffer=nil;NSUInteger index=0;};
+    id<MTLCounterSet> counterSet_=nil;
+    std::map<uintptr_t,ProfileBuffer> profiles_;
+    std::vector<GpuProfileSample> profileSamples_;
+    std::vector<id<MTLCounterSampleBuffer>> profileCounterPool_;
+    uintptr_t profileKey(id<MTLCommandBuffer> cmd){return reinterpret_cast<uintptr_t>((__bridge void*)cmd);}
+    SampleLocation profilePass(const std::string& label,const std::string& kind,NSUInteger count) {
+        if(!counterSet_)return {};
+        auto& p=profiles_[profileKey(state_.command)];
+        if(!p.buffer){
+            if(!profileCounterPool_.empty()){p.buffer=profileCounterPool_.back();profileCounterPool_.pop_back();}
+            else {auto d=[MTLCounterSampleBufferDescriptor new];d.counterSet=counterSet_;d.storageMode=MTLStorageModeShared;d.sampleCount=4096;NSError* error=nil;p.buffer=[state_.device newCounterSampleBufferWithDescriptor:d error:&error];}
+            if(!p.buffer){++p.dropped;return {};}
+        }
+        if(p.used+count>4096){++p.dropped;return {};}
+        auto index=p.used;p.used+=count;p.passes.push_back({label,kind,index,count});return {p.buffer,index};
+    }
+    id<MTLBlitCommandEncoder> profileBlit(const std::string& label) {
+        auto d=[MTLBlitPassDescriptor blitPassDescriptor];auto s=profilePass(label,"blit",2);
+        if(s.buffer){auto a=d.sampleBufferAttachments[0];a.sampleBuffer=s.buffer;a.startOfEncoderSampleIndex=s.index;a.endOfEncoderSampleIndex=s.index+1;}
+        return [state_.command blitCommandEncoderWithDescriptor:d];
+    }
+    void profileCommit(id<MTLCommandBuffer> cmd){if(counterSet_)profiles_[profileKey(cmd)].commit=CACurrentMediaTime()*1000.;}
+    void resolveProfile(id<MTLCommandBuffer> cmd) {
+        auto it=profiles_.find(profileKey(cmd));if(it==profiles_.end())return;
+        auto& p=it->second;
+        if(cmd.GPUStartTime>0)profileSamples_.push_back({"submission","submission",cmd.GPUStartTime*1000.,cmd.GPUEndTime*1000.,0,0,p.commit});
+        if(p.used){NSData* data=[p.buffer resolveCounterRange:NSMakeRange(0,p.used)];require(data.length>=p.used*sizeof(MTLCounterResultTimestamp),"GPU counter resolve failed");auto t=static_cast<const MTLCounterResultTimestamp*>(data.bytes);
+            for(const auto& pass:p.passes){auto i=pass.index;bool valid=true;for(NSUInteger j=0;j<pass.count;++j)valid&=t[i+j].timestamp!=MTLCounterErrorValue && t[i+j].timestamp>0;
+                if(!valid)continue;double start=t[i].timestamp*1e-6,end=t[i+pass.count-1].timestamp*1e-6;
+                if(end<start || start<cmd.GPUStartTime*1000.-.001 || end>cmd.GPUEndTime*1000.+.001)continue;
+                if(pass.count==4 && (t[i+1].timestamp<t[i].timestamp || t[i+3].timestamp<t[i+2].timestamp))continue;GpuProfileSample s{pass.label,pass.kind,start,end};if(pass.count==4){s.vertexMilliseconds=(t[i+1].timestamp-t[i].timestamp)*1e-6;s.fragmentMilliseconds=(t[i+3].timestamp-t[i+2].timestamp)*1e-6;s.vertexStartMilliseconds=start;s.vertexEndMilliseconds=t[i+1].timestamp*1e-6;s.fragmentStartMilliseconds=t[i+2].timestamp*1e-6;s.fragmentEndMilliseconds=end;}profileSamples_.push_back(s);}
+        }
+        if(p.dropped)profileSamples_.push_back({"profile-truncated/"+std::to_string(p.dropped),"diagnostic"});
+        // Only completed command buffers return counters to the pool. This
+        // also avoids the device's small counter-buffer allocation limit when
+        // old autoreleased command buffers still retain their attachments.
+        if(p.buffer && profileCounterPool_.size()<8)profileCounterPool_.push_back(p.buffer);
+        profiles_.erase(it);
+        // An unattended editor session must never grow telemetry without bound.
+        if(profileSamples_.size()>32768)profileSamples_.erase(profileSamples_.begin(),profileSamples_.begin()+16384);
+    }
     NativeState state_;
     id<MTLBinaryArchive> archive_=nil;std::filesystem::path cachePath_;PipelineDiskCacheStats diskStats_;
     void endEncoders(){} // Native encoders are scoped and ended in each recorded pass.
     void command(){if(!state_.command)state_.command=[state_.queue commandBuffer];}
-    void finish(){if(state_.command){[state_.command commit];[state_.command waitUntilCompleted];require(state_.command.status!=MTLCommandBufferStatusError,errorText(state_.command.error));recordTiming(state_.command);state_.command=nil;}}
+    void finish(){if(state_.command){profileCommit(state_.command);[state_.command commit];[state_.command waitUntilCompleted];require(state_.command.status!=MTLCommandBufferStatusError,errorText(state_.command.error));recordTiming(state_.command);state_.command=nil;}}
     uint64_t submitted_=0;std::map<uint64_t,id<MTLCommandBuffer>> pending_;
     id<MTLRenderPipelineState> rhiPresentPipeline_=nil;
     struct RHIPipeline {id<MTLRenderPipelineState> pipeline;id<MTLDepthStencilState> depth;std::unordered_map<uint32_t,uint32_t> vertexTextures,fragmentTextures;};

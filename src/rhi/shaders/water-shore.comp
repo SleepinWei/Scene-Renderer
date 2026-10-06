@@ -1,0 +1,92 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+layout(local_size_x=8,local_size_y=8,local_size_z=1) in;
+layout(set=0,binding=0,std140) uniform ShoreParameters {mat4 inverseBedModel;mat4 bedModel;vec4 patchRect;vec4 oldPatch;vec4 clock;vec4 waves;vec4 flow;vec4 foamParameters;vec4 swell;ivec4 mode;};
+layout(set=0,binding=1) uniform sampler2D shoreBed;
+layout(set=0,binding=2) uniform sampler2D shoreFFT;
+layout(set=0,binding=3) uniform sampler2D oldFFT;
+layout(set=1,binding=0,rgba32f) readonly uniform image2D oldState;
+layout(set=1,binding=1,rgba32f) writeonly uniform image2D newState;
+layout(set=1,binding=2) uniform sampler2D oldFoam;
+layout(set=1,binding=3,rgba32f) writeonly uniform image2D newFoam;
+const float gravity=9.81;
+vec2 worldAt(ivec2 p){return patchRect.xy+(vec2(p)+.5)*patchRect.w;}
+float bedAt(vec2 xz) {
+    vec3 local=(inverseBedModel*vec4(xz.x,0,xz.y,1)).xyz;vec2 uv=local.xz*.5+.5;
+    if(any(lessThan(uv,vec2(0)))||any(greaterThan(uv,vec2(1))))return waves.x+20.;
+    vec2 size=vec2(textureSize(shoreBed,0));vec2 at=(uv*(size-1.)+.5)/size;
+    float height=textureLod(shoreBed,at,0).r;
+    return (bedModel*vec4(local.x,height,local.z,1)).y;
+}
+float longFFT(vec2 xz,sampler2D field) {
+    vec2 uv=xz/waves.y+.5+.5/vec2(textureSize(field,0)),delta=vec2(4./waves.y,0);
+    return (textureLod(field,uv,0).y*2.+textureLod(field,uv+delta,0).y+textureLod(field,uv-delta,0).y+
+        textureLod(field,uv+delta.yx,0).y+textureLod(field,uv-delta.yx,0).y)/6.;
+}
+vec3 boundary(vec2 xz,float bed) {
+    float depth=max(waves.x-bed,.05),c=sqrt(gravity*clamp(depth,.5,waves.z));
+    float incoming=mix(longFFT(xz,oldFFT),longFFT(xz,shoreFFT),clock.z);
+    float omega=6.2831853/flow.w;
+    float amplitude=flow.z*clamp(pow(4./max(depth,.25),.25),.5,1.5);
+    float wave=amplitude*sin(omega*(dot(xz,flow.xy)/sqrt(gravity*waves.z)-clock.x));
+    float eta=clamp(incoming+wave,-2.,2.);
+    // Shallow travelling-wave discharge. FFT uses the dominant wind direction,
+    // a deliberate approximation to the full per-frequency orbital velocity.
+    vec2 discharge=c*(incoming*swell.zw+wave*flow.xy);
+    return vec3(max(waves.x-bed+eta,0.),clamp(discharge,vec2(-waves.w*depth),vec2(waves.w*depth)));
+}
+vec4 stateAt(ivec2 p){ivec2 size=imageSize(oldState);vec4 q=imageLoad(oldState,clamp(p,ivec2(0),size-1));
+    if(swell.x<.5){if(p.x<0||p.x>=size.x)q.y=-q.y;if(p.y<0||p.y>=size.y)q.z=-q.z;}return q;}
+vec3 reconstruct(vec4 q,float faceBed) {
+    float h=max(q.x+q.w-faceBed,0.);return vec3(h,q.yz*(h/max(q.x,.0001)));
+}
+vec3 physicalFlux(vec3 u,int axis) {
+    vec2 velocity=u.yz/max(u.x,.005);float normal=velocity[axis];
+    vec3 f=vec3(u.x*normal,u.yz*normal);f[axis+1]+=.5*gravity*u.x*u.x;return f;
+}
+vec3 faceFlux(vec4 left,vec4 right,int axis,bool centreLeft) {
+    float bed=max(left.w,right.w);vec3 a=reconstruct(left,bed),b=reconstruct(right,bed);
+    float speed=max(abs(a[axis+1])/max(a.x,.005)+sqrt(gravity*a.x),abs(b[axis+1])/max(b.x,.005)+sqrt(gravity*b.x));
+    vec3 flux=.5*(physicalFlux(a,axis)+physicalFlux(b,axis))-.5*speed*(b-a);
+    float hc=centreLeft?left.x:right.x,hr=centreLeft?a.x:b.x;
+    flux[axis+1]+=.5*gravity*(hc*hc-hr*hr);return flux;
+}
+void main() {
+    ivec2 p=ivec2(gl_GlobalInvocationID.xy),size=imageSize(newState);if(any(greaterThanEqual(p,size)))return;
+    vec2 xz=worldAt(p);float actualBed,bed;
+    if(mode.x<=1){actualBed=bedAt(xz);bed=max(actualBed,waves.x-waves.z);}
+    else {actualBed=texelFetch(oldFoam,p,0).w;bed=imageLoad(oldState,p).w;}
+    if(mode.x<=1) {
+        vec3 q=boundary(xz,bed);vec4 memory=vec4(0);
+        if(mode.x==1) {
+            ivec2 source=p+ivec2(round((patchRect.xy-oldPatch.xy)/patchRect.w));
+            if(all(greaterThanEqual(source,ivec2(0)))&&all(lessThan(source,size))) {q=imageLoad(oldState,source).xyz;memory=texelFetch(oldFoam,source,0);}
+        }
+        if(mode.x==0)memory.y=q.x>.008?1.:0.;
+        imageStore(newState,p,vec4(q,bed));imageStore(newFoam,p,vec4(memory.xy,q.x,actualBed));return;
+    }
+    vec4 q=stateAt(p),left=stateAt(p-ivec2(1,0)),right=stateAt(p+ivec2(1,0)),down=stateAt(p-ivec2(0,1)),up=stateAt(p+ivec2(0,1));
+    vec3 next=q.xyz-clock.y/patchRect.w*(faceFlux(q,right,0,true)-faceFlux(left,q,0,false)+faceFlux(q,up,1,true)-faceFlux(down,q,1,false));
+    next.x=max(next.x,0.);next.yz*=1./(1.+clock.y*.12/max(next.x,.1));
+    if(next.x<.005)next.yz=vec2(0);
+    else next.yz=clamp(next.yz,vec2(-waves.w*next.x),vec2(waves.w*next.x));
+    // Open forcing/sponge border. Land remains dry; deep representation is
+    // capped only in this simulation, never in the optical bathymetry cache.
+    float edge=float(min(min(p.x,p.y),min(size.x-1-p.x,size.y-1-p.y)));
+    float sponge=(1.-smoothstep(0.,8.,edge))*swell.x;
+    if(sponge>0.){vec3 target=boundary(xz,bed);
+        next=mix(next,target,1.-exp(-clock.y*4.*sponge));
+        if(edge<1. && bed<waves.x+flow.z*1.5)next=target;}
+    vec2 velocity=next.yz/max(next.x,.005),uv=(vec2(p)+.5)/vec2(size);
+    vec4 advected=textureLod(oldFoam,uv-velocity*clock.y/patchRect.z,0),previous=texelFetch(oldFoam,p,0);
+    float div=(right.y/max(right.x,.005)-left.y/max(left.x,.005)+up.z/max(up.x,.005)-down.z/max(down.x,.005))/(2.*patchRect.w);
+    vec2 slope=vec2(right.x+right.w-left.x-left.w,up.x+up.w-down.x-down.w)/(2.*patchRect.w);
+    float shallow=1.-smoothstep(1.,4.,max(waves.x-actualBed,0.));
+    float compression=max(-div-.15,0.);
+    float breaker=shallow*(smoothstep(.12,.5,length(slope))+compression*2.);
+    float swash=(1.-smoothstep(.05,.2,next.x))*smoothstep(.1,.7,length(velocity));
+    float source=foamParameters.x*(breaker+swash)*float(next.x>.005);
+    float cover=clamp(advected.x*exp(-clock.y/foamParameters.y)+(1.-advected.x)*(1.-exp(-source*clock.y)),0.,1.);
+    float wet=next.x>.008?1.:previous.y*exp(-clock.y/foamParameters.z);
+    imageStore(newState,p,vec4(next,bed));imageStore(newFoam,p,vec4(cover,wet,next.x,actualBed));
+}

@@ -74,6 +74,9 @@ public:
     std::vector<float> readShadowDepth();
     ShadowParameters shadowParameters() const; // Value snapshot for render-thread diagnostics.
     std::vector<float> readGBuffer(uint32_t attachment);
+    std::vector<float> readWaterCapture(uint64_t ocean,bool positions=false,bool aboveWater=false);
+    std::vector<float> readShoreWater(uint64_t ocean,bool foam=false);
+    uint32_t shoreSubsteps(uint64_t ocean) const;
     std::vector<float> readClouds();
     std::vector<float> readCloudMetadata();
     std::vector<uint8_t> readCloudVoxels();
@@ -108,6 +111,7 @@ private:
     PbrPath path_;
     rhi::BindingLayout geometryLayout_;
     rhi::SamplerHandle hdrSampler_,skySampler_;
+    rhi::BufferHandle inactiveWetParameters_;rhi::TextureViewHandle inactiveWetView_;rhi::SamplerHandle wetSampler_;
     std::vector<ObjectSlot> objects_;
 };
 void validateTemporalRhi(std::shared_ptr<rhi::GraphicsDevice>,const std::string&);

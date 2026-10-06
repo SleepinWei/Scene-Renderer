@@ -1,0 +1,16 @@
+2026-10-07 02:10:12.042 Scene-Renderer[47608:34527312] Metal API Validation Enabled
+2026-10-07 02:10:12.042 Scene-Renderer[47608:34527312] Metal GPU Validation Enabled
+coastal-underwater HDR mean RGB 0.085636, peak 0.408691
+Rendered img/diagnostics/water/ripple-demo/coastal-underwater.png
+coastal-underwater-no-ripples HDR mean RGB 0.0862752, peak 0.408447
+Rendered img/diagnostics/water/ripple-demo/coastal-underwater-no-ripples.png
+coastal-underwater-ripples-later HDR mean RGB 0.0858803, peak 0.4021
+Rendered img/diagnostics/water/ripple-demo/coastal-underwater-ripples-later.png
+coastal-underwater-no-fog HDR mean RGB 0.105179, peak 0.506348
+Rendered img/diagnostics/water/ripple-demo/coastal-underwater-no-fog.png
+coastal-underwater-snell-window HDR mean RGB 0.0790647, peak 0.333252
+Rendered img/diagnostics/water/ripple-demo/coastal-underwater-snell-window.png
+coastal-underwater-bottom HDR mean RGB 0.092114, peak 0.220459
+Rendered img/diagnostics/water/ripple-demo/coastal-underwater-bottom.png
+coastal-underwater-above HDR mean RGB 0.133566, peak 0.564453
+Rendered img/diagnostics/water/ripple-demo/coastal-underwater-above.png

@@ -1,0 +1,62 @@
+{
+  "size": [
+    1280,
+    720
+  ],
+  "frames_per_view": 16,
+  "warmup_frames": 4,
+  "timestamp_sampling": true,
+  "scope": "Main rendering submission, excludes separate FFT/SWE and presentation; static synchronized gallery, not editor FPS. Stage intervals overlap.",
+  "views": {
+    "coastal-underwater": {
+      "main_gpu_median_ms": 28.17277074791491,
+      "captured_terrain_pixels": 161122,
+      "stages_median_ms": {
+        "water/capture": 5.5734585,
+        "water/depth-chain": 1.158106803894043,
+        "water/underwater-fog": 3.4123965,
+        "water/surface": 10.205874999999999
+      }
+    },
+    "coastal-underwater-no-fog": {
+      "main_gpu_median_ms": 22.98495825380087,
+      "captured_terrain_pixels": 160920,
+      "stages_median_ms": {
+        "water/capture": 5.2788125,
+        "water/depth-chain": 0.6830408573150635,
+        "water/underwater-fog": 0.0,
+        "water/surface": 8.151167000000001
+      }
+    },
+    "coastal-underwater-snell-window": {
+      "main_gpu_median_ms": 19.141166587360203,
+      "captured_terrain_pixels": 0,
+      "stages_median_ms": {
+        "water/capture": 1.061167,
+        "water/depth-chain": 1.9637914896011353,
+        "water/underwater-fog": 3.3684585,
+        "water/surface": 6.9214795
+      }
+    },
+    "coastal-underwater-bottom": {
+      "main_gpu_median_ms": 28.337666648440063,
+      "captured_terrain_pixels": 796551,
+      "stages_median_ms": {
+        "water/capture": 9.8383335,
+        "water/depth-chain": 1.1100424528121948,
+        "water/underwater-fog": 4.4459795,
+        "water/surface": 4.363542
+      }
+    },
+    "coastal-underwater-above": {
+      "main_gpu_median_ms": 29.761166661046445,
+      "captured_terrain_pixels": 633388,
+      "stages_median_ms": {
+        "water/capture": 9.303937,
+        "water/depth-chain": 0.6432919502258301,
+        "water/underwater-fog": 0.7244585,
+        "water/surface": 7.4571045
+      }
+    }
+  }
+}

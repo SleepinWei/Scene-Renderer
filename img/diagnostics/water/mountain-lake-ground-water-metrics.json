@@ -1,0 +1,38 @@
+{
+  "mountain-lake-ground": {
+    "backend": "Metal",
+    "camera_grid": true,
+    "detail_waves": true,
+    "frames": 16,
+    "gpu_ms_samples": [
+      64.58837492391467,
+      66.08724989928305,
+      63.48624988459051,
+      63.94987506791949,
+      47.88312502205372,
+      48.98758325725794,
+      48.300125170499086,
+      50.14508333988488,
+      49.20349991880357,
+      48.354916740208864,
+      47.87037498317659,
+      48.723958199843764
+    ],
+    "grid_focus_m": 8.0,
+    "height": 1080,
+    "mean_gpu_ms": 53.965034700619675,
+    "measurement": "main native rendering submission including underwater capture, scene, water, TSAA and tone mapping; separately submitted FFT and presentation excluded; first 4 frames excluded (scope corrected; measurements unchanged)",
+    "median_gpu_ms": 49.095541588030756,
+    "mesh_domain_m": 8000.0,
+    "mesh_size": 1025,
+    "near_camera_cell_m": [
+      0.10737591965077688,
+      0.10568619476509876
+    ],
+    "subsurface_strength": 1.0,
+    "time_seconds": 8,
+    "underwater_capture": true,
+    "volume_integration": true,
+    "width": 1920
+  }
+}

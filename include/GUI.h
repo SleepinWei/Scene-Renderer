@@ -36,6 +36,7 @@ public:
 	std::unique_ptr<render::GuiRenderer> nativeRenderer_;
     bool nativeUi_=rhi::usesNativeRenderer();
     std::optional<SceneLoadRequest> loading_;
+    bool nativeRuntimeStats_=false;float nativeRenderFps_=0;
     bool pauseSimulation_=false;float simulationSpeed_=1;
     std::string loadError_;
     std::shared_ptr<RenderScene> stagedScene_;
@@ -110,6 +111,8 @@ public:
 		ImGui::NewFrame();
 
 		ImGui::Begin("Info");
+        ImGui::TextWrapped("Hold right mouse: look | WASD: move | Q/E: down/up");
+        ImGui::Text("Framebuffer: %d x %d",InputManager::GetInstance()->width,InputManager::GetInstance()->height);
 
 		if (ImGui::CollapsingHeader("Scene loading")) {
             if(preparing_)ImGui::Text("Preparing GPU scene...");
@@ -128,6 +131,9 @@ public:
 		ImGui::Separator();
 		if (ImGui::CollapsingHeader("Camera")) {
 			if (scene->mainCamera()) {
+                ImGui::TextWrapped("Shift: faster | Alt: slower | Scroll: field of view");
+                bool fixed=scene->mainCamera()->isFixed();
+                if(ImGui::Checkbox("Lock camera",&fixed))scene->mainCamera()->setFixed(fixed);
 				// exposure
 				float exposure=scene->mainCamera()->getExposure();
                 if(ImGui::SliderFloat("exposure", &exposure, 0.5f, 6.0f))scene->mainCamera()->setExposure(exposure);
@@ -323,13 +329,49 @@ public:
                 ImGui::InputInt("Wave seed", &oceanSettings.seed);
                 ImGui::InputFloat("Sea level", &oceanSettings.seaLevel);
                 ImGui::Text("FFT: %d x %d | mesh: %d x %d", oceanSettings.fft_size, oceanSettings.fft_size, oceanSettings.MeshSize, oceanSettings.MeshSize);
+                if(nativeUi_){
+                    ImGui::Checkbox("Focus wave mesh near camera", &oceanSettings.cameraGrid);
+                    if(oceanSettings.cameraGrid)ImGui::SliderFloat("Mesh focus radius (m)", &oceanSettings.gridFocus, 1, 32);
+                    ImGui::Checkbox("Capture underwater surfaces", &oceanSettings.underwaterCapture);
+                    ImGui::Checkbox("Integrate water volume", &oceanSettings.volumeIntegration);
+                    ImGui::Checkbox("Underwater view + total reflection", &oceanSettings.underwaterView);
+                    ImGui::Checkbox("Underwater distance fog", &oceanSettings.underwaterFog);
+                    if(ImGui::IsItemHovered())ImGui::SetTooltip("Uses the same absorption/scattering coefficients. Water-side view fog is applied once per optical path.");
+                    ImGui::Checkbox("Robust refraction + terrain fallback", &oceanSettings.robustRefraction);
+                    ImGui::Checkbox("Multiple scattering (slab LUT)", &oceanSettings.multipleScattering);
+                    if(ImGui::IsItemHovered())ImGui::SetTooltip("Local 2+ volume scattering. Requires Integrate water volume; spatial BSSRDF is not included.");
+                    ImGui::Checkbox("Nearshore shallow waves", &oceanSettings.shore.enabled);
+                    ImGui::Checkbox("Persistent shore foam", &oceanSettings.shore.foam);
+                    ImGui::Checkbox("Wet sand + drying", &oceanSettings.shore.wetSand);
+                    if(ImGui::IsItemHovered())ImGui::SetTooltip("Foam and wet sand use Nearshore shallow waves history and require terrain bathymetry.");
+                    if(oceanSettings.shore.enabled){
+                        ImGui::SliderFloat("Shore patch extent (m)", &oceanSettings.shore.length, 64, 256);
+                        int grid=int(oceanSettings.shore.resolution);
+                        const char* grids[]={"64","128","256"};int selected=grid<=64?0:grid<=128?1:2;
+                        if(ImGui::Combo("Shore simulation grid", &selected,grids,3))oceanSettings.shore.resolution=64u<<selected;
+                        ImGui::SliderFloat("Swell height (m)", &oceanSettings.shore.swellHeight, 0, 1);
+                        ImGui::SliderFloat("Swell period (s)", &oceanSettings.shore.swellPeriod, 2, 12);
+                        ImGui::SliderFloat2("Swell direction", &oceanSettings.shore.swellDirection.x, -1, 1);
+                        ImGui::SliderFloat("Shore foam strength", &oceanSettings.shore.foamStrength, 0, 4);
+                        ImGui::SliderFloat("Foam lifetime (s)", &oceanSettings.shore.foamLifetime, 1, 20);
+                        ImGui::SliderFloat("Sand drying time (s)", &oceanSettings.shore.dryingTime, 5, 60);
+                        if(!scene->terrain()->getComponent<TerrainComponent>())ImGui::TextWrapped("Nearshore waves need a terrain height field. Open coastal-beach for a controlled shoreline.");
+                    }
+                    const char* debugModes[]={"Shaded","Transmittance","Path length","Refraction hit","Hit source: screen / terrain / miss","Hit confidence"};
+                    int debug=int(oceanSettings.opticalDebug);if(ImGui::Combo("Water diagnostic", &debug,debugModes,6))oceanSettings.opticalDebug=uint32_t(debug);
+                }
                 ImGui::Checkbox("Small FFT waves", &oceanSettings.detailWaves);
                 ImGui::SliderFloat("Small wave detail", &oceanSettings.detailStrength, 0, 2);
+                if(rhi::usesNativeRenderer()) {
+                    ImGui::Checkbox("Short wave ripples", &oceanSettings.shortWaveRipples);
+                    if(oceanSettings.shortWaveRipples)ImGui::SliderFloat("Ripple RMS height (m)", &oceanSettings.rippleRmsHeight, 0, .06f, "%.3f");
+                }
                 ImGui::Checkbox("Water refraction", &oceanSettings.refraction);
                 ImGui::SliderFloat("Refraction strength", &oceanSettings.refractionStrength, 0, 1);
+                ImGui::SliderFloat("Water optical range (m)", &oceanSettings.deepWaterDistance, 1, 200);
                 ImGui::SliderFloat3("Absorption (1/m)", &oceanSettings.absorption.x, 0, 1);
                 ImGui::SliderFloat3("Scattering (1/m)", &oceanSettings.scattering.x, 0, .3f);
-                ImGui::SliderFloat("Subsurface scattering", &oceanSettings.subsurfaceStrength, 0, 3);
+                ImGui::SliderFloat("Water scattering strength", &oceanSettings.subsurfaceStrength, 0, 3);
                 ImGui::SliderFloat("Forward scattering g", &oceanSettings.scatteringAnisotropy, 0, .9f);
 				ImGui::InputFloat("BubblesScale", &oceanSettings.BubblesScale);
 				ImGui::InputFloat("BubblesThreshold", &oceanSettings.BubblesThreshold);
@@ -363,7 +405,8 @@ public:
 			ImGui::EndChild();
 		}
 
-		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+        if(nativeRuntimeStats_)ImGui::Text("Rendering: %.1f FPS",nativeRenderFps_);
+        else ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",1000.0f/ImGui::GetIO().Framerate,ImGui::GetIO().Framerate);
 		ImGui::End();
 
 		{

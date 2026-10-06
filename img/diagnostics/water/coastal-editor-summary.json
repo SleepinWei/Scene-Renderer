@@ -1,0 +1,10 @@
+{
+  "framebuffer": "1280x720",
+  "main_submissions": 120,
+  "steady_samples": 112,
+  "main_gpu_median_ms": 26.8900625705719,
+  "commit_to_start_median_ms": 0.22633326053619385,
+  "main_start_interval_median_ms": 28.875625133514404,
+  "total_command_buffers": 481,
+  "diagnostics": []
+}

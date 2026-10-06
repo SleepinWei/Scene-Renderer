@@ -1,0 +1,18 @@
+2026-10-07 01:04:43.101 Scene-Renderer[22408:34376963] Metal API Validation Enabled
+2026-10-07 01:04:43.101 Scene-Renderer[22408:34376963] Metal GPU Validation Enabled
+RHI solar regression: disk pixels 208 -> 732, energy ratio 1.00617, horizon energy ratio 0.59246, radiance 12728, multiple-scattering added energy 11943; direction/observer/cache/CPU reference/extreme Mie/HDR tests passed
+RHI atmosphere transmittance/sky/multiple scattering/irradiance, sun update, water vertex FFT sampling/refraction/foam/HDR and previous-frame texture copy passed; water pixels 2869
+Water multiple-scattering slab LUT: Beer limit, bounded energy, independent 100000-path MC reference; max absolute flux error 0.00471323
+Shore water: lake-at-rest error 0, momentum 1.99351e-07, closed mass ratio 1, scrolling, wet/dry positivity; peak runup 254, residual wet sand 80, foam 0.999305
+Coast boundary: wet/dry interpolation and finite bathymetry/patch edges do not form water walls
+Water benchmark 640x360 native render-buffer GPU median: previous 3.09823 ms, upgraded 4.53465 ms; alternating modes, 2 warmup + 8 measured frames each (separately submitted FFT excluded)
+Water upgrade: clear/Beer/independent single-scattering energy (max error 0.000146015), volume shadow ratio 0, hidden underwater pixels 4096, forward/deferred, focused grid/camera motion/TSAA, resize/mask passed
+Water optional optics: DDA floor, independent world-space bathymetry, offscreen terrain hit/path, multi-scattering on/off and absorption limit, wet/dry mask override, live TSAA/camera scrolling/odd resize and stale-state rejection passed
+Underwater view: independent Beer/slab energy, capture/fog switches, volume shadow, one eye leg, far air-side capture, Snell window, 30/60-degree transmission/TIR, offscreen bed reflection, dry mask, surface crossing/TSAA/odd resize passed
+RHI Ocean IFFT N=8 relative max error=2.6747e-07
+RHI Ocean IFFT N=16 relative max error=3.79868e-07
+RHI Ocean IFFT N=256 relative max error=8.53285e-07
+RHI Ocean IFFT N=512 relative max error=9.50625e-07
+RHI Ocean IFFT N=1024 relative max error=1.22664e-06
+RHI full Ocean spectrum -> 2D FFT -> displacement/normal/foam, seed/time updates and zero-wind validation passed; CPU error=6.17928e-07
+RHI temporal HDR resolve, jitter, object motion, disocclusion rejection, resize, enable/disable and scene history reset passed

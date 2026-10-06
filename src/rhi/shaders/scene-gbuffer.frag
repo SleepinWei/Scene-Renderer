@@ -8,6 +8,7 @@ layout(location=1) out vec4 normalRoughness;
 layout(location=2) out vec4 albedoMetallic;
 layout(location=3) out vec4 emissiveAO;
 layout(location=4) out vec4 materialEffects;layout(location=5) out vec4 tangentDepth;
+#define WATER_WET_ENABLED
 #include "pbr-material.glsl"
 void main() {
     vec4 base = mappedBase();

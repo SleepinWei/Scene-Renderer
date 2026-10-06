@@ -311,6 +311,7 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
             bool grass = bool(grassComponent);
             auto vegetation = grass ? grassComponent->settings() : VegetationSettings{};
             const auto shoreline = component->settings().shoreline;
+            const bool water=bool(scene->terrain()->getComponent<Ocean>());
             if(shoreline.enabled) {
                 vegetation.exclusionSeaLevel=shoreline.seaLevel;vegetation.exclusionHeightRange=shoreline.heightRange;
                 vegetation.exclusionSlopeMin=shoreline.slopeMin;vegetation.exclusionSlopeMax=shoreline.slopeMax;
@@ -323,6 +324,7 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
             mix(component->getSourceRevision());
             mix(component->settings().maxLeaves);
             mix(grass);
+            mix(water);
             mix(shoreline.enabled);
             if(shoreline.enabled)for(auto& path:shoreline.paths)mix(std::hash<std::string>{}(path));
             if (grass) {
@@ -371,7 +373,7 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
             }
             auto source = requestPayload(
                 state_->terrain, revision,
-                [key, revision, grass, vegetation, shoreline, heightPath, heightVT, materialVT, w, h, capacity,
+                [key, revision, grass, water, vegetation, shoreline, heightPath, heightVT, materialVT, w, h, capacity,
                  heights = std::move(heights), material] {
                     auto payload = std::make_shared<TerrainPayload>();
                     payload->id = key;
@@ -399,6 +401,7 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
                     }
                     payload->material.minimum = payload->height.minimum;
                     payload->material.maximum = payload->height.maximum;
+                    if(water)payload->bathymetry=prepareWaterBathymetry(payload->height,payload->material);
                     for (auto *vt : {&payload->height, &payload->material}) {
                         uint32_t mip = 0;
                         for (uint32_t n = vt->extent / 64; n > 1; n /= 2)
@@ -458,6 +461,18 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
                 s.animate = configuration.animate;
                 s.detailWaves = configuration.detailWaves;
                 s.detailStrength = configuration.detailStrength;
+                s.shortWaveRipples=configuration.shortWaveRipples;
+                s.rippleRmsHeight=configuration.rippleRmsHeight;
+                s.cameraGrid = configuration.cameraGrid;
+                s.gridFocus = configuration.gridFocus;
+                s.underwaterCapture = configuration.underwaterCapture;
+                s.volumeIntegration = configuration.volumeIntegration;
+                s.robustRefraction=configuration.robustRefraction;
+                s.multipleScattering=configuration.multipleScattering;
+                s.underwaterView=configuration.underwaterView;s.underwaterFog=configuration.underwaterFog;
+                s.opticalDebug=configuration.opticalDebug;
+                s.shore=configuration.shore;
+                if(result.terrain){s.bathymetry=result.terrain->source->bathymetry;s.bathymetryModel=result.terrain->model;}
                 s.refraction = configuration.refraction;
                 s.refractionStrength = configuration.refractionStrength;
                 s.deepWaterDistance = configuration.deepWaterDistance;

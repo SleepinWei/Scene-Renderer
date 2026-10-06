@@ -1,0 +1,4 @@
+2026-10-06 14:11:22.513 Scene-Renderer[67874:33645625] +[IMKClient subclass]: chose IMKClient_Modern
+2026-10-06 14:11:22.513 Scene-Renderer[67874:33645625] +[IMKInputSession subclass]: chose IMKInputSession_Modern
+RHI editor framebuffer 1280x720 pixels
+RHI threaded editor rendered 120 frames in 5.98401 seconds; last render 28.3874 ms; render CPU p95/p99 45.2776/55.1246 ms; peak queue wait 0 ms; shared GPU images 1.14441e-05 MiB / 3 uploads / 4 hits; peak RHI resource estimate 468.811 MiB; memory pressure 0 events; rejected publications 0 / fallback frames 0; chunked mesh uploads 0 MiB / 0 chunks / 0 pending; pipelines 45 native builds / 8 cache hits; sampled native allocations 501.937500 MiB; peak GPU submission 107.225 ms; peak input-sample-to-completion acknowledgement 1863.16 ms; quality tier 0; skipped render snapshots 2336; dropped logic time 0 s; CPU queue 2, GPU frame limit 3

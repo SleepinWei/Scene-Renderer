@@ -8,6 +8,9 @@ struct OceanSettings {
     float length=512, amplitude=.0005f, windSpeed=30, choppiness=.8f, heightScale=1, foamScale=2, foamThreshold=.86f;
     glm::vec2 windDirection{1,1};
     int32_t seed=1337;
+    // Optional radial wavelength band and ensemble RMS height, in metres.
+    // Zero bounds/RMS retain the original Phillips amplitude behavior.
+    float minWavelength=0,maxWavelength=0,targetRmsHeight=0;
 };
 // Owns the full spectral -> 2D inverse FFT -> displacement/normal/foam path.
 // No legacy Shader, ImageTexture or GL identifiers participate in this class.
@@ -35,8 +38,11 @@ private:
     std::array<rhi::TextureHandle,8> textures_;
     std::array<rhi::TextureViewHandle,8> views_;
     std::map<std::string,Kernel> kernels_;
-    bool seeded_=false;
+    bool sharedFFT_=false,seeded_=false;
     int32_t seed_=0;
+    bool amplitudeCached_=false;
+    OceanSettings amplitudeSettings_;
+    float normalizedAmplitude_=0;
 };
 void validateOceanRhi(std::shared_ptr<rhi::GraphicsDevice>,const std::string& directory);
 }

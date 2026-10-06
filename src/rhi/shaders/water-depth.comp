@@ -1,0 +1,21 @@
+#version 450
+layout(local_size_x=8,local_size_y=8,local_size_z=1) in;
+layout(set=0,binding=0,std140) uniform WaterDepthParameters {mat4 depthView;ivec4 depthMode;};
+layout(set=0,binding=1) uniform sampler2D depthSource;
+layout(set=1,binding=0,rgba32f) writeonly uniform image2D depthDestination;
+void main() {
+    ivec2 p=ivec2(gl_GlobalInvocationID.xy),size=imageSize(depthDestination);if(any(greaterThanEqual(p,size)))return;
+    vec2 interval=vec2(3.402823e38,0);bool valid=false;
+    if(depthMode.x==0) {
+        vec4 q=texelFetch(depthSource,p,0);float d=-(depthView*vec4(q.xyz,1)).z;
+        if(q.w>.5&&d>0){interval=vec2(d);valid=true;}
+    } else {
+        ivec2 sourceSize=textureSize(depthSource,0),first=p*2,end=min(first+2,sourceSize);
+        if(p.x==size.x-1)end.x=sourceSize.x;if(p.y==size.y-1)end.y=sourceSize.y;
+        for(int y=first.y;y<end.y;++y)for(int x=first.x;x<end.x;++x) {
+            vec4 d=texelFetch(depthSource,ivec2(x,y),0);
+            if(d.z>.5){interval.x=min(interval.x,d.x);interval.y=max(interval.y,d.y);valid=true;}
+        }
+    }
+    imageStore(depthDestination,p,valid?vec4(interval,1,0):vec4(0));
+}

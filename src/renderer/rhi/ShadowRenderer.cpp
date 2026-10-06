@@ -22,6 +22,8 @@ ShadowRenderer::ShadowRenderer(std::shared_ptr<rhi::GraphicsDevice> device,const
     for(uint32_t i=0;i<3;++i){sourceRsm_[i]=resources_.texture({sourceExtent_,sourceExtent_,Format::RGBA16Float,TextureUsage::ColorAttachment|TextureUsage::Sampled|TextureUsage::CopySource,"Sun/sky/spot RSM"});sourceRsmViews_[i]=resources_.view(sourceRsm_[i]);}
     sourceDepth_=resources_.texture({sourceExtent_,sourceExtent_,Format::Depth32Float,TextureUsage::DepthAttachment,"RSM source depth"});sourceDepthView_=resources_.view(sourceDepth_);
     GraphicsPipelineDesc p;p.vertex=asset(directory,"forward.vert");p.fragment=asset(directory,"shadow.frag");p.vertexStride=sizeof(MeshVertex);p.attributes=GpuMesh::attributes();auto geometry=objectLayout();geometry.entries.push_back({2,BindingType::UniformBuffer,ShaderStage::Fragment,"RsmLight",64});geometry.entries.push_back({4,BindingType::SampledTexture,ShaderStage::Fragment,"skyIrradiance",0});p.bindings={geometry,GpuMaterial::rsmLayout()};p.colorFormat=Format::RGBA16Float;p.additionalColorFormats={Format::RGBA16Float,Format::RGBA16Float};p.depthAttachment=p.depthTest=p.depthWrite=true;p.label="Alpha-aware shadow depth";pipeline_=resources_.pipeline(p);if(resources_.device->computeLimits().supported){p.vertex=asset(directory,"instanced.vert");p.bindings[0].entries.push_back({3,BindingType::StorageRead,ShaderStage::Vertex,"OutPose",64});instanced_=resources_.pipeline(p);}
+    p.vertex=asset(directory,"forward.vert");p.fragment=asset(directory,"shadow-depth.frag");p.bindings={objectLayout(),GpuMaterial::shadowLayout()};p.colorAttachment=false;p.additionalColorFormats.clear();p.label="Depth-only alpha-aware shadow";depthOnly_=resources_.pipeline(p);
+    if(resources_.device->computeLimits().supported){p.vertex=asset(directory,"instanced.vert");p.bindings[0].entries.push_back({3,BindingType::StorageRead,ShaderStage::Vertex,"OutPose",64});depthInstanced_=resources_.pipeline(p);}
     parameters_=resources_.buffer({sizeof(ShadowParameters),BufferUsage::Uniform|BufferUsage::CopyDestination,"Shadow atlas parameters"});
 }
 void ShadowRenderer::render(const FrameData& frame,const std::vector<DrawPacket>& packets) {
@@ -111,7 +113,27 @@ void ShadowRenderer::render(const FrameData& frame,const std::vector<DrawPacket>
         data_.rsmMatrix=depthCorrection()*glm::ortho(-rsm.worldRadius,rsm.worldRadius,-rsm.worldRadius,rsm.worldRadius,.1f,4*rsm.worldRadius)*glm::lookAt(center-axis*(2*rsm.worldRadius),center,safeUp(axis));
     }else {auto spot=std::find_if(frame.lights.begin(),frame.lights.end(),[](const LightData& l){return l.positionType.w==2;});if(spot!=frame.lights.end()){source=true;bounce.light=*spot;bounce.settings={0,1,0,0};const auto index=size_t(spot-frame.lights.begin());data_.rsmMatrix=data_.matrices[data_.lights[index].x];}}
     if(source && frame.rsm){data_.rsmRect={0,0,1,1};}else data_.settings.z=0;
-    Resources frameResources(resources_.device);auto commands=resources_.device->createCommandList();rhi::RenderPassDesc clear;clear.depth=view_;clear.color=rsmViews_[0];clear.clearColor={0,0,0,0};clear.additionalColors={{rsmViews_[1]},{rsmViews_[2]}};commands.beginRenderPass(clear);commands.endRenderPass();
+    if(!frame.rsm) {
+        Resources frameResources(resources_.device);auto commands=resources_.device->createCommandList();commands.setLabel("shadow-depth");
+        rhi::RenderPassDesc clear;clear.depth=view_;
+        // Initialize or clear stale RSM atlases once when switching off. Ordinary
+        // shadow-only frames attach depth alone, avoiding RSM shading/stores.
+        if(!rsmCleared_){clear.color=rsmViews_[0];clear.clearColor={0,0,0,0};clear.additionalColors={{rsmViews_[1]},{rsmViews_[2]}};rsmCleared_=true;}
+        commands.beginRenderPass(clear);commands.endRenderPass();
+        std::vector<rhi::BufferHandle> objects;
+        for(const auto& packet:packets){const std::array<glm::mat4,2> object{packet.model,glm::transpose(glm::inverse(packet.model))};objects.push_back(frameResources.buffer({sizeof(object),rhi::BufferUsage::Uniform,"Shadow object"},object.data()));}
+        for(uint32_t tile=0;tile<(frame.shadows?tiles:0);++tile) {
+            auto camera=frameResources.buffer({64,rhi::BufferUsage::Uniform,"Shadow face/cascade matrix"},&data_.matrices[tile]);
+            rhi::RenderPassDesc pass;pass.depth=view_;pass.depthLoad=rhi::LoadOp::Load;pass.viewport={tile%columns*tileSize,tile/columns*tileSize,tileSize,tileSize};commands.beginRenderPass(pass);
+            for(size_t i=0;i<packets.size();++i){auto layout=objectLayout();std::vector<rhi::BindingEntry> entries{{0,camera,0,64,{},{}},{1,objects[i],0,128,{},{}}};
+                if(packets[i].mesh->instances()){layout.entries.push_back({3,rhi::BindingType::StorageRead,rhi::ShaderStage::Vertex,"OutPose",64});entries.push_back({3,packets[i].mesh->instances(),0,size_t(packets[i].mesh->instanceCapacity())*64,{},{}});commands.bindPipeline(depthInstanced_);}else commands.bindPipeline(depthOnly_);
+                commands.bindBindingSet(frameResources.bindings({layout,entries}));packets[i].material->bindShadow(commands);packets[i].mesh->draw(commands);}
+            commands.endRenderPass();
+        }
+        resources_.device->writeBuffer(parameters_,0,sizeof(data_),&data_);resources_.device->submit(commands);return;
+    }
+    rsmCleared_=false;
+    Resources frameResources(resources_.device);auto commands=resources_.device->createCommandList();commands.setLabel("shadows-rsm");rhi::RenderPassDesc clear;clear.depth=view_;clear.color=rsmViews_[0];clear.clearColor={0,0,0,0};clear.additionalColors={{rsmViews_[1]},{rsmViews_[2]}};commands.beginRenderPass(clear);commands.endRenderPass();
     std::vector<rhi::BufferHandle> objects;
     for(const auto& packet:packets){const std::array<glm::mat4,2> object{packet.model,glm::transpose(glm::inverse(packet.model))};objects.push_back(frameResources.buffer({sizeof(object),rhi::BufferUsage::Uniform,"Shadow object"},object.data()));}
     uint32_t lightIndex=0;

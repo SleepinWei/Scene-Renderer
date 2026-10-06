@@ -1,0 +1,429 @@
+2026-10-06 13:48:43.990 Scene-Renderer[62016:33619620] Metal API Validation Enabled
+2026-10-06 13:48:43.990 Scene-Renderer[62016:33619620] Metal GPU Validation Enabled
+RHI metal textured/indexed rendering, depth, blend, grouped bindings, orientation, sampling dependency and Load/Store passed
+RHI metal MRT/deferred G-buffer, lighting, normal mapping, forward comparison and resize passed
+RHI metal forward PBR/HDR, material/object blocks, alpha cutoff, depth, exposure and resize passed
+Importing /private/var/folders/9n/pzbymn3x4cbbprv98ndzdt240000gp/T/scene-renderer-degenerate-obj-1184143012386958/zero-normals.obj
+Source bounds: 0,0,0 to 2,1,0
+Imported 1 meshes, 2 triangles; height normalized to 1
+OBJ zero/degenerate normal reconstruction passed
+Scene GPU publication rejected; keeping last image: RHI resource budget exceeded for 'Last successful scene publication': requested 1073741824 bytes; available 121297664 tracked bytes
+Scene GPU publication rejected; keeping last image: RHI resource budget exceeded for 'HeightSpectrumRT': requested 67108864 bytes; available 54188800 tracked bytes
+Scene GPU publication rejected; keeping last image: RHI resource budget exceeded for 'GaussianRandomRT': requested 67108864 bytes; available 13126420 tracked bytes
+Scene GPU publication rejected; keeping last image: RHI resource budget exceeded for 'DisplaceZSpectrumRT': requested 4194304 bytes; available 544020 tracked bytes
+Scene GPU publication rejected; keeping last image: RHI resource budget exceeded for 'FFT scratch': requested 1048576 bytes; available 544020 tracked bytes
+Engine ownership, component insertion, repeated scene loading, worker errors and terrain source/cache invalidation passed
+RHI scene solar controls: initial authority, GUI edits and external light synchronization passed
+Large-world shadow differing pixels: 54
+Large-world float32 positions and forward/deferred shadow agreement passed
+CSM large-world resolution, sub-texel snapping and overlapping partitions passed
+PCSS linear depth, growing penumbra and atlas isolation; CSM split visibility continuity passed (soft pixels 12 -> 57)
+GTAO isolated/inclined/orthographic planes, receiver occlusion, radius, ambient-only composition, disabled state and odd resize passed; receiver pixels 507
+RHI clearcoat, anisotropy, SSS, unlit, sorted transparent HDR, depth and independent reactive blending passed
+RHI cascaded/point/spot shadows, depth atlas, alpha casters, SSAO, RSM MRT and resize passed; shadow pixels 190, AO pixels 723
+RHI solar regression: disk pixels 208 -> 732, energy ratio 1.00617, horizon energy ratio 0.59246, radiance 12728, multiple-scattering added energy 11943; direction/observer/cache/CPU reference/extreme Mie/HDR tests passed
+RHI atmosphere transmittance/sky/multiple scattering/irradiance, sun update, water vertex FFT sampling/refraction/foam/HDR and previous-frame texture copy passed; water pixels 2869
+Water multiple-scattering slab LUT: Beer limit, bounded energy, independent 100000-path MC reference; max absolute flux error 0.00471323
+Shore water: lake-at-rest error 0, momentum 1.99351e-07, closed mass ratio 1, scrolling, wet/dry positivity; peak runup 254, residual wet sand 80, foam 0.999305
+Coast boundary: wet/dry interpolation and finite bathymetry/patch edges do not form water walls
+Water benchmark 640x360 native render-buffer GPU median: previous 2.12769 ms, upgraded 3.34017 ms; alternating modes, 2 warmup + 8 measured frames each (separately submitted FFT excluded)
+Water upgrade: clear/Beer/independent single-scattering energy (max error 0.000146015), volume shadow ratio 0, hidden underwater pixels 4096, forward/deferred, focused grid/camera motion/TSAA, resize/mask passed
+Water optional optics: DDA floor, independent world-space bathymetry, offscreen terrain hit/path, multi-scattering on/off and absorption limit, wet/dry mask override, live TSAA/camera scrolling/odd resize and stale-state rejection passed
+RHI cloud core aggregate samples 134217 / fine 196683, radiance relative L1 0.00108916
+RHI immersive voxel clouds: quantized density, signed distance CPU reference, conservative skip equivalence, light cache, inside camera, internal lightning and 128-cubed resize passed; skipped primary samples 369152, core radiance relative L1 1.98831e-05
+RHI GPU-driven clouds: compact indirect queue, zero-work clear, depth occlusion, inside/above shell, wind history, seed and odd resize passed; initial summed opacity 1148.17
+VT GPU height/material residency edges, diagonal corners, interior detail and post-eviction continuity passed
+VT: partial uploads, bounded residency, eviction, pinned fallback, aprons, non-square heights raw file streaming and disk pack validated
+World-space grass census: near 44.8817 clumps/m2, far 0.375151 clumps/m2; sand exclusion passed
+Beach wet diffuse, roughness and AO G-buffer validation passed; pixels 2219
+RHI grass GPU poses, height attachment, bounded indirect instance generation, vertex storage sampling and wind passed; instances 3714, pixels 404
+Terrain bounded nonlinear mesh: 511 leaves, max adjacent LOD difference 1; closed manifold and complete coverage validated
+Terrain forced LOD 0 / 5 transitions: closed manifold, coverage and winding validated
+RHI terrain indirect subdivision queues, screen-error LOD, LOD neighbor stitching, height/normal/index generation and indexed indirect drawing passed; leaves 8191
+RHI compute subdivision levels 1..10, barycentric displacement, winding, area and indexed indirect draw passed
+RHI temporal HDR resolve, jitter, object motion, disocclusion rejection, resize, enable/disable and scene history reset passed
+RHI compute -> compute -> vertex/indirect draw, readback and cross-submission dependencies passed
+RHI 8-point complex FFT with three ping-pong dispatches passed CPU DFT comparison
+RHI Ocean IFFT N=8 relative max error=2.6747e-07
+RHI Ocean IFFT N=16 relative max error=3.79868e-07
+RHI Ocean IFFT N=256 relative max error=8.53285e-07
+RHI Ocean IFFT N=512 relative max error=9.50625e-07
+RHI Ocean IFFT N=1024 relative max error=1.22664e-06
+RHI full Ocean spectrum -> 2D FFT -> displacement/normal/foam, seed/time updates and zero-wind validation passed; CPU error=6.17928e-07
+RHI 20 frames, bounded completion ring, ordered staging updates, async readbacks and deferred transient resource release passed
+CPU PT: 200 unique meshes, 232 instances, 232 instanced triangles, 279 BLAS/TLAS nodes; 0.151398 MiB geometry/BVH; build 0.000138542 s
+CPU PT: 1 unique meshes, 1 instances, 1 instanced triangles, 2 BLAS/TLAS nodes; 0.000675201 MiB geometry/BVH; build 4.167e-06 s
+CPU PT 4 spp budget, 4 average spp, 0.00211142 s, 15182 rays, 1 workers
+CPU PT 16 spp budget, 16 average spp, 0.00830388 s, 57713 rays, 1 workers
+CPU PT 128 spp budget, 128 average spp, 0.067459 s, 454496 rays, 1 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.000979916 s, 15182 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.00341787 s, 57713 rays
+GPU Metal compute BLAS/TLAS: 128 spp budget, 128 average spp, 0.0220858 s, 454496 rays
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.000951833 s, 15182 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.00295517 s, 57713 rays
+GPU Metal compute BLAS/TLAS: 48 spp budget, 48 average spp, 0.00782729 s, 171086 rays
+GPU Metal compute BLAS/TLAS: 80 spp budget, 80 average spp, 0.012639 s, 284480 rays
+GPU Metal compute BLAS/TLAS: 112 spp budget, 112 average spp, 0.0176345 s, 397854 rays
+GPU Metal compute BLAS/TLAS: 128 spp budget, 128 average spp, 0.0202994 s, 454496 rays
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.002356 s, 15182 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.00982658 s, 57713 rays
+GPU Metal compute BLAS/TLAS: 128 spp budget, 128 average spp, 0.0704288 s, 454496 rays
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.000794916 s, 15182 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.00327375 s, 57713 rays
+GPU Metal compute BLAS/TLAS: 128 spp budget, 128 average spp, 0.029951 s, 454496 rays
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.001086 s, 15182 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.00260862 s, 57713 rays
+GPU Metal compute BLAS/TLAS: 128 spp budget, 128 average spp, 0.0152618 s, 454496 rays
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.000917625 s, 15182 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.00293425 s, 57713 rays
+GPU Metal compute BLAS/TLAS: 128 spp budget, 128 average spp, 0.0185608 s, 454496 rays
+CPU PT: 4 unique meshes, 103 instances, 19406 instanced triangles, 6361 BLAS/TLAS nodes; 1.35244 MiB geometry/BVH; build 0.003675 s
+Photon map: 30000 paths, 20141 vertices, 17093 caustic photons, 0.0485988 s
+CPU PT 4 spp budget, 4 average spp, 0.00709613 s, 9149 rays, 1 workers
+CPU PT 16 spp budget, 16 average spp, 0.0264227 s, 33525 rays, 1 workers
+CPU PT 128 spp budget, 128 average spp, 0.18544 s, 261225 rays, 1 workers
+Photon map: 30000 paths, 20141 vertices, 17093 caustic photons, 0.0485844 s
+GPU Metal compute BLAS/TLAS + photon density indirect (CPU emission): 4 spp budget, 4 average spp, 0.0171749 s, 9149 rays
+GPU Metal compute BLAS/TLAS + photon density indirect (CPU emission): 16 spp budget, 16 average spp, 0.0504945 s, 33525 rays
+GPU Metal compute BLAS/TLAS + photon density indirect (CPU emission): 128 spp budget, 128 average spp, 0.284904 s, 261225 rays
+Photon map: 30000 paths, 20141 vertices, 17093 caustic photons, 0.0489552 s
+GPU Metal compute BLAS/TLAS + photon density indirect (CPU emission): 4 spp budget, 4 average spp, 0.00910246 s, 9149 rays
+GPU Metal compute BLAS/TLAS + photon density indirect (CPU emission): 16 spp budget, 16 average spp, 0.0342433 s, 33525 rays
+GPU Metal compute BLAS/TLAS + photon density indirect (CPU emission): 128 spp budget, 128 average spp, 0.269006 s, 261225 rays
+CPU PT: 1 unique meshes, 1 instances, 1 instanced triangles, 2 BLAS/TLAS nodes; 0.000675201 MiB geometry/BVH; build 4.25e-06 s
+CPU PT 4 spp budget, 4 average spp, 0.00211413 s, 21504 rays, 1 workers
+CPU PT 16 spp budget, 16 average spp, 0.00865588 s, 82944 rays, 1 workers
+CPU PT 128 spp budget, 128 average spp, 0.0712396 s, 656384 rays, 1 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.000812959 s, 21504 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.00236579 s, 82944 rays
+GPU Metal compute BLAS/TLAS: 128 spp budget, 128 average spp, 0.0142021 s, 656384 rays
+CPU PT: 1 unique meshes, 1 instances, 1 instanced triangles, 2 BLAS/TLAS nodes; 0.000736237 MiB geometry/BVH; build 3.625e-06 s
+CPU PT 4 spp budget, 4 average spp, 0.00190837 s, 13281 rays, 1 workers
+CPU PT 16 spp budget, 16 average spp, 0.00795429 s, 49935 rays, 1 workers
+CPU PT 128 spp budget, 128 average spp, 0.0658392 s, 392197 rays, 1 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.00101396 s, 13281 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.00247654 s, 49935 rays
+GPU Metal compute BLAS/TLAS: 128 spp budget, 128 average spp, 0.0155133 s, 392197 rays
+CPU PT: 1 unique meshes, 1 instances, 1 instanced triangles, 2 BLAS/TLAS nodes; 0.000736237 MiB geometry/BVH; build 3.625e-06 s
+CPU PT 4 spp budget, 4 average spp, 0.00218804 s, 13444 rays, 1 workers
+CPU PT 16 spp budget, 16 average spp, 0.00900233 s, 50583 rays, 1 workers
+CPU PT 128 spp budget, 128 average spp, 0.0736879 s, 397502 rays, 1 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.000917791 s, 13444 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.00279333 s, 50583 rays
+GPU Metal compute BLAS/TLAS: 128 spp budget, 128 average spp, 0.0152531 s, 397502 rays
+CPU PT: 1 unique meshes, 1 instances, 1 instanced triangles, 2 BLAS/TLAS nodes; 0.000736237 MiB geometry/BVH; build 3.792e-06 s
+CPU PT 4 spp budget, 4 average spp, 0.00229617 s, 19201 rays, 1 workers
+CPU PT 16 spp budget, 16 average spp, 0.00940325 s, 73704 rays, 1 workers
+CPU PT 128 spp budget, 128 average spp, 0.0760398 s, 582782 rays, 1 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.000972291 s, 19201 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.00256971 s, 73704 rays
+GPU Metal compute BLAS/TLAS: 128 spp budget, 128 average spp, 0.0152838 s, 582782 rays
+CPU PT: 3 unique meshes, 3 instances, 16 instanced triangles, 8 BLAS/TLAS nodes; 0.00388718 MiB geometry/BVH; build 8.083e-06 s
+CPU PT 4 spp budget, 4 average spp, 0.00408479 s, 26337 rays, 1 workers
+CPU PT 16 spp budget, 16 average spp, 0.0171583 s, 102748 rays, 1 workers
+CPU PT 128 spp budget, 128 average spp, 0.141402 s, 814811 rays, 1 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.00279862 s, 24600 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.00993079 s, 95778 rays
+GPU Metal compute BLAS/TLAS: 128 spp budget, 128 average spp, 0.0730446 s, 759151 rays
+CPU PT: 5 unique meshes, 5 instances, 10 instanced triangles, 6 BLAS/TLAS nodes; 0.00490189 MiB geometry/BVH; build 8.709e-06 s
+CPU PT 4 spp budget, 4 average spp, 0.0035535 s, 21515 rays, 1 workers
+CPU PT 16 spp budget, 16 average spp, 0.0151967 s, 82726 rays, 1 workers
+CPU PT 128 spp budget, 128 average spp, 0.127419 s, 655150 rays, 1 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.00292208 s, 21515 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.0101216 s, 82726 rays
+GPU Metal compute BLAS/TLAS: 128 spp budget, 128 average spp, 0.0747445 s, 655150 rays
+CPU PT: 5 unique meshes, 6 instances, 12 instanced triangles, 6 BLAS/TLAS nodes; 0.00493622 MiB geometry/BVH; build 8e-06 s
+CPU PT 4 spp budget, 4 average spp, 0.00370746 s, 21501 rays, 1 workers
+CPU PT 16 spp budget, 16 average spp, 0.0158447 s, 82707 rays, 1 workers
+CPU PT 128 spp budget, 128 average spp, 0.132858 s, 655037 rays, 1 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.00303329 s, 21501 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.0108007 s, 82707 rays
+GPU Metal compute BLAS/TLAS: 128 spp budget, 128 average spp, 0.0693725 s, 655037 rays
+CPU PT: 3 unique meshes, 3 instances, 16 instanced triangles, 8 BLAS/TLAS nodes; 0.00388718 MiB geometry/BVH; build 6.5e-06 s
+CPU PT 4 spp budget, 4 average spp, 0.00413304 s, 26337 rays, 1 workers
+CPU PT 16 spp budget, 16 average spp, 0.0172681 s, 102748 rays, 1 workers
+CPU PT 128 spp budget, 128 average spp, 0.141692 s, 814811 rays, 1 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.00312633 s, 24600 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.0111829 s, 95778 rays
+GPU Metal compute BLAS/TLAS: 128 spp budget, 128 average spp, 0.0797933 s, 759151 rays
+CPU PT: 1 unique meshes, 1 instances, 1 instanced triangles, 2 BLAS/TLAS nodes; 0.000675201 MiB geometry/BVH; build 4.708e-06 s
+CPU PT 4 spp budget, 4 average spp, 0.00223079 s, 14394 rays, 1 workers
+CPU PT 16 spp budget, 16 average spp, 0.00905288 s, 54456 rays, 1 workers
+CPU PT 128 spp budget, 128 average spp, 0.0742918 s, 428783 rays, 1 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.00151954 s, 14394 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.00370017 s, 54456 rays
+GPU Metal compute BLAS/TLAS: 128 spp budget, 128 average spp, 0.0239472 s, 428783 rays
+CPU PT: 1 unique meshes, 1 instances, 1 instanced triangles, 2 BLAS/TLAS nodes; 0.000675201 MiB geometry/BVH; build 1.0458e-05 s
+CPU PT 4 spp budget, 4 average spp, 0.00152908 s, 17243 rays, 1 workers
+CPU PT 16 spp budget, 16 average spp, 0.00629833 s, 65908 rays, 1 workers
+CPU PT 128 spp budget, 128 average spp, 0.0519756 s, 519992 rays, 1 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.000974791 s, 17243 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.00281108 s, 65908 rays
+GPU Metal compute BLAS/TLAS: 128 spp budget, 128 average spp, 0.0165675 s, 519992 rays
+CPU PT: 2 unique meshes, 2 instances, 2 instanced triangles, 3 BLAS/TLAS nodes; 0.00137329 MiB geometry/BVH; build 4.125e-06 s
+CPU PT 4 spp budget, 4 average spp, 0.00176508 s, 11151 rays, 1 workers
+CPU PT 16 spp budget, 16 average spp, 0.00755271 s, 41491 rays, 1 workers
+CPU PT 128 spp budget, 128 average spp, 0.0635612 s, 324323 rays, 1 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.00174154 s, 12240 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.00600946 s, 45723 rays
+GPU Metal compute BLAS/TLAS: 128 spp budget, 128 average spp, 0.0461338 s, 358706 rays
+CPU PT: 2 unique meshes, 6 instances, 6 instanced triangles, 3 BLAS/TLAS nodes; 0.00437164 MiB geometry/BVH; build 5.625e-06 s
+CPU PT 4 spp budget, 4 average spp, 0.00265908 s, 12358 rays, 1 workers
+CPU PT 16 spp budget, 16 average spp, 0.011084 s, 46429 rays, 1 workers
+CPU PT 128 spp budget, 128 average spp, 0.0901425 s, 363079 rays, 1 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.00258946 s, 13075 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.008986 s, 49240 rays
+GPU Metal compute BLAS/TLAS: 128 spp budget, 128 average spp, 0.0672722 s, 385487 rays
+CPU PT: 1 unique meshes, 2 instances, 24 instanced triangles, 6 BLAS/TLAS nodes; 0.00251007 MiB geometry/BVH; build 6.666e-06 s
+CPU PT 4 spp budget, 4 average spp, 0.0022225 s, 10414 rays, 1 workers
+CPU PT 16 spp budget, 16 average spp, 0.00692333 s, 38516 rays, 1 workers
+CPU PT 128 spp budget, 128 average spp, 0.0483068 s, 301447 rays, 1 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.00265438 s, 10414 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.009358 s, 38516 rays
+GPU Metal compute BLAS/TLAS: 128 spp budget, 128 average spp, 0.0701001 s, 301447 rays
+CPU PT: 1 unique meshes, 1 instances, 1 instanced triangles, 2 BLAS/TLAS nodes; 0.000675201 MiB geometry/BVH; build 3.333e-06 s
+CPU PT 4 spp budget, 4 average spp, 0.00221575 s, 15182 rays, 1 workers
+CPU PT 16 spp budget, 16 average spp, 0.00931721 s, 57713 rays, 1 workers
+CPU PT 128 spp budget, 128 average spp, 0.0769012 s, 454496 rays, 1 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.000980291 s, 15182 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.00253742 s, 57713 rays
+GPU Metal compute BLAS/TLAS: 128 spp budget, 128 average spp, 0.0180422 s, 454496 rays
+CPU PT: 1 unique meshes, 1 instances, 1 instanced triangles, 2 BLAS/TLAS nodes; 0.000675201 MiB geometry/BVH; build 4.209e-06 s
+CPU PT 4 spp budget, 4 average spp, 0.00136804 s, 10157 rays, 1 workers
+CPU PT 16 spp budget, 16 average spp, 0.00555458 s, 37559 rays, 1 workers
+CPU PT 128 spp budget, 128 average spp, 0.0456815 s, 293274 rays, 1 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.000935292 s, 10157 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.00257475 s, 37559 rays
+GPU Metal compute BLAS/TLAS: 128 spp budget, 128 average spp, 0.0185281 s, 293276 rays
+CPU PT: 0 unique meshes, 0 instances, 0 instanced triangles, 0 BLAS/TLAS nodes; 0 MiB geometry/BVH; build 1.5e-06 s
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.000596834 s, 5120 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.00163621 s, 17408 rays
+GPU Metal compute BLAS/TLAS: 48 spp budget, 48 average spp, 0.00364642 s, 50176 rays
+GPU Metal compute BLAS/TLAS: 80 spp budget, 80 average spp, 0.00603746 s, 82944 rays
+GPU Metal compute BLAS/TLAS: 112 spp budget, 112 average spp, 0.00815642 s, 115712 rays
+GPU PT training: 8 cells, 0.0146648 s, 227780 rays
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.001522 s, 16251 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.00563738 s, 62053 rays
+GPU Metal compute BLAS/TLAS: 272 spp budget, 272 average spp, 0.0554706 s, 1038065 rays
+GPU Metal compute BLAS/TLAS: 512 spp budget, 512 average spp, 0.106854 s, 1953118 rays
+CPU PT: 2 unique meshes, 2 instances, 2 instanced triangles, 3 BLAS/TLAS nodes; 0.00131989 MiB geometry/BVH; build 4.583e-06 s
+GPU PT training: 12 cells, 0.0369753 s, 465981 rays
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.00175221 s, 21581 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.00619967 s, 83585 rays
+GPU Metal compute BLAS/TLAS: 272 spp budget, 272 average spp, 0.0892633 s, 1403454 rays
+GPU Metal compute BLAS/TLAS: 512 spp budget, 512 average spp, 0.169532 s, 2640952 rays
+CPU PT: 4 unique meshes, 4 instances, 4038 instanced triangles, 1309 BLAS/TLAS nodes; 0.251816 MiB geometry/BVH; build 0.000641458 s
+CPU PT 4 spp budget, 4 average spp, 0.00301979 s, 13460 rays, 1 workers
+CPU PT 16 spp budget, 16 average spp, 0.0122804 s, 50811 rays, 1 workers
+CPU PT 128 spp budget, 128 average spp, 0.0972684 s, 399966 rays, 1 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.00791538 s, 13462 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.0263537 s, 50818 rays
+GPU Metal compute BLAS/TLAS: 128 spp budget, 128 average spp, 0.132633 s, 400015 rays
+GPU PT training: 0 cells, 0.00898342 s, 66560 rays
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.000613208 s, 5120 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.00171508 s, 17408 rays
+GPU Metal compute BLAS/TLAS: 48 spp budget, 48 average spp, 0.00338263 s, 50176 rays
+GPU Metal compute BLAS/TLAS: 80 spp budget, 80 average spp, 0.00524433 s, 82944 rays
+GPU Metal compute BLAS/TLAS: 112 spp budget, 112 average spp, 0.00703458 s, 115712 rays
+GPU PT: brute-force/BVH, texture alpha, CPU-identical Sobol, VNDF/MIS and adaptive tests passed
+CPU PT: 3 unique meshes, 3 instances, 516 instanced triangles, 130 BLAS/TLAS nodes; 0.0268669 MiB geometry/BVH; build 6.6167e-05 s
+CPU PT 4 spp budget, 4 average spp, 0.00181387 s, 12742 rays, 4 workers
+CPU PT 16 spp budget, 16 average spp, 0.00772879 s, 48591 rays, 4 workers
+CPU PT 272 spp budget, 272 average spp, 0.124119 s, 814165 rays, 4 workers
+CPU PT 512 spp budget, 512 average spp, 0.231911 s, 1531882 rays, 4 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.00446908 s, 12742 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.0167583 s, 48591 rays
+GPU Metal compute BLAS/TLAS: 272 spp budget, 272 average spp, 0.239388 s, 814164 rays
+GPU Metal compute BLAS/TLAS: 512 spp budget, 512 average spp, 0.438248 s, 1531881 rays
+CPU PT: 3 unique meshes, 3 instances, 516 instanced triangles, 130 BLAS/TLAS nodes; 0.0268669 MiB geometry/BVH; build 9.1334e-05 s
+CPU PT 4 spp budget, 4 average spp, 0.00179583 s, 12605 rays, 4 workers
+CPU PT 16 spp budget, 16 average spp, 0.00707742 s, 48327 rays, 4 workers
+CPU PT 272 spp budget, 272 average spp, 0.134333 s, 810863 rays, 4 workers
+CPU PT 512 spp budget, 512 average spp, 0.258819 s, 1525024 rays, 4 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.00416187 s, 12605 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.0162189 s, 48327 rays
+GPU Metal compute BLAS/TLAS: 272 spp budget, 272 average spp, 0.241902 s, 810863 rays
+GPU Metal compute BLAS/TLAS: 512 spp budget, 512 average spp, 0.44848 s, 1525024 rays
+CPU PT: 3 unique meshes, 4 instances, 8 instanced triangles, 4 BLAS/TLAS nodes; 0.00273132 MiB geometry/BVH; build 8.75e-06 s
+CPU PT 4 spp budget, 4 average spp, 0.00105437 s, 14113 rays, 4 workers
+CPU PT 16 spp budget, 16 average spp, 0.00474033 s, 54433 rays, 4 workers
+CPU PT 272 spp budget, 272 average spp, 0.0685492 s, 913057 rays, 4 workers
+CPU PT 512 spp budget, 512 average spp, 0.129335 s, 1717729 rays, 4 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.00200667 s, 14115 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.00747696 s, 54436 rays
+GPU Metal compute BLAS/TLAS: 272 spp budget, 272 average spp, 0.113541 s, 913092 rays
+GPU Metal compute BLAS/TLAS: 512 spp budget, 512 average spp, 0.212722 s, 1717790 rays
+Tinted thin sheet / area NEE CPU/GPU relative L1 9.35456e-08
+CPU PT: 3 unique meshes, 4 instances, 8 instanced triangles, 4 BLAS/TLAS nodes; 0.00273132 MiB geometry/BVH; build 8.375e-06 s
+CPU PT 4 spp budget, 4 average spp, 0.000872292 s, 14206 rays, 4 workers
+CPU PT 16 spp budget, 16 average spp, 0.00365 s, 54790 rays, 4 workers
+CPU PT 272 spp budget, 272 average spp, 0.0759153 s, 919352 rays, 4 workers
+CPU PT 512 spp budget, 512 average spp, 0.133222 s, 1729715 rays, 4 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.00236688 s, 14206 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.00869546 s, 54790 rays
+GPU Metal compute BLAS/TLAS: 272 spp budget, 272 average spp, 0.127743 s, 919352 rays
+GPU Metal compute BLAS/TLAS: 512 spp budget, 512 average spp, 0.238039 s, 1729715 rays
+Controlled Lambert / thin sheet CPU/GPU relative L1 8.47248e-08
+CPU PT: 3 unique meshes, 4 instances, 8 instanced triangles, 4 BLAS/TLAS nodes; 0.00273132 MiB geometry/BVH; build 8e-06 s
+CPU PT 4 spp budget, 4 average spp, 0.000949375 s, 14110 rays, 4 workers
+CPU PT 16 spp budget, 16 average spp, 0.00407358 s, 54420 rays, 4 workers
+CPU PT 272 spp budget, 272 average spp, 0.071787 s, 912841 rays, 4 workers
+CPU PT 512 spp budget, 512 average spp, 0.141075 s, 1717301 rays, 4 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.00268112 s, 14112 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.00966675 s, 54423 rays
+GPU Metal compute BLAS/TLAS: 272 spp budget, 272 average spp, 0.149783 s, 912876 rays
+GPU Metal compute BLAS/TLAS: 512 spp budget, 512 average spp, 0.27342 s, 1717362 rays
+Controlled additive GGX / thin sheet CPU/GPU relative L1 1.12124e-07
+CPU PT: 1 unique meshes, 2 instances, 4 instanced triangles, 2 BLAS/TLAS nodes; 0.00122833 MiB geometry/BVH; build 4.958e-06 s
+CPU PT 4 spp budget, 4 average spp, 0.000586417 s, 9403 rays, 4 workers
+CPU PT 16 spp budget, 16 average spp, 0.00224012 s, 35128 rays, 4 workers
+CPU PT 272 spp budget, 272 average spp, 0.0309515 s, 584617 rays, 4 workers
+CPU PT 512 spp budget, 512 average spp, 0.0563217 s, 1099544 rays, 4 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.00201762 s, 9403 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.00647392 s, 35128 rays
+GPU Metal compute BLAS/TLAS: 272 spp budget, 272 average spp, 0.0943617 s, 584617 rays
+GPU Metal compute BLAS/TLAS: 512 spp budget, 512 average spp, 0.177693 s, 1099544 rays
+Thin sheet / environment MIS CPU/GPU relative L1 3.80939e-08
+CPU PT: 3 unique meshes, 3 instances, 16 instanced triangles, 8 BLAS/TLAS nodes; 0.00388718 MiB geometry/BVH; build 7.792e-06 s
+CPU PT 4 spp budget, 4 average spp, 0.00143379 s, 11489 rays, 4 workers
+CPU PT 16 spp budget, 16 average spp, 0.00543417 s, 43956 rays, 4 workers
+CPU PT 272 spp budget, 272 average spp, 0.0956118 s, 735580 rays, 4 workers
+CPU PT 512 spp budget, 512 average spp, 0.176058 s, 1384276 rays, 4 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.00843904 s, 11489 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.0314297 s, 43956 rays
+GPU Metal compute BLAS/TLAS: 272 spp budget, 272 average spp, 0.302947 s, 735583 rays
+GPU Metal compute BLAS/TLAS: 512 spp budget, 512 average spp, 0.553668 s, 1384274 rays
+Bounded pool / tangent normal / roughness atlas CPU/GPU relative L1 1.31355e-07
+CPU PT: 3 unique meshes, 3 instances, 16 instanced triangles, 8 BLAS/TLAS nodes; 0.00388718 MiB geometry/BVH; build 8.75e-06 s
+CPU PT 4 spp budget, 4 average spp, 0.00128087 s, 11473 rays, 4 workers
+CPU PT 16 spp budget, 16 average spp, 0.00624425 s, 43908 rays, 4 workers
+CPU PT 272 spp budget, 272 average spp, 0.0982127 s, 735052 rays, 4 workers
+CPU PT 512 spp budget, 512 average spp, 0.182923 s, 1383206 rays, 4 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.00481229 s, 11473 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.0180252 s, 43908 rays
+GPU Metal compute BLAS/TLAS: 272 spp budget, 272 average spp, 0.287828 s, 735055 rays
+GPU Metal compute BLAS/TLAS: 512 spp budget, 512 average spp, 0.538831 s, 1383204 rays
+Controlled correlated GGX / bounded pool CPU/GPU relative L1 1.51918e-07
+CPU PT: 3 unique meshes, 3 instances, 16 instanced triangles, 8 BLAS/TLAS nodes; 0.00388718 MiB geometry/BVH; build 1.0167e-05 s
+CPU PT 4 spp budget, 4 average spp, 0.00235592 s, 16123 rays, 4 workers
+CPU PT 16 spp budget, 16 average spp, 0.00946238 s, 62171 rays, 4 workers
+CPU PT 272 spp budget, 272 average spp, 0.172624 s, 1035208 rays, 4 workers
+CPU PT 512 spp budget, 512 average spp, 0.327167 s, 1948929 rays, 4 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.00655696 s, 16123 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.0244883 s, 62170 rays
+GPU Metal compute BLAS/TLAS: 272 spp budget, 272 average spp, 0.325666 s, 1035200 rays
+GPU Metal compute BLAS/TLAS: 512 spp budget, 512 average spp, 0.604757 s, 1948908 rays
+Inside bounded pool / mapped exit boundary CPU/GPU relative L1 1.53449e-07
+CPU PT: 2 unique meshes, 2 instances, 4 instanced triangles, 3 BLAS/TLAS nodes; 0.00156403 MiB geometry/BVH; build 6.375e-06 s
+CPU PT 4 spp budget, 4 average spp, 0.00063475 s, 7926 rays, 4 workers
+CPU PT 16 spp budget, 16 average spp, 0.00262204 s, 29415 rays, 4 workers
+CPU PT 272 spp budget, 272 average spp, 0.038655 s, 487452 rays, 4 workers
+CPU PT 512 spp budget, 512 average spp, 0.0697563 s, 916717 rays, 4 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.000913458 s, 7926 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.00270937 s, 29417 rays
+GPU Metal compute BLAS/TLAS: 272 spp budget, 272 average spp, 0.0389505 s, 487492 rays
+GPU Metal compute BLAS/TLAS: 512 spp budget, 512 average spp, 0.0732908 s, 916791 rays
+World-space sand / normals / roughness / wetness CPU/GPU relative L1 7.46061e-08
+CPU PT: 3 unique meshes, 3 instances, 516 instanced triangles, 130 BLAS/TLAS nodes; 0.0268669 MiB geometry/BVH; build 6.0792e-05 s
+CPU PT 4 spp budget, 4 average spp, 0.00380138 s, 24364 rays, 4 workers
+CPU PT 16 spp budget, 16 average spp, 0.0138873 s, 95615 rays, 4 workers
+CPU PT 272 spp budget, 272 average spp, 0.254235 s, 1614876 rays, 4 workers
+CPU PT 528 spp budget, 528 average spp, 0.496476 s, 3136013 rays, 4 workers
+CPU PT 784 spp budget, 784 average spp, 0.738891 s, 4654988 rays, 4 workers
+CPU PT 1024 spp budget, 1024 average spp, 0.972869 s, 6079286 rays, 4 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.0131432 s, 24364 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.0379917 s, 95615 rays
+GPU Metal compute BLAS/TLAS: 272 spp budget, 272 average spp, 0.454759 s, 1614876 rays
+GPU Metal compute BLAS/TLAS: 528 spp budget, 528 average spp, 0.879807 s, 3136013 rays
+GPU Metal compute BLAS/TLAS: 784 spp budget, 784 average spp, 1.303 s, 4654988 rays
+GPU Metal compute BLAS/TLAS: 1024 spp budget, 1024 average spp, 1.69429 s, 6079287 rays
+Refracted solar continuation / full mixture PDF CPU/GPU relative L1 0.000236794
+CPU PT: 3 unique meshes, 3 instances, 516 instanced triangles, 130 BLAS/TLAS nodes; 0.0268669 MiB geometry/BVH; build 6.2709e-05 s
+CPU PT 4 spp budget, 4 average spp, 0.00220521 s, 15577 rays, 4 workers
+CPU PT 16 spp budget, 16 average spp, 0.00882121 s, 60467 rays, 4 workers
+CPU PT 272 spp budget, 272 average spp, 0.160001 s, 1013321 rays, 4 workers
+CPU PT 528 spp budget, 528 average spp, 0.325445 s, 1963973 rays, 4 workers
+CPU PT 784 spp budget, 784 average spp, 0.487804 s, 2917130 rays, 4 workers
+CPU PT 1024 spp budget, 1024 average spp, 0.6391 s, 3808685 rays, 4 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.0130096 s, 15577 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.0352264 s, 60467 rays
+GPU Metal compute BLAS/TLAS: 272 spp budget, 272 average spp, 0.394838 s, 1013321 rays
+GPU Metal compute BLAS/TLAS: 528 spp budget, 528 average spp, 0.755401 s, 1963973 rays
+GPU Metal compute BLAS/TLAS: 784 spp budget, 784 average spp, 1.12477 s, 2917130 rays
+GPU Metal compute BLAS/TLAS: 1024 spp budget, 1024 average spp, 1.46745 s, 3808685 rays
+Submerged FFT water scattering CPU/GPU relative L1 9.13024e-08, volume events 457138 / 457138
+CPU PT: 3 unique meshes, 3 instances, 516 instanced triangles, 130 BLAS/TLAS nodes; 0.0268669 MiB geometry/BVH; build 9.7458e-05 s
+CPU PT 4 spp budget, 4 average spp, 0.00396687 s, 28132 rays, 4 workers
+CPU PT 16 spp budget, 16 average spp, 0.0160831 s, 110950 rays, 4 workers
+CPU PT 272 spp budget, 272 average spp, 0.316478 s, 1882977 rays, 4 workers
+CPU PT 528 spp budget, 528 average spp, 0.611098 s, 3657760 rays, 4 workers
+CPU PT 784 spp budget, 784 average spp, 0.922552 s, 5433260 rays, 4 workers
+CPU PT 1024 spp budget, 1024 average spp, 1.20881 s, 7097670 rays, 4 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.02777 s, 28132 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.0654055 s, 110950 rays
+GPU Metal compute BLAS/TLAS: 272 spp budget, 272 average spp, 0.706166 s, 1882977 rays
+GPU Metal compute BLAS/TLAS: 528 spp budget, 528 average spp, 1.34927 s, 3657760 rays
+GPU Metal compute BLAS/TLAS: 784 spp budget, 784 average spp, 1.991 s, 5433260 rays
+GPU Metal compute BLAS/TLAS: 1024 spp budget, 1024 average spp, 2.59144 s, 7097670 rays
+Refracted solar / HG phase mixture PDF CPU/GPU relative L1 0.000186393, volume events 298012 / 298012
+CPU PT: 2 unique meshes, 2 instances, 24 instanced triangles, 11 BLAS/TLAS nodes; 0.00403595 MiB geometry/BVH; build 7.75e-06 s
+CPU PT 4 spp budget, 4 average spp, 0.00364596 s, 34187 rays, 4 workers
+CPU PT 16 spp budget, 16 average spp, 0.01508 s, 135501 rays, 4 workers
+CPU PT 272 spp budget, 272 average spp, 0.293584 s, 2291541 rays, 4 workers
+CPU PT 528 spp budget, 528 average spp, 0.565276 s, 4437682 rays, 4 workers
+CPU PT 784 spp budget, 784 average spp, 0.823743 s, 6596171 rays, 4 workers
+CPU PT 1024 spp budget, 1024 average spp, 1.07739 s, 8615947 rays, 4 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.0209771 s, 34187 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.0663188 s, 135501 rays
+GPU Metal compute BLAS/TLAS: 272 spp budget, 272 average spp, 0.951538 s, 2291541 rays
+GPU Metal compute BLAS/TLAS: 528 spp budget, 528 average spp, 1.84349 s, 4437688 rays
+GPU Metal compute BLAS/TLAS: 784 spp budget, 784 average spp, 2.73601 s, 6596177 rays
+GPU Metal compute BLAS/TLAS: 1024 spp budget, 1024 average spp, 3.57587 s, 8615951 rays
+Nested water/jade random walk CPU/GPU relative L1 1.1744e-07, volume events 3073381 / 3073382
+CPU PT: 2 unique meshes, 2 instances, 24 instanced triangles, 11 BLAS/TLAS nodes; 0.00403595 MiB geometry/BVH; build 1.1083e-05 s
+CPU PT 4 spp budget, 4 average spp, 0.00461296 s, 38425 rays, 4 workers
+CPU PT 16 spp budget, 16 average spp, 0.0187977 s, 151597 rays, 4 workers
+CPU PT 272 spp budget, 272 average spp, 0.351585 s, 2580184 rays, 4 workers
+CPU PT 528 spp budget, 528 average spp, 0.680768 s, 5003051 rays, 4 workers
+CPU PT 784 spp budget, 784 average spp, 1.02672 s, 7435443 rays, 4 workers
+CPU PT 1024 spp budget, 1024 average spp, 1.36249 s, 9712806 rays, 4 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.0318341 s, 38425 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.0781111 s, 151598 rays
+GPU Metal compute BLAS/TLAS: 272 spp budget, 272 average spp, 0.982794 s, 2580182 rays
+GPU Metal compute BLAS/TLAS: 528 spp budget, 528 average spp, 1.8996 s, 5003092 rays
+GPU Metal compute BLAS/TLAS: 784 spp budget, 784 average spp, 2.82492 s, 7435475 rays
+GPU Metal compute BLAS/TLAS: 1024 spp budget, 1024 average spp, 3.69982 s, 9712818 rays
+Rough nested water/jade NEE CPU/GPU relative L1 9.81729e-06, volume events 3006024 / 3006038
+CPU PT: 2 unique meshes, 2 instances, 24 instanced triangles, 11 BLAS/TLAS nodes; 0.00403595 MiB geometry/BVH; build 1.1125e-05 s
+CPU PT 4 spp budget, 4 average spp, 0.0146396 s, 108595 rays, 4 workers
+CPU PT 16 spp budget, 16 average spp, 0.0609576 s, 430930 rays, 4 workers
+CPU PT 272 spp budget, 272 average spp, 1.01063 s, 7339171 rays, 4 workers
+CPU PT 528 spp budget, 528 average spp, 1.95848 s, 14254077 rays, 4 workers
+CPU PT 784 spp budget, 784 average spp, 2.89555 s, 21155729 rays, 4 workers
+CPU PT 1024 spp budget, 1024 average spp, 3.75999 s, 27637589 rays, 4 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.0443424 s, 108595 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.111497 s, 430929 rays
+GPU Metal compute BLAS/TLAS: 272 spp budget, 272 average spp, 1.51081 s, 7339118 rays
+GPU Metal compute BLAS/TLAS: 528 spp budget, 528 average spp, 2.91722 s, 14254043 rays
+GPU Metal compute BLAS/TLAS: 784 spp budget, 784 average spp, 4.3169 s, 21155689 rays
+GPU Metal compute BLAS/TLAS: 1024 spp budget, 1024 average spp, 5.63265 s, 27637554 rays
+Camera inside water/jade CPU/GPU relative L1 4.29811e-05, volume events 13288923 / 13288921
+CPU PT: 4 unique meshes, 4 instances, 18 instanced triangles, 9 BLAS/TLAS nodes; 0.0042572 MiB geometry/BVH; build 9.125e-06 s
+CPU PT 4 spp budget, 4 average spp, 0.000719959 s, 9604 rays, 4 workers
+CPU PT 16 spp budget, 16 average spp, 0.00331458 s, 36235 rays, 4 workers
+CPU PT 272 spp budget, 272 average spp, 0.0545301 s, 604391 rays, 4 workers
+CPU PT 512 spp budget, 512 average spp, 0.101565 s, 1136693 rays, 4 workers
+CPU PT: 4 unique meshes, 4 instances, 18 instanced triangles, 9 BLAS/TLAS nodes; 0.0042572 MiB geometry/BVH; build 8e-06 s
+CPU PT 4 spp budget, 4 average spp, 0.000704792 s, 9562 rays, 4 workers
+CPU PT 16 spp budget, 16 average spp, 0.00297379 s, 36078 rays, 4 workers
+CPU PT 272 spp budget, 272 average spp, 0.0581929 s, 601402 rays, 4 workers
+CPU PT 512 spp budget, 512 average spp, 0.105107 s, 1131021 rays, 4 workers
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.00154258 s, 9562 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 0.0051665 s, 36078 rays
+GPU Metal compute BLAS/TLAS: 272 spp budget, 272 average spp, 0.069444 s, 601458 rays
+GPU Metal compute BLAS/TLAS: 512 spp budget, 512 average spp, 0.129243 s, 1131142 rays
+Area emitter +10km energy ratio 0.998652, GPU/CPU 1, relative L1 7.17203e-06
+Underwater CPU/GPU relative L1 8.91021e-08
+Native FFT PT capture motion 0.793752, CPU/GPU water relative L1 3.25357e-06
+CPU PT render-thread HDR sky bake and importance sampling passed
+RHI native GPU buffer uploads and readback passed

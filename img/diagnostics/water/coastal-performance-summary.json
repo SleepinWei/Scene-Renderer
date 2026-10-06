@@ -1,0 +1,565 @@
+{
+  "720": {
+    "before": {
+      "wall_ms": {
+        "median": 52.4579375,
+        "p95": 55.054333
+      },
+      "gpu_submission_ms": {
+        "median": 49.668312538415194,
+        "p95": 52.245666505768895
+      },
+      "acquire_cpu_ms": {
+        "median": 0.0249585,
+        "p95": 0.039292
+      },
+      "collect_cpu_ms": {
+        "median": 0.12737500000000002,
+        "p95": 0.175125
+      },
+      "record_cpu_ms": {
+        "median": 1.762479,
+        "p95": 2.161333
+      },
+      "submit_cpu_ms": {
+        "median": 0.027937,
+        "p95": 0.036709
+      },
+      "wait_cpu_ms": {
+        "median": 50.4181665,
+        "p95": 53.08025
+      },
+      "stages_ms": {
+        "buffer-upload": 0.07224905490875244,
+        "texture-copy": 0.22958409786224365,
+        "fft512": 22.95603597164154,
+        "fft256": 9.985582947731018,
+        "shore": 4.948813319206238,
+        "shadows-rsm": 38.815355000000004,
+        "back": 0.24806249999999996,
+        "geometry": 7.4036254999999995,
+        "ao-raw": 0.018729499999999996,
+        "ao-filter": 0.0189585,
+        "light": 1.520479,
+        "motion": 3.1899789999999997,
+        "ocean-copy": 0.2915835380554199,
+        "water/capture": 5.9033335,
+        "water/depth-chain": 0.7155841588973999,
+        "water/surface": 10.380541999999998,
+        "temporal": 0.7739169597625732,
+        "tone": 0.133042,
+        "presentation": 0.052292
+      },
+      "uncovered_timestamp_interval_ms": 0.09083282947540283,
+      "commit_to_gpu_start_ms": 0.5184998512268066,
+      "timestamp_records_per_frame": 166.0,
+      "measured_frames": 32
+    },
+    "after": {
+      "wall_ms": {
+        "median": 26.889916499999998,
+        "p95": 28.837417
+      },
+      "gpu_submission_ms": {
+        "median": 25.641812477260828,
+        "p95": 27.483666548505425
+      },
+      "acquire_cpu_ms": {
+        "median": 0.0093545,
+        "p95": 0.021542
+      },
+      "collect_cpu_ms": {
+        "median": 0.070354,
+        "p95": 0.101042
+      },
+      "record_cpu_ms": {
+        "median": 0.772333,
+        "p95": 0.936167
+      },
+      "submit_cpu_ms": {
+        "median": 0.012917,
+        "p95": 0.01675
+      },
+      "wait_cpu_ms": {
+        "median": 26.084083,
+        "p95": 27.882541
+      },
+      "stages_ms": {
+        "buffer-upload": 0.08337461948394775,
+        "texture-copy": 0.2079164981842041,
+        "fft512": 1.9085009098052979,
+        "fft256": 0.9513952732086182,
+        "shore": 2.3284581899642944,
+        "shadow-depth": 10.9988535,
+        "back": 0.22822899999999996,
+        "geometry": 5.453042,
+        "ao-raw": 0.023396,
+        "ao-filter": 0.025875,
+        "light": 2.1314374999999997,
+        "motion": 3.8534789999999997,
+        "ocean-copy": 0.2480623722076416,
+        "water/capture": 5.925520499999999,
+        "water/depth-chain": 0.6074377298355103,
+        "water/surface": 6.6426875,
+        "temporal": 0.6168125867843628,
+        "tone": 0.106708,
+        "presentation": 0.0418745
+      },
+      "uncovered_timestamp_interval_ms": 0.09193658828735352,
+      "commit_to_gpu_start_ms": 0.22514557838439941,
+      "timestamp_records_per_frame": 76.0,
+      "measured_frames": 32
+    },
+    "latency_reduction_percent": 48.74004243876344
+  },
+  "moving": {
+    "before": {
+      "wall_ms": {
+        "median": 66.046312,
+        "p95": 69.056
+      },
+      "gpu_submission_ms": {
+        "median": 62.98189586959779,
+        "p95": 65.73999999091029
+      },
+      "acquire_cpu_ms": {
+        "median": 0.0258125,
+        "p95": 0.030792
+      },
+      "collect_cpu_ms": {
+        "median": 0.5465835,
+        "p95": 0.770292
+      },
+      "record_cpu_ms": {
+        "median": 1.7432915,
+        "p95": 1.89375
+      },
+      "submit_cpu_ms": {
+        "median": 0.0300005,
+        "p95": 0.037417
+      },
+      "wait_cpu_ms": {
+        "median": 63.7030835,
+        "p95": 66.303083
+      },
+      "stages_ms": {
+        "buffer-upload": 0.29108190536499023,
+        "terrain": 17.723145604133606,
+        "texture-copy": 0.7982707023620605,
+        "fft512": 27.14020597934723,
+        "fft256": 9.390752077102661,
+        "shore": 8.730895280838013,
+        "shadows-rsm": 36.899416499999994,
+        "back": 0.2560205,
+        "geometry": 7.2744175,
+        "ao-raw": 0.019167,
+        "ao-filter": 0.018999,
+        "light": 1.524125,
+        "motion": 3.1623545,
+        "ocean-copy": 0.30829155445098877,
+        "water/capture": 5.1238125,
+        "water/depth-chain": 0.7040004730224609,
+        "water/surface": 9.6958545,
+        "temporal": 0.5684579610824585,
+        "tone": 0.135396,
+        "presentation": 0.0520005
+      },
+      "uncovered_timestamp_interval_ms": 0.054999351501464844,
+      "commit_to_gpu_start_ms": 0.5445623397827148,
+      "timestamp_records_per_frame": 178.0,
+      "measured_frames": 32
+    },
+    "after": {
+      "wall_ms": {
+        "median": 42.107395999999994,
+        "p95": 44.5165
+      },
+      "gpu_submission_ms": {
+        "median": 40.18435417674482,
+        "p95": 42.22091683186591
+      },
+      "acquire_cpu_ms": {
+        "median": 0.013563,
+        "p95": 0.020917
+      },
+      "collect_cpu_ms": {
+        "median": 0.37947949999999997,
+        "p95": 0.665625
+      },
+      "record_cpu_ms": {
+        "median": 0.825688,
+        "p95": 0.951792
+      },
+      "submit_cpu_ms": {
+        "median": 0.015228499999999999,
+        "p95": 0.019375
+      },
+      "wait_cpu_ms": {
+        "median": 40.812021,
+        "p95": 42.854208
+      },
+      "stages_ms": {
+        "buffer-upload": 0.7420196533203125,
+        "terrain": 16.650542616844177,
+        "texture-copy": 0.543958306312561,
+        "fft512": 9.275500774383545,
+        "fft256": 5.2685205936431885,
+        "shore": 2.194478988647461,
+        "shadow-depth": 9.397292499999999,
+        "back": 0.2291865,
+        "geometry": 5.3888745,
+        "ao-raw": 0.022396,
+        "ao-filter": 0.025396,
+        "light": 2.0420415,
+        "motion": 3.983334,
+        "ocean-copy": 0.24495840072631836,
+        "water/capture": 5.2455415,
+        "water/depth-chain": 0.5950415134429932,
+        "water/surface": 6.297062499999999,
+        "temporal": 0.4658125638961792,
+        "tone": 0.1085415,
+        "presentation": 0.041083
+      },
+      "uncovered_timestamp_interval_ms": 0.19968853704631329,
+      "commit_to_gpu_start_ms": 0.4566456079483032,
+      "timestamp_records_per_frame": 88.0,
+      "measured_frames": 32
+    },
+    "latency_reduction_percent": 36.245651384743496
+  },
+  "water": {
+    "before": {
+      "wall_ms": {
+        "median": 59.378354,
+        "p95": 60.963583
+      },
+      "gpu_submission_ms": {
+        "median": 56.60668760538101,
+        "p95": 58.369999984279275
+      },
+      "acquire_cpu_ms": {
+        "median": 0.025208500000000002,
+        "p95": 0.028209
+      },
+      "collect_cpu_ms": {
+        "median": 0.1314795,
+        "p95": 0.153792
+      },
+      "record_cpu_ms": {
+        "median": 1.8049585,
+        "p95": 2.197584
+      },
+      "submit_cpu_ms": {
+        "median": 0.029291499999999998,
+        "p95": 0.033583
+      },
+      "wait_cpu_ms": {
+        "median": 57.4155205,
+        "p95": 59.058875
+      },
+      "stages_ms": {
+        "buffer-upload": 0.07354211807250977,
+        "texture-copy": 0.24250006675720215,
+        "fft512": 23.039145827293396,
+        "fft256": 10.421541213989258,
+        "shore": 4.571606159210205,
+        "shadows-rsm": 37.689083499999995,
+        "back": 0.30737499999999995,
+        "geometry": 10.640188,
+        "ao-raw": 0.020645499999999997,
+        "ao-filter": 0.0202705,
+        "light": 2.1172709999999997,
+        "motion": 3.5500214999999997,
+        "ocean-copy": 0.2600620985031128,
+        "water/capture": 10.328375,
+        "water/depth-chain": 0.7719590663909912,
+        "water/surface": 8.946207999999999,
+        "temporal": 0.7557704448699951,
+        "tone": 0.12872899999999998,
+        "presentation": 0.051417
+      },
+      "uncovered_timestamp_interval_ms": 0.09235437121242285,
+      "commit_to_gpu_start_ms": 0.5313122272491455,
+      "timestamp_records_per_frame": 166.0,
+      "measured_frames": 32
+    },
+    "after": {
+      "wall_ms": {
+        "median": 37.542708000000005,
+        "p95": 38.969709
+      },
+      "gpu_submission_ms": {
+        "median": 36.20289592072368,
+        "p95": 37.2317498549819
+      },
+      "acquire_cpu_ms": {
+        "median": 0.009917,
+        "p95": 0.018208
+      },
+      "collect_cpu_ms": {
+        "median": 0.078479,
+        "p95": 0.099541
+      },
+      "record_cpu_ms": {
+        "median": 0.7934585,
+        "p95": 0.849666
+      },
+      "submit_cpu_ms": {
+        "median": 0.0127705,
+        "p95": 0.01675
+      },
+      "wait_cpu_ms": {
+        "median": 36.6442705,
+        "p95": 38.002875
+      },
+      "stages_ms": {
+        "buffer-upload": 0.06833386421203613,
+        "texture-copy": 0.196708083152771,
+        "fft512": 1.8861860036849976,
+        "fft256": 0.9540834426879883,
+        "shore": 2.3117928504943848,
+        "shadow-depth": 11.038623999999999,
+        "back": 0.22262549999999998,
+        "geometry": 10.1163125,
+        "ao-raw": 0.018083000000000002,
+        "ao-filter": 0.019208999999999997,
+        "light": 1.982875,
+        "motion": 2.385917,
+        "ocean-copy": 0.21264588832855225,
+        "water/capture": 9.457249999999998,
+        "water/depth-chain": 0.6249164342880249,
+        "water/surface": 7.8470625,
+        "temporal": 0.6142289638519287,
+        "tone": 0.10625,
+        "presentation": 0.041521
+      },
+      "uncovered_timestamp_interval_ms": 0.09589791297912598,
+      "commit_to_gpu_start_ms": 0.22456228733062744,
+      "timestamp_records_per_frame": 76.0,
+      "measured_frames": 32
+    },
+    "latency_reduction_percent": 36.7737475511699
+  },
+  "1440": {
+    "before": {
+      "wall_ms": {
+        "median": 99.6939795,
+        "p95": 102.764708
+      },
+      "gpu_submission_ms": {
+        "median": 96.64943744428456,
+        "p95": 99.51537498272955
+      },
+      "acquire_cpu_ms": {
+        "median": 0.026271,
+        "p95": 0.032209
+      },
+      "collect_cpu_ms": {
+        "median": 0.1388955,
+        "p95": 0.205791
+      },
+      "record_cpu_ms": {
+        "median": 2.0963545,
+        "p95": 2.404
+      },
+      "submit_cpu_ms": {
+        "median": 0.030813,
+        "p95": 0.042542
+      },
+      "wait_cpu_ms": {
+        "median": 97.5722705,
+        "p95": 100.341833
+      },
+      "stages_ms": {
+        "buffer-upload": 0.07887530326843262,
+        "texture-copy": 0.23966765403747559,
+        "fft512": 23.41766905784607,
+        "fft256": 9.90764570236206,
+        "shore": 4.68464720249176,
+        "shadows-rsm": 37.5644585,
+        "back": 0.8861034999999999,
+        "geometry": 15.814583499999998,
+        "ao-raw": 0.08052100000000001,
+        "ao-filter": 0.08675,
+        "light": 6.022875,
+        "motion": 4.5394165,
+        "ocean-copy": 1.8449369668960571,
+        "water/capture": 11.879666499999999,
+        "water/depth-chain": 2.710707902908325,
+        "water/surface": 32.85912499999999,
+        "temporal": 2.9648540019989014,
+        "tone": 0.5356034999999999,
+        "presentation": 0.22518749999999998
+      },
+      "uncovered_timestamp_interval_ms": 0.1053112419322133,
+      "commit_to_gpu_start_ms": 0.517791748046875,
+      "timestamp_records_per_frame": 167.0,
+      "measured_frames": 32
+    },
+    "after": {
+      "wall_ms": {
+        "median": 57.6021455,
+        "p95": 60.30375
+      },
+      "gpu_submission_ms": {
+        "median": 56.092458427883685,
+        "p95": 58.909208280965686
+      },
+      "acquire_cpu_ms": {
+        "median": 0.014229499999999999,
+        "p95": 0.024667
+      },
+      "collect_cpu_ms": {
+        "median": 0.082729,
+        "p95": 0.111292
+      },
+      "record_cpu_ms": {
+        "median": 0.837458,
+        "p95": 0.926208
+      },
+      "submit_cpu_ms": {
+        "median": 0.014438,
+        "p95": 0.019291
+      },
+      "wait_cpu_ms": {
+        "median": 56.574687,
+        "p95": 59.376083
+      },
+      "stages_ms": {
+        "buffer-upload": 0.07777035236358643,
+        "texture-copy": 0.19781160354614258,
+        "fft512": 1.8656046390533447,
+        "fft256": 0.9249387979507446,
+        "shore": 2.3107736110687256,
+        "shadow-depth": 11.118582499999999,
+        "back": 0.8851245,
+        "geometry": 15.132938,
+        "ao-raw": 0.066854,
+        "ao-filter": 0.08106250000000001,
+        "light": 5.4546455,
+        "motion": 5.3628745,
+        "ocean-copy": 1.028999924659729,
+        "water/capture": 11.5858955,
+        "water/depth-chain": 2.2417311668395996,
+        "water/surface": 13.4207495,
+        "temporal": 2.4996249675750732,
+        "tone": 0.4659795,
+        "presentation": 0.18306299999999998
+      },
+      "uncovered_timestamp_interval_ms": 0.0929785966873169,
+      "commit_to_gpu_start_ms": 0.22952055931091309,
+      "timestamp_records_per_frame": 77.0,
+      "measured_frames": 32
+    },
+    "latency_reduction_percent": 42.221039034759364
+  },
+  "effects-off": {
+    "before": {
+      "wall_ms": {
+        "median": 42.9506875,
+        "p95": 45.757333
+      },
+      "gpu_submission_ms": {
+        "median": 40.45983334071934,
+        "p95": 43.05012500844896
+      },
+      "acquire_cpu_ms": {
+        "median": 0.025646,
+        "p95": 0.032417
+      },
+      "collect_cpu_ms": {
+        "median": 0.124667,
+        "p95": 0.132459
+      },
+      "record_cpu_ms": {
+        "median": 1.4546875,
+        "p95": 1.541792
+      },
+      "submit_cpu_ms": {
+        "median": 0.026125,
+        "p95": 0.031208
+      },
+      "wait_cpu_ms": {
+        "median": 41.2830625,
+        "p95": 43.595334
+      },
+      "stages_ms": {
+        "buffer-upload": 0.048708319664001465,
+        "texture-copy": 0.23502111434936523,
+        "fft512": 23.506999969482422,
+        "fft256": 10.171728491783142,
+        "shadows-rsm": 37.590166999999994,
+        "back": 0.20681299999999997,
+        "geometry": 7.3735205,
+        "ao-raw": 0.018583499999999996,
+        "ao-filter": 0.0181245,
+        "light": 1.5090839999999999,
+        "motion": 3.03225,
+        "ocean-copy": 0.3170415163040161,
+        "water/capture": 6.051270499999999,
+        "water/surface": 5.3968965,
+        "temporal": 0.747395396232605,
+        "tone": 0.13574999999999998,
+        "presentation": 0.0524165
+      },
+      "uncovered_timestamp_interval_ms": 0.06654119491577148,
+      "commit_to_gpu_start_ms": 0.4803957939147949,
+      "timestamp_records_per_frame": 138.0,
+      "measured_frames": 32
+    },
+    "after": {
+      "wall_ms": {
+        "median": 23.5910625,
+        "p95": 24.817167
+      },
+      "gpu_submission_ms": {
+        "median": 22.68887497484684,
+        "p95": 23.782333359122276
+      },
+      "acquire_cpu_ms": {
+        "median": 0.007271,
+        "p95": 0.013667
+      },
+      "collect_cpu_ms": {
+        "median": 0.056083,
+        "p95": 0.083375
+      },
+      "record_cpu_ms": {
+        "median": 0.4982705,
+        "p95": 0.583959
+      },
+      "submit_cpu_ms": {
+        "median": 0.0109375,
+        "p95": 0.014708
+      },
+      "wait_cpu_ms": {
+        "median": 23.06075,
+        "p95": 24.167625
+      },
+      "stages_ms": {
+        "buffer-upload": 0.02654123306274414,
+        "texture-copy": 0.1529369354248047,
+        "fft512": 1.8809788227081299,
+        "fft256": 0.9695835113525391,
+        "shadow-depth": 9.097249999999999,
+        "back": 0.22579149999999998,
+        "geometry": 5.252229,
+        "ao-raw": 0.022687,
+        "ao-filter": 0.026062999999999996,
+        "light": 2.1117289999999995,
+        "motion": 3.615729,
+        "ocean-copy": 0.20554184913635254,
+        "water/capture": 5.920771,
+        "water/surface": 5.1089375,
+        "temporal": 0.6114165782928467,
+        "tone": 0.107875,
+        "presentation": 0.041771
+      },
+      "uncovered_timestamp_interval_ms": 0.03818845748901367,
+      "commit_to_gpu_start_ms": 0.2068955898284912,
+      "timestamp_records_per_frame": 48.0,
+      "measured_frames": 32
+    },
+    "latency_reduction_percent": 45.074074774705295
+  }
+}

@@ -1,0 +1,382 @@
+{
+  "date": "2026-10-06",
+  "device": "Apple M4",
+  "base_commit": "0b9e0a2",
+  "source_scope": "base commit plus realtime water changes; concurrent PT/AO changes excluded",
+  "capture": {
+    "backend": "Metal",
+    "width": 1920,
+    "height": 1080,
+    "seed": 1337,
+    "time_seconds": 8,
+    "taa_frames": 16,
+    "camera_sun_exposure_spectrum_and_extinction": "unchanged scene defaults"
+  },
+  "volume_segments": 4,
+  "native_tests": {
+    "metal": {
+      "passed": true,
+      "single_scattering_max_rgb_error": 0.000146015,
+      "volume_shadow_ratio": 0.0,
+      "hidden_underwater_pixels": 4096,
+      "flat_640x360_render_gpu_ms": {
+        "legacy_approximation": 1.36829,
+        "upgrade": 2.00167
+      },
+      "scope": "main render command buffer excluding separately submitted FFT; two persistent renderers alternated; 2 warmup and 8 measured frames per mode"
+    },
+    "vulkan": {
+      "passed": true,
+      "single_scattering_max_rgb_error": 0.000146015,
+      "volume_shadow_ratio": 0.0,
+      "hidden_underwater_pixels": 4096,
+      "flat_640x360_render_gpu_ms": {
+        "legacy_approximation": 0.969876,
+        "upgrade": 1.69765
+      },
+      "scope": "main render command buffer excluding separately submitted FFT; two persistent renderers alternated; 2 warmup and 8 measured frames per mode"
+    }
+  },
+  "cpu_checks": {
+    "passed": 4,
+    "total": 4,
+    "names": [
+      "pt-procedural",
+      "engine-concurrency",
+      "rhi-contract",
+      "rhi-graphics-contract"
+    ]
+  },
+  "gpu_gallery": {
+    "mountain-lake-ground": {
+      "backend": "Metal",
+      "camera_grid": true,
+      "detail_waves": true,
+      "frames": 16,
+      "gpu_ms_samples": [
+        64.58837492391467,
+        66.08724989928305,
+        63.48624988459051,
+        63.94987506791949,
+        47.88312502205372,
+        48.98758325725794,
+        48.300125170499086,
+        50.14508333988488,
+        49.20349991880357,
+        48.354916740208864,
+        47.87037498317659,
+        48.723958199843764
+      ],
+      "grid_focus_m": 8.0,
+      "height": 1080,
+      "mean_gpu_ms": 53.965034700619675,
+      "measurement": "main native rendering submission including underwater capture, scene, water, TSAA and tone mapping; separately submitted FFT and presentation excluded; first 4 frames excluded (scope corrected; measurements unchanged)",
+      "median_gpu_ms": 49.095541588030756,
+      "mesh_domain_m": 8000.0,
+      "mesh_size": 1025,
+      "near_camera_cell_m": [
+        0.10737591965077688,
+        0.10568619476509876
+      ],
+      "subsurface_strength": 1.0,
+      "time_seconds": 8,
+      "underwater_capture": true,
+      "volume_integration": true,
+      "width": 1920
+    },
+    "mountain-lake-beach": {
+      "backend": "Metal",
+      "camera_grid": true,
+      "detail_waves": true,
+      "frames": 16,
+      "gpu_ms_samples": [
+        61.419458128511906,
+        58.883500052616,
+        60.56083342991769,
+        43.7973749358207,
+        44.86279166303575,
+        44.66191655956209,
+        44.095208402723074,
+        44.4947499781847,
+        45.36970844492316,
+        45.001624850556254,
+        45.15733337029815,
+        45.374916633591056
+      ],
+      "grid_focus_m": 8.0,
+      "height": 1080,
+      "mean_gpu_ms": 48.63995137081171,
+      "measurement": "main native rendering submission including underwater capture, scene, water, TSAA and tone mapping; separately submitted FFT and presentation excluded; first 4 frames excluded (scope corrected; measurements unchanged)",
+      "median_gpu_ms": 45.0794791104272,
+      "mesh_domain_m": 8000.0,
+      "mesh_size": 1025,
+      "near_camera_cell_m": [
+        0.10737591965077688,
+        0.10627387149344156
+      ],
+      "subsurface_strength": 1.0,
+      "time_seconds": 8,
+      "underwater_capture": true,
+      "volume_integration": true,
+      "width": 1920
+    },
+    "ocean": {
+      "backend": "Metal",
+      "camera_grid": true,
+      "detail_waves": true,
+      "frames": 16,
+      "gpu_ms_samples": [
+        38.73599995858967,
+        38.6305833235383,
+        40.52400006912649,
+        44.45787495933473,
+        50.33454159274697,
+        55.01995841041207,
+        40.38550006225705,
+        38.02624996751547,
+        38.11924997717142,
+        39.19750009663403,
+        38.87308342382312,
+        38.377124816179276
+      ],
+      "grid_focus_m": 8.0,
+      "height": 1080,
+      "mean_gpu_ms": 41.72347222144405,
+      "measurement": "main native rendering submission including underwater capture, scene, water, TSAA and tone mapping; separately submitted FFT and presentation excluded; first 4 frames excluded (scope corrected; measurements unchanged)",
+      "median_gpu_ms": 39.035291760228574,
+      "mesh_domain_m": 256.0,
+      "mesh_size": 513,
+      "near_camera_cell_m": [
+        0.10833471993389765,
+        0.10745743627734661
+      ],
+      "subsurface_strength": 1.0,
+      "time_seconds": 8,
+      "underwater_capture": true,
+      "volume_integration": true,
+      "width": 1920
+    },
+    "ocean-no-detail": {
+      "backend": "Metal",
+      "camera_grid": true,
+      "detail_waves": false,
+      "frames": 16,
+      "gpu_ms_samples": [
+        37.324874894693494,
+        38.195500150322914,
+        37.361625116318464,
+        37.2298751026392,
+        37.759833270683885,
+        36.99850011616945,
+        37.78862510807812,
+        37.82099997624755,
+        38.4894167073071,
+        37.7066251821816,
+        37.32129163108766,
+        37.563875084742904
+      ],
+      "grid_focus_m": 8.0,
+      "height": 1080,
+      "mean_gpu_ms": 37.630086861706026,
+      "measurement": "main native rendering submission including underwater capture, scene, water, TSAA and tone mapping; separately submitted FFT and presentation excluded; first 4 frames excluded (scope corrected; measurements unchanged)",
+      "median_gpu_ms": 37.63525013346225,
+      "mesh_domain_m": 256.0,
+      "mesh_size": 513,
+      "near_camera_cell_m": [
+        0.10833471993389765,
+        0.10745743627734661
+      ],
+      "subsurface_strength": 1.0,
+      "time_seconds": 8,
+      "underwater_capture": true,
+      "volume_integration": true,
+      "width": 1920
+    },
+    "ocean-no-scattering": {
+      "backend": "Metal",
+      "camera_grid": true,
+      "detail_waves": true,
+      "frames": 16,
+      "gpu_ms_samples": [
+        33.855916699394584,
+        34.25833326764405,
+        32.543000066652894,
+        32.06937504000962,
+        32.66725013963878,
+        32.608958426862955,
+        32.27270836941898,
+        33.035875065252185,
+        32.186541706323624,
+        31.80549992248416,
+        31.660333508625627,
+        31.616124790161848
+      ],
+      "grid_focus_m": 8.0,
+      "height": 1080,
+      "mean_gpu_ms": 32.54832641687244,
+      "measurement": "main native rendering submission including underwater capture, scene, water, TSAA and tone mapping; separately submitted FFT and presentation excluded; first 4 frames excluded (scope corrected; measurements unchanged)",
+      "median_gpu_ms": 32.407854218035936,
+      "mesh_domain_m": 256.0,
+      "mesh_size": 513,
+      "near_camera_cell_m": [
+        0.10833471993389765,
+        0.10745743627734661
+      ],
+      "subsurface_strength": 0.0,
+      "time_seconds": 8,
+      "underwater_capture": true,
+      "volume_integration": true,
+      "width": 1920
+    },
+    "ocean-clear": {
+      "backend": "Metal",
+      "camera_grid": true,
+      "detail_waves": true,
+      "frames": 16,
+      "gpu_ms_samples": [
+        48.851999919861555,
+        48.467749962583184,
+        49.33795821852982,
+        48.61908336170018,
+        49.278166610747576,
+        48.583000199869275,
+        48.05250000208616,
+        48.583374824374914,
+        48.18937508389354,
+        48.46175014972687,
+        49.09437499009073,
+        49.03412493877113
+      ],
+      "grid_focus_m": 8.0,
+      "height": 1080,
+      "mean_gpu_ms": 48.712788188519575,
+      "measurement": "main native rendering submission including underwater capture, scene, water, TSAA and tone mapping; separately submitted FFT and presentation excluded; first 4 frames excluded (scope corrected; measurements unchanged)",
+      "median_gpu_ms": 48.601229093037546,
+      "mesh_domain_m": 256.0,
+      "mesh_size": 513,
+      "near_camera_cell_m": [
+        0.10833471993389765,
+        0.10817366805342915
+      ],
+      "subsurface_strength": 1.0,
+      "time_seconds": 8,
+      "underwater_capture": true,
+      "volume_integration": true,
+      "width": 1920
+    },
+    "ocean-clear-opaque": {
+      "backend": "Metal",
+      "camera_grid": true,
+      "detail_waves": true,
+      "frames": 16,
+      "gpu_ms_samples": [
+        36.062249913811684,
+        35.20425013266504,
+        35.156833473593,
+        38.81737496703863,
+        34.83079164288938,
+        35.42312514036894,
+        34.859458450227976,
+        35.00024997629225,
+        35.06562486290932,
+        35.75587482191622,
+        35.10700003243983,
+        35.58529168367386
+      ],
+      "grid_focus_m": 8.0,
+      "height": 1080,
+      "mean_gpu_ms": 35.57234375815218,
+      "measurement": "main native rendering submission including underwater capture, scene, water, TSAA and tone mapping; separately submitted FFT and presentation excluded; first 4 frames excluded (scope corrected; measurements unchanged)",
+      "median_gpu_ms": 35.18054180312902,
+      "mesh_domain_m": 256.0,
+      "mesh_size": 513,
+      "near_camera_cell_m": [
+        0.10833471993389765,
+        0.10817366805342915
+      ],
+      "subsurface_strength": 0.0,
+      "time_seconds": 8,
+      "underwater_capture": true,
+      "volume_integration": true,
+      "width": 1920
+    },
+    "mountain-lake": {
+      "backend": "Metal",
+      "camera_grid": true,
+      "detail_waves": true,
+      "frames": 16,
+      "gpu_ms_samples": [
+        47.37462499178946,
+        49.05287502333522,
+        48.159249825403094,
+        47.460583271458745,
+        46.90612503327429,
+        47.13308345526457,
+        47.59599990211427,
+        48.57291653752327,
+        47.6774584967643,
+        46.359791653230786,
+        46.88237514346838,
+        48.82058338262141
+      ],
+      "grid_focus_m": 8.0,
+      "height": 1080,
+      "mean_gpu_ms": 47.666305559687316,
+      "measurement": "main native rendering submission including underwater capture, scene, water, TSAA and tone mapping; separately submitted FFT and presentation excluded; first 4 frames excluded (scope corrected; measurements unchanged)",
+      "median_gpu_ms": 47.52829158678651,
+      "mesh_domain_m": 8000.0,
+      "mesh_size": 1025,
+      "near_camera_cell_m": [
+        0.10364431446759914,
+        0.10364431446759914
+      ],
+      "subsurface_strength": 1.0,
+      "time_seconds": 8,
+      "underwater_capture": true,
+      "volume_integration": true,
+      "width": 1920
+    }
+  },
+  "source_sha256": {
+    "include/GUI.h": "066d7b094411d0f09ea06188867b0b8182409b2760f514265c33b087297d055d",
+    "include/component/Ocean.h": "8c907158a0c13f323233ef98ef3d06104effb171952aa01cd286161f15c80002",
+    "include/renderer/rhi/OceanSurface.h": "48f523bfd5d3b4c5dd687a9e1d41e751cec2e8acec83d7203f5bc7c4bbbc0f4b",
+    "include/renderer/rhi/ForwardPbrRenderer.h": "f72e3d2c747dcd9e6bbaa37e6758bb12bcd220c2ff386651ef71e4fa5a282378",
+    "src/component/Ocean.cpp": "97e653d9b0ed795be19dccde74247f1f8e8b0a8cefbd25a930c2b64a0638d55f",
+    "src/renderer/rhi/SceneSnapshot.cpp": "28c81d448b3d28c8a89df20de9f86d1b503ed58b8b2dd388cb45d86511ecec09",
+    "src/renderer/rhi/OceanSurface.cpp": "942936ff99b10606f44638d3d0edfa65eecca7d31a37a62dbb2f7967a28d2c58",
+    "src/renderer/rhi/ForwardPbrRenderer.cpp": "c5f85833e01e43de6204dd49dc3e4fdea113ab477cd057807c3f10c334467705",
+    "src/renderer/rhi/FeatureGallery.cpp": "892396b624b54bfe14776a3a46ae7b6beca9476ed4bb266294ea81f753cc2b5f",
+    "src/renderer/rhi/AtmosphereValidation.cpp": "f2b9794c7866fae2b10042f369840982bf8e7142640e56437173343eaa97183e",
+    "src/renderer/rhi/WaterValidation.cpp": "d9e6daa7a4369b4153695847d163c36fbe98edbc700ebe51157b8e7e7bc929ac",
+    "src/rhi/shaders/ocean-surface.vert": "5e7e46d6acfd2ed0a170c5713390bb1c1fc1004328603295505498ad08786d7a",
+    "src/rhi/shaders/ocean-surface.frag": "ec6b9e908008dcbf999391b0988d8296cc9497d10bed81a4e16259fa540410e7",
+    "src/rhi/shaders/water-waves.glsl": "71af993d2c7bd80cc51c1b9e040241ca47d6b473d7c2e6721629f2ec3ff7749e",
+    "src/rhi/shaders/water-capture.frag": "80867c7a8f590e1507533ad51de2594c2ecfc9aa2b48ef05b50379c37adc1a10",
+    "src/rhi/shaders/water-shadow.glsl": "9c9395794f2cc155161da178deeb378c2fed0e76ace7ee801218b09fe55e5d41",
+    "src/main.cpp": "d80bf984ea427c595d2c8ac07a50b4c1474c39530ddc6e23e264ca5abf97bc4f",
+    "CMakeLists.txt": "21166b26a83c5114a2155e06be84c1ac821681c7a551919a709ef7c135aa61c8"
+  },
+  "images_sha256": {
+    "img/diagnostics/water/before/ocean-clear-opaque.png": "bc725cf67d8c5aa866c65a5d2643f04ca7d1b40ad522611a26f8ec2b542672a8",
+    "img/diagnostics/water/before/ocean-clear.png": "acc3c4958fda2812e86e127dfa09c5b93bfe44861e3bf4fa49934bd0c704198f",
+    "img/diagnostics/water/before/ocean-no-scattering.png": "e525d0dc26bd4be5e4be118f78ae7cbc8d09e1e567011eec18e0431b10f2990b",
+    "img/diagnostics/water/before/mountain-lake-beach.png": "d8a9a24d335a0390253c15dd6082ee8fd4b0c5264ab90ff60258b544f6945427",
+    "img/diagnostics/water/before/ocean-no-detail.png": "e1b4afed521491a792c8b33c901640138e84c6d15c2ad594e270139c1a1ce648",
+    "img/diagnostics/water/before/ocean.png": "21f747a25055d22dc20f719ed29c4f8ec75664424ee30d150cb2cdc17c45bf3a",
+    "img/metal/mountain-lake-ground.png": "43ebf2d2c5572a06dccf2d4a43b36ffb5bf2e2e3cff6c2628c259faaed14e08d",
+    "img/metal/ocean-clear-opaque.png": "4889be5289851660e4cbe36928699890db82ae978629baa293dbfc696e438dce",
+    "img/metal/mountain-lake.png": "6cc6a06bfbe8e73353aba6a3abdc987bfd3178d4cee399c6d49a8ce109beabe9",
+    "img/metal/ocean-clear.png": "c4b7869d9b269809bc106ad96436cce87d01ff5078e159b094605c39d0408f68",
+    "img/metal/ocean-no-scattering.png": "7d047f662e8de0fe0c0923c29481e1ae6a9a2af16592ce46aaa5bb003fc8aa01",
+    "img/metal/mountain-lake-beach.png": "8a87ea6b92b09caa88b4548facd4760c97e9c368bf5d7529699b42c0b19734dc",
+    "img/metal/ocean-no-detail.png": "fd09a8356f688dd027451de3b29644428e089761da72d88c89c314b342f9b91f",
+    "img/metal/ocean.png": "2ba846adfb1ea0812bfd30d1258388393726f694648eadc85eab59ba60edcd1d"
+  },
+  "metal_validation": {
+    "api": true,
+    "shader": true,
+    "disk_cache_disabled": true,
+    "passed": true
+  }
+}

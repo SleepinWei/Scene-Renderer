@@ -50,6 +50,12 @@ revision 5 的 CPU 数值回归覆盖 8 组 corner tangent／镜像 UV／镜像�
 
 2026-10-06 闭包法线回归：60 组掠射方向／倾角验证镜面反射仍位于几何正半球且正常法线不变；每个 GGX／薄叶模型使用 384×512 独立球面积分与 131,072 次 Monte Carlo 检查不同法线下的求值、PDF、几何余弦测度和能量。GPU fixture 对 Lambert／GGX／薄叶分别加入强法线图；CPU 拒绝未验收的 BDPT 对照闭包。Metal、Vulkan 各 7/7；ASan／UBSan 四项最终代码回归通过，CPU 首次在构建并发时超时，仅重跑失败项后 53.90 秒通过。复现与原始图见 [掠射法线验收](../docs/blender-path-tracing.md#掠射法线与闭包遮蔽)。
 
+原生实时水体：`Scene-Renderer --water-self-test`（或 CTest `water-native`）验证零消光透明度、解析 Beer 透射、平面水体单次散射能量、独立水下捕获、水上遮挡、前向／延迟一致性、相机网格／TSAA、resize 和 mask；同时执行既有 FFT、大气及 TSAA 回归。详见 [实时水体升级验收](../docs/water-realtime-upgrade.md)。
+
+同一入口新增水下观察段的 Beer／连续散射积分、体积阴影、捕获／雾开关、单次眼侧衰减、远空气侧目标、临界角内外的折射／全反射、屏幕外床面反射、干 mask 与穿越水面／TSAA／奇数重建。[水下渲染验收](../docs/water-underwater-rendering.md)。
+
+空气／水下分层捕获回归使用解析 Snell 光线布置小目标与浸水遮挡物：直线相机不可见、折射路径可见时必须保留目标，关闭捕获时的反例必须失败；同时检查空气位置未泄漏到水下层。
+
 
 太阳反射回归使用 `makeWaterSolarValidationScene`：65,536 次关闭／开启提议的固定 PCG 路径与独立太阳圆盘积分检查期望及方差；改为 generic dielectric 再验证，确保导入池水不依赖 FFT kind。GPU fixture 同时比较两类界面的 CPU／GPU continuation 密度。计数缓存的测试覆盖保留实例的 scattering／dielectric／kind 查询；大场景微基准在关闭太阳提议时要求原始值完全相同。详见 [太阳反射与统计缓存](../docs/blender-path-tracing.md#太阳反射链与实例统计缓存)。
 
@@ -58,5 +64,7 @@ revision 5 的 CPU 数值回归覆盖 8 组 corner tangent／镜像 UV／镜像�
 本轮最终代码：Metal／Vulkan PT CTest 各 7/7，ASan／UBSan 4/4（82.31 s）。`pt-transport-benchmark` 为显式构建的 trace 微基准目标，运行通过且原始样本与计数 A/B harness 相同，默认构建／CTest 不执行性能微基准。
 
 薄玻璃太阳回归 `makeThinSolarValidationScene` 独立积分 Lambert → 薄片反射 → 两次有色直通 → 有限太阳；固定 PCG 65,536 路径检查期望及方差，另验证重叠 cone、镜像变换后的几何法线、最多八个 catalog 方向与暗太阳白炉的 NEE／MIS。原生 GPU fixture 同时比较普通和重叠 cone 的 CPU／GPU 输出。`pt-package-render --backend Metal|Vulkan --self-test` 可运行独立原生 PT 验证，先显式构建该 EXCLUDE_FROM_ALL 目标；[使用方式与限制](../docs/blender-path-tracing.md#薄玻璃太阳反射链)。
+
+可选近岸水体的同一 `--water-self-test` 还验证 DDA／海床回退、局部多次散射 LUT 与独立 MC seed、静水平衡／闭域质量守恒、湿干与相机 patch 滚动、上岸／退水／泡沫、活动 TSAA／奇数 resize 及开关后的旧状态拒绝；[实际结果与动画](../docs/water-coastal-features.md)。
 
 Photon mapping 与通用 PT 优化回归：`pt-photon` 独立验证平水面 Fresnel／Beer／投影照度（九点平均与解析比约 0.98787）、面积／HDR 发射、发光表面的间接反射、并行确定性、无水体零焦散、总深度和 AOV，以及混合薄片／不透明阴影。GPU 检查共享 photon map 与 1／4／16 spp 批次；Classroom 实际场景的 closest／any-hit／batch8／batch16 PFM 完全一致。最终 Release 6/6；ASan／UBSan 原有 4/4（111.90 s）＋独立 photon 1/1（43.22 s），Metal／Vulkan 原生自检和主程序 CPU pool 命令通过。开发时合并在 `pt-cpu` 的新增光子测试曾触及 120 秒超时，拆成独立目标后全部通过。[实际图、测量与限制](../docs/path-tracing-photon-mapping.md)。

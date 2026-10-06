@@ -2,6 +2,7 @@
 #include "component/Component.h"
 #include "buffer/ImageTexture.h"
 #include "utils/Shader.h"
+#include "component/ShoreWaterSettings.h"
 #include <memory>
 #include <vector>
 
@@ -15,6 +16,14 @@ struct OceanConfiguration {
     glm::vec4 WindAndSeed={1,1,0,0}; // xy wind direction; zw retained for source compatibility.
     int seed=1337;
     bool animate=true, detailWaves=true;
+    bool cameraGrid=true, underwaterCapture=true, volumeIntegration=true;
+    bool robustRefraction=false,multipleScattering=false;
+    bool underwaterView=true,underwaterFog=true;
+    bool shortWaveRipples=false;
+    float rippleRmsHeight=.025f; // Metres, before Small wave detail multiplier.
+    uint32_t opticalDebug=0;
+    ShoreWaterSettings shore;
+    float gridFocus=8; // Metres: concentrates grid samples around the camera.
     float detailStrength=1;
     float A=0.0005f, Lambda=0.8f, HeightScale=1;
     float BubblesScale=2, BubblesThreshold=0.86f, WindScale=30;

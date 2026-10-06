@@ -150,7 +150,53 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
     // Shadow attachments belong to the lights in each scene.
 
 
-    if (name == "mountain-lake" || name == "mountain-lake-ground" || name == "mountain-lake-beach") {
+    if(name=="coastal-beach"||name=="coastal-water"||name=="coastal-underwater") {
+        // A precise authored coast: source spacing 0.25 m, no downloaded asset.
+        auto terrain=std::make_shared<Terrain>();auto component=std::make_shared<TerrainComponent>();
+        constexpr uint32_t n=513;std::vector<float> heights(size_t(n)*n);
+        for(uint32_t y=0;y<n;++y)for(uint32_t x=0;x<n;++x){float wx=(float(x)/(n-1)-.5f)*128,wz=(float(y)/(n-1)-.5f)*128;
+            float shoreline=2.5f*std::sin(wx*.085f),beach=.075f*(wz-shoreline);
+            float reef=.9f*std::exp(-((wx-12)*(wx-12)+(wz+8)*(wz+8))*.035f);
+            heights[size_t(y)*n+x]=beach+reef;
+        }
+        auto sand=pbr({.8f,.72f,.54f},.85f,0);
+        auto grain=std::make_shared<Texture>();std::vector<uint8_t> pixels(256*256*3);
+        for(int y=0;y<256;++y)for(int x=0;x<256;++x){uint32_t hash=uint32_t(x)*1664525u+uint32_t(y)*1013904223u;hash^=hash>>13;
+            float shade=.92f+.08f*float(hash&255)/255.f;const float rgb[]={.8f,.72f,.54f};
+            for(int c=0;c<3;++c)pixels[(y*256+x)*3+c]=uint8_t(255*rgb[c]*shade);
+        }
+        grain->setPixels(256,256,3,std::move(pixels));sand->addTexture(grain,"material.albedo");
+        component->setHeightData(n,n,std::move(heights));
+        component->updateSettings([&](auto& v){v.model=glm::scale(glm::mat4(1),glm::vec3(64,1,64));v.material=sand;v.maxLeaves=8192;});
+        terrain->addComponent(component);auto ocean=std::make_shared<Ocean>();
+        ocean->updateSettings([&](auto& v){v.fft_size=512;v.MeshSize=513;v.MeshLength=4096;v.SpectrumLength=128;v.seaLevel=0;
+            v.A=.00008f;v.HeightScale=.6f;v.WindScale=12;v.Lambda=.25f;v.BubblesScale=.3f;v.detailStrength=.35f;
+            v.absorption={.08f,.025f,.012f};v.scattering={.01f,.02f,.025f};v.refractionStrength=1;
+            v.robustRefraction=v.multipleScattering=true;v.shore.enabled=true;v.shore.swellHeight=.45f;v.shore.swellPeriod=5.5f;v.shore.swellDirection={.15f,1};v.shore.foamStrength=1;v.shore.foamLifetime=4;
+        });terrain->addComponent(ocean);target->addTerrain(terrain);
+        target->setCamera(std::make_shared<Camera>(glm::vec3(-12,6,23),glm::vec3(0,1,0),-76,-18));
+        if(name=="coastal-water")target->setCamera(std::make_shared<Camera>(glm::vec3(-8,8,-28),glm::vec3(0,1,0),80,-30));
+        if(name=="coastal-underwater") {
+            ocean->updateSettings([](auto& v){v.shortWaveRipples=true;v.detailStrength=1;});
+            // A partly submerged marker gives the interface a recognizable
+            // silhouette and straight colour boundaries to refract.
+            const glm::vec3 marker(-7.4f,0,-24.6f);
+            auto checked=pbr(glm::vec3(1),.45f);
+            auto texture=std::make_shared<Texture>();
+            std::vector<uint8_t> checks(128*128*3);
+            for(int y=0;y<128;++y)for(int x=0;x<128;++x) {
+                const glm::vec3 color=((x/32+y/32)&1)?glm::vec3(.95f,.95f,.88f):glm::vec3(.9f,.09f,.035f);
+                for(int c=0;c<3;++c)checks[(y*128+x)*3+c]=uint8_t(color[c]*255);
+            }
+            texture->setPixels(128,128,3,std::move(checks));checked->addTexture(texture,"material.albedo");
+            addMeshes(target,"Water demo checker float",box(),checked,marker+glm::vec3(0,.2f,0),{1,.45f,1});
+            addMeshes(target,"Water demo orange marker",box(),pbr({1,.42f,.025f},.35f),marker+glm::vec3(0,1.4f,0),{.45f,.75f,.45f});
+            addMeshes(target,"Water demo blue cap",box(),pbr({.025f,.32f,.95f},.3f),marker+glm::vec3(0,2.23f,0),{.65f,.08f,.65f});
+            target->setCamera(std::make_shared<Camera>(glm::vec3(-8,-1.2f,-28),glm::vec3(0,1,0),80,50));
+        }
+        target->mainCamera()->setClipPlanes(.1f,6000);target->mainCamera()->setZoom(62);target->mainCamera()->setExposure(1.2f);
+        atmosphere(target);sun(target,glm::vec3(3),{-.5f,-.6f,name=="coastal-underwater"?.4f:-.4f});manager->setting.enableSSAO=false;
+    } else if (name == "mountain-lake" || name == "mountain-lake-ground" || name == "mountain-lake-beach") {
         std::ifstream input("samples/assets/terrain/mountain-lake/scene.json");
         if (!input) throw std::runtime_error("Mountain Lake is missing; download the official archives and run python3 tools/prepare_mountain_lake.py (see docs/mountain-lake.md)");
         nlohmann::json config; input >> config;
@@ -344,6 +390,6 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
             point(target,{8,7,6},{4,5,0});
         }
         manager->setting.enableRSM = true;
-    } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose terrain, mountain-lake, sky, cloud-volume, cloud-inside, cloud-vortex, clouds, clouds-sunset, clouds-storm, shadow-test, bunny, dragon, buddha, armadillo, helmet, cornell, sponza, san-miguel, sibenik, ocean or ocean-clear");
+    } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose terrain, mountain-lake, coastal-beach, coastal-water, coastal-underwater, sky, cloud-volume, cloud-inside, cloud-vortex, clouds, clouds-sunset, clouds-storm, shadow-test, bunny, dragon, buddha, armadillo, helmet, cornell, sponza, san-miguel, sibenik, ocean or ocean-clear");
     return target;
 }

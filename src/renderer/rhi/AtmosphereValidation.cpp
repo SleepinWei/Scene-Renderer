@@ -83,5 +83,6 @@ void validateAtmosphereRhi(std::shared_ptr<rhi::GraphicsDevice> d,const std::str
     f.oceans[0].refraction=false;renderer.render(f,draws);auto opaque=renderer.readHDR();bool refraction=false;for(size_t i=0;i<water.size();++i)if(std::abs(opaque[i]-water[i])>.01f)refraction=true;check(refraction,"Water refraction toggle ignored opaque scene snapshot");
     renderer.resize(48,32);renderer.render(f,draws);check(renderer.readOutput().size()==48*32*4,"Water surface resize failed");
     std::cout<<"RHI atmosphere transmittance/sky/multiple scattering/irradiance, sun update, water vertex FFT sampling/refraction/foam/HDR and previous-frame texture copy passed; water pixels "<<surface<<"\n";
+    validateWaterSurface(d,directory);
 }
 }

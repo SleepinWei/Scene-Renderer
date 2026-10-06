@@ -15,12 +15,19 @@ std::vector<Complex> inverseDft(const std::vector<Complex>& input,int n) {
         result[y*n+x]+=input[ky*n+kx]*std::polar(1.0,2*pi*(kx*x+ky*y)/n);
     return result;
 }
+// Independent bit-reversal Cooley-Tukey CPU reference for production-size grids.
+void cpuFft(std::vector<Complex>& a) {
+    const size_t n=a.size();for(size_t i=1,j=0;i<n;++i){size_t bit=n>>1;for(;j&bit;bit>>=1)j^=bit;j^=bit;if(i<j)std::swap(a[i],a[j]);}
+    for(size_t size=2;size<=n;size*=2){const auto root=std::polar(1.,2*pi/size);for(size_t base=0;base<n;base+=size){Complex w=1;for(size_t j=0;j<size/2;++j){auto u=a[base+j],v=a[base+j+size/2]*w;a[base+j]=u+v;a[base+j+size/2]=u-v;w*=root;}}}
+}
+std::vector<Complex> cpuIfft2(const std::vector<Complex>& a,int n){auto result=a;std::vector<Complex> line(n);for(int y=0;y<n;++y){for(int x=0;x<n;++x)line[x]=result[y*n+x];cpuFft(line);for(int x=0;x<n;++x)result[y*n+x]=line[x];}
+    for(int x=0;x<n;++x){for(int y=0;y<n;++y)line[y]=result[y*n+x];cpuFft(line);for(int y=0;y<n;++y)result[y*n+x]=line[y];}return result;}
 void fft(std::shared_ptr<rhi::GraphicsDevice> device,const std::string& directory,int n,bool analytic) {
     OceanSettings settings;settings.size=uint32_t(n);GpuOcean ocean(device,directory,settings);
     std::vector<Complex> input(n*n);std::vector<float> rgba(size_t(n)*n*4);
     for(int i=0;i<n*n;++i) { input[i]=analytic?Complex(i==3?1:0,0):Complex(std::sin(i*.37),std::cos(i*.61));rgba[4*i]=float(input[i].real());rgba[4*i+1]=float(input[i].imag()); }
     auto output=ocean.inverseFFT(rgba);std::vector<Complex> expected;
-    if(!analytic)expected=inverseDft(input,n);
+    if(!analytic)expected=n<=16?inverseDft(input,n):cpuIfft2(input,n);
     double error=0,scale=1;
     for(int y=0;y<n;++y)for(int x=0;x<n;++x) {
         const auto value=analytic?std::polar(1.0,2*pi*3*x/n):expected[y*n+x];const size_t i=size_t(y)*n+x;
@@ -32,7 +39,7 @@ void fft(std::shared_ptr<rhi::GraphicsDevice> device,const std::string& director
 }
 void validateOceanRhi(std::shared_ptr<rhi::GraphicsDevice> device,const std::string& directory) {
     if(!device->computeLimits().maxStorageImages){std::cout<<"RHI Ocean storage image path deferred on this backend\n";return;}
-    fft(device,directory,8,false);fft(device,directory,16,false);fft(device,directory,1024,true);
+    fft(device,directory,8,false);fft(device,directory,16,false);fft(device,directory,256,false);fft(device,directory,512,false);fft(device,directory,1024,true);
     OceanSettings settings;settings.size=16;settings.length=64;settings.windSpeed=12;
     GpuOcean ocean(device,directory,settings);const float time=1.7f;ocean.simulate(time,settings);
     const auto gaussian=ocean.readGaussian(), heights=ocean.readHeight(), displace=ocean.readDisplacement(), normals=ocean.readNormal(), foam=ocean.readFoam();
@@ -63,6 +70,30 @@ void validateOceanRhi(std::shared_ptr<rhi::GraphicsDevice> device,const std::str
     settings.windSpeed=0;ocean.simulate(time,settings);auto flat=ocean.readDisplacement(),flatNormals=ocean.readNormal();
     for(int i=0;i<n*n;++i) { check(flat[4*i]==0 && flat[4*i+1]==0 && flat[4*i+2]==0,"zero-wind field is not flat");check(flatNormals[4*i]==0 && flatNormals[4*i+1]==1 && flatNormals[4*i+2]==0,"flat ocean normal incorrect"); }
     auto invalid=settings;invalid.size=32;try{ocean.simulate(time,invalid);throw std::runtime_error("Ocean accepted grid mutation");}catch(const std::invalid_argument&){}
+    // A short-wave band must retain centimetre energy, resolved slopes and
+    // phase motion, while excluding metre-to-domain-size long waves.
+    OceanSettings ripple;ripple.size=256;ripple.length=32;ripple.windSpeed=7.2f;ripple.heightScale=.6f;
+    ripple.choppiness=.25f;ripple.minWavelength=.5f;ripple.maxWavelength=2;ripple.targetRmsHeight=.025f;ripple.foamScale=0;
+    GpuOcean shortWaves(device,directory,ripple);shortWaves.simulate(8,ripple);
+    const auto rp=shortWaves.readDisplacement(),rn=shortWaves.readNormal(),rh=shortWaves.readHeight();
+    double variance=0,slopeVariance=0;std::vector<Complex> spatial(256*256);
+    for(int i=0;i<256*256;++i){variance+=rp[4*i+1]*rp[4*i+1];slopeVariance+=rn[4*i]*rn[4*i]+rn[4*i+2]*rn[4*i+2];
+        spatial[i]=Complex(rh[4*i],rh[4*i+1]);}
+    const double rms=std::sqrt(variance/spatial.size()),tilt=std::sqrt(slopeVariance/spatial.size());
+    check(rms>.021 && rms<.029,"short-wave ensemble RMS normalization failed");
+    check(tilt>.06 && tilt<.25,"short-wave normals lost resolved wave slopes");
+    // A second positive transform moves centred spatial data back to frequency
+    // coordinates (with mirrored bins); radial support is invariant to this.
+    auto frequencies=cpuIfft2(spatial,256);double inBand=0,outBand=0;
+    for(int y=0;y<256;++y)for(int x=0;x<256;++x){double k=std::hypot(double(x-128),double(y-128))*2*pi/32;
+        auto energy=std::norm(frequencies[y*256+x]);if(k>=2*pi/2-1e-5 && k<=2*pi/.5+1e-5)inBand+=energy;else outBand+=energy;}
+    check(outBand/std::max(inBand,1e-10)<1e-9,"short-wave spectrum contains long-wave or aliased energy");
+    shortWaves.simulate(8.35f,ripple);const auto later=shortWaves.readDisplacement();double motion=0;
+    for(int i=0;i<256*256;++i)motion+=std::pow(later[4*i+1]-rp[4*i+1],2);
+    check(std::sqrt(motion/spatial.size())>.01,"short-wave phase is static");
+    ripple.targetRmsHeight=0;shortWaves.simulate(8,ripple);
+    const auto disabled=shortWaves.readDisplacement();for(int i=0;i<256*256;++i)for(int c=0;c<3;++c)check(disabled[4*i+c]==0,"zero RMS ripple disable is not flat");
+    std::cout<<"RHI short-wave 0.5-2 m band: RMS "<<rms<<" m, RMS horizontal normal "<<tilt<<", out-of-band energy "<<outBand/inBand<<'\n';
     std::cout<<"RHI full Ocean spectrum -> 2D FFT -> displacement/normal/foam, seed/time updates and zero-wind validation passed; CPU error="<<error<<'\n';
 }
 }

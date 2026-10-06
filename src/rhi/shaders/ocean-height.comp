@@ -15,7 +15,12 @@ float spectrum(vec2 k) {
     float L=speed*speed/G;
     float alignment=dot(normalize(k),WindAndSeed.xy/speed);
     // Symmetric Phillips spreading avoids angle-wrap singularities.
-    return A*exp(-1.0/(k2*L*L))/(k2*k2)*alignment*alignment*exp(-k2*L*L*1e-6);
+    float band=1.;
+    if(WindAndSeed.z>0.){
+        float magnitude=sqrt(k2),low=2.*PI/WindAndSeed.w,high=2.*PI/WindAndSeed.z;
+        band=smoothstep(low,low*1.25,magnitude)*(1.-smoothstep(high*.8,high,magnitude));
+    }
+    return band*A*exp(-1.0/(k2*L*L))/(k2*k2)*alignment*alignment*exp(-k2*L*L*1e-6);
 }
 void main() {
     ivec2 p=ivec2(gl_GlobalInvocationID.xy);

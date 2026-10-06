@@ -309,6 +309,14 @@ python3 tools/visualize_render_diagnostics.py /tmp/scene-renderer-diagnostics im
 
 GUI 的 `Enable TSAA` 可关闭此效果。场景切换、窗口尺寸、明显相机跳变以及太阳／大气参数变化会重置历史。当前 Metal 效果图均已重新生成，常规画廊每张运行 16 帧，VT／阴影诊断画廊运行 64 帧，静态表面累积 TSAA，各开关对照单独清空历史；地形视图、模型及驻留页稳定时复用确切生成几何并允许历史累积；LOD／页发生变化的地形及动态草使用 reactive 标记；历史图片仍保留历史标记。具体设计、测试与边界见 [TSAA 实现说明](tsaa.md)。
 
+## 可开关近岸水体
+
+`coastal-beach`／`coastal-water` 使用同一程序化缓坡海岸，分别从岸侧／水侧观察。新增折射、局部多次散射、浅水模拟、泡沫及湿沙可以在 Ocean 面板切换；原有预设的新增效果默认关闭。
+
+![Metal 近岸浅水波](../img/metal/coastal-beach.png)
+
+[同参数开关对照、10 秒固定／移动相机动画、实测及近似边界](water-coastal-features.md)。散射为局部平面水层 LUT，翻卷浪头、飞溅与空间 BSSRDF 属于后续扩展。
+
 ## 路径追踪
 
 ### CPU 路径追踪

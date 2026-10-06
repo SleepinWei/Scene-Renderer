@@ -48,6 +48,7 @@ struct TerrainPayload {
     VegetationSettings vegetation;
     std::shared_ptr<const ImageRGBA8> waterMask;
     std::array<std::shared_ptr<const ImageRGBA8>,4> shorelineImages;
+    std::shared_ptr<const WaterBathymetry> bathymetry;
 };
 struct SnapshotTerrain {
     std::optional<VegetationSettings> vegetation;

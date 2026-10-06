@@ -99,6 +99,7 @@ void NativeRealTimeRun(GLFWwindow* window,shared_ptr<RenderScene>& scene){
         return runtime.prepareScene(std::move(target),std::move(cancelled));
     };
     gui.activateScene_=[&](uint64_t token){runtime.activatePrepared(token);};
+    gui.nativeRuntimeStats_=true;auto fpsSampleAt=std::chrono::steady_clock::now();uint64_t fpsSampleFrames=0;
     engine::FixedStepClock logicClock;InputManager::GetInstance()->tick();
     int framesSubmitted=0;
     try{
@@ -114,6 +115,8 @@ void NativeRealTimeRun(GLFWwindow* window,shared_ptr<RenderScene>& scene){
                 input->reset();glfwWaitEventsTimeout(.016);continue;
             }
             framebuffer_size_callback(window,width,height);
+            const auto fpsNow=std::chrono::steady_clock::now();const double fpsSeconds=std::chrono::duration<double>(fpsNow-fpsSampleAt).count();
+            if(fpsSeconds>=.5){const auto rendered=runtime.framesRendered();gui.nativeRenderFps_=float(double(rendered-fpsSampleFrames)/fpsSeconds);fpsSampleFrames=rendered;fpsSampleAt=fpsNow;}
             gui.window(scene);InputManager::GetInstance()->tick();
             if(InputManager::GetInstance()->keyStatus[KEY_R]==PRESSED){
                 auto captured=std::make_shared<render::RenderWorldSnapshot>(*snapshots.capture(scene,RenderManager::GetInstance()->setting.timeOverride>=0?RenderManager::GetInstance()->setting.timeOverride:float(logicClock.seconds()),uint32_t(width),uint32_t(height)));
@@ -223,6 +226,19 @@ int main(int argc, char** argv) {
 #endif
     if (argc > 1 && (std::string(argv[1]) == "--path-trace" || std::string(argv[1]) == "--path-trace-gpu")) return pt::runCommandLine(argc,argv);
     if (argc > 1 && (std::string(argv[1]) == "--rhi-forward" || std::string(argv[1]) == "--rhi-deferred" || std::string(argv[1]) == "--rhi-scene")) { render::runForwardScene(argc,argv);return 0; }
+    if (argc > 1 && std::string(argv[1]) == "--water-self-test") {
+        if(rhi::requestedBackend()==rhi::Backend::OpenGL)throw std::invalid_argument("Water validation requires Metal or Vulkan");
+#ifdef SCENERENDERER_HAS_VULKAN
+        if(rhi::requestedBackend()==rhi::Backend::Vulkan)rhi::configureVulkanWindowing();
+#endif
+        if(!glfwInit())throw std::runtime_error("Water validation GLFW initialization failed");
+        glfwWindowHint(GLFW_VISIBLE,GLFW_FALSE);GLFWwindow* window=nullptr;
+        try {
+            if(createWindow(window,64,64)!=0 || gladInit()!=0)throw std::runtime_error("Water validation device initialization failed");
+            render::validateAtmosphereRhi(rhi::graphicsDevice(),rhi::defaultShaderDirectory());render::validateOceanRhi(rhi::graphicsDevice(),rhi::defaultShaderDirectory());render::validateTemporalRhi(rhi::graphicsDevice(),rhi::defaultShaderDirectory());rhi::shutdown();
+        }catch(...){try{rhi::shutdown();}catch(...){}if(window)glfwDestroyWindow(window);glfwTerminate();throw;}
+        glfwDestroyWindow(window);glfwTerminate();return 0;
+    }
     if (argc > 1 && std::string(argv[1]) == "--pt-self-test") {
         if(rhi::requestedBackend()==rhi::Backend::OpenGL)throw std::invalid_argument("PT sky bridge test requires Metal or Vulkan; CPU tests run separately");
 #ifdef SCENERENDERER_HAS_VULKAN
@@ -317,6 +333,7 @@ int main(int argc, char** argv) {
     int framebufferWidth,framebufferHeight;
     glfwGetFramebufferSize(window,&framebufferWidth,&framebufferHeight);
     framebuffer_size_callback(window,framebufferWidth,framebufferHeight);
+    std::cout<<"RHI editor framebuffer "<<framebufferWidth<<"x"<<framebufferHeight<<" pixels\n";
 	
 	//glad
 	if (gladInit() != 0) return 1;

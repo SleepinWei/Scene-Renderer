@@ -64,6 +64,18 @@ Primary and short-wave FFT spectra combine to produce wave crests, fine ripples,
 | --- | --- |
 | ![Metal FFT ocean](img/metal/ocean.png) | ![Metal transparent water](img/metal/ocean-clear.png) |
 
+Real-time water now uses a grid concentrated near the camera, an independent underwater color/position layer, and single-scattering integration along the water path. [Before/after, validation and GPU cost](docs/water-realtime-upgrade.md).
+
+The coastal presets add optional DDA refraction with terrain fallback, local multiple scattering, shallow waves, persistent foam, and wet sand. Each feature has an editor switch; existing presets keep the new effects disabled. [Controls, comparisons, animations and limitations](docs/water-coastal-features.md). [First performance round: stage timings, submission gaps and boundary fixes](docs/water-coastal-performance.md).
+
+![Metal coastal shallow waves and foam](img/metal/coastal-beach.png)
+
+Underwater views add distance-dependent absorption and scattering, water-to-air refraction, and total internal reflection. Open `--classic coastal-underwater`; the Ocean panel exposes view, fog and **Short wave ripples** switches. The underwater preset uses a 0.5–2 m FFT wave band so nearby refraction and the Snell-window boundary move with the waves. [Images, optical paths and validation](docs/water-underwater-rendering.md).
+
+| Underwater surface | Looking down at the seabed |
+| --- | --- |
+| ![Metal underwater surface](img/diagnostics/water/ripple-demo/coastal-underwater.png) | ![Metal underwater seabed](img/diagnostics/water/ripple-demo/coastal-underwater-bottom.png) |
+
 ### Large terrain, lakes, and vegetation
 
 Mountain Lake demonstrates an 8×8 km landscape with height/material VT paging, terrain LOD, an FFT lake surface, grass density that varies with distance, and wet-sand and beach PBR materials.

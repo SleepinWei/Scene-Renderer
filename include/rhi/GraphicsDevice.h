@@ -194,6 +194,9 @@ private:
     bool inPass_ = false, submitted_ = false;
 };
 struct GpuTimingStats {bool supported=false;uint64_t samples=0;double milliseconds=0;std::string scope;double peakMilliseconds=0;};
+// Optional native timestamp profiler. Absolute GPU times are milliseconds in the
+// host time domain; drain only after completion. Empty on unsupported backends.
+struct GpuProfileSample {std::string label,kind;double startMilliseconds=0,endMilliseconds=0,vertexMilliseconds=0,fragmentMilliseconds=0,commitMilliseconds=0,vertexStartMilliseconds=0,vertexEndMilliseconds=0,fragmentStartMilliseconds=0,fragmentEndMilliseconds=0;};
 struct NativeMemoryStats {bool supported=false;uint64_t usedBytes=0,budgetBytes=0;std::string source;};
 struct PipelineDiskCacheStats {bool supported=false,loaded=false,saved=false;size_t bytes=0;std::string path;};
 struct PipelineCacheStats {
@@ -210,6 +213,7 @@ public:
     ComputePipelineHandle createComputePipeline(const ComputePipelineDesc&);
     void destroyComputePipeline(ComputePipelineHandle);
     GpuTimingStats gpuTimingStats() const {checkOpen();return gpuTimingStatsImpl();}
+    std::vector<GpuProfileSample> drainGpuProfile(){checkOpen();return drainGpuProfileImpl();}
     NativeMemoryStats nativeMemoryStats() const {checkOpen();return nativeMemoryStatsImpl();}
     PipelineCacheStats pipelineCacheStats() const;
     PipelineDiskCacheStats pipelineDiskCacheStats() const {checkOpen();return pipelineDiskCacheStatsImpl();}
@@ -275,6 +279,7 @@ protected:
     virtual void destroyTextureViewImpl(NativeObject) noexcept = 0;
     virtual void destroySamplerImpl(NativeObject) noexcept = 0;
     virtual void destroyPipelineImpl(NativeObject) noexcept = 0;
+    virtual std::vector<GpuProfileSample> drainGpuProfileImpl(){return {};}
     virtual GpuTimingStats gpuTimingStatsImpl() const {return {};}
     virtual NativeMemoryStats nativeMemoryStatsImpl() const {return {};}
     virtual PipelineDiskCacheStats pipelineDiskCacheStatsImpl() const {return {};}

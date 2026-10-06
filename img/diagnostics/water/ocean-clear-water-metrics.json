@@ -1,0 +1,74 @@
+{
+  "ocean-clear": {
+    "backend": "Metal",
+    "camera_grid": true,
+    "detail_waves": true,
+    "frames": 16,
+    "gpu_ms_samples": [
+      48.851999919861555,
+      48.467749962583184,
+      49.33795821852982,
+      48.61908336170018,
+      49.278166610747576,
+      48.583000199869275,
+      48.05250000208616,
+      48.583374824374914,
+      48.18937508389354,
+      48.46175014972687,
+      49.09437499009073,
+      49.03412493877113
+    ],
+    "grid_focus_m": 8.0,
+    "height": 1080,
+    "mean_gpu_ms": 48.712788188519575,
+    "measurement": "main native rendering submission including underwater capture, scene, water, TSAA and tone mapping; separately submitted FFT and presentation excluded; first 4 frames excluded (scope corrected; measurements unchanged)",
+    "median_gpu_ms": 48.601229093037546,
+    "mesh_domain_m": 256.0,
+    "mesh_size": 513,
+    "near_camera_cell_m": [
+      0.10833471993389765,
+      0.10817366805342915
+    ],
+    "subsurface_strength": 1.0,
+    "time_seconds": 8,
+    "underwater_capture": true,
+    "volume_integration": true,
+    "width": 1920
+  },
+  "ocean-clear-opaque": {
+    "backend": "Metal",
+    "camera_grid": true,
+    "detail_waves": true,
+    "frames": 16,
+    "gpu_ms_samples": [
+      36.062249913811684,
+      35.20425013266504,
+      35.156833473593,
+      38.81737496703863,
+      34.83079164288938,
+      35.42312514036894,
+      34.859458450227976,
+      35.00024997629225,
+      35.06562486290932,
+      35.75587482191622,
+      35.10700003243983,
+      35.58529168367386
+    ],
+    "grid_focus_m": 8.0,
+    "height": 1080,
+    "mean_gpu_ms": 35.57234375815218,
+    "measurement": "main native rendering submission including underwater capture, scene, water, TSAA and tone mapping; separately submitted FFT and presentation excluded; first 4 frames excluded (scope corrected; measurements unchanged)",
+    "median_gpu_ms": 35.18054180312902,
+    "mesh_domain_m": 256.0,
+    "mesh_size": 513,
+    "near_camera_cell_m": [
+      0.10833471993389765,
+      0.10817366805342915
+    ],
+    "subsurface_strength": 0.0,
+    "time_seconds": 8,
+    "underwater_capture": true,
+    "volume_integration": true,
+    "width": 1920
+  }
+}

@@ -23,6 +23,11 @@
 | [环境遮蔽 AO](ambient-occlusion.md) | 原 SSAO 审查、GTAO 式地平线积分、边缘保留滤波、真实对照与优化顺序 |
 | [RSM 实现与验证](rsm.md) | 太阳／天空间接光、算法边界与捕获方法 |
 | [FFT 海洋与透明水体](ocean-fft-and-rendering-review.md) | 频谱、高清波纹、折射与散射 |
+| [实时水体升级验收](water-realtime-upgrade.md) | 近景密集网格、水下捕获、路径散射、对比与 GPU 耗时 |
+| [近岸水体功能验收](water-coastal-features.md) | 可开关折射、局部多次散射、浅水波／泡沫／湿沙、动画与双后端验证 |
+| [近岸水体第一轮性能报告](water-coastal-performance.md) | 操作提示、边界修复、CPU／GPU 分阶段计时、提交间隙、前后对比与复测 |
+| [实时水下渲染](water-underwater-rendering.md) | 水中距离雾、双向折射、Snell 窗口／全反射、透明水底、验证和视角对照 |
+| [折射、BSSRDF 与近岸海浪审阅稿](water-refraction-bssrdf-shoreline-plan.md) | 方案依据、空间散射／翻卷波扩展、分阶段质量门槛与实施差异 |
 | [地形与 Virtual Texture](terrain-virtual-texture.md) | 四叉树、分页、预算与离线工具 |
 | [VT／CSM／PCSS 效果捕获](render-diagnostics-gallery.md) | 实际 GPU 缓冲、页表与回退可视化、阴影图集、PCF／PCSS 对照及复现 |
 | [VT／CSM／PCSS 修复记录](vt-csm-pcss-fixes.md) | 缺页边界混合、级联稳定、线性深度半影与 GPU 验证 |

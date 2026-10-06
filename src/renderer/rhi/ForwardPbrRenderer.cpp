@@ -22,6 +22,10 @@ static_assert(sizeof(LightData) == 48 && offsetof(LightData, colorInner) == 16 &
 static_assert(sizeof(LightingBlock) == 1472 && offsetof(LightingBlock, counts) == 16 && offsetof(LightingBlock, lights) == 32, "Lighting std140 ABI changed");
 static_assert(sizeof(ObjectBlock) == 128 && sizeof(glm::mat4) == 64, "Matrix std140 ABI changed");
 rhi::ShaderAsset shader(const std::string& root, const std::string& name) { auto path = root + "/" + name;return {path + ".glsl", path + ".metallib", path + ".spv", path + ".json", "main0"}; }
+rhi::BindingLayout withWaterWet(rhi::BindingLayout layout) {
+    layout.entries.push_back({4,rhi::BindingType::UniformBuffer,rhi::ShaderStage::Fragment,"WaterWetParameters",32});
+    layout.entries.push_back({5,rhi::BindingType::SampledTexture,rhi::ShaderStage::Fragment,"waterWetHistory",0});return layout;
+}
 void finiteMatrix(const glm::mat4& matrix) { for (int c = 0; c < 4; ++c) for (int r = 0; r < 4; ++r) if (!std::isfinite(matrix[c][r])) throw std::invalid_argument("Renderer: nonfinite matrix"); }
 void checkBlock(const rhi::ShaderAsset& asset, const char* block, std::initializer_list<std::pair<const char*, size_t>> fields, size_t bytes) {
     const auto json = nlohmann::json::parse(rhi::readShaderText(asset.reflectionPath));
@@ -112,6 +116,7 @@ ForwardPbrRenderer::ForwardPbrRenderer(std::shared_ptr<rhi::GraphicsDevice> devi
     GraphicsPipelineDesc p;p.vertex = shader(directory,"forward.vert");p.fragment = shader(directory,"forward.frag");p.vertexStride = sizeof(MeshVertex);
     if (path_ != PbrPath::Forward) { p.fragment = shader(directory,"gbuffer.frag");geometryLayout_.entries.pop_back();p.additionalColorFormats = {Format::RGBA16Float,Format::RGBA16Float,Format::RGBA16Float}; }
     if(path_==PbrPath::Scene){p.fragment=shader(directory,"scene-gbuffer.frag");p.additionalColorFormats.insert(p.additionalColorFormats.end(),2,Format::RGBA16Float);}
+    geometryLayout_=withWaterWet(geometryLayout_);
     p.attributes = GpuMesh::attributes();p.bindings = {geometryLayout_, GpuMaterial::layout()};p.colorFormat = path_==PbrPath::Forward?Format::RGBA16Float:Format::RGBA32Float;p.depthAttachment = p.depthTest = p.depthWrite = true;p.label = "Forward Cook-Torrance PBR";
     checkBlock(p.vertex,"CameraVertex",{{"viewProjection",0}},64);checkBlock(p.vertex,"ObjectData",{{"model",0},{"normalMatrix",64}},128);
     checkBlock(p.fragment,"MaterialData",{{"albedoAlpha",0},{"factors",16},{"emissiveNormal",32}},48);
@@ -130,6 +135,10 @@ ForwardPbrRenderer::ForwardPbrRenderer(std::shared_ptr<rhi::GraphicsDevice> devi
     const float quad[] = {-1,-1,0,1, 1,-1,1,1, 1,1,1,0, -1,-1,0,1, 1,1,1,0, -1,1,0,0};
     quad_ = resources_.buffer({sizeof(quad),BufferUsage::Vertex,"Tone map fullscreen"},quad);
     hdrSampler_ = resources_.sampler({Filter::Nearest,AddressMode::ClampToEdge});skySampler_=resources_.sampler({Filter::Linear,AddressMode::Repeat});
+    const std::array<glm::vec4,2> wetZero={glm::vec4(0,0,1,1),glm::vec4(0)};
+    inactiveWetParameters_=resources_.buffer({32,BufferUsage::Uniform,"Inactive water wetness"},wetZero.data());
+    auto wetTexture=resources_.texture({1,1,Format::RGBA32Float,TextureUsage::Sampled|TextureUsage::CopyDestination,"Inactive water wetness history"});
+    const glm::vec4 zero(0);resources_.device->writeTextureFloat(wetTexture,&zero.x,16);inactiveWetView_=resources_.view(wetTexture);wetSampler_=resources_.sampler({Filter::Linear,AddressMode::ClampToEdge});
     if(path_==PbrPath::Scene){
         if(resources_.device->computeLimits().maxStorageImages){atmosphere_=std::make_unique<GpuAtmosphere>(resources_.device,directory);atmosphere_->update({},10);skyView_=atmosphere_->sky();irradianceView_=atmosphere_->irradiance();}
         else {auto black=resources_.texture({1,1,Format::RGBA8UNorm,TextureUsage::Sampled|TextureUsage::CopyDestination,"Unavailable atmosphere fallback"});const uint8_t data[]={0,0,0,255};resources_.device->writeTexture(black,data,4);skyView_=irradianceView_=resources_.view(black);}
@@ -154,7 +163,7 @@ ForwardPbrRenderer::ForwardPbrRenderer(std::shared_ptr<rhi::GraphicsDevice> devi
     }
     if(path_==PbrPath::Scene){
         sceneForwardLayout_=transparentLayout_;for(uint32_t i=0;i<3;++i)sceneForwardLayout_.entries.push_back({5+i,BindingType::SampledTexture,ShaderStage::Fragment,i==0?"indirectBuffer":i==1?"aoBuffer":"backDepthBuffer",0});
-        p={};p.vertex=shader(directory,"forward.vert");p.fragment=shader(directory,"scene-forward.frag");p.vertexStride=32;p.attributes=GpuMesh::attributes();p.bindings={frameLayout(),GpuMaterial::layout(),sceneForwardLayout_};p.colorFormat=Format::RGBA16Float;p.depthAttachment=p.depthTest=true;p.depthWrite=false;p.depthCompare=DepthCompare::LessEqual;sceneForward_=resources_.pipeline(p);if(resources_.device->supportsWireframe()){auto wire=p;wire.wireframe=true;sceneForwardWire_=resources_.pipeline(wire);}
+        p={};p.vertex=shader(directory,"forward.vert");p.fragment=shader(directory,"scene-forward.frag");p.vertexStride=32;p.attributes=GpuMesh::attributes();p.bindings={withWaterWet(frameLayout()),GpuMaterial::layout(),sceneForwardLayout_};p.colorFormat=Format::RGBA16Float;p.depthAttachment=p.depthTest=true;p.depthWrite=false;p.depthCompare=DepthCompare::LessEqual;sceneForward_=resources_.pipeline(p);if(resources_.device->supportsWireframe()){auto wire=p;wire.wireframe=true;sceneForwardWire_=resources_.pipeline(wire);}
         if(resources_.device->computeLimits().supported){p.vertex=shader(directory,"instanced.vert");p.bindings[0].entries.push_back({3,BindingType::StorageRead,ShaderStage::Vertex,"OutPose",64});sceneForwardInstanced_=resources_.pipeline(p);if(resources_.device->supportsWireframe()){p.wireframe=true;sceneForwardWireInstanced_=resources_.pipeline(p);}}
     }
     resize(width,height);
@@ -183,7 +192,7 @@ void ForwardPbrRenderer::resetTemporal() {
     if(temporal_)temporal_->reset();previousModels_.clear();previousTaa_=false;temporalOutput_=false;
 }
 void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawPacket>& packets, float exposure, float gamma) {
-    FrameData frame=source;
+    FrameData frame=source;frame.viewportWidth=targets_->width;frame.viewportHeight=targets_->height;
     SunState solar;
     if (!std::isfinite(exposure) || exposure < 0 || !std::isfinite(gamma) || gamma <= 0 || !std::isfinite(frame.ambient) || frame.ambient < 0 || frame.lights.size() > 30)
         throw std::invalid_argument("Renderer: invalid frame parameters");
@@ -226,6 +235,7 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
     for(float value:{frame.shadows?1.f:0.f,shadows.pcss?1.f:0.f,shadows.distance,shadows.cascadeBlend,shadows.depthBias,
                     shadows.sunAngularRadius,shadows.localLightRadius,shadows.maxFilterTexels})hashShadow(value);
     for(float value:{frame.ssao?1.f:0.f,frame.aoRadius,frame.aoBias,frame.aoPower,frame.aoHorizon?1.f:0.f,frame.aoDenoise?1.f:0.f,float(frame.aoSlices),float(frame.aoSteps)})hashShadow(value);
+    for(const auto& water:frame.oceans)for(float value:{water.cameraGrid?1.f:0.f,water.gridFocus,water.shortWaveRipples?1.f:0.f,water.rippleRmsHeight,water.detailWaves?1.f:0.f,water.detailStrength,water.underwaterCapture?1.f:0.f,water.volumeIntegration?1.f:0.f,float(water.opticalDebug),water.robustRefraction?1.f:0.f,water.multipleScattering?1.f:0.f,water.shore.enabled?1.f:0.f,water.shore.foam?1.f:0.f,water.shore.wetSand?1.f:0.f,float(water.shore.resolution),water.shore.length,water.underwaterView?1.f:0.f,water.underwaterFog?1.f:0.f,water.underwaterView&&frame.cameraPosition.y<water.seaLevel?1.f:0.f})hashShadow(value);
     hashShadow(frame.clouds.enabled?1.f:0.f);
     if(frame.clouds.enabled){const auto& c=frame.clouds;for(float value:{c.baseHeight,c.thickness,c.coverage,c.density,c.shapeScale,c.weatherScale,c.erosion,c.maxDistance,c.wind.x,c.wind.y,float(c.steps),float(c.lightSteps),float(c.downsample),float(c.seed),c.temporal?1.f:0.f})hashShadow(value);}
     if(frame.clouds.enabled){const auto& c=frame.clouds;for(float value:{c.voxel?1.f:0.f,c.distanceSkipping?1.f:0.f,c.coreIntegration?1.f:0.f,c.volumeCenter.x,c.volumeCenter.y,c.volumeCenter.z,c.volumeSize.x,c.volumeSize.y,c.volumeSize.z,float(c.voxelResolution),c.storm,c.lightning})hashShadow(value);}
@@ -273,11 +283,16 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
         auto data = resources_.buffer({128,rhi::BufferUsage::Uniform | rhi::BufferUsage::CopyDestination,"PBR object"});
         std::vector<rhi::BindingEntry> entries{{0,camera_,0,64,{},{}},{1,data,0,128,{},{}}};
         if (path_ == PbrPath::Forward) entries.push_back({2,lighting_,0,1472,{},{}});
+        entries.push_back({4,inactiveWetParameters_,0,32,{},{}});entries.push_back({5,{},0,0,inactiveWetView_,wetSampler_});
         auto bindings = resources_.bindings({geometryLayout_,entries});
         objects_.push_back({data,bindings});
     }
     Resources frameResources(resources_.device);
     auto commands = device.createCommandList();
+    const std::array<glm::vec4,2> wetZero={glm::vec4(0,0,1,1),glm::vec4(0)};
+    auto waterWetBuffer=frameResources.buffer({32,rhi::BufferUsage::Uniform|rhi::BufferUsage::CopyDestination,"Frame water wetness"},wetZero.data());
+    auto waterWetView=inactiveWetView_;
+    std::vector<rhi::BindingSetHandle> geometrySets;for(const auto& object:objects_)geometrySets.push_back(object.bindings);
     rhi::RenderPassDesc pass;
     pass.color = targets_->hdrView;
     pass.depth = targets_->depthView;
@@ -289,8 +304,19 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
     if(frame.sky)graph.add("atmosphere",{{"environment",A::Write}},[&]{atmosphere_->update(frame.atmosphere,solar);});
     else graph.import("environment");
     if(!frame.oceans.empty())graph.add("ocean-simulation",{{"ocean-state",A::Write}},[&]{
-        for(const auto& ocean:frame.oceans)oceans_.at(ocean.id)->simulate(frame.timeSeconds,ocean);
-    });
+        for(const auto& ocean:frame.oceans)oceans_.at(ocean.id)->simulate(frame.timeSeconds,ocean,frame.cameraPosition);
+        // The first enabled local water domain owns wetness for this frame.
+        for(const auto& ocean:frame.oceans)if(ocean.shore.enabled&&ocean.shore.wetSand&&ocean.bathymetry){
+            auto& surface=*oceans_.at(ocean.id);waterWetView=surface.wetnessView();
+            const std::array<glm::vec4,2> data={surface.shorePatch(),glm::vec4(1,ocean.shore.foam?1.f:0.f,0,0)};
+            device.writeBuffer(waterWetBuffer,0,32,data.data());
+            for(size_t i=0;i<packets.size();++i){
+                std::vector<rhi::BindingEntry> entries={{0,camera_,0,64,{},{}},{1,objects_[i].data,0,128,{},{}},{4,waterWetBuffer,0,32,{},{}},{5,{},0,0,waterWetView,wetSampler_}};
+                if(path_==PbrPath::Forward)entries.push_back({2,lighting_,0,1472,{},{}});
+                geometrySets[i]=frameResources.bindings({geometryLayout_,entries});
+            }break;
+        }
+    });else graph.import("ocean-state");
     if(shadows_)graph.add("shadows-rsm",{{"assets",A::Read},{"environment",A::Read},{"shadow-state",A::Write}},[&]{auto shadowFrame=frame;shadowFrame.viewProjection=shadowViewProjection;shadows_->render(shadowFrame,packets);});
     rhi::TextureViewHandle resolved;
     for(size_t i=0;i<packets.size();++i)device.writeBuffer(objects_[i].data,0,128,&blocks[i]);
@@ -318,7 +344,8 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
             }
         });
     graph.add("geometry",
-              {{"assets", A::Read},
+              {{"ocean-state", A::Read},
+               {"assets", A::Read},
                {"environment", A::Read},
                {"depth", A::Write},
                {path_ == PbrPath::Forward ? "hdr" : "gbuffer", A::Write}},
@@ -350,11 +377,12 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
                                {}}};
                           if (path_ == PbrPath::Forward)
                               entries.push_back({2, lighting_, 0, 1472, {}, {}});
+                          entries.push_back({4,waterWetBuffer,0,32,{},{}});entries.push_back({5,{},0,0,waterWetView,wetSampler_});
                           commands.bindPipeline(packets[i].wireframe ? wireframeInstanced_ : instanced_);
                           commands.bindBindingSet(frameResources.bindings({layout, entries}));
                       } else {
                           commands.bindPipeline(packets[i].wireframe ? wireframe_ : forward_);
-                          commands.bindBindingSet(objects_[i].bindings);
+                          commands.bindBindingSet(geometrySets[i]);
                       }
                       packets[i].material->bind(commands);
                       packets[i].mesh->draw(commands);
@@ -442,10 +470,11 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
                               auto &packet = packets[i];
                               if (packet.material->transparent())
                                   continue;
-                              auto layout = frameLayout();
+                              auto layout = withWaterWet(frameLayout());
                               std::vector<rhi::BindingEntry> entries{{0, camera_, 0, 64, {}, {}},
                                                                      {1, objects_[i].data, 0, 128, {}, {}},
-                                                                     {2, lighting_, 0, 1472, {}, {}}};
+                                                                     {2, lighting_, 0, 1472, {}, {}},
+                                                                     {4,waterWetBuffer,0,32,{},{}},{5,{},0,0,waterWetView,wetSampler_}};
                               if (packet.mesh->instances()) {
                                   layout.entries.push_back({3, rhi::BindingType::StorageRead,
                                                             rhi::ShaderStage::Vertex, "OutPose", 64});
@@ -536,28 +565,28 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
                   [&] { commands.copyTexture(targets_->hdr, targets_->opaque); });
     if (!frame.oceans.empty())
         graph.add("ocean",
-                  {{"ocean-state", A::Read}, {"environment", A::Read},
+                  {{"assets", A::Read}, {"shadow-state", A::Read}, {"ocean-state", A::Read}, {"environment", A::Read},
                    {"gbuffer", A::Read},
                    {"depth", A::ReadWrite},
                    {"hdr", A::ReadWrite},
                    {"motion", A::ReadWrite},
                    {"opaque", A::Read}},
                   [&] {
-                      if (!frame.oceans.empty()) {
-                          pass = {};
-                          pass.color = targets_->hdrView;
-                          pass.colorLoad = rhi::LoadOp::Load;
-                          pass.depth = targets_->depthView;
-                          pass.depthLoad = rhi::LoadOp::Load;
-                          pass.additionalColors = {{targets_->motionView, rhi::LoadOp::Load}};
-                          commands.beginRenderPass(pass);
-                          for (const auto &ocean : frame.oceans)
-                              oceans_.at(ocean.id)->record(frameResources, commands, frame, ocean, skyView_,
-                                                           targets_->opaqueView, targets_->gbufferViews[0],
-                                                           targets_->gbufferViews[1]);
+                      std::vector<rhi::BindingEntry> environment={{0,skyParameters_,0,128,{},{}},
+                          {1,shadows_->parameters(),0,sizeof(ShadowParameters),{},{}},
+                          {2,{},0,0,skyView_,skySampler_},{3,{},0,0,irradianceView_,skySampler_},{4,{},0,0,shadows_->view(),hdrSampler_}};
+                      for(const auto& ocean:frame.oceans){
+                          auto& water=*oceans_.at(ocean.id);
+                          water.captureUnderwater(frameResources,commands,frame,ocean,packets,camera_,lighting_,environment,targets_->width,targets_->height);
+                          water.recordUnderwaterFog(frameResources,commands,frame,ocean,targets_->hdrView,targets_->opaqueView,targets_->gbufferViews[0],targets_->gbufferViews[1],skyView_,shadows_->parameters(),shadows_->view());
+                          pass={};pass.color=targets_->hdrView;pass.colorLoad=rhi::LoadOp::Load;
+                          pass.depth=targets_->depthView;pass.depthLoad=rhi::LoadOp::Load;
+                          pass.additionalColors={{targets_->motionView,rhi::LoadOp::Load}};
+                          commands.setLabel("water/surface");commands.beginRenderPass(pass);
+                          water.record(frameResources,commands,frame,ocean,skyView_,targets_->opaqueView,targets_->gbufferViews[0],targets_->gbufferViews[1],shadows_->parameters(),shadows_->view());
                           commands.endRenderPass();
-                          pass = {};
                       }
+                      pass={};
                   });
     if (path_ == PbrPath::Scene)
         graph.add(
@@ -694,6 +723,9 @@ ShadowParameters ForwardPbrRenderer::shadowParameters() const {
     if (!shadows_) throw std::invalid_argument("Shadows unavailable on this path");
     return shadows_->data();
 }
+std::vector<float> ForwardPbrRenderer::readWaterCapture(uint64_t ocean,bool positions,bool aboveWater) {return oceans_.at(ocean)->readCapture(positions,aboveWater);}
+std::vector<float> ForwardPbrRenderer::readShoreWater(uint64_t ocean,bool foam) {return oceans_.at(ocean)->readShore(foam);}
+uint32_t ForwardPbrRenderer::shoreSubsteps(uint64_t ocean) const {return oceans_.at(ocean)->shoreSubsteps();}
 std::vector<float> ForwardPbrRenderer::readGBuffer(uint32_t attachment) {
     if (path_ == PbrPath::Forward || attachment >= (path_ == PbrPath::Scene ? 6u : 4u))
         throw std::invalid_argument("Renderer: invalid G-buffer attachment");

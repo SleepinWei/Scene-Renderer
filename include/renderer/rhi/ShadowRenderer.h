@@ -39,7 +39,8 @@ private:
     std::array<rhi::TextureViewHandle,3> rsmViews_;
     std::array<rhi::TextureHandle,3> sourceRsm_;std::array<rhi::TextureViewHandle,3> sourceRsmViews_;
     rhi::TextureHandle sourceDepth_;rhi::TextureViewHandle sourceDepthView_;uint32_t sourceExtent_=1024;
-    rhi::PipelineHandle pipeline_,instanced_;
+    rhi::PipelineHandle pipeline_,instanced_,depthOnly_,depthInstanced_;
+    bool rsmCleared_=false;
     rhi::BufferHandle parameters_;
     ShadowParameters data_;
     uint32_t tilePixels_,extent_;

@@ -30,7 +30,7 @@ public:
     }
     rhi::BufferHandle buffer(const rhi::BufferDesc& d, const void* bytes = nullptr) { auto h = device->createBuffer(d, bytes);buffers.push_back(h);return h; }
     rhi::TextureHandle texture(const rhi::TextureDesc& d) { auto h = device->createTexture(d);textures.push_back(h);return h; }
-    rhi::TextureViewHandle view(rhi::TextureHandle texture) { auto h = device->createTextureView({texture});views.push_back(h);return h; }
+    rhi::TextureViewHandle view(rhi::TextureHandle texture,rhi::TextureRange range={}) { auto h = device->createTextureView({texture,range});views.push_back(h);return h; }
     rhi::SamplerHandle sampler(const rhi::SamplerDesc& d) { auto h = device->createSampler(d);samplers.push_back(h);return h; }
     rhi::PipelineHandle pipeline(const rhi::GraphicsPipelineDesc& d) { auto h = device->createGraphicsPipeline(d);pipelines.push_back(h);return h; }
     rhi::ComputePipelineHandle computePipeline(const rhi::ComputePipelineDesc& d) { auto h=device->createComputePipeline(d);computePipelines.push_back(h);return h; }

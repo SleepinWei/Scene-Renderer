@@ -7,6 +7,7 @@ layout(location=0) out vec4 color;
 layout(set=2,binding=5) uniform sampler2D indirectBuffer;
 layout(set=2,binding=6) uniform sampler2D aoBuffer;
 layout(set=2,binding=7) uniform sampler2D backDepthBuffer;
+#define WATER_WET_ENABLED
 #include "pbr-material.glsl"
 #include "pbr-light-data.glsl"
 #include "transparent-shadow.glsl"

@@ -62,6 +62,18 @@ Sponza、San Miguel 与 Sibenik 用于观察建筑材质、阴影和太阳／天
 | --- | --- |
 | ![Metal FFT 海洋](img/metal/ocean.png) | ![Metal 透明水体](img/metal/ocean-clear.png) |
 
+实时水面已加入近景密集网格、独立水下颜色／位置层，以及沿水中路径的单次散射积分。[前后对比、验证与 GPU 耗时](docs/water-realtime-upgrade.md)。
+
+海岸预设新增可开关的 DDA 折射与地形回退、局部多次散射、浅水波、持久泡沫和湿沙；旧预设保持新增效果关闭。[开关、对照、动画与限制](docs/water-coastal-features.md)。 [第一轮性能报告：分阶段耗时、提交间隙与边界修复](docs/water-coastal-performance.md)。
+
+![Metal 近岸浅水波与泡沫](img/metal/coastal-beach.png)
+
+水下视角加入沿距离的吸收／散射、水出空气折射及全反射。用 `--classic coastal-underwater` 打开，Ocean 面板可切换水下视角、雾和 **Short wave ripples**。水下预设加入 0.5–2 米 FFT 短波，使近处折射与 Snell 窗口边界随波面起伏。[图像、光学路径与验证](docs/water-underwater-rendering.md)。
+
+| 水下观察海面 | 俯视水底 |
+| --- | --- |
+| ![Metal 水下海面](img/diagnostics/water/ripple-demo/coastal-underwater.png) | ![Metal 水下水底](img/diagnostics/water/ripple-demo/coastal-underwater-bottom.png) |
+
 ### 大地形、湖泊与植被
 
 Mountain Lake 展示 8×8 km 山湖地形：高度与材质 VT 分页、LOD、FFT 湖面、随距离变化的草地密度，以及湿沙和沙滩 PBR 材质。
