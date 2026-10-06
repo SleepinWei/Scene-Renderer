@@ -3,6 +3,8 @@
 #include "PT/ValidationScenes.h"
 #include "PT/Denoiser.h"
 #include "PT/ProceduralCapture.h"
+#include "PT/ScenePackage.h"
+#include <chrono>
 #include "renderer/rhi/AtmosphereBake.h"
 #include "renderer/rhi/FeatureScenes.h"
 #include "renderer/RenderScene.h"
@@ -44,15 +46,18 @@ float realNumber(const std::string &s,const char *name,bool zero=false) {size_t 
 
 }
 int runCommandLine(int argc,char **argv) {
+    const auto commandStarted=std::chrono::steady_clock::now();
     const bool gpu=argc>1 && std::string(argv[1])=="--path-trace-gpu";
     if(gpu && rhi::requestedBackend()==rhi::Backend::OpenGL)throw std::invalid_argument("GPU PT requires Metal or Vulkan");
     Options options;DenoiseOptions denoiseOptions;CaptureOptions captureOptions;float time=8,sssScale=1,sssScatteringScale=1,waterScatteringScale=1,sunRadius=0,floorDepth=20,sssRoughness=.22f,waterRoughness=0;std::string denoiseInput,dragonPath="samples/assets/pt/dragon/dragon_vrip.ply";
-    std::string name="sponza",prefix,environmentPath;bool sky=true,glass=true,filter=false,depthExplicit=false,floorExplicit=false,sssRoughExplicit=false,waterRoughExplicit=false;int argument=2;
+    std::string name="sponza",prefix,environmentPath,packagePath;bool sky=true,glass=true,filter=false,depthExplicit=false,floorExplicit=false,sssRoughExplicit=false,waterRoughExplicit=false;int argument=2;
     if(argument<argc && std::string(argv[argument]).rfind("--",0)!=0)name=argv[argument++];
     for(int i=argument;i<argc;++i) {
         const std::string flag=argv[i];auto value=[&](){if(++i>=argc)throw std::invalid_argument("PT: missing argument for "+flag);return std::string(argv[i]);};
         if(flag=="--pt-size"){const auto size=value();const auto at=size.find('x');if(at==std::string::npos)throw std::invalid_argument("PT: size must be WIDTHxHEIGHT");options.width=number(size.substr(0,at),"width",16384);options.height=number(size.substr(at+1),"height",16384);}
         else if(flag=="--pt-samples")options.samples=number(value(),"samples",1048576);
+        else if(flag=="--pt-gpu-batch-samples")options.gpuBatchSamples=number(value(),"GPU batch samples",64);
+        else if(flag=="--pt-checkpoint-samples")options.checkpointSamples=number(value(),"checkpoint interval",1048576);
         else if(flag=="--pt-bounces"){options.maxDepth=number(value(),"bounces",128);depthExplicit=true;}
         else if(flag=="--pt-threads")options.threads=number(value(),"threads",256);
         else if(flag=="--pt-seed")options.seed=number(value(),"seed",UINT32_MAX);
@@ -60,6 +65,10 @@ int runCommandLine(int argc,char **argv) {
         else if(flag=="--pt-sampler"){auto sampler=value();if(sampler!="sobol" && sampler!="pcg")throw std::invalid_argument("PT: sampler must be sobol or pcg");options.sobol=sampler=="sobol";}
         else if(flag=="--pt-guiding")options.guiding=true;
         else if(flag=="--pt-cache")options.radianceCache=true;
+        else if(flag=="--pt-no-shadow-any-hit")options.shadowAnyHit=false;
+        else if(flag=="--pt-photons"){options.photonMapping=true;options.adaptive=false;}
+        else if(flag=="--pt-photon-paths")options.photonPaths=number(value(),"photon paths",4000000);
+        else if(flag=="--pt-photon-radius")options.photonRadius=realNumber(value(),"photon radius");
         else if(flag=="--pt-bdpt"){options.bdpt=true;options.adaptive=false;}
         else if(flag=="--pt-no-glass")glass=false;
         else if(flag=="--pt-sss-roughness"){sssRoughness=realNumber(value(),"jade roughness",true);sssRoughExplicit=true;if(sssRoughness>1)throw std::invalid_argument("PT: jade roughness must be in [0,1]");}
@@ -74,8 +83,11 @@ int runCommandLine(int argc,char **argv) {
         else if(flag=="--pt-ocean-grid")captureOptions.oceanGrid=number(value(),"ocean grid",1025);
         else if(flag=="--pt-texture-size")captureOptions.textureExtent=number(value(),"capture texture size",4096);
         else if(flag=="--pt-grass-limit")captureOptions.grassLimit=number(value(),"grass limit",1048576);
+        else if(flag=="--pt-no-water-sun-proposal")options.waterSunProposal=false;
+        else if(flag=="--pt-no-thin-sun-proposal")options.thinSunProposal=false;
         else if(flag=="--pt-no-grass")captureOptions.grass=false;
         else if(flag=="--pt-dragon-mesh")dragonPath=value();
+        else if(flag=="--pt-scene-file")packagePath=value();
         else if(flag=="--pt-denoise")filter=true;
         else if(flag=="--pt-denoise-device"){denoiseOptions.device=value();filter=true;}
         else if(flag=="--pt-denoise-color-only"){denoiseOptions.auxiliary=false;filter=true;}
@@ -84,7 +96,6 @@ int runCommandLine(int argc,char **argv) {
         else if(flag=="--pt-guide-cell")options.guideCellSize=realNumber(value(),"guide cell size");
         else if(flag=="--pt-cache-min")options.cacheMinimum=number(value(),"cache minimum",8192);
         else if(flag=="--pt-cache-depth")options.cacheDepth=number(value(),"cache depth",128);
-        else if(flag=="--pt-no-water-sun-proposal")options.waterSunProposal=false;
         else if(flag=="--pt-fixed")options.adaptive=false;
         else if(flag=="--pt-adaptive")options.adaptive=true;
         else if(flag=="--pt-min-samples")options.minimumSamples=number(value(),"minimum samples",1048576);
@@ -116,7 +127,11 @@ int runCommandLine(int argc,char **argv) {
     const auto parent=std::filesystem::path(prefix).parent_path();if(!parent.empty())std::filesystem::create_directories(parent);
     std::shared_ptr<RenderScene> scene;std::vector<DielectricMaterial> dielectrics;
     std::shared_ptr<const render::RenderWorldSnapshot> snapshot;
-    if(name=="dragon-jade"||name=="dragon-jade-ocean"){auto validation=makeJadeDragonScene(options.width,options.height,dragonPath,name=="dragon-jade-ocean",floorDepth);validation.snapshot.frame.timeSeconds=time;for(auto &draw:validation.snapshot.draws)if(draw.pathTracingKind==4){draw.pathTracingRoughness=sssRoughness;draw.pathTracingAbsorption*=sssScale;draw.pathTracingScattering*=sssScale*sssScatteringScale;}for(auto &ocean:validation.snapshot.frame.oceans)ocean.scattering*=waterScatteringScale;snapshot=std::make_shared<render::RenderWorldSnapshot>(std::move(validation.snapshot));}
+    ScenePackage package;
+    if(packagePath.empty()&&(name=="blender-classroom"||name=="blender-barcelona"))packagePath="samples/assets/blender/"+name.substr(8)+"/scene.json";
+    if(!packagePath.empty()){auto start=std::chrono::steady_clock::now();package=loadScenePackage(packagePath,options.width,options.height);package.metadata["import_seconds"]=std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count();snapshot=std::make_shared<render::RenderWorldSnapshot>(std::move(package.snapshot));std::cout<<"PT scene package: "<<package.metadata.dump()<<'\n';}
+    else if(name=="dragon-jade"||name=="dragon-jade-ocean"){auto validation=makeJadeDragonScene(options.width,options.height,dragonPath,name=="dragon-jade-ocean",floorDepth);validation.snapshot.frame.timeSeconds=time;for(auto &draw:validation.snapshot.draws)if(draw.pathTracingKind==4){draw.pathTracingRoughness=sssRoughness;draw.pathTracingAbsorption*=sssScale;draw.pathTracingScattering*=sssScale*sssScatteringScale;}for(auto &ocean:validation.snapshot.frame.oceans)ocean.scattering*=waterScatteringScale;snapshot=std::make_shared<render::RenderWorldSnapshot>(std::move(validation.snapshot));}
+    else if(name=="pool-caustics"||name=="pool-flat"||name=="pool-no-water"||name=="pool-sunlit"||name=="pool-sunlit-underwater"||name=="pool-sunlit-flat"){auto validation=makePoolCausticsScene(options.width,options.height,name!="pool-flat"&&name!="pool-sunlit-flat",name!="pool-no-water",name.find("pool-sunlit")==0,name=="pool-sunlit-underwater");snapshot=std::make_shared<render::RenderWorldSnapshot>(std::move(validation.snapshot));}
     else if(name=="caustics"||name=="dragon-caustics"){auto validation=name=="caustics"?makeCausticsScene(options.width,options.height,glass):makeDragonScene(options.width,options.height,dragonPath,glass);snapshot=std::make_shared<render::RenderWorldSnapshot>(std::move(validation.snapshot));dielectrics=std::move(validation.dielectrics);}
     else {scene=render::makeClassicScene(name);scene->mainCamera()->setAspect(float(options.width)/options.height);render::SceneSnapshotBuilder builder;snapshot=builder.capture(scene,time,options.width,options.height);}
     if(waterScatteringScale!=1&&name!="dragon-jade-ocean"){auto scaled=std::make_shared<render::RenderWorldSnapshot>(*snapshot);for(auto &ocean:scaled->frame.oceans)ocean.scattering*=waterScatteringScale;snapshot=scaled;}
@@ -130,6 +145,8 @@ int runCommandLine(int argc,char **argv) {
     if(waterRoughExplicit){auto adjusted=std::make_shared<render::RenderWorldSnapshot>(*snapshot);bool found=false;for(auto &draw:adjusted->draws)if(draw.pathTracingKind==3){draw.pathTracingRoughness=waterRoughness;found=true;}if(!found)throw std::invalid_argument("PT: water roughness requires a captured ocean");snapshot=adjusted;}
     if(!gpu)context.close();
     CpuScene cpu(*snapshot,dielectrics);
+    if(name=="pool-caustics"||name=="pool-flat"||name=="pool-no-water"||name=="pool-sunlit"||name=="pool-sunlit-underwater"||name=="pool-sunlit-flat"){bool sunlit=name.find("pool-sunlit")==0;cpu.sunDirection=glm::normalize(sunlit?glm::vec3(-.3f,1,.2f):glm::vec3(-.25f,1,.3f));cpu.sunIrradiance=sunlit?glm::vec3(4.5f,4.35f,4.1f):glm::vec3(4);cpu.sunRadius=sunlit?.00465f:.01f;if(sunlit&&sky)cpu.environment=std::make_shared<Environment>(16,8,std::vector<glm::vec3>(128,glm::vec3(.025f,.04f,.06f)));}
+    if(!packagePath.empty()){cpu.sunDirection=package.sunDirection;cpu.sunIrradiance=package.sunIrradiance;cpu.sunRadius=package.sunRadius;if(sky)cpu.environment=std::move(package.environment);}
     if(options.bdpt&&cpu.scatteringCount())cpu.validateBidirectional();
     // Apply the same exposure by default, while retaining an explicit CLI override.
     bool explicitExposure=false;for(int i=2;i<argc;++i)explicitExposure|=std::string(argv[i])=="--pt-exposure";
@@ -152,10 +169,13 @@ int runCommandLine(int argc,char **argv) {
         if(cpu.sunRadius>0){std::ofstream sidecar(skyPath+".json");sidecar<<nlohmann::json{{"sun_direction",{cpu.sunDirection.x,cpu.sunDirection.y,cpu.sunDirection.z}},{"sun_irradiance",{cpu.sunIrradiance.x,cpu.sunIrradiance.y,cpu.sunIrradiance.z}},{"sun_radius",cpu.sunRadius}}.dump(2)<<'\n';if(!sidecar)throw std::runtime_error("PT: cannot save solar environment metadata");}
     }
     snapshot.reset();if(scene){scene->destroy();scene.reset();}
-    auto save=[&](const Image &image){const auto progressPrefix=prefix+"-"+std::to_string(image.samples)+"spp";writeImage(image,options.exposure,progressPrefix);writeReport(image,cpu,options,progressPrefix,name);};
+    const std::string reportName=packagePath.empty()?name:package.metadata.value("source",nlohmann::json::object()).value("name",name);
+    auto report=[&](const Image &image,const std::string &path){writeReport(image,cpu,options,path,reportName);if(!packagePath.empty()){std::ifstream input(path+".json");nlohmann::json data;input>>data;input.close();data["scene_package"]=package.metadata;std::ofstream out(path+".json");out<<data.dump(2)<<'\n';if(!out)throw std::runtime_error("PT: cannot save scene package report");}};
+    auto save=[&](const Image &image){const auto progressPrefix=prefix+"-"+std::to_string(image.samples)+"spp";writeImage(image,options.exposure,progressPrefix);report(image,progressPrefix);};
     auto result=gpu?renderGpu(cpu,options,rhi::graphicsDevice(),save):render(cpu,options,save);
     if(filter)denoise(result,denoiseOptions);
-    writeImage(result,options.exposure,prefix);writeReport(result,cpu,options,prefix,name);
+    const auto outputStarted=std::chrono::steady_clock::now();writeImage(result,options.exposure,prefix);const auto outputSeconds=std::chrono::duration<double>(std::chrono::steady_clock::now()-outputStarted).count();report(result,prefix);
+    {std::ifstream input(prefix+".json");nlohmann::json data;input>>data;input.close();data["timings"]["final_image_write_seconds"]=outputSeconds;data["timings"]["command_before_final_report_seconds"]=std::chrono::duration<double>(std::chrono::steady_clock::now()-commandStarted).count();std::ofstream out(prefix+".json");out<<data.dump(2)<<'\n';if(!out)throw std::runtime_error("PT: cannot save final timing report");}
     std::cout<<result.execution<<" PT output: "<<prefix<<".png / .pfm / .json\n";return 0;
 }
 } // namespace pt

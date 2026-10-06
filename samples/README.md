@@ -8,6 +8,14 @@
 
 运行 `--classic dragon`、`buddha`、`armadillo`、`sibenik`，或使用 `--render-gallery img/metal benchmarks`。完整来源与校验值见 [benchmark-assets.json](benchmark-assets.json)，转换、场景规模和验收见 [经典测试场景说明](../docs/classic-benchmarks.md)。Dragon 实时演示使用金色金属，与下方离线玻璃 PT 的材质设置不同。
 
+## Blender 离线 PT 测试场景
+
+`python3 tools/prepare_blender_scenes.py --blender /path/to/blender` 获取官方 Classroom（Christophe Seux，CC0）和 Barcelona Pavilion（eMirage / Hamza Cheggour，CC-BY），保留链接资源，导出冻结的相机、共享几何、材质颜色图集、灯光及线性 world。源归档与 SHA256 见 [blender-assets.json](blender-assets.json)，署名及转换变更见 [资源声明](licenses/blender-scenes.txt)。原始归档和导出包不随 Git 提交。
+
+使用 `--path-trace`／`--path-trace-gpu blender-classroom` 或 `blender-barcelona`。默认 Barcelona 保留 512／20,622 粒子实例；`--particle-limit -1` 可导出全部植被，CPU／Metal／Vulkan 的共享 BLAS/TLAS 已支持完整包。Classroom 集合实例全部保留。当前转换未完整实现 Cycles 材质闭包和 compositor，具体限制、实际图片与复现见 [Blender PT 说明](../docs/blender-path-tracing.md)。
+
+导出 revision 5 增加可选 `tangents.bin` corner MikkTSpace 帧与独立薄叶透射图。现有 revision 4 包仍可读取；使用上方导出命令重新生成才能获得新材质，README 的完整 Barcelona 图使用 revision 5。小型无外部资源材质对照由 `tests/PT/BlenderAppearanceFixture.py` 生成。
+
 ## Stanford Bunny
 
 - 来源：[Stanford 3D Scanning Repository](https://graphics.stanford.edu/data/3Dscanrep/)。

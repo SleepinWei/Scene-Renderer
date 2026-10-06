@@ -1,0 +1,22 @@
+{
+  "classroom": {
+    "url": "https://download.blender.org/demo/test/classroom.zip",
+    "sha256": "0f0ecc58d45f12b2f4272a53e2d8e69135518e16e956b118f10c20d8dcfdf5e6",
+    "cache": "samples/downloads/blender-classroom.zip",
+    "directory": "samples/assets/blender/classroom",
+    "blend": "classroom/classroom.blend",
+    "author": "Christophe Seux",
+    "license": "CC0",
+    "source": "https://www.blender.org/download/demo-files/"
+  },
+  "barcelona": {
+    "url": "https://download.blender.org/demo/test/pabellon_barcelona_v1.scene_.zip",
+    "sha256": "0a85bf512329f1780563069512b934d679a6c543eeb1a4ec4f60cddeab706697",
+    "cache": "samples/downloads/blender-barcelona.zip",
+    "directory": "samples/assets/blender/barcelona",
+    "blend": "3d/pavillon_barcelone_v1.2.blend",
+    "author": "eMirage / Hamza Cheggour",
+    "license": "CC-BY (version not specified by the official download page)",
+    "source": "https://www.blender.org/download/demo-files/"
+  }
+}

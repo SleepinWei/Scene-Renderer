@@ -1,0 +1,229 @@
+{
+  "width": 192,
+  "height": 96,
+  "domain": "raw scene-linear RGB, no exposure fitting or pixel alignment",
+  "metrics": {
+    "mean_absolute_rgb": 0.0008931355905924984,
+    "relative_rgb_l1": 0.008378411900854284,
+    "rgb_rmse": 0.0025627275578391086,
+    "total_rgb_energy_ratio": 1.0070440648872647,
+    "mean_signed_rgb": [
+      0.0005820467998394937,
+      0.0006312445432033403,
+      0.0010393927435264534
+    ],
+    "maximum_absolute_component": 0.060397207736968994
+  },
+  "block4_metrics": {
+    "mean_absolute_rgb": 0.0007826132748084126,
+    "relative_rgb_l1": 0.0073416135741175125,
+    "rgb_rmse": 0.0019603811684538665,
+    "total_rgb_energy_ratio": 1.0070440648872647,
+    "mean_signed_rgb": [
+      0.0005820467998394937,
+      0.0006312445432033403,
+      0.0010393927435264534
+    ],
+    "maximum_absolute_component": 0.019320312421768904
+  },
+  "render_settings": {
+    "width": 192,
+    "height": 96,
+    "samples": 4096,
+    "max_depth": 24,
+    "seed": 1
+  },
+  "comparison": {
+    "manifest": "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/path-tracing/appearance/fixture-lambert/scene.json",
+    "manifest_sha256": "e2dc086199edeac1a684990201b761a4074d7d237775554465c1a48e54eef292",
+    "comparison": {
+      "profile": "lambert-leaves",
+      "normal_maps": true,
+      "finite_sun": true,
+      "solid_interface_tint": "not applicable",
+      "source_manifest_sha256": "6e6532643e0b2b8aaee00ca0e4d00077fd510e1d1b06b8171b4da1ef5521afdb",
+      "assets_sha256": {
+        "color-opaque-0000.png": "18fe2124c4733784b261b1b754367bc1ece093e79b58db4ddf1694507ef6aff9",
+        "color-opaque-0001.png": "2ff1d0a205a3cbe75034a00db493f63b71a138e294aa19eb9a351dfc9ee87dbe",
+        "color-opaque-0002.png": "2ff1d0a205a3cbe75034a00db493f63b71a138e294aa19eb9a351dfc9ee87dbe",
+        "environment.bin": "a6addcc321ead3b5abdba22984da076d366d10f574f79e9b2294e7635076bc02",
+        "geometry.bin": "7c22431fdf14aa7f03f8e93a4c3e041c03b955bb4cfac421f85cd8ff1423bbb8",
+        "normal-0000.png": "3f6c26296da59f907d8cd6abf66a6d53afb8a69d1e7a75278797137c7a566432",
+        "normal-0001.png": "23fa49010d33fe53468bd27bf3a27c159a298db0dc9e5aa4a58b2be9555118f6",
+        "normal-0002.png": "23fa49010d33fe53468bd27bf3a27c159a298db0dc9e5aa4a58b2be9555118f6",
+        "orm-0000.png": "d1bec89e76eed3913db506b026f247c0d83e3c45179be3cbd1d60207c0df1c62",
+        "orm-0001.png": "d1bec89e76eed3913db506b026f247c0d83e3c45179be3cbd1d60207c0df1c62",
+        "orm-0002.png": "d1bec89e76eed3913db506b026f247c0d83e3c45179be3cbd1d60207c0df1c62",
+        "tangents.bin": "257f7030010f3f9b0267399f3bf8bee1947c68a57c713b4c8dd184749447204d",
+        "transmission-0002.png": "427b6ca69e784db9c6086b98c6953a3e66db6542d166d95353d473f3ec80944e"
+      },
+      "contract": "same frozen object-space geometry, transforms, camera, UVs, byte textures, environment and optics; corner MikkTSpace frames when exported; white solid dielectric interfaces; ggx_add uses .96*(1-metallic)*albedo Lambert + mix(.04,albedo,metallic) single-scatter correlated Smith GGX; thin_diffuse uses separately baked Lambert reflection + transmission; source Cycles layered closures not preserved"
+    },
+    "draws": 4,
+    "unique_meshes": 4,
+    "triangles": 2882,
+    "camera_projection_max_error": 4.76837158203125e-07,
+    "limits": [
+      "controlled closures rather than original Cycles source graphs",
+      "single-scatter GGX + Lambert exact constant-color closure model; no Schlick Fresnel in ggx_add",
+      "thin_diffuse is Lambert reflection + transmission, without glossy/Layer Weight layers",
+      "solid Glass requires untinted interface; volumetric absorption retained",
+      "native Cycles sampling, roulette and ray offsets differ"
+    ],
+    "particle_budget": false
+  },
+  "render_seconds": {
+    "engine": 8.538301542,
+    "cycles": 29.26990104210563
+  },
+  "sidecars_sha256": {
+    "build/path-tracing/appearance/fixture-lambert-metal.json": "bfbd169e05a9e6c68ea8163b5cdbaa1a70e46cc984ea0550b8cb86cf45ed91c1",
+    "build/path-tracing/appearance/fixture-lambert-cycles.json": "486b2f4a1df75a8d700e08f0de8fbae469fc81520e30cc414b9de1344d0c017a",
+    "build/path-tracing/appearance/fixture-lambert-cycles-seed2.json": "cfb13f3cac7a803f3ad08a86def8c6522960bf834d1d51741910d7865185bc70"
+  },
+  "regions": {
+    "sky": {
+      "rectangle_pixels": [
+        0,
+        0,
+        192,
+        17
+      ],
+      "metrics": {
+        "mean_absolute_rgb": 1.7871422422258487e-05,
+        "relative_rgb_l1": 9.58857350748092e-05,
+        "rgb_rmse": 4.743308375725776e-05,
+        "total_rgb_energy_ratio": 1.0000208823430974,
+        "mean_signed_rgb": [
+          -1.3216677140079292e-07,
+          -1.7429428065524383e-07,
+          1.1982770600155287e-05
+        ],
+        "maximum_absolute_component": 0.0006422549486160278
+      },
+      "cycles_seed_pair": {
+        "mean_absolute_rgb": 1.0111584903343636e-05,
+        "relative_rgb_l1": 5.425210797931819e-05,
+        "rgb_rmse": 3.2783288700569094e-05,
+        "total_rgb_energy_ratio": 1.0000057632190387,
+        "mean_signed_rgb": [
+          3.924531697788659e-07,
+          9.911440714609388e-07,
+          1.8388735970445708e-06
+        ],
+        "maximum_absolute_component": 0.000458449125289917
+      }
+    },
+    "building": {
+      "rectangle_pixels": [
+        42,
+        22,
+        149,
+        49
+      ],
+      "metrics": {
+        "mean_absolute_rgb": 0.002126841888724004,
+        "relative_rgb_l1": 0.017779479569168487,
+        "rgb_rmse": 0.0043074589109787145,
+        "total_rgb_energy_ratio": 1.0159775225519856,
+        "mean_signed_rgb": [
+          0.0014932547751059784,
+          0.0016510278559052933,
+          0.0025895743319096142
+        ],
+        "maximum_absolute_component": 0.060397207736968994
+      },
+      "cycles_seed_pair": {
+        "mean_absolute_rgb": 0.0002335049725619377,
+        "relative_rgb_l1": 0.0019522368773361631,
+        "rgb_rmse": 0.0006183534994600374,
+        "total_rgb_energy_ratio": 1.0001209844017882,
+        "mean_signed_rgb": [
+          3.074667058361571e-05,
+          7.2868251396158074e-06,
+          5.37895040142367e-06
+        ],
+        "maximum_absolute_component": 0.009113401174545288
+      }
+    },
+    "pool": {
+      "rectangle_pixels": [
+        7,
+        53,
+        124,
+        88
+      ],
+      "metrics": {
+        "mean_absolute_rgb": 0.0007844749190698662,
+        "relative_rgb_l1": 0.010885626098094148,
+        "rgb_rmse": 0.002119990058893723,
+        "total_rgb_energy_ratio": 1.0095547781313248,
+        "mean_signed_rgb": [
+          0.00036374967276904465,
+          0.0006064791032209792,
+          0.0010954724708901803
+        ],
+        "maximum_absolute_component": 0.05007818341255188
+      },
+      "cycles_seed_pair": {
+        "mean_absolute_rgb": 0.000218209770527442,
+        "relative_rgb_l1": 0.00302826407983536,
+        "rgb_rmse": 0.0003352082055050857,
+        "total_rgb_energy_ratio": 1.0001040882569676,
+        "mean_signed_rgb": [
+          8.551314500443664e-06,
+          5.892590507046207e-06,
+          8.057178849847908e-06
+        ],
+        "maximum_absolute_component": 0.003181561827659607
+      }
+    }
+  },
+  "repeat_seed": 2,
+  "cycles_seed_pair": {
+    "mean_absolute_rgb": 0.00019678963887296655,
+    "relative_rgb_l1": 0.0018461071622931872,
+    "rgb_rmse": 0.00047844063848760643,
+    "total_rgb_energy_ratio": 1.0000238711548124,
+    "mean_signed_rgb": [
+      2.9841300804239127e-06,
+      2.0935170444621085e-06,
+      2.556139305751357e-06
+    ],
+    "maximum_absolute_component": 0.009113401174545288
+  },
+  "engine_vs_cycles_seed_mean": {
+    "mean_absolute_rgb": 0.0008788821487963071,
+    "relative_rgb_l1": 0.00824480025283129,
+    "rgb_rmse": 0.0025532900828604244,
+    "total_rgb_energy_ratio": 1.0070560843961929,
+    "mean_signed_rgb": [
+      0.0005835388648797056,
+      0.0006322913017255713,
+      0.001040670813179329
+    ],
+    "maximum_absolute_component": 0.060479700565338135
+  },
+  "cycles_seed_pair_block4": {
+    "mean_absolute_rgb": 5.2962397519338456e-05,
+    "relative_rgb_l1": 0.0004968465918868106,
+    "rgb_rmse": 0.00013297131788422885,
+    "total_rgb_energy_ratio": 1.0000238711548124,
+    "mean_signed_rgb": [
+      2.9841300804239127e-06,
+      2.0935170444621085e-06,
+      2.556139305751357e-06
+    ],
+    "maximum_absolute_component": 0.0022427537478506565
+  },
+  "inputs": {
+    "build/path-tracing/appearance/fixture-lambert-metal.pfm": "e88d856d23890493333b1ca3aa1d12d44db5cbec0fd3166734352e3af326929a",
+    "build/path-tracing/appearance/fixture-lambert-cycles.pfm": "cafb88309aa0b1528a53574130f511406ebc9dc13a2dc64c9e7f823f8c291319",
+    "build/path-tracing/appearance/fixture-lambert-cycles-seed2.pfm": "addac248af68fe2802f2445c293607b900b97ac5216141a1d89d4f30295b396d"
+  },
+  "limits": [
+    "finite samples; a seed pair estimates noise, not a bound on systematic error",
+    "regional rectangles include mixed geometry, not semantic masks",
+    "controlled package closures, not original Blender source shaders"
+  ]
+}

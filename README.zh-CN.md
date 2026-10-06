@@ -88,7 +88,7 @@ PCSS 对照依次为 PCF、默认太阳和放大光源；第三列用于展示�
 
 CPU／Metal／Vulkan 路径追踪支持多次反弹、纹理材质、折射和均匀介质随机游走；CPU BDPT 用于平滑玻璃焦散。程序化地形、植被与 FFT 水面可冻结为离线场景。
 
-下面展示上文建筑与自然环境场景的路径追踪结果，均使用 Open Image Denoise（OIDN）降噪。Sponza 与 San Miguel 使用 Metal PT，分辨率为 320×240、64 spp、16 次反弹；地形、山湖与海洋使用 640×480 Metal PT，将程序化动画冻结在 8 秒时刻。采样配置与未降噪原图见[路径追踪图集](docs/rendering-gallery.md#路径追踪)。
+下面展示上文建筑与自然环境场景的路径追踪结果，除标明未降噪的 photon mapping 样例外，使用 Open Image Denoise（OIDN）降噪。Sponza 与 San Miguel 使用 Metal PT，分辨率为 320×240、64 spp、16 次反弹；地形、山湖与海洋使用 640×480 Metal PT，将程序化动画冻结在 8 秒时刻。采样配置与未降噪原图见[路径追踪图集](docs/rendering-gallery.md#路径追踪)。
 
 | Sponza：Metal PT＋OIDN，64 spp | San Miguel：Metal PT＋OIDN，64 spp |
 | --- | --- |
@@ -97,6 +97,18 @@ CPU／Metal／Vulkan 路径追踪支持多次反弹、纹理材质、折射和�
 | Stanford Dragon：CPU BDPT 玻璃焦散＋OIDN | Jade Dragon：Metal PT 次表面散射＋OIDN |
 | --- | --- |
 | ![Stanford 透明龙与焦散](img/path-tracing/dragon-glass.png) | ![半抛光玉龙](img/path-tracing/jade-polished-boundary.png) |
+
+| 晴天泳池池底：Metal photon mapping＋OIDN | 水上泳池视角：Metal photon mapping＋OIDN |
+| --- | --- |
+| ![晴天泳池池底焦散](img/path-tracing/pool-sunlit-underwater.png) | ![晴天泳池水上焦散](img/path-tracing/pool-sunlit.png) |
+
+短涟漪与 0.266° 太阳角半径在浅蓝瓷砖上形成清晰亮纹；400 万发射路径、64 spp、半径 0.025，水体使用冻结的解析涟漪网格。[近景原图](img/path-tracing/pool-sunlit-underwater-raw.png) · [平水面对照](img/path-tracing/pool-sunlit-flat.png) · [复现与验收](docs/path-tracing-photon-mapping.md#晴天泳池更明显的网状亮纹)。
+
+| 池底：Metal photon mapping，100 万条光路＋32 spp，未降噪 | 水体折射焦散贡献，未降噪 |
+| --- | --- |
+| ![池底光子映射焦散](img/path-tracing/pool-photon.png) | ![水体折射焦散 AOV](img/path-tracing/pool-photon-caustics.png) |
+
+池底使用固定解析波形；固定半径 photon map 为有偏估计，CPU／Metal／Vulkan 共用相同光子数据。[复现、验收与通用 PT 优化](docs/path-tracing-photon-mapping.md)。
 
 | 地形与草丛：Metal PT＋OIDN，128 spp | Mountain Lake：Metal PT＋OIDN，128 spp |
 | --- | --- |
@@ -109,6 +121,30 @@ CPU／Metal／Vulkan 路径追踪支持多次反弹、纹理材质、折射和�
 沙滩保留世界坐标纹理细节；水下太阳路径使用 BSDF／相位混合采样，保持原太阳与曝光。[沙滩原图](img/path-tracing/pt-mountain-lake-beach-raw.png) · [浅水原图](img/path-tracing/pt-ocean-clear-raw.png) · [修复与验证](docs/path-tracing-procedural.md#水下太阳路径采样)。
 
 ![路径追踪 FFT 大浪海洋：Metal PT＋OIDN，256 spp](img/path-tracing/pt-ocean.png)
+
+### Blender 测试场景
+
+Blender 官方 Classroom 与 Barcelona Pavilion 经离线导入后，由本项目 Metal PT 渲染并使用 OIDN 降噪。[资源、材质转换与验证](docs/blender-path-tracing.md)。
+
+| Classroom | Barcelona Pavilion |
+| --- | --- |
+| ![Classroom Metal PT＋OIDN](img/path-tracing/blender-classroom-materials.png) | ![Barcelona Pavilion 池水 Metal PT＋OIDN](img/path-tracing/blender-barcelona-water.png) |
+
+Barcelona 已接入顶层 Bump／Normal Map 图集、介电材质的粗糙度纹理和封闭池水的反射／折射／吸收；修复隐藏粒子发射器遮住水面及 UV 方向。池水为明确的艺术配置（IOR 1.333、深度 0.5 世界单位），可切换源参数。[原始预览](img/path-tracing/blender-barcelona-water-raw.png) · [复现与限制](docs/blender-path-tracing.md#barcelona-材质与池水) · [验收记录](img/path-tracing/blender-water-validation.json)。
+
+CPU／Metal／Vulkan 使用 **共享几何 BLAS/TLAS**。新版 Barcelona 保留全部 **20,622 个植被粒子**，约 **5,497 万个实例三角形**。revision 5 接入 Blender corner MikkTSpace 切线，并分别烘焙薄叶的漫反射与透射；CPU 几何／加速数据约 **54.4 MiB**。以下为 640×360、256 spp 的 Metal PT＋OIDN 预览。[原始图](img/path-tracing/blender-barcelona-thin-raw.png) · [材质验收与复现](docs/blender-path-tracing.md#薄玻璃太阳反射链)。
+
+![Barcelona 完整植被与薄叶透射：Metal PT＋OIDN](img/path-tracing/blender-barcelona-thin.png)
+
+Blender Cycles 原场景 GT：1024 spp、原材质与完整植被，无降噪、强度截断或 glossy 模糊。旧引擎预览使用缩减粒子预算；上方完整植被图的池水与材质配置仍与源场景不同；[对照与线性参考](docs/blender-path-tracing.md#blender-cycles-gt)。
+
+![Barcelona 原场景 GT：Blender Cycles 1024 spp](img/path-tracing/blender-barcelona-cycles-gt.png)
+
+新增独立的 **同参数 Cycles 对照**：双方使用相同冻结几何、512 个粒子、相机、贴图、灯光、GGX 闭包、薄玻璃和封闭池水。320×180、4096 spp、深度 24，无降噪的 Metal／Cycles 总 RGB 能量差 **0.067%**，逐像素仍有反射采样噪声。这项受控基线尚不覆盖原始 Blender shader 图与法线图。[测量、独立种子噪声与复现](docs/blender-path-tracing.md#同参数-cycles-线性对照)。
+
+分离闭包法线并增加 bump shadowing 后，小场景 Metal／Cycles 原始 RGB 相对 L1：Lambert／薄叶从 **0.838% 降至 0.290%**，GGX／薄叶从 **2.662% 降至 0.582%**（192×96、4096 spp）。太阳提议将完整 Barcelona 的 160×90、512 spp、seed 1 对照从 **4.67% → 3.53% → 2.98%**（水体、再到薄玻璃反射）；薄玻璃异常像素从 **29.06 降至 0.0656**（Cycles **0.0462**），RGB RMSE **0.156 → 0.049**。seed 2 的 L1 从 **3.07% 略升至 3.19%**，池水／薄叶稀有路径与原分层材质仍需改进。统计缓存的独立单线程 trace 微基准提升约 **1.58 倍**。[最新验收与限制](img/path-tracing/blender-thin-validation.json)。
+
+![完整 Barcelona 法线图对照：Metal 原图、Cycles 原图、线性绝对误差](img/path-tracing/blender-barcelona-thin-matched.png)
 
 ## 系统概览
 

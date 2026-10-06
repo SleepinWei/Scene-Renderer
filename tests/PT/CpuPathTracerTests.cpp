@@ -16,6 +16,22 @@ render::SnapshotDraw triangle(glm::vec3 a,glm::vec3 b,glm::vec3 c,glm::vec3 colo
     mesh->vertices={{a,n,{.25f,.25f}},{b,n,{.25f,.25f}},{c,n,{.25f,.25f}}};mesh->indices={0,1,2};draw.mesh=mesh;draw.parameters.factors={0,.8f,1,0};draw.parameters.albedoAlpha=glm::vec4(color,1);return draw;
 }
 render::RenderWorldSnapshot snapshot(){render::RenderWorldSnapshot s;s.frame.cameraPosition={0,0,2};glm::mat4 conversion(1);conversion[2][2]=.5f;conversion[3][2]=.5f;s.frame.viewProjection=conversion*glm::perspective(glm::radians(50.f),1.f,.1f,100.f)*glm::lookAt(s.frame.cameraPosition,glm::vec3(0),glm::vec3(0,1,0));return s;}
+void thinDielectric() {
+    check(std::abs(pt::thinDielectricReflectance(1,1,1.5f)-1.f/13)<1e-6,"Parallel-sheet normal-incidence reflection differs from independent plate sum");
+    check(pt::thinDielectricReflectance(.001f,1,1.5f)>.99f,"Thin sheet lost grazing reflection");
+    check(pt::thinDielectricReflectance(.2f,1.5f,1.1f)==1,"Sheet in higher-IOR exterior failed TIR");
+    pt::Surface sheet;sheet.thinDielectric=true;sheet.ior=1.5f;sheet.normal=sheet.geometricNormal={0,0,1};sheet.albedo={.4f,.7f,1};pt::Random random(115);
+    for(bool front:{true,false}){sheet.frontFace=front;int reflected=0;glm::vec3 energy(0);
+        for(int i=0;i<32768;++i){auto sample=pt::sampleBsdf(sheet,{0,0,1},random);check(sample.delta&&sample.pdf>0,"Sheet event is not discrete");if(sample.transmission)check(near(sample.direction,{0,0,-1}),"Parallel-sheet transmission bent or eta-scaled the ray");else ++reflected;energy+=sample.value*(std::abs(sample.direction.z)/sample.pdf);}
+        check(std::abs(float(reflected)/32768-1.f/13)<.005,"Sheet branch frequencies changed");check(near(energy/32768.f,glm::vec3(1.f/13)+sheet.albedo*(12.f/13),.009f),"Tinted thin-sheet energy exceeds expected R+T*tint");}
+    auto room=snapshot();room.draws.push_back(triangle({-1000,-1000,0},{1000,-1000,0},{0,1000,0}));room.frame.lights.push_back({{0,0,4,1},{20,20,20,0},{0,0,-1,0}});
+    auto pane=triangle({-1000,-1000,3},{1000,-1000,3},{0,1000,3});pane.pathTracingKind=5;pane.pathTracingIor=1.5f;pane.parameters.albedoAlpha={.8f,.9f,1,1};pt::CpuScene baseline(room);room.draws.push_back(pane);pt::CpuScene glass(room);
+    check(glass.media().empty()&&glass.initialMedia({0,0,2})[0]==0,"Thin sheet entered the volume stack");pt::Surface hit;check(glass.intersect({0,0,2},{0,0,1},0,10,hit)&&hit.thinDielectric&&hit.mediumId==0,"Thin surface identity lost");check(glass.exportData().materials.back().extra.w==1,"Packed thin-sheet ABI flag lost");
+    uint64_t rays=0;pt::Random a(7),b(7);auto expected=glm::pow(glm::vec3(.8f,.9f,1),glm::vec3(2.2f))*(12.f/13);auto ratio=glass.trace({0,0,2},{0,0,-1},a,1,rays)/baseline.trace({0,0,2},{0,0,-1},b,1,rays);check(near(ratio,expected,1e-5f),"Thin-sheet shadow Fresnel/tint differs from path transmission");
+    room.frame.lights.clear();room.draws.back().parameters.albedoAlpha=glm::vec4(1);room.draws[0].parameters.factors.y=.5f;pt::CpuScene furnace(room);furnace.environment=std::make_shared<pt::Environment>(8,4,std::vector<glm::vec3>(32,glm::vec3(1)));glm::vec3 total(0);
+    for(uint32_t i=0;i<32768;++i){auto r=pt::Random::forPixel(1,0,i,true);total+=furnace.trace({0,0,2},{0,0,-1},r,32,rays);}std::cout<<"Thin white furnace "<<total.x/32768<<", "<<total.y/32768<<", "<<total.z/32768<<'\n';check(near(total/32768.f,glm::vec3(1),.035f),"Straight-through thin sheet double-counts environment NEE/MIS");
+    bool rejected=false;try{glass.validateBidirectional();}catch(const std::invalid_argument &){rejected=true;}check(rejected,"Unsupported thin-sheet BDPT accepted");
+}
 void samplers() {
     for(uint32_t dimension:{0u,1u,10u,511u,32767u}){std::vector<int> bins(1024,0);for(uint32_t i=0;i<1024;++i){float value=pt::sobolSample(738,i,dimension);check(value>=0 && value<1,"Sobol sample out of range");++bins[uint32_t(value*1024)];}for(auto count:bins)check(count==1,"Sobol lost one-dimensional stratification");}
     std::vector<int> cells(1024,0);for(uint32_t i=0;i<1024;++i){uint32_t x=uint32_t(pt::sobolSample(79,i,0)*32),y=uint32_t(pt::sobolSample(79,i,1)*32);++cells[y*32+x];}for(auto count:cells)check(count==1,"Sobol 2D net missed a stratum");
@@ -28,6 +44,141 @@ void samplers() {
         check(std::abs(product/count-.25)<.008,"Sobol cross-bounce product integral is correlated");
         check(std::abs(double(quadrant)/count-.25)<.012,"Sobol cross-bounce quadrant integral is correlated");
     }
+    for(uint32_t seed:{79u,738u,31u}){
+        uint32_t both=0;constexpr uint32_t count=16384;
+        for(uint32_t i=0;i<count;++i)both+=pt::sobolSample(seed,i,88)<.25f&&pt::sobolSample(seed,i,192)<.5f;
+        check(std::abs(double(both)/count-.125)<.012,"Solar proposal selector is correlated with late alpha coverage");
+    }
+}
+void instances() {
+    auto world=snapshot(),expanded=snapshot();auto source=triangle({-1,-1,0},{1,-1,0},{0,1,0});
+    auto uvMesh=std::make_shared<render::MeshPayload>(*source.mesh);uvMesh->vertices[0].uv={0,0};uvMesh->vertices[1].uv={1,0};uvMesh->vertices[2].uv={.5f,1};source.mesh=uvMesh;
+    auto maps=std::make_shared<render::MaterialPayload>();maps->images[0]=std::make_shared<render::ImageRGBA8>(render::ImageRGBA8{2,2,{220,70,40,255,40,190,50,0,50,60,240,255,220,210,60,255}});maps->images[1]=std::make_shared<render::ImageRGBA8>(render::ImageRGBA8{1,1,{151,105,249,255}});source.material=maps;source.parameters.emissiveNormal.w=.6f;
+    std::vector<glm::vec3> targets;
+    for(int i=0;i<64;++i){auto draw=source;draw.model=glm::translate(glm::mat4(1),glm::vec3((i%8-4)*3.5f,(i/8-4)*3.5f,0))*glm::rotate(glm::mat4(1),.15f*(i%4),glm::vec3(0,1,0))*glm::scale(glm::mat4(1),glm::vec3(i%2?-1.2f:.7f,.5f+.2f*(i%5),1.3f));draw.parameters.albedoAlpha={.5f+.006f*i,.7f,.8f,1};draw.parameters.factors.w=i%3==0?.5f:0;draw.pathTracingBsdfModel=i%3;
+        world.draws.push_back(draw);targets.push_back(glm::vec3(draw.model*glm::vec4(0,0,0,1)));
+        auto flat=draw;auto mesh=std::make_shared<render::MeshPayload>(*draw.mesh);auto normal=glm::transpose(glm::inverse(glm::mat3(draw.model)));for(auto &v:mesh->vertices){v.position=glm::vec3(draw.model*glm::vec4(v.position,1));v.normal=glm::normalize(normal*v.normal);}if(glm::determinant(glm::mat3(draw.model))<0)std::swap(mesh->indices[1],mesh->indices[2]);flat.mesh=mesh;flat.model=glm::mat4(1);expanded.draws.push_back(flat);
+    }
+    pt::CpuScene shared(world),flat(expanded);auto stats=shared.accelerationStats();check(stats.uniqueMeshes==1&&stats.instances==64&&stats.uniqueTriangles==1&&stats.expandedTriangles==64,"BLAS geometry duplicated across instances");auto packed=shared.exportData();check(packed.vertices.size()==3&&packed.triangles.size()==1&&packed.instances.size()==64,"GPU export expanded shared geometry");check(shared.memoryBytes()<flat.memoryBytes(),"Instance sharing did not reduce CPU acceleration memory");
+    pt::Random random(497);int hits=0;
+    for(int i=0;i<4096;++i){auto target=targets[i%targets.size()]+glm::vec3(random.uniform()*2-1,random.uniform()*2-1,0);auto origin=target+glm::vec3(.4f,-.2f,3);auto direction=glm::normalize(target-origin)*(i%2?2.f:1.f);pt::Surface a,b,c;bool x=shared.intersect(origin,direction,.0001f,100,a),y=flat.intersect(origin,direction,.0001f,100,b),z=shared.intersect(origin,direction,.0001f,100,c,true);check(x==y&&x==z,"Instanced TLAS hit/miss differs from flattened/world brute force");check(shared.intersectsAny(origin,direction,.0001f,100)==z,"Any-hit differs for mirrored/cutout/nonuniform instances");if(!x)continue;++hits;
+        check(std::abs(a.distance-b.distance)<2e-5f&&std::abs(a.distance-c.distance)<2e-5f,"Non-normalized local ray lost world t");check(near(a.albedo,b.albedo,.0001f)&&near(a.normal,b.normal,.0001f)&&a.frontFace==b.frontFace&&a.bsdfModel==b.bsdfModel,"Mirrored/nonuniform instance changed UV, normal, winding or material");}
+    check(hits>500,"Instance probe did not exercise enough alpha/normal hits");
+    auto lightWorld=snapshot();auto emitter=source;emitter.parameters.emissiveNormal={4,4,4,0};emitter.parameters.factors.w=0;emitter.material.reset();emitter.model=glm::scale(glm::mat4(1),glm::vec3(-2,3,1));lightWorld.draws={emitter};pt::CpuScene light(lightWorld);auto sample=light.sampleEmitter(random);check(std::abs(sample.pdfArea-1.f/12)<1e-6f,"Emitter area PDF omitted affine area scale");check(near(sample.surface.geometricNormal,{0,0,1}),"Mirrored emitter outward normal reversed");
+    auto cubes=pt::makeMediumValidationScene(8,8,true).snapshot;auto cube=cubes.draws[0];cube.model=glm::mat4(1);auto other=cube;other.model=glm::translate(glm::mat4(1),glm::vec3(4,0,0))*glm::scale(glm::mat4(1),glm::vec3(-.5f,2,1));other.pathTracingAbsorption={.9f,.2f,.1f};cubes.draws={cube,other};pt::CpuScene media(cubes);check(media.accelerationStats().uniqueMeshes==1&&media.initialMedia({0,0,0})[0]==1&&media.initialMedia({4,0,0})[0]==2,"Shared dielectric geometry lost per-instance medium identity");check(near(media.initialAbsorption({4,0,0}),other.pathTracingAbsorption),"Instance medium coefficients leaked across shared BLAS");
+    for(int kind=0;kind<3;++kind){auto invalid=snapshot();auto draw=source;if(kind==0)draw.model[0][0]=0;if(kind==1)draw.model[0][3]=.1f;if(kind==2)draw.model[3][0]=NAN;invalid.draws={draw};bool rejected=false;try{pt::CpuScene bad(invalid);}catch(const std::invalid_argument &){rejected=true;}check(rejected,"Invalid affine instance transform accepted");}
+}
+void comparisonClosures() {
+    pt::Surface s;s.normal=s.geometricNormal={0,0,1};s.albedo={.3f,.6f,.8f};s.bsdfModel=1;s.metallic=.7f;s.roughness=.65f;
+    auto v=glm::normalize(glm::vec3(.8f,0,1));check(near(pt::evaluateBsdf(s,v,{0,0,1}),s.albedo/pi),"Controlled Lambert depends on metallic/Fresnel");
+    pt::Random rng(891);glm::vec3 integral(0);for(int i=0;i<8192;++i){auto a=pt::sampleBsdf(s,v,rng);integral+=a.value*a.direction.z/a.pdf;}
+    check(near(integral/8192.f,s.albedo,.001f),"Lambert sampler does not conserve diffuse reflectance");
+    // Independent equal-solid-angle quadrature at oblique incidence checks the
+    // additive closure, visible-normal sampling and correlated Smith masking.
+    s.bsdfModel=2;glm::vec3 quadrature(0),estimate(0);constexpr int nz=256,np=512;
+    for(int z=0;z<nz;++z)for(int p=0;p<np;++p){float c=(z+.5f)/nz,phi=2*pi*(p+.5f)/np,r=std::sqrt(1-c*c);quadrature+=pt::evaluateBsdf(s,v,{r*std::cos(phi),r*std::sin(phi),c})*c*(2*pi/(nz*np));}
+    for(int i=0;i<65536;++i){auto a=pt::sampleBsdf(s,v,rng);if(a.pdf>0)estimate+=a.value*a.direction.z/a.pdf;}
+    check(near(estimate/65536.f,quadrature,.009f),"Controlled GGX estimator differs from independent integral");
+    for(auto model:{1u,2u}){auto room=snapshot();auto draw=triangle({-1,-1,0},{1,-1,0},{0,1,0});draw.pathTracingBsdfModel=model;draw.pathTracingKind=5;draw.pathTracingIor=1.5f;room.draws.push_back(draw);pt::CpuScene scene(room);auto flags=scene.exportData().materials[0].extra.w;check((flags&1)==1&&(flags>>1)==model,"Packed BSDF model corrupts thin-sheet bit");}
+}
+void cornerTangentsAndLeaves() {
+    auto draw=triangle({-1,-1,0},{1,-1,0},{0,1,0});auto source=std::make_shared<render::MeshPayload>(*draw.mesh);
+    source->vertices[0].normal=glm::normalize(glm::vec3(.1f,0,1));source->vertices[1].normal=glm::normalize(glm::vec3(-.1f,.2f,1));source->vertices[2].normal=glm::normalize(glm::vec3(0,-.2f,1));
+    source->vertices[0].uv={0,0};source->vertices[1].uv={1,0};source->vertices[2].uv={.5f,1};
+    for(const auto &v:source->vertices){auto t=glm::normalize(glm::vec3(1,0,0)-v.normal*v.normal.x);source->pathTracingTangents.emplace_back(t,1);}
+    auto maps=std::make_shared<render::MaterialPayload>();maps->images[1]=std::make_shared<render::ImageRGBA8>(render::ImageRGBA8{1,1,{151,105,249,255}});draw.material=maps;draw.parameters.emissiveNormal.w=.6f;
+    const glm::vec3 weights{.25f,.35f,.4f};
+    for(bool mirrored:{false,true})for(bool mirroredUV:{false,true})for(bool front:{false,true}){
+        auto mesh=std::make_shared<render::MeshPayload>(*source);if(mirroredUV)for(size_t i=0;i<3;++i){mesh->vertices[i].uv.x=1-mesh->vertices[i].uv.x;mesh->pathTracingTangents[i]=-mesh->pathTracingTangents[i];}
+        draw.mesh=mesh;draw.model=glm::rotate(glm::mat4(1),.3f,glm::vec3(0,1,0))*glm::scale(glm::mat4(1),glm::vec3(mirrored?-2.f:2.f,.4f,1.3f));auto world=snapshot();world.draws={draw};pt::CpuScene scene(world);
+        auto normalMatrix=glm::transpose(glm::inverse(glm::mat3(draw.model)));glm::vec3 point(0),n(0),t(0);for(size_t i=0;i<3;++i){point+=mesh->vertices[i].position*weights[i];n+=mesh->vertices[i].normal*weights[i];t+=glm::vec3(mesh->pathTracingTangents[i])*weights[i];}
+        point=glm::vec3(draw.model*glm::vec4(point,1));auto b=glm::cross(n,t)*(mirroredUV?-1.f:1.f);
+        auto map=glm::vec3(151,105,249)/255.f*2.f-1.f;map.x*=.6f;map.y*=.6f;map.z=glm::mix(1.f,map.z,.6f);auto expected=glm::normalize(normalMatrix*(t*map.x+b*map.y+n*map.z))*(front?1.f:-1.f);auto gn=glm::normalize(normalMatrix*glm::vec3(0,0,1));pt::Surface hit;
+        check(scene.intersect(point+gn*(front?3.f:-3.f),gn*(front?-1.f:1.f),.0001f,10,hit)&&near(hit.normal,expected,.0002f),"Exported corner tangent interpolation, mirror, nonuniform scale or backface changed normal mapping");
+    }
+    pt::Surface leaf;leaf.bsdfModel=3;leaf.normal=leaf.geometricNormal={0,0,1};leaf.albedo={.2f,.3f,.4f};leaf.diffuseTransmission={.6f,.2f,.1f};pt::Random random(989);glm::vec3 energy(0);int transmitted=0;
+    for(int i=0;i<32768;++i){auto sample=pt::sampleBsdf(leaf,{0,0,1},random);check(!sample.delta&&sample.pdf>0&&sample.transmission==(sample.direction.z<0),"Thin diffuse event flags or hemisphere changed");energy+=sample.value*(std::abs(sample.direction.z)/sample.pdf);transmitted+=sample.transmission;}
+    check(near(energy/32768.f,leaf.albedo+leaf.diffuseTransmission,.009f),"Thin diffuse white furnace does not match independently specified R+T");float probability=glm::dot(leaf.diffuseTransmission,glm::vec3(.2126f,.7152f,.0722f))/glm::dot(leaf.albedo+leaf.diffuseTransmission,glm::vec3(.2126f,.7152f,.0722f));check(std::abs(float(transmitted)/32768-probability)<.01f,"Thin diffuse sampling probability differs from RGB lobe power");
+    auto world=snapshot();auto pane=triangle({-100,-100,0},{100,-100,0},{0,100,0});pane.pathTracingBsdfModel=3;pane.pathTracingDiffuseTransmission={.6f,.2f,.1f};world.draws={pane};world.frame.inverseSquareLocalLights=true;world.frame.lights.push_back({{0,0,-2,1},{4,4,4,0},{0,0,1,0}});pt::CpuScene scene(world);uint64_t rays=0;auto value=scene.trace({0,0,2},{0,0,-1},random,1,rays);check(near(value,pane.pathTracingDiffuseTransmission/pi,.00001f),"Thin leaf backside NEE missed, self-shadowed or introduced dielectric attenuation");check(scene.media().empty()&&scene.initialMedia({0,0,1})[0]==0,"Thin diffuse leaf entered medium stack");
+}
+void grazingClosures() {
+    const glm::vec3 gn{0,0,1};
+    for(float z:{.001f,.02f,.2f,.8f})for(float tilt:{0.f,.3f,.8f,1.3f,1.55f})for(float azimuth:{0.f,1.f,3.f}){
+        auto view=glm::vec3(std::sqrt(1-z*z)*std::cos(azimuth),std::sqrt(1-z*z)*std::sin(azimuth),z);
+        auto n=glm::vec3(std::sin(tilt),0,std::cos(tilt)),safe=pt::correctedReflectionNormal(gn,view,n);
+        const float threshold=std::min(.9f*z,.01f);
+        check(std::abs(glm::length(safe)-1)<1e-5f&&safe.z>=n.z-1e-5f&&glm::dot(gn,glm::reflect(-view,safe))>=threshold-2e-6f,"Glossy normal correction is nonunit, rotates away from geometry or reflects below the surface");
+        if(glm::dot(gn,glm::reflect(-view,n))>=threshold)check(near(n,safe,1e-6f),"Already valid reflection normal changed");
+    }
+    pt::Surface s;s.geometricNormal=gn;s.normal={.8f,0,.6f};s.bsdfModel=1;s.albedo={.2f,.3f,.4f};
+    const auto view=glm::normalize(glm::vec3(-.95f,0,.2f));
+    check(glm::dot(s.normal,view)<0&&near(pt::evaluateBsdf(s,view,gn)*pt::surfaceCosine(s,gn),s.albedo*.6f/pi,1e-6f)&&pt::bsdfPdf(s,view,gn)>0,"Lambert normal was rejected because it points away from the view");
+    s.diffuseNormal=s.normal;s.smoothNormal=gn;s.normal=pt::correctedReflectionNormal(gn,view,s.normal);
+    s.diffuseTransmission={.6f,.2f,.1f};s.roughness=.5f;
+    for(auto model:{2u,3u}){
+        s.bsdfModel=model;glm::vec3 integral(0),estimate(0);pt::Random rng(3921);
+        constexpr int nz=384,np=512;
+        for(int z=0;z<nz;++z)for(int p=0;p<np;++p){float c=-1+2.f*(z+.5f)/nz,phi=2*pi*(p+.5f)/np,r=std::sqrt(1-c*c);glm::vec3 l{r*std::cos(phi),r*std::sin(phi),c};integral+=pt::evaluateBsdf(s,view,l)*pt::surfaceCosine(s,l)*(4*pi/(nz*np));}
+        constexpr int samples=131072;
+        for(int i=0;i<samples;++i){auto a=pt::sampleBsdf(s,view,rng);if(a.pdf<=0)continue;check(std::isfinite(a.value.x)&&std::abs(a.pdf-pt::bsdfPdf(s,view,a.direction))<1e-5f,"Grazing sample is nonfinite or differs from mixture PDF");estimate+=a.value*pt::surfaceCosine(s,a.direction)/a.pdf;}
+        check(near(estimate/float(samples),integral,.006f),"Different diffuse/glossy/translucent normals break sample/PDF/integral agreement");
+        check(glm::all(glm::lessThanEqual(integral,s.albedo+s.diffuseTransmission+.05f)),"Grazing bump correction gains energy");
+    }
+    for(auto model:{1u,2u}){
+        auto world=snapshot();auto draw=triangle({-1,-1,0},{1,-1,0},{0,1,0});draw.pathTracingBsdfModel=model;
+        if(model==1){auto maps=std::make_shared<render::MaterialPayload>();maps->images[1]=std::make_shared<render::ImageRGBA8>(render::ImageRGBA8{1,1,{240,128,170,255}});draw.material=maps;}
+        world.draws={draw};pt::CpuScene scene(world);bool rejected=false;
+        try{scene.validateBidirectional();}catch(const std::invalid_argument &e){rejected=std::string(e.what()).find("bump-corrected")!=std::string::npos;}
+        check(rejected,"BDPT accepted an unvalidated bump-corrected closure adjoint");
+    }
+}
+void waterSolarReflection() {
+    auto world=pt::makeWaterSolarValidationScene(8,8).snapshot;pt::CpuScene scene(world);
+    scene.sunDirection=glm::normalize(glm::vec3(0,.2f,1));scene.sunIrradiance=glm::vec3(1);scene.sunRadius=.01f;
+    check(scene.proceduralCount(3)==1&&scene.proceduralCount(999)==0&&scene.scatteringCount()==0,"Cached procedural/medium counts differ from retained instances");
+    // Independent finite-disc integral after one planar Fresnel reflection.
+    double expected=0;constexpr int nz=64,np=128;auto tangent=glm::vec3(1,0,0),bitangent=glm::cross(scene.sunDirection,tangent);float edge=std::cos(scene.sunRadius);
+    for(int z=0;z<nz;++z)for(int p=0;p<np;++p){float c=glm::mix(edge,1.f,(z+.5f)/nz),r=std::sqrt(1-c*c),phi=2*pi*(p+.5f)/np;auto l=scene.sunDirection*c+(tangent*std::cos(phi)+bitangent*std::sin(phi))*r;
+        expected+=.8/pi*l.z*pt::dielectricFresnel(l.y,1,1.333f)*(2*pi*(1-edge))/(pi*std::sin(scene.sunRadius)*std::sin(scene.sunRadius)*nz*np);}
+    double mean[2]{},square[2]{};constexpr int samples=65536;
+    for(int mode=0;mode<2;++mode){pt::Random random(12345);uint64_t rays=0;
+        for(int i=0;i<samples;++i){auto value=scene.trace({0,1,2},{0,0,-1},random,2,rays,nullptr,mode==1);check(std::isfinite(value.x)&&value.x>=0,"Water reflection proposal generated nonfinite energy");mean[mode]+=value.x;square[mode]+=double(value.x)*value.x;}
+        mean[mode]/=samples;square[mode]=square[mode]/samples-mean[mode]*mean[mode];}
+    std::cout<<"Water solar reflection analytic/proposal/baseline "<<expected<<" / "<<mean[1]<<" / "<<mean[0]<<", variance "<<square[1]<<" / "<<square[0]<<'\n';
+    check(std::abs(mean[1]-expected)<.006,"Solar reflection mixture disagrees with independent finite-disc Fresnel integral");
+    check(square[1]<square[0]*.02,"Water solar proposal did not reduce rare reflection variance");
+    world.draws[0].pathTracingKind=0;pt::CpuScene imported(world);imported.sunDirection=scene.sunDirection;imported.sunIrradiance=scene.sunIrradiance;imported.sunRadius=scene.sunRadius;
+    check(imported.proceduralCount(3)==0&&imported.dielectricCount()==1,"Imported pool fixture incorrectly acquired FFT semantics");
+    pt::Random random(12345);double importedMean=0;uint64_t rays=0;
+    for(int i=0;i<samples;++i)importedMean+=imported.trace({0,1,2},{0,0,-1},random,2,rays,nullptr,true).x;
+    check(std::abs(importedMean/samples-expected)<.006,"Imported dielectric pool missed reflection proposal or changed its expectation");
+}
+void thinSolarReflection() {
+    auto world=pt::makeThinSolarValidationScene(8,8).snapshot;pt::CpuScene scene(world);
+    scene.sunDirection=glm::normalize(glm::vec3(0,.2f,1));scene.sunIrradiance=glm::vec3(1);scene.sunRadius=.01f;
+    check(scene.thinSolarNormals().size()==2&&scene.media().empty(),"Thin orientation catalog duplicated parallel panes or created a medium");
+    double expected=0;constexpr int nz=64,np=128;auto tangent=glm::vec3(1,0,0),bitangent=glm::cross(scene.sunDirection,tangent);float edge=std::cos(scene.sunRadius);
+    for(int z=0;z<nz;++z)for(int p=0;p<np;++p){float c=glm::mix(edge,1.f,(z+.5f)/nz),r=std::sqrt(1-c*c),phi=2*pi*(p+.5f)/np;auto l=scene.sunDirection*c+(tangent*std::cos(phi)+bitangent*std::sin(phi))*r;
+        float reflection=pt::thinDielectricReflectance(l.y,1,1.5f),transmission=1-pt::thinDielectricReflectance(l.z,1,1.5f);
+        expected+=.8/pi*l.z*reflection*transmission*transmission*std::pow(.8,4.4)*(2*pi*(1-edge))/(pi*std::sin(scene.sunRadius)*std::sin(scene.sunRadius)*nz*np);
+    }
+    constexpr int samples=65536;double mean[2]{},variance[2]{};
+    for(int mode=0;mode<2;++mode){pt::Random random(12345);uint64_t rays=0;for(int i=0;i<samples;++i){auto value=scene.trace({0,1,2},{0,0,-1},random,4,rays,nullptr,mode==1);check(std::isfinite(value.x)&&value.x>=0,"Thin solar proposal produced invalid energy");mean[mode]+=value.x;variance[mode]+=double(value.x)*value.x;}mean[mode]/=samples;variance[mode]=variance[mode]/samples-mean[mode]*mean[mode];}
+    std::cout<<"Thin solar reflection/transmission analytic/proposal/baseline "<<expected<<" / "<<mean[1]<<" / "<<mean[0]<<", variance "<<variance[1]<<" / "<<variance[0]<<'\n';
+    check(std::abs(mean[1]-expected)<.004,"Thin reflection/two-transmission proposal differs from independent disc integral");
+    check(variance[1]<variance[0]*.02,"Thin solar proposal did not reduce reflection-chain variance");
+    pt::CpuScene overlap(pt::makeThinSolarValidationScene(8,8,true).snapshot);overlap.sunDirection=scene.sunDirection;overlap.sunIrradiance=scene.sunIrradiance;overlap.sunRadius=scene.sunRadius;
+    check(overlap.thinSolarNormals().size()==3,"Transformed/mirrored sheet orientation was lost");
+    pt::Random random(12345);uint64_t rays=0;double sum=0;for(int i=0;i<samples;++i)sum+=overlap.trace({0,1,2},{0,0,-1},random,4,rays).x;
+    check(std::abs(sum/samples-expected)<.004,"Overlapping solar cones used selected-component rather than full mixture density");
+    // Exercise environment NEE/MIS with the reflection proposal active but a dark sun.
+    auto furnaceWorld=snapshot();auto wall=triangle({-1000,-1000,0},{1000,-1000,0},{0,1000,0});wall.pathTracingBsdfModel=1;
+    auto pane=triangle({-1000,-1000,3},{1000,-1000,3},{0,1000,3});pane.pathTracingKind=5;pane.pathTracingIor=1.5f;
+    furnaceWorld.draws={wall,pane};pt::CpuScene furnace(furnaceWorld);furnace.environment=std::make_shared<pt::Environment>(8,4,std::vector<glm::vec3>(32,glm::vec3(1)));furnace.sunRadius=.01f;furnace.sunDirection=glm::normalize(glm::vec3(0,.2f,-1));
+    glm::vec3 energy(0);for(uint32_t i=0;i<32768;++i){auto r=pt::Random::forPixel(1,0,i,true);energy+=furnace.trace({0,0,2},{0,0,-1},r,32,rays);}
+    check(near(energy/32768.f,glm::vec3(1),.035f),"Thin solar proposal broke straight sheet environment NEE/MIS");
+    auto capped=world;for(int i=0;i<12;++i){auto hint=world.draws[0];hint.model=glm::translate(glm::mat4(1),glm::vec3(20000+i*2000,0,0))*glm::rotate(glm::mat4(1),.1f*(i+1),glm::vec3(1,0,0));capped.draws.push_back(hint);}pt::CpuScene limited(capped);
+    check(limited.thinSolarNormals().size()==8,"Sheet orientation catalog exceeded the GPU ABI limit");
 }
 void roughDielectric() {
     for(bool front:{true,false})for(float roughness:{.35f,.65f}){
@@ -120,6 +271,9 @@ void rendering() {
     pt::Options options;options.width=32;options.height=24;options.samples=20;options.maxDepth=4;options.threads=1;
     int callbacks=0;auto first=pt::render(scene,options,[&](const auto &image){++callbacks;check(image.samples==4 || image.samples==16 || image.samples==20,"Unexpected progressive sample count");});options.threads=3;auto second=pt::render(scene,options);
     check(callbacks==3 && first.samples==20 && first.radiance==second.radiance,"Renderer depends on worker scheduling or misses tiles");
+    options.adaptive=false;options.samples=65;auto checkpointReference=pt::render(scene,options);
+    for(uint32_t interval:{1u,32u}){options.checkpointSamples=interval;auto frequent=pt::render(scene,options);check(frequent.radiance==checkpointReference.radiance&&frequent.sampleCounts==checkpointReference.sampleCounts&&frequent.rays==checkpointReference.rays,"Fixed-spp checkpoint frequency changed transport samples");}
+    options.checkpointSamples=0;bool invalidCheckpoint=false;try{pt::render(scene,options);}catch(const std::invalid_argument &){invalidCheckpoint=true;}check(invalidCheckpoint,"Zero checkpoint interval accepted");options.checkpointSamples=256;options.samples=20;
     check(first.nonFiniteSamples==0 && first.radiance[0].r>first.radiance[0].g*2,"Material colors lost during transport");
     pt::writeImage(first,1,"build/path-tracing/tests/fixture");pt::writeReport(first,scene,options,"build/path-tracing/tests/fixture","fixture");check(std::filesystem::file_size("build/path-tracing/tests/fixture.pfm")==size_t(32*24*12+14),"PFM float layout/header mismatch");
     bool rejected=false;options.samples=0;try{pt::render(scene,options);}catch(const std::invalid_argument &){rejected=true;}check(rejected,"Zero samples were accepted");
@@ -147,5 +301,7 @@ void dielectricAndBdpt() {
     auto noGlass=pt::makeCausticsScene(32,24,false);pt::CpuScene control(noGlass.snapshot);auto clean=pt::render(control,options);for(auto value:clean.caustics)check(near(value,glm::vec3(0)),"No-glass control contains false caustic paths");
 }
 
+
+
 }
-int main(){try{samplers();roughDielectric();geometry();environment();bsdf();transport();rendering();dielectricAndBdpt();std::cout<<"CPU path tracing geometry, HDR PDF, GGX, MIS/render scheduling and output tests passed\n";return 0;}catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}}
+int main(){try{samplers();instances();comparisonClosures();cornerTangentsAndLeaves();grazingClosures();waterSolarReflection();thinSolarReflection();roughDielectric();thinDielectric();geometry();environment();bsdf();transport();rendering();dielectricAndBdpt();std::cout<<"CPU path tracing geometry, HDR PDF, GGX, MIS/render scheduling and output tests passed\n";return 0;}catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}}

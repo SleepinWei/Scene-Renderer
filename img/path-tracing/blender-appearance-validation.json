@@ -1,0 +1,373 @@
+{
+  "date": "2026-10-05",
+  "platform": "Apple M4 / macOS; Metal and Vulkan/MoltenVK",
+  "domain": "raw scene-linear RGB; fixed samples; no exposure fitting, denoising, intensity clamping or outlier removal for numerical comparisons",
+  "export": {
+    "material_revision": 5,
+    "tangent_basis": "Blender corner MikkTSpace; V and handedness reflected together",
+    "thin_diffuse_materials": 12,
+    "water_profile": "pool",
+    "pool_depth": 0.5,
+    "blender_version": "4.5.14 LTS",
+    "unique_objects": 100,
+    "instances": 20638,
+    "particle_instances_source": 20622,
+    "particle_instances_retained": 20622,
+    "particle_limit": -1,
+    "unique_triangles": 281749,
+    "expanded_triangles": 54966539,
+    "color_atlases": 81,
+    "scalar_atlases": 81,
+    "normal_atlases": 29,
+    "native_mask_atlases": 7,
+    "atlas_size": 256,
+    "seconds": 26.971429500030354,
+    "warnings": [
+      "water_plane_still: open source water sheet closed with explicit pool depth 0.5",
+      "selected shader lobes use Lambert/GGX rather than full Cycles closure graphs",
+      "object-info random color shared by instances of the same evaluated object",
+      "selected surface bump/normal baked; shader displacement and full layered normal closures are not exported",
+      "thin diffuse lobes are an energy-bounded approximation; layered glossy/Fresnel and group-internal alpha require future closure/group support",
+      "direction-dependent color/scalars are not physically reproduced by UV baking",
+      "depth of field, motion blur, compositor and Blender color management are not reproduced"
+    ]
+  },
+  "source": {
+    "name": "barcelona",
+    "blend": "pavillon_barcelone_v1.2.blend",
+    "sha256": "92162db8cabcd03641c53df95554b604b494ba74a76a099c7e06637e9379120a",
+    "scene": "2- time: sunset",
+    "camera": "Camera",
+    "frame": 1
+  },
+  "package_sha256": "7091f804b7739d89b00626e32c3c99ba6e5c01248771ca84d86eaa9ab5e4f2ed",
+  "full_scene_cpu_gpu": {
+    "cpu": {
+      "execution": "CPU",
+      "width": 160,
+      "height": 90,
+      "samples": 64,
+      "max_depth": 24,
+      "seed": 1,
+      "adaptive": false,
+      "render_seconds": 21.358233292,
+      "setup_seconds": 0.0,
+      "rays": 8462189,
+      "non_finite_samples": 0,
+      "geometry_bvh_bytes": 57062448,
+      "gpu_buffer_bytes": 0,
+      "denoiser": "",
+      "denoise_seconds": 0.0,
+      "timings": {
+        "blas_build_seconds": 0.04920062,
+        "camera_media_seconds": 5.6167e-05,
+        "checkpoint_io_seconds": 0.017677249,
+        "command_before_final_report_seconds": 21.619126792,
+        "cpu_film_update_seconds": 0.0,
+        "dispatch_submit_seconds": 0.0,
+        "domain": "CPU wall time; submit/readback may include GPU waits; no hardware GPU timestamps",
+        "emitter_prepare_seconds": 0.004012792,
+        "final_image_write_seconds": 0.004956125,
+        "gpu_setup_including_export_seconds": 0.0,
+        "readback_including_wait_seconds": 0.0,
+        "scene_construct_seconds": 0.06448675,
+        "scene_export_seconds": 0.0,
+        "scene_geometry_prepare_seconds": 0.0059101299999999996,
+        "tlas_build_seconds": 0.005109542
+      },
+      "acceleration": {
+        "blas_bytes": 6048392,
+        "blas_nodes": 95448,
+        "emitter_bytes_estimate": 2889576,
+        "geometry_bytes": 32497500,
+        "instance_bytes": 15204352,
+        "instanced_triangles": 54963839,
+        "instances": 21129,
+        "tlas_bytes": 422628,
+        "tlas_nodes": 7361,
+        "type": "software BLAS/TLAS",
+        "unique_meshes": 110,
+        "unique_triangles": 281074
+      },
+      "inputs": {
+        "build/path-tracing/appearance/barcelona-cpu.json": "adffea5c32902e9ea55773e77d8d42555de9329b0dde6633fa371617826286fe",
+        "build/path-tracing/appearance/barcelona-cpu.pfm": "698c4b7d1461ec57655c03c556ec23f888aa15ec5626ff7b7268c6e2214d8c9a"
+      }
+    },
+    "metal": {
+      "execution": "GPU Metal compute BLAS/TLAS",
+      "width": 160,
+      "height": 90,
+      "samples": 64,
+      "max_depth": 24,
+      "seed": 1,
+      "adaptive": false,
+      "render_seconds": 3.60944675,
+      "setup_seconds": 0.075465125,
+      "rays": 8460180,
+      "non_finite_samples": 0,
+      "geometry_bvh_bytes": 57062448,
+      "gpu_buffer_bytes": 113611464,
+      "denoiser": "",
+      "denoise_seconds": 0.0,
+      "timings": {
+        "blas_build_seconds": 0.050188003,
+        "camera_media_seconds": 6.0458e-05,
+        "checkpoint_io_seconds": 0.018857376000000002,
+        "command_before_final_report_seconds": 4.104895417,
+        "cpu_film_update_seconds": 0.000164168,
+        "dispatch_submit_seconds": 3.590236457,
+        "domain": "CPU wall time; submit/readback may include GPU waits; no hardware GPU timestamps",
+        "emitter_prepare_seconds": 0.004006542,
+        "final_image_write_seconds": 0.005145875,
+        "gpu_setup_including_export_seconds": 0.075465125,
+        "readback_including_wait_seconds": 0.000118209,
+        "scene_construct_seconds": 0.0669595,
+        "scene_export_seconds": 0.060984417,
+        "scene_geometry_prepare_seconds": 0.007319038999999999,
+        "tlas_build_seconds": 0.005174917
+      },
+      "acceleration": {
+        "blas_bytes": 6048392,
+        "blas_nodes": 95448,
+        "emitter_bytes_estimate": 2889576,
+        "geometry_bytes": 32497500,
+        "instance_bytes": 15204352,
+        "instanced_triangles": 54963839,
+        "instances": 21129,
+        "tlas_bytes": 422628,
+        "tlas_nodes": 7361,
+        "type": "software BLAS/TLAS",
+        "unique_meshes": 110,
+        "unique_triangles": 281074
+      },
+      "inputs": {
+        "build/path-tracing/appearance/barcelona-metal.json": "99c075ab2df88290d0e1340c9a17f7db36bfc31a1ba8fbdc2446d9fe8d430a97",
+        "build/path-tracing/appearance/barcelona-metal.pfm": "51b426812d53668db2b14fa8820e9b04f14e657233270ad6ed4dfcc71ffe582b"
+      }
+    },
+    "vulkan": {
+      "execution": "GPU Vulkan compute BLAS/TLAS",
+      "width": 160,
+      "height": 90,
+      "samples": 64,
+      "max_depth": 24,
+      "seed": 1,
+      "adaptive": false,
+      "render_seconds": 5.524846333,
+      "setup_seconds": 0.070837375,
+      "rays": 8460180,
+      "non_finite_samples": 0,
+      "geometry_bvh_bytes": 57062448,
+      "gpu_buffer_bytes": 113611464,
+      "denoiser": "",
+      "denoise_seconds": 0.0,
+      "timings": {
+        "blas_build_seconds": 0.049754876,
+        "camera_media_seconds": 5.4875e-05,
+        "checkpoint_io_seconds": 0.017498083,
+        "command_before_final_report_seconds": 9.207458,
+        "cpu_film_update_seconds": 0.00014258400000000002,
+        "dispatch_submit_seconds": 5.506776457999999,
+        "domain": "CPU wall time; submit/readback may include GPU waits; no hardware GPU timestamps",
+        "emitter_prepare_seconds": 0.004234875,
+        "final_image_write_seconds": 0.005252834,
+        "gpu_setup_including_export_seconds": 0.070837375,
+        "readback_including_wait_seconds": 0.00017758200000000002,
+        "scene_construct_seconds": 0.066300459,
+        "scene_export_seconds": 0.05651775,
+        "scene_geometry_prepare_seconds": 0.006856540999999994,
+        "tlas_build_seconds": 0.005209833
+      },
+      "acceleration": {
+        "blas_bytes": 6048392,
+        "blas_nodes": 95448,
+        "emitter_bytes_estimate": 2889576,
+        "geometry_bytes": 32497500,
+        "instance_bytes": 15204352,
+        "instanced_triangles": 54963839,
+        "instances": 21129,
+        "tlas_bytes": 422628,
+        "tlas_nodes": 7361,
+        "type": "software BLAS/TLAS",
+        "unique_meshes": 110,
+        "unique_triangles": 281074
+      },
+      "inputs": {
+        "build/path-tracing/appearance/barcelona-vulkan.json": "8c050c7376511e549c143d1b91ecd2e4b83ebe36b1d45311471da82b4fcfbbe2",
+        "build/path-tracing/appearance/barcelona-vulkan.pfm": "51b426812d53668db2b14fa8820e9b04f14e657233270ad6ed4dfcc71ffe582b"
+      }
+    },
+    "metal_vs_cpu": {
+      "mean_absolute_rgb": 0.000360026180437726,
+      "relative_rgb_l1": 0.0023210410173881623,
+      "rgb_rmse": 0.0023090271673463884,
+      "total_rgb_energy_ratio": 0.9999909143138849,
+      "mean_signed_rgb": [
+        1.103429098821292e-05,
+        -1.7222930423840883e-05,
+        1.9606854561433136e-06
+      ],
+      "maximum_absolute_component": 0.22280246019363403
+    },
+    "vulkan_vs_metal": {
+      "mean_absolute_rgb": 0.0,
+      "relative_rgb_l1": 0.0,
+      "rgb_rmse": 0.0,
+      "total_rgb_energy_ratio": 1.0,
+      "mean_signed_rgb": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "maximum_absolute_component": 0.0
+    }
+  },
+  "corner_normal_fixture": {
+    "generator": "tests/PT/BlenderAppearanceFixture.py",
+    "profile": "lambert-leaves with normal maps; smooth spheres, negative and nonuniform scales, thin diffuse sphere",
+    "before_object_space_normal_fix": {
+      "mean_absolute_rgb": 0.0014403613845051612,
+      "relative_rgb_l1": 0.013511880046637968,
+      "rgb_rmse": 0.004618128080267071,
+      "total_rgb_energy_ratio": 1.004128981606557,
+      "mean_signed_rgb": [
+        0.00029065886292301,
+        0.00037908783239496796,
+        0.0006506970126388802
+      ],
+      "maximum_absolute_component": 0.07815632224082947
+    },
+    "after_object_space_normal_fix": {
+      "mean_absolute_rgb": 0.0008931355905924984,
+      "relative_rgb_l1": 0.008378411900854284,
+      "rgb_rmse": 0.0025627275578391086,
+      "total_rgb_energy_ratio": 1.0070440648872647,
+      "mean_signed_rgb": [
+        0.0005820467998394937,
+        0.0006312445432033403,
+        0.0010393927435264534
+      ],
+      "maximum_absolute_component": 0.060397207736968994
+    },
+    "cycles_seed_pair": {
+      "mean_absolute_rgb": 0.00019678963887296655,
+      "relative_rgb_l1": 0.0018461071622931872,
+      "rgb_rmse": 0.00047844063848760643,
+      "total_rgb_energy_ratio": 1.0000238711548124,
+      "mean_signed_rgb": [
+        2.9841300804239127e-06,
+        2.0935170444621085e-06,
+        2.556139305751357e-06
+      ],
+      "maximum_absolute_component": 0.009113401174545288
+    },
+    "limits": "remaining error exceeds seed noise; incoming normal protection / shadow boundary behavior still differs",
+    "report": "img/path-tracing/blender-appearance-fixture.json"
+  },
+  "full_scene_cycles": {
+    "report": "img/path-tracing/blender-barcelona-appearance-matched.json",
+    "metrics": {
+      "mean_absolute_rgb": 0.00702673493508512,
+      "relative_rgb_l1": 0.046395571990758486,
+      "rgb_rmse": 0.26788589114905925,
+      "total_rgb_energy_ratio": 1.0178584434325737,
+      "mean_signed_rgb": [
+        0.005830926741796753,
+        0.002278810171814661,
+        4.391847139939071e-06
+      ],
+      "maximum_absolute_component": 32.03306865692139
+    },
+    "cycles_seed_pair": {
+      "mean_absolute_rgb": 0.004216108699478758,
+      "relative_rgb_l1": 0.0278813473396941,
+      "rgb_rmse": 0.05065178145718928,
+      "total_rgb_energy_ratio": 1.0015646675463823,
+      "mean_signed_rgb": [
+        0.000503745482694487,
+        0.00021298180775678095,
+        -6.918502476764843e-06
+      ],
+      "maximum_absolute_component": 6.8051082491874695
+    },
+    "cycles_seconds": 20.53535504080355,
+    "metal_seconds": 30.460885291,
+    "limits": "512 spp; high-intensity samples remain; same controlled closures and full particles, not original source shader graphs"
+  },
+  "preview": {
+    "execution": "GPU Metal compute BLAS/TLAS",
+    "width": 640,
+    "height": 360,
+    "samples": 256,
+    "max_depth": 24,
+    "seed": 1,
+    "adaptive": false,
+    "render_seconds": 121.8060445,
+    "setup_seconds": 0.073316291,
+    "rays": 540895994,
+    "non_finite_samples": 0,
+    "geometry_bvh_bytes": 57062448,
+    "gpu_buffer_bytes": 130891464,
+    "denoiser": "Open Image Denoise 2.5.1",
+    "denoise_seconds": 0.502828625,
+    "timings": {
+      "blas_build_seconds": 0.049495380000000005,
+      "camera_media_seconds": 5.025e-05,
+      "checkpoint_io_seconds": 0.191666874,
+      "command_before_final_report_seconds": 122.829831042,
+      "cpu_film_update_seconds": 0.003770166,
+      "dispatch_submit_seconds": 121.602945125,
+      "domain": "CPU wall time; submit/readback may include GPU waits; no hardware GPU timestamps",
+      "emitter_prepare_seconds": 0.004093208,
+      "final_image_write_seconds": 0.087507916,
+      "gpu_setup_including_export_seconds": 0.073316291,
+      "readback_including_wait_seconds": 0.006545667,
+      "scene_construct_seconds": 0.06605975,
+      "scene_export_seconds": 0.055984291,
+      "scene_geometry_prepare_seconds": 0.007137160999999996,
+      "tlas_build_seconds": 0.005089542
+    },
+    "acceleration": {
+      "blas_bytes": 6048392,
+      "blas_nodes": 95448,
+      "emitter_bytes_estimate": 2889576,
+      "geometry_bytes": 32497500,
+      "instance_bytes": 15204352,
+      "instanced_triangles": 54963839,
+      "instances": 21129,
+      "tlas_bytes": 422628,
+      "tlas_nodes": 7361,
+      "type": "software BLAS/TLAS",
+      "unique_meshes": 110,
+      "unique_triangles": 281074
+    },
+    "inputs": {
+      "build/path-tracing/appearance/barcelona-preview.json": "f0ce9509efdba578a86fd7c1f9cf942d68a727ad603ee6a5f76b354b6ba175a6",
+      "build/path-tracing/appearance/barcelona-preview.pfm": "03bd1919279883c926bdd014696ea341247a33272fb6e5e1777421edbcdae991"
+    },
+    "display": "640x360, 256 spp, depth 24, original camera; OIDN output for presentation",
+    "images": {
+      "img/path-tracing/blender-barcelona-appearance.png": "23be68a11290fe4be39b751052a573d12d865351b1523fb9bcd35281709fa2f7",
+      "img/path-tracing/blender-barcelona-appearance-raw.png": "0230071ffe987db3e53bcae90cea41e35c8343d0172a6a037f87e511abc53ec5"
+    }
+  },
+  "checks": {
+    "metal_pt_ctest": "7/7; total 32.27 s; native sky 29.69 s",
+    "vulkan_pt_ctest": "7/7; total 36.91 s; native sky 34.81 s",
+    "asan_ubsan_ctest": "4/4; total 68.68 s; CPU 57.36 s",
+    "development_retry": "Earlier concurrent sanitizer run hit 60 s CPU timeout; standalone retry passed in 55.27 s; final post-fix suite passed all four without retry",
+    "blender_export_integration": "Blender 4.5.14 LTS; actual bake: independent R/T encodings, corner tangent sidecar, normal/UV orientation, coverage/ORM, volumes, hidden emitter instance retention",
+    "analytic_cpu": "8 mirror/UV/backface/nonuniform corner-frame combinations; 32768 R+T white-furnace samples and lobe probabilities; backside point-light NEE; no medium stack",
+    "gpu_native": "corner tangents on shared mirrored/nonuniform instances, brute force and CPU ray comparison; thin diffuse transmission texture + backside direct/indirect lighting"
+  },
+  "limitations": [
+    "Source Glossy / Layer Weight layers and node groups remain approximated.",
+    "Export clamps and normalizes per-channel R+T before 8-bit encoding; manually authored closure inputs must be energy reasonable.",
+    "Thin diffuse is a surface Lambert BTDF, not leaf volume BSSRDF or refraction.",
+    "Thin diffuse BDPT strategies are explicitly rejected until densities are validated; GPU radiance cache excludes its tail.",
+    "Legacy packages without corner frames retain the existing triangle UV fallback.",
+    "CPU wall-clock timings include concurrent workload and are not hardware GPU timestamps or a performance ranking.",
+    "Full-scene Cycles raw errors and the small fixture residual are not claimed to be fully explained by finite sample noise."
+  ]
+}

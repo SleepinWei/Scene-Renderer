@@ -52,9 +52,14 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--metal', action='store_true')
+    parser.add_argument('--shader', action='append', help='Cook only these shader filenames (repeatable)')
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
     root = Path(__file__).resolve().parents[1] / 'src/rhi/shaders'
+    if args.shader:
+        for name in args.shader:
+            if Path(name).name!=name or Path(name).suffix not in ('.vert','.frag','.comp') or not (root/name).is_file():
+                parser.error('Unknown shader filename: '+name)
     recipe=Path(__file__).read_bytes()+str(args.metal).encode()
     for tool in (['glslangValidator','--version'],['spirv-cross','--version']):
         version=subprocess.run(tool,capture_output=True,check=False);recipe+=version.stdout+version.stderr
@@ -68,6 +73,8 @@ def main():
         return result
     for src in sorted(root.iterdir()):
         if src.suffix not in ('.vert', '.frag', '.comp'):
+            continue
+        if args.shader and src.name not in args.shader:
             continue
         name = args.output / src.name
         spv = Path(str(name) + '.spv')

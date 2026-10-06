@@ -1,0 +1,18 @@
+Blender benchmark scenes
+=======================
+Official source and license listing (checked 2026-10-05):
+https://www.blender.org/download/demo-files/
+
+Classroom: Christophe Seux, CC0.
+https://download.blender.org/demo/test/classroom.zip
+
+Barcelona Pavilion: eMirage / Hamza Cheggour, CC-BY.
+https://download.blender.org/demo/test/pabellon_barcelona_v1.scene_.zip
+The official listing does not specify a CC-BY version; no version is assumed.
+Rendered examples credit the creator and identify the conversion changes.
+
+Changes by SceneRenderer: evaluated geometry/instances exported to a frozen
+package; selected shader color graphs baked into UV atlases; shader closures,
+lights and display transform adapted to the current renderer. Full Cycles shader,
+compositor and physical/material equivalence are not claimed. Raw source archives
+and large derived geometry/texture packages are downloaded locally outside Git.

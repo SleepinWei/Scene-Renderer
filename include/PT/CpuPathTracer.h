@@ -8,6 +8,7 @@
 #include <string>
 
 namespace pt {
+class PhotonMap;
 struct EnvironmentSample { glm::vec3 direction, radiance; float pdf = 0; };
 class Environment {
   public:
@@ -30,10 +31,14 @@ class Environment {
 struct Surface {
     glm::vec3 position{0}, geometricNormal{0,1,0}, normal{0,1,0};
     glm::vec3 albedo{1}, emission{0};
+    glm::vec3 diffuseTransmission{0};
+    glm::vec3 diffuseNormal{0}, smoothNormal{0}; // Zero uses normal / disables bump shadowing for synthetic surfaces.
     glm::vec2 uv{0};
     float metallic = 0, roughness = .5f, opacity = 1, distance = 0, ior = 0;
+    uint32_t bsdfModel = 0;
     bool twoSided = false;
     bool water = false;
+    bool thinDielectric = false; // Smooth parallel sheet; no medium transition.
     float foam = 0;
     glm::vec3 absorption{0};
     float exteriorIor=1;
@@ -48,6 +53,11 @@ struct MediumInfo {uint32_t id=0,kind=0;float ior=1;Medium volume;float roughnes
 struct EmitterSample {Surface surface;float pdfArea=0;};
 struct BsdfSample { glm::vec3 direction{0}, value{0}; float pdf = 0; bool delta=false, transmission=false; };
 float dielectricFresnel(float cosine,float etaI,float etaT);
+float thinDielectricReflectance(float cosine,float exteriorIor,float sheetIor);
+glm::vec3 correctedReflectionNormal(glm::vec3 geometric,glm::vec3 view,glm::vec3 shading);
+// evaluateBsdf and sample values use this cosine measure; controlled closures
+// integrate each lobe normal against a shared geometric measure.
+float surfaceCosine(const Surface &, glm::vec3 light);
 glm::vec3 evaluateBsdf(const Surface &, glm::vec3 view, glm::vec3 light,TransportMode = TransportMode::Radiance);
 float bsdfPdf(const Surface &, glm::vec3 view, glm::vec3 light);
 BsdfSample sampleBsdf(const Surface &, glm::vec3 view, Random &,TransportMode = TransportMode::Radiance);
@@ -55,12 +65,22 @@ struct Options {
     uint32_t width = 640, height = 480, samples = 64, maxDepth = 8, threads = 0;
     uint64_t seed = 1;
     float exposure = 1;
-    bool sobol = true, adaptive = true, waterSunProposal = true;
+    bool sobol = true, adaptive = true, waterSunProposal = true, thinSunProposal = true;
     uint32_t minimumSamples = 64;
     float relativeError = .03f, absoluteError = .0005f;
     bool guiding = false, radianceCache = false, bdpt = false;
+    bool photonMapping = false;
+    uint32_t photonPaths = 200000, gpuBatchSamples = 8;
+    bool shadowAnyHit = true;
+    float photonRadius = .08f;
     uint32_t trainingSamples = 64, cacheMinimum = 64, cacheDepth = 2;
     float guideCellSize = 0;
+    uint32_t checkpointSamples = 256; // Fixed-spp film readback/save interval; adaptive checks stay at 32 spp.
+};
+struct AccelerationStats {
+    uint64_t uniqueMeshes=0,uniqueTriangles=0,instances=0,expandedTriangles=0,blasNodes=0,tlasNodes=0;
+    uint64_t geometryBytes=0,blasBytes=0,tlasBytes=0,instanceBytes=0,emitterBytes=0;
+    double geometrySeconds=0,blasSeconds=0,tlasSeconds=0,emitterSeconds=0,cameraMediaSeconds=0,totalSeconds=0;
 };
 struct Image {
     uint32_t width = 0, height = 0, samples = 0;
@@ -72,6 +92,8 @@ struct Image {
     double seconds = 0, setupSeconds = 0;
     uint64_t gpuBufferBytes = 0;
     double trainingSeconds = 0;
+    double photonSeconds = 0;
+    uint64_t photonRays = 0, storedPhotons = 0, causticPhotons = 0, photonBytes = 0;
     uint64_t trainingRays = 0, guideHits = 0, cacheHits = 0;
     uint32_t trainedCells = 0;
     float guideCellSize = 0;
@@ -79,6 +101,8 @@ struct Image {
     std::string denoiser, denoiseDevice;
     double denoiseSeconds = 0;
     bool denoiseAuxiliary = false;
+    double sceneExportSeconds=0,dispatchSeconds=0,readbackSeconds=0,filmUpdateSeconds=0,checkpointSeconds=0;
+    uint64_t dispatches=0,readbacks=0,readbackBytes=0;
 };
 class CpuScene {
   public:
@@ -93,7 +117,8 @@ class CpuScene {
     bool intersect(glm::vec3 origin, glm::vec3 direction, float minimum, float maximum,
                    Surface &, bool bruteForce = false) const;
     glm::vec3 trace(glm::vec3 origin, glm::vec3 direction, Random &, uint32_t maxDepth,
-                    uint64_t &rays,uint64_t *volumeEvents=nullptr,bool waterSunProposal=true) const;
+                    uint64_t &rays,uint64_t *volumeEvents=nullptr,bool waterSunProposal=true,bool thinSunProposal=true,
+                    const PhotonMap *photons=nullptr,bool shadowAnyHit=true,glm::vec3 *caustics=nullptr) const;
     void cameraRay(float u, float v, glm::vec3 &origin, glm::vec3 &direction) const;
     SceneData exportData() const;
     EmitterSample sampleEmitter(Random &) const;
@@ -101,14 +126,22 @@ class CpuScene {
     float cameraPdf(glm::vec3 direction) const;
     bool project(glm::vec3 point,glm::vec2 &uv,float &pdf) const;
     void validateBidirectional() const;
+    bool intersectsAny(glm::vec3 origin,glm::vec3 direction,float minimum,float maximum) const;
+    bool intersectShadow(glm::vec3 origin,glm::vec3 direction,float minimum,float maximum,Surface &transparent,bool &opaque) const;
+    bool opaqueShadows() const;
+    void validatePhotonMapping() const;
+    std::pair<glm::vec3,glm::vec3> bounds() const;
     size_t triangles() const;
     size_t meshCount() const;
     size_t dielectricCount() const;
     size_t nodeCount() const;
     size_t memoryBytes() const;
+    AccelerationStats accelerationStats() const;
     size_t proceduralCount(uint32_t kind) const;
     float capturedTime() const;
     size_t scatteringCount() const;
+    // Up to eight area-ranked world-space sheet orientations; sampling hints only.
+    const std::vector<glm::vec3> &thinSolarNormals() const;
     std::vector<MediumInfo> media() const;
     std::array<uint32_t,8> initialMedia(glm::vec3 origin,std::array<uint32_t,8> *winding=nullptr) const;
     glm::vec3 initialAbsorption(glm::vec3 origin) const;

@@ -1,0 +1,244 @@
+{
+  "date": "2026-10-06",
+  "device": "Apple M4",
+  "build": "Release -O3",
+  "pool_benchmark": {
+    "backend": "Metal",
+    "size": "128x96",
+    "bounces": 8,
+    "reference": "pure PT seed 77, no OIDN or clamping; finite-sample reference, not exact GT",
+    "settings": {
+      "pt_samples": 128,
+      "reference_samples": 4096,
+      "photon_samples": 16,
+      "photon_paths": 1000000,
+      "photon_radius": 0.08,
+      "approximately_matched_pt_samples": 416
+    },
+    "bias": "fixed photon count/radius; camera spp cannot eliminate photon density bias/noise",
+    "deterministic_any_hit_and_batch_match": true,
+    "variants": {
+      "reference": {
+        "rmse": 0.0,
+        "relative_l1": 0.0,
+        "mean_ratio": 1.0,
+        "render_prepare_seconds": 7.176483417,
+        "process_seconds": 7.270152708,
+        "rays": 210372623,
+        "photon_rays": 0,
+        "photon_seconds": 0.0,
+        "stored_photons": 0,
+        "caustic_photons": 0,
+        "dispatches": 513
+      },
+      "closest": {
+        "rmse": 1.4933737992862022,
+        "relative_l1": 0.7030940192242725,
+        "mean_ratio": 1.0147966290861687,
+        "render_prepare_seconds": 0.247302707,
+        "process_seconds": 0.3090924590000004,
+        "rays": 6583056,
+        "photon_rays": 0,
+        "photon_seconds": 0.0,
+        "stored_photons": 0,
+        "caustic_photons": 0,
+        "dispatches": 32
+      },
+      "any-hit": {
+        "rmse": 1.4933737992862022,
+        "relative_l1": 0.7030940192242725,
+        "mean_ratio": 1.0147966290861687,
+        "render_prepare_seconds": 0.24376308400000002,
+        "process_seconds": 0.3102199999999993,
+        "rays": 6583056,
+        "photon_rays": 0,
+        "photon_seconds": 0.0,
+        "stored_photons": 0,
+        "caustic_photons": 0,
+        "dispatches": 32
+      },
+      "batch8": {
+        "rmse": 1.4933737992862022,
+        "relative_l1": 0.7030940192242725,
+        "mean_ratio": 1.0147966290861687,
+        "render_prepare_seconds": 0.24384820899999998,
+        "process_seconds": 0.30843020800000076,
+        "rays": 6583056,
+        "photon_rays": 0,
+        "photon_seconds": 0.0,
+        "stored_photons": 0,
+        "caustic_photons": 0,
+        "dispatches": 17
+      },
+      "batch16": {
+        "rmse": 1.4933737992862022,
+        "relative_l1": 0.7030940192242725,
+        "mean_ratio": 1.0147966290861687,
+        "render_prepare_seconds": 0.228605333,
+        "process_seconds": 0.2917256659999996,
+        "rays": 6583056,
+        "photon_rays": 0,
+        "photon_seconds": 0.0,
+        "stored_photons": 0,
+        "caustic_photons": 0,
+        "dispatches": 9
+      },
+      "photon-seed1": {
+        "rmse": 0.2532935015509421,
+        "relative_l1": 0.29575563654717285,
+        "mean_ratio": 0.9765365131586013,
+        "render_prepare_seconds": 0.792725751,
+        "process_seconds": 0.867258541,
+        "rays": 356213,
+        "photon_rays": 3436782,
+        "photon_seconds": 0.595977584,
+        "stored_photons": 831992,
+        "caustic_photons": 562478,
+        "dispatches": 3
+      },
+      "photon-seed2": {
+        "rmse": 0.2537615165779412,
+        "relative_l1": 0.29640022293590873,
+        "mean_ratio": 0.9748093438528551,
+        "render_prepare_seconds": 0.779914499,
+        "process_seconds": 0.8529235419999992,
+        "rays": 356115,
+        "photon_rays": 3433587,
+        "photon_seconds": 0.586221292,
+        "stored_photons": 830746,
+        "caustic_photons": 562215,
+        "dispatches": 3
+      },
+      "matched-pt-seed1": {
+        "rmse": 0.687530101766406,
+        "relative_l1": 0.4915943640848822,
+        "mean_ratio": 0.9434634161649743,
+        "render_prepare_seconds": 0.748843917,
+        "process_seconds": 0.8148985419999999,
+        "rays": 21370728,
+        "photon_rays": 0,
+        "photon_seconds": 0.0,
+        "stored_photons": 0,
+        "caustic_photons": 0,
+        "dispatches": 53
+      },
+      "matched-pt-seed2": {
+        "rmse": 0.7185073276789179,
+        "relative_l1": 0.5064587206745029,
+        "mean_ratio": 0.9439292622213334,
+        "render_prepare_seconds": 0.740714417,
+        "process_seconds": 0.8062917089999999,
+        "rays": 21370145,
+        "photon_rays": 0,
+        "photon_seconds": 0.0,
+        "stored_photons": 0,
+        "caustic_photons": 0,
+        "dispatches": 53
+      }
+    }
+  },
+  "tests": {
+    "release_pt": "6/6 passed",
+    "asan_ubsan_existing": "4/4 passed, 111.90 s",
+    "asan_ubsan_photon": "1/1 passed, 43.22 s",
+    "native_metal": "passed",
+    "native_vulkan": "passed via MoltenVK; Khronos validation layer unavailable",
+    "main_cpu_pool_cli": "passed"
+  },
+  "analytic_flat_water_mean_ratio": [
+    0.987874,
+    0.987871,
+    0.98787
+  ],
+  "limits": [
+    "fixed-radius biased photon map",
+    "4096 spp pure PT reference remains noisy; not exact GT",
+    "pool is a frozen analytic two-wave mesh, not FFT",
+    "volume scattering, thin/mixed-alpha, controlled Blender closures and analytic local lights not supported by photon emission/gather"
+  ],
+  "classroom_benchmark": {
+    "backend": "Metal",
+    "size": "128x72",
+    "bounces": 12,
+    "reference": "pure PT seed 77, no OIDN or clamping; finite-sample reference, not exact GT",
+    "settings": {
+      "pt_samples": 256,
+      "reference_samples": 512,
+      "photon_samples": 16,
+      "photon_paths": 1000000,
+      "photon_radius": 0.08,
+      "approximately_matched_pt_samples": null
+    },
+    "bias": null,
+    "deterministic_any_hit_and_batch_match": true,
+    "variants": {
+      "reference": {
+        "rmse": 0.0,
+        "relative_l1": 0.0,
+        "mean_ratio": 1.0,
+        "render_prepare_seconds": 13.400739208000001,
+        "process_seconds": 13.86281425,
+        "rays": 135405738,
+        "photon_rays": 0,
+        "photon_seconds": 0.0,
+        "stored_photons": 0,
+        "caustic_photons": 0,
+        "dispatches": 65
+      },
+      "closest": {
+        "rmse": 2.805594194945138,
+        "relative_l1": 0.3741081892199968,
+        "mean_ratio": 0.9819920285386388,
+        "render_prepare_seconds": 8.62872725,
+        "process_seconds": 8.940521250000002,
+        "rays": 68204634,
+        "photon_rays": 0,
+        "photon_seconds": 0.0,
+        "stored_photons": 0,
+        "caustic_photons": 0,
+        "dispatches": 64
+      },
+      "any-hit": {
+        "rmse": 2.805594194945138,
+        "relative_l1": 0.3741081892199968,
+        "mean_ratio": 0.9819920285386388,
+        "render_prepare_seconds": 6.7341955,
+        "process_seconds": 7.035161666999997,
+        "rays": 67703900,
+        "photon_rays": 0,
+        "photon_seconds": 0.0,
+        "stored_photons": 0,
+        "caustic_photons": 0,
+        "dispatches": 64
+      },
+      "batch8": {
+        "rmse": 2.805594194945138,
+        "relative_l1": 0.3741081892199968,
+        "mean_ratio": 0.9819920285386388,
+        "render_prepare_seconds": 6.701621084,
+        "process_seconds": 7.019455084000004,
+        "rays": 67703900,
+        "photon_rays": 0,
+        "photon_seconds": 0.0,
+        "stored_photons": 0,
+        "caustic_photons": 0,
+        "dispatches": 33
+      },
+      "batch16": {
+        "rmse": 2.805594194945138,
+        "relative_l1": 0.3741081892199968,
+        "mean_ratio": 0.9819920285386388,
+        "render_prepare_seconds": 6.676813875,
+        "process_seconds": 6.996312875000001,
+        "rays": 67703900,
+        "photon_rays": 0,
+        "photon_seconds": 0.0,
+        "stored_photons": 0,
+        "caustic_photons": 0,
+        "dispatches": 17
+      }
+    },
+    "scene": "samples/assets/blender/classroom/scene.json"
+  },
+  "timing_method": "Serial variants, one timed render each, process/setup/render reported, no concurrent builds or tests; timings vary with thermal state. Approximately matched budgets are not exactly equal."
+}

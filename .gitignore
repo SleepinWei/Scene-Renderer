@@ -77,6 +77,7 @@ imgui.ini
 /samples/assets/benchmarks/
 /samples/assets/pt/
 /samples/assets/terrain/
+/samples/assets/blender/
 *.zip
 *.rar
 *.nupkg

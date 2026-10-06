@@ -30,6 +30,7 @@ ctest --test-dir build -R '^pt-' --output-on-failure
 | 参数 | 默认值 | 含义 |
 | --- | --- | --- |
 | `--pt-sampler sobol/pcg` | sobol | CPU 可切换；GPU 当前使用 Sobol |
+| `--pt-checkpoint-samples N` | 256 | 固定 spp 的 film 读回／保存间隔，首轮 4／16 spp；自适应检查保持 32 spp，CPU BDPT 保持原有间隔 |
 | `--pt-adaptive` / `--pt-fixed` | adaptive | 按误差指标提前停止，或每个像素完整运行指定 spp |
 | `--pt-min-samples N` | 64 | 允许提前停止前的最小样本数 |
 | `--pt-error R` | 0.03 | 相对于线性 RGB 均值的误差阈值 |
@@ -63,9 +64,9 @@ flowchart LR
     F --> G[Checkpoint 读回：PNG、PFM、AOV、JSON]
 ```
 
-GPU 首版采用软件 BVH compute 路径。CPU 构建二叉 SAH BVH，GPU 每个 invocation 处理一个像素，8×8 workgroup；每次 dispatch 最多推进 4 spp，checkpoint 读回。GPU 遍历使用深度上限 60、64 个槽的私有栈，按近 child 优先；退化三角形与 alpha mask 处理与 CPU 相同。纹理通过去重后的 RGBA8 texel buffer、descriptor 和显式双线性采样读取，保留原材质通道与 UV 约定。
+GPU 首版采用软件 BVH compute 路径。CPU 构建二叉 SAH BVH，GPU 每个 invocation 处理一个像素，8×8 workgroup；默认每次 dispatch 推进最多 8 spp，可通过 `--pt-gpu-batch-samples 1..64` 调整；checkpoint 读回独立控制。混合透明阴影可在不透明遮挡处提前退出，保留未遮挡薄片／alpha 的最近交点透射。GPU 遍历使用深度上限 60、64 个槽的私有栈，按近 child 优先；退化三角形与 alpha mask 处理与 CPU 相同。纹理通过去重后的 RGBA8 texel buffer、descriptor 和显式双线性采样读取，保留原材质通道与 UV 约定。
 
-数据有显式 ABI 断言：顶点 32 字节、BVH 节点 32 字节、三角形 16 字节、材质 128 字节、发光面 32 字节、累积像素 80 字节、参数块 288 字节。shader 经项目现有 GLSL→SPIR-V→MSL 工具链生成，C++ RHI 校验反射和绑定；资源创建、提交、读回均在设备拥有线程执行。单个 buffer 超过设备 storage range 会报错，不截断场景。
+数据有显式 ABI 断言：顶点 48 字节、BVH 节点 32 字节、实例 160 字节、三角形 16 字节、材质 192 字节、发光面 32 字节、累积像素 80 字节、参数块 464 字节。可选 photon mapping 的光子／单元为 64／32 字节，使用第三个绑定组，普通 PT 不改变 film 大小。shader 经项目现有 GLSL→SPIR-V→MSL 工具链生成，C++ RHI 校验反射和绑定；资源创建、提交、读回均在设备拥有线程执行。单个 buffer 超过设备 storage range 会报错，不截断场景。
 
 ## 验证与测量
 
@@ -105,3 +106,5 @@ Apple M4/macOS Release、320×240、256 spp 预算、16 次反弹、seed 1、曝
 水体／玉石的 RGB 体积输运、HG 和介质栈现已接入同一 CPU／Metal／Vulkan 内核，见 [随机游走 BSSRDF](path-tracing-subsurface.md)。体积场景暂禁用 GPU guiding/cache；surface BDPT 尚未覆盖体积策略和 MIS。
 
 介电边界现支持各向同性 GGX VNDF 反射／折射，与 CPU 共用相同数学和随机维度约定。`PackedMaterial.absorption.w` 存储独立介电 roughness，128 字节 ABI 不变；玉石默认 0.22、水体默认 0。粗糙边界参与 NEE／MIS，透射阴影段选择出射侧介质。实现、对照及限制见 [粗糙介电说明](path-tracing-rough-dielectric.md)，原生 RT 求交仍在 [后续计划](path-tracing-appearance-plan.md) 中。
+
+2026-10-05：CPU／Metal／Vulkan compute 求交已改为共享几何 BLAS＋实例 TLAS。完整 Barcelona 植被、内存、前后原始图与阶段计时见 [实例验收](blender-path-tracing.md#共享-blastlas-与完整植被)。当前仍为软件遍历；GPU 提交／读回计时属于 CPU 墙钟，可包含等待，不是硬件 GPU kernel 时间。

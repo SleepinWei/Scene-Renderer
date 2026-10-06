@@ -1,0 +1,92 @@
+{
+  "width": 192,
+  "height": 96,
+  "domain": "raw scene-linear RGB, no exposure fitting or pixel alignment",
+  "metrics": {
+    "mean_absolute_rgb": 0.0006571472422365332,
+    "relative_rgb_l1": 0.0058211005418444635,
+    "rgb_rmse": 0.017868947394535192,
+    "total_rgb_energy_ratio": 0.9997280208144949,
+    "mean_signed_rgb": [
+      -0.00019095280246498683,
+      4.581553861903053e-05,
+      5.302562426044865e-05
+    ],
+    "maximum_absolute_component": 2.112255096435547
+  },
+  "block4_metrics": {
+    "mean_absolute_rgb": 0.0004948580445435018,
+    "relative_rgb_l1": 0.004383520535556661,
+    "rgb_rmse": 0.00454387971832051,
+    "total_rgb_energy_ratio": 0.9997280208144949,
+    "mean_signed_rgb": [
+      -0.00019095280246498683,
+      4.581553861903053e-05,
+      5.302562426044865e-05
+    ],
+    "maximum_absolute_component": 0.13273507449775934
+  },
+  "render_settings": {
+    "width": 192,
+    "height": 96,
+    "samples": 4096,
+    "max_depth": 24,
+    "seed": 1
+  },
+  "comparison": {
+    "manifest": "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/path-tracing/appearance/fixture-matched/scene.json",
+    "manifest_sha256": "1a43251b1fdc029adb902e22ab631048bbde57223f5e7840e59cd1eadca0e29d",
+    "comparison": {
+      "profile": "ggx-water",
+      "normal_maps": true,
+      "finite_sun": true,
+      "solid_interface_tint": "white",
+      "source_manifest_sha256": "6e6532643e0b2b8aaee00ca0e4d00077fd510e1d1b06b8171b4da1ef5521afdb",
+      "assets_sha256": {
+        "color-opaque-0000.png": "18fe2124c4733784b261b1b754367bc1ece093e79b58db4ddf1694507ef6aff9",
+        "color-opaque-0001.png": "2ff1d0a205a3cbe75034a00db493f63b71a138e294aa19eb9a351dfc9ee87dbe",
+        "color-opaque-0002.png": "2ff1d0a205a3cbe75034a00db493f63b71a138e294aa19eb9a351dfc9ee87dbe",
+        "environment.bin": "a6addcc321ead3b5abdba22984da076d366d10f574f79e9b2294e7635076bc02",
+        "geometry.bin": "7c22431fdf14aa7f03f8e93a4c3e041c03b955bb4cfac421f85cd8ff1423bbb8",
+        "normal-0000.png": "3f6c26296da59f907d8cd6abf66a6d53afb8a69d1e7a75278797137c7a566432",
+        "normal-0001.png": "23fa49010d33fe53468bd27bf3a27c159a298db0dc9e5aa4a58b2be9555118f6",
+        "normal-0002.png": "23fa49010d33fe53468bd27bf3a27c159a298db0dc9e5aa4a58b2be9555118f6",
+        "orm-0000.png": "d1bec89e76eed3913db506b026f247c0d83e3c45179be3cbd1d60207c0df1c62",
+        "orm-0001.png": "d1bec89e76eed3913db506b026f247c0d83e3c45179be3cbd1d60207c0df1c62",
+        "orm-0002.png": "d1bec89e76eed3913db506b026f247c0d83e3c45179be3cbd1d60207c0df1c62",
+        "tangents.bin": "257f7030010f3f9b0267399f3bf8bee1947c68a57c713b4c8dd184749447204d",
+        "transmission-0002.png": "427b6ca69e784db9c6086b98c6953a3e66db6542d166d95353d473f3ec80944e"
+      },
+      "contract": "same frozen object-space geometry, transforms, camera, UVs, byte textures, environment and optics; corner MikkTSpace frames when exported; white solid dielectric interfaces; ggx_add uses .96*(1-metallic)*albedo Lambert + mix(.04,albedo,metallic) single-scatter correlated Smith GGX; thin_diffuse uses separately baked Lambert reflection + transmission; source Cycles layered closures not preserved"
+    },
+    "draws": 4,
+    "unique_meshes": 4,
+    "triangles": 2882,
+    "camera_projection_max_error": 4.76837158203125e-07,
+    "limits": [
+      "controlled closures rather than original Cycles source graphs",
+      "single-scatter GGX + Lambert exact constant-color closure model; no Schlick Fresnel in ggx_add",
+      "thin_diffuse is Lambert reflection + transmission, without glossy/Layer Weight layers",
+      "solid Glass requires untinted interface; volumetric absorption retained",
+      "native Cycles sampling, roulette and ray offsets differ"
+    ]
+  },
+  "render_seconds": {
+    "engine": 8.853976,
+    "cycles": 62.063821334159
+  },
+  "sidecars_sha256": {
+    "build/path-tracing/grazing/final-fixture-ggx.json": "1034c6c02344ae3536a0d0fe74b4838d511cf8c3179da4e65296c9bed09d90dc",
+    "build/path-tracing/appearance/fixture-cycles.json": "47cf823260937af4a76124175ef8118618f682ed3496417a79175ea61a776c66"
+  },
+  "regions": {},
+  "inputs": {
+    "build/path-tracing/grazing/final-fixture-ggx.pfm": "40e768d9d18cce84e46dca51e5a3030bce83df7f923f6199964dabc5bcc170d6",
+    "build/path-tracing/appearance/fixture-cycles.pfm": "ea8b452d9029820c759b963ee08e5561193a417e1234369e2632316c5b81992f"
+  },
+  "limits": [
+    "finite samples; a seed pair estimates noise, not a bound on systematic error",
+    "regional rectangles include mixed geometry, not semantic masks",
+    "controlled package closures, not original Blender source shaders"
+  ]
+}

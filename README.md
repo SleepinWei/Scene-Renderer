@@ -88,7 +88,7 @@ The comparison shows PCF, PCSS with the default sun, and PCSS with a larger ligh
 
 ### Path tracing, caustics, and subsurface scattering
 
-CPU/Metal/Vulkan path tracing supports multiple bounces, textured materials, refraction, and random walks in homogeneous media. CPU BDPT renders smooth-glass caustics. Procedural terrain, vegetation, and FFT water can be frozen into offline scenes. The images below use Open Image Denoise (OIDN).
+CPU/Metal/Vulkan path tracing supports multiple bounces, textured materials, refraction, and random walks in homogeneous media. CPU BDPT renders smooth-glass caustics. Procedural terrain, vegetation, and FFT water can be frozen into offline scenes. Unless marked as raw photon mapping, the images below use Open Image Denoise (OIDN).
 
 The architectural and natural scenes shown above also have path-traced results. Sponza and San Miguel use Metal PT at 320×240, 64 spp, and 16 bounces; terrain, lake, and ocean captures use Metal PT at 640×480 with procedural animation frozen at 8 seconds. Sampling settings and raw images are available in the [path-tracing gallery](docs/rendering-gallery.md#路径追踪).
 
@@ -99,6 +99,18 @@ The architectural and natural scenes shown above also have path-traced results. 
 | Stanford Dragon: CPU BDPT glass caustics + OIDN | Jade Dragon: Metal PT subsurface scattering + OIDN |
 | --- | --- |
 | ![Glass Stanford Dragon and caustics](img/path-tracing/dragon-glass.png) | ![Polished jade dragon](img/path-tracing/jade-polished-boundary.png) |
+
+| Sunlit pool floor: Metal photon mapping + OIDN | Swimming pool above water: Metal photon mapping + OIDN |
+| --- | --- |
+| ![Sunlit pool floor caustics](img/path-tracing/pool-sunlit-underwater.png) | ![Sunlit swimming pool caustics](img/path-tracing/pool-sunlit.png) |
+
+Short ripples and a 0.266° sun radius produce clear caustic lines on pale blue tiles: 4M light paths, 64 spp, radius 0.025. The water uses a frozen analytic ripple mesh. [Raw closeup](img/path-tracing/pool-sunlit-underwater-raw.png) · [Flat-water control](img/path-tracing/pool-sunlit-flat.png) · [Reproduction and validation](docs/path-tracing-photon-mapping.md#晴天泳池更明显的网状亮纹).
+
+| Pool: Metal photon mapping, 1M light paths + 32 spp, raw | Refractive caustic contribution, raw |
+| --- | --- |
+| ![Pool floor photon caustics](img/path-tracing/pool-photon.png) | ![Pool refractive caustics AOV](img/path-tracing/pool-photon-caustics.png) |
+
+The pool uses a frozen analytic wave mesh. The fixed-radius photon map is biased; CPU/Metal/Vulkan share the same photon data. [Reproduction, validation, and PT acceleration](docs/path-tracing-photon-mapping.md).
 
 | Terrain and grass: Metal PT + OIDN, 128 spp | Mountain Lake: Metal PT + OIDN, 128 spp |
 | --- | --- |
@@ -111,6 +123,30 @@ The architectural and natural scenes shown above also have path-traced results. 
 Beach textures are sampled at world scale; underwater solar paths use a BSDF/phase mixture proposal without changing the sun or exposure. [Raw beach](img/path-tracing/pt-mountain-lake-beach-raw.png) · [Raw shallow water](img/path-tracing/pt-ocean-clear-raw.png) · [Fix and validation](docs/path-tracing-procedural.md#水下太阳路径采样).
 
 ![Path-traced FFT rough ocean: Metal PT + OIDN, 256 spp](img/path-tracing/pt-ocean.png)
+
+### Blender test scenes
+
+Blender's official Classroom and Barcelona Pavilion scenes are imported offline, rendered with this project's Metal path tracer, and denoised with OIDN. See [assets, material conversion, and validation](docs/blender-path-tracing.md).
+
+| Classroom | Barcelona Pavilion |
+| --- | --- |
+| ![Classroom Metal PT + OIDN](img/path-tracing/blender-classroom-materials.png) | ![Barcelona Pavilion pool: Metal PT + OIDN](img/path-tracing/blender-barcelona-water.png) |
+
+Barcelona now imports Bump/Normal Map atlases and dielectric roughness textures, with bounded pool reflection, refraction, and RGB absorption. Hidden particle emitters and reflected texture UVs are fixed. The pool uses an explicit artistic profile (IOR 1.333, depth 0.5 world units); the original water parameters remain available. [Raw preview](img/path-tracing/blender-barcelona-water-raw.png) · [Reproduction and limits](docs/blender-path-tracing.md#barcelona-材质与池水) · [Validation](img/path-tracing/blender-water-validation.json).
+
+CPU, Metal and Vulkan use **shared geometry BLAS/TLAS**. The latest Barcelona export retains all **20,622 vegetation particles**, representing roughly **55 million instance triangles**. Revision 5 adds Blender corner MikkTSpace frames and separately baked thin-leaf diffuse reflection/transmission. Its CPU geometry/acceleration payload is **54.4 MiB**. This 640×360, 256 spp Metal preview uses OIDN. [Raw image](img/path-tracing/blender-barcelona-thin-raw.png) · [Material validation and reproduction](docs/blender-path-tracing.md#薄玻璃太阳反射链).
+
+![Barcelona full vegetation and thin-leaf transmission: Metal PT + OIDN](img/path-tracing/blender-barcelona-thin.png)
+
+Blender Cycles source-scene GT uses 1024 spp, the original materials and full vegetation, with denoising, intensity clamping, and glossy filtering disabled. The older engine previews use a reduced particle budget; the full-instance preview above still uses a different pool/material profile; see [the comparison and linear reference](docs/blender-path-tracing.md#blender-cycles-gt).
+
+![Barcelona source-scene GT: Blender Cycles, 1024 spp](img/path-tracing/blender-barcelona-cycles-gt.png)
+
+A separate **matched Cycles comparison** reconstructs the same frozen geometry, 512 particles, camera, textures, lights, GGX closures, thin glass and bounded pool. At 320×180, 4096 spp and depth 24, raw Metal/Cycles total RGB energy differs by **0.067%**; pixel differences still contain reflection noise. Original Blender shader graphs and normal maps are outside this controlled baseline. [Measurements, independent-seed noise and reproduction](docs/blender-path-tracing.md#同参数-cycles-线性对照).
+
+Per-lobe normals and bump shadowing reduce small-scene raw Metal/Cycles RGB L1 from **0.838% to 0.290%** for Lambert/leaves and **2.662% to 0.582%** for GGX/leaves (192×96, 4096 spp). Solar proposals reduce full-instance Barcelona L1 from **4.67% → 3.53% → 2.98%** (water, then thin-sheet reflection; 160×90 / 512 spp, seed 1). The thin-glass outlier drops from **29.06 to 0.0656** (Cycles **0.0462**), with RGB RMSE **0.156 → 0.049**. Seed 2 L1 rises slightly from **3.07% to 3.19%**; pool/leaf rare paths and original layered materials remain. Cached scene counts give **1.58×** in a separate single-thread trace microbenchmark. [Latest validation and limits](img/path-tracing/blender-thin-validation.json).
+
+![Full Barcelona with normal maps: Metal raw, Cycles raw, linear absolute error](img/path-tracing/blender-barcelona-thin-matched.png)
 
 ## System overview
 

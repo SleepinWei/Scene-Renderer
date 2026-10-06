@@ -1,0 +1,140 @@
+{
+  "date": "2026-10-05",
+  "platform": "Apple M4, macOS arm64, Blender Cycles CPU",
+  "renderer_script": "tools/render_blender_reference.py",
+  "renderer_script_sha256": "fdc1dbc19aa64c5d1d0a2fd0da3290a4112b11f378932ac167387f4af137b5a7",
+  "source": {
+    "name": "barcelona",
+    "blend": "pavillon_barcelone_v1.2.blend",
+    "sha256": "0a85bf512329f1780563069512b934d679a6c543eeb1a4ec4f60cddeab706697",
+    "scene": "2- time: sunset",
+    "camera": "Camera",
+    "frame": 1,
+    "url": "https://download.blender.org/demo/test/pabellon_barcelona_v1.scene_.zip",
+    "author": "eMirage / Hamza Cheggour",
+    "license": "CC-BY (version not specified by the official download page)",
+    "source": "https://www.blender.org/download/demo-files/",
+    "archive_sha256": "0a85bf512329f1780563069512b934d679a6c543eeb1a4ec4f60cddeab706697",
+    "blend_sha256": "92162db8cabcd03641c53df95554b604b494ba74a76a099c7e06637e9379120a"
+  },
+  "GT": {
+    "kind": "Cycles source-scene finite-sample reference",
+    "blender_version": "4.5.14 LTS",
+    "source_blend": "pavillon_barcelone_v1.2.blend",
+    "source_blend_sha256": "92162db8cabcd03641c53df95554b604b494ba74a76a099c7e06637e9379120a",
+    "scene": "2- time: sunset",
+    "camera": "Camera",
+    "frame": 1,
+    "width": 640,
+    "height": 360,
+    "samples": 1024,
+    "max_depth": 24,
+    "seed": 1,
+    "threads": 8,
+    "material_conversion": false,
+    "particle_budget": false,
+    "denoise": false,
+    "compositor": false,
+    "source_view_transform": "Standard",
+    "source_look": "None",
+    "source_view_exposure": 0.0,
+    "source_view_gamma": 1.0,
+    "project_display_mapping": "(1-exp(-max(scene_linear_RGB,0)))^(1/2.2), exposure=1",
+    "limits": [
+      "finite Monte Carlo sample count; not noise-free mathematical ground truth",
+      "source shaders, full render visibility and full particles differ from exported PT preview",
+      "source water IOR/open sheet retained; no explicit pool profile applied"
+    ],
+    "source_integrator_settings": {
+      "sample_clamp_direct": 1.0,
+      "sample_clamp_indirect": 1.0,
+      "blur_glossy": 5.0,
+      "caustics_reflective": true,
+      "caustics_refractive": true,
+      "use_light_tree": false
+    },
+    "preserve_source_integrator_settings": false,
+    "cycles_settings": {
+      "sample_clamp_direct": 0.0,
+      "sample_clamp_indirect": 0.0,
+      "blur_glossy": 0.0,
+      "caustics_reflective": true,
+      "caustics_refractive": true,
+      "use_light_tree": false
+    },
+    "render_seconds": 196.10248179198243,
+    "negative_rgb_components": 0,
+    "outputs_sha256": {
+      "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/path-tracing/blender/barcelona-cycles-gt.exr": "855dbfa1f041492b908920aabc1acdd49190bb1ed18067616b4b9c888ed41da2",
+      "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/path-tracing/blender/barcelona-cycles-gt.pfm": "24b64b8ff07c59cf9534474ee31a0748c43d8532367958a8b6ce86d3747753cc",
+      "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/path-tracing/blender/barcelona-cycles-gt.png": "d6a6665924b3fb8feef5f0ac68f0fb9dc4f84dd9c1bad62a91c660fb5da64cc1",
+      "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/path-tracing/blender/barcelona-cycles-gt-source-view.png": "bed1bd375aa2d41c15fa30c042570bfc6b20c0d6a38e2588c73e8c12b25b73ca"
+    }
+  },
+  "source_settings_reference": {
+    "kind": "Cycles source-scene reference preserving legacy integrator settings",
+    "blender_version": "4.5.14 LTS",
+    "source_blend": "pavillon_barcelone_v1.2.blend",
+    "source_blend_sha256": "92162db8cabcd03641c53df95554b604b494ba74a76a099c7e06637e9379120a",
+    "scene": "2- time: sunset",
+    "camera": "Camera",
+    "frame": 1,
+    "width": 640,
+    "height": 360,
+    "samples": 1024,
+    "max_depth": 24,
+    "seed": 1,
+    "threads": 8,
+    "material_conversion": false,
+    "particle_budget": false,
+    "denoise": false,
+    "compositor": false,
+    "source_view_transform": "Standard",
+    "source_look": "None",
+    "source_view_exposure": 0.0,
+    "source_view_gamma": 1.0,
+    "project_display_mapping": "(1-exp(-max(scene_linear_RGB,0)))^(1/2.2), exposure=1",
+    "limits": [
+      "finite Monte Carlo sample count; not noise-free mathematical ground truth",
+      "source shaders, full render visibility and full particles differ from exported PT preview",
+      "source water IOR/open sheet retained; no explicit pool profile applied",
+      "source clamp=1 and blur_glossy=5 introduce bias; use the separate unclamped GT for transport reference"
+    ],
+    "cycles_settings": {
+      "sample_clamp_direct": 1.0,
+      "sample_clamp_indirect": 1.0,
+      "blur_glossy": 5.0,
+      "caustics_reflective": true,
+      "caustics_refractive": true,
+      "use_light_tree": false
+    },
+    "render_seconds": 197.83278500009328,
+    "negative_rgb_components": 0,
+    "outputs_sha256": {
+      "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/path-tracing/blender/barcelona-cycles-source-settings.exr": "3f0ff4eecbaba26d0cd866212d16117376df990e3c5868bb8243a3939d6c268d",
+      "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/path-tracing/blender/barcelona-cycles-source-settings.pfm": "816f346d614bd9a8c5710d581679c5c6d3a8c464b6b62195d82c10658ea67c78",
+      "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/path-tracing/blender/barcelona-cycles-source-settings.png": "e6897600254ad22cfd58b6387c8efbd3bc2cd7811c633db9c9f7a0bf46e532a7",
+      "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/path-tracing/blender/barcelona-cycles-source-settings-source-view.png": "994f2f72d3e9e2272323d037c3602ebeae86f53c00bbd401dd667950b904b45e"
+    },
+    "preserve_source_integrator_settings": true,
+    "source_integrator_settings": {
+      "sample_clamp_direct": 1.0,
+      "sample_clamp_indirect": 1.0,
+      "blur_glossy": 5.0,
+      "caustics_reflective": true,
+      "caustics_refractive": true,
+      "use_light_tree": false
+    }
+  },
+  "images_sha256": {
+    "img/path-tracing/blender-barcelona-cycles-gt-source-view.png": "bed1bd375aa2d41c15fa30c042570bfc6b20c0d6a38e2588c73e8c12b25b73ca",
+    "img/path-tracing/blender-barcelona-cycles-gt.png": "d6a6665924b3fb8feef5f0ac68f0fb9dc4f84dd9c1bad62a91c660fb5da64cc1",
+    "img/path-tracing/blender-barcelona-cycles-source-settings.png": "e6897600254ad22cfd58b6387c8efbd3bc2cd7811c633db9c9f7a0bf46e532a7"
+  },
+  "comparison_limits": [
+    "GT uses source shaders, source IOR=1.1 and all render particles; engine pool preview uses IOR=1.333, absorption and 512-particle budget",
+    "no integrator RMSE between unmatched source and converted scene",
+    "EXR/PFM scene-linear; GT PNG project display mapping and source-view PNG Standard are separate",
+    "finite samples and maximum depth; reference retains Monte Carlo noise"
+  ]
+}

@@ -32,10 +32,13 @@
 | [Dragon、地形与 FFT 水面的离线 PT](path-tracing-procedural.md) | 官方透明龙／BDPT 焦散、固定时间捕获、岸线／草丛／沙滩与水下吸收 |
 | [水体 BSSRDF／Jade Dragon](path-tracing-subsurface.md) | 均匀介质、HG、随机游走次表面和双后端验证 |
 | [粗糙介电与半抛光玉石](path-tracing-rough-dielectric.md) | GGX 反射／折射、出射侧消光、原始积分与双后端验证 |
+| [Blender 测试场景](blender-path-tracing.md) | Classroom／Barcelona 来源、共享 BLAS/TLAS、完整植被、材质转换与三后端对照 |
+| [PT 功能与系统优化计划](path-tracing-improvement-plan.md) | 薄玻璃／多通道材质、BLAS/TLAS、原生 RT、外观与体积焦散的完成标准 |
 | [PT 外观与加速计划](path-tracing-appearance-plan.md) | 阶段验收、原生 RT、体积 BDPT／VCM／SMS 与非均匀材质 |
 | [CPU 路径追踪](path-tracing-cpu.md) | 实时场景转换、材质、采样与输出验证 |
 | [OIDN 路径追踪降噪](path-tracing-denoising.md) | 现成 HDR denoiser、辅助 AOV、设备选择与离线处理 |
 | [收敛优化与 BDPT 焦散](path-tracing-convergence.md) | GPU Guiding、Radiance Cache、平滑玻璃、CPU BDPT 与误差对照 |
+| [Photon mapping 与池底焦散](path-tracing-photon-mapping.md) | CPU／Metal／Vulkan 共享光子、解析水体对照、混合透明 any-hit 与 GPU batch |
 | [GPU 路径追踪与采样优化](path-tracing-gpu.md) | Sobol/VNDF、自适应采样、Metal/Vulkan compute、性能与误差对照 |
 
 ## Engine 与资源管理

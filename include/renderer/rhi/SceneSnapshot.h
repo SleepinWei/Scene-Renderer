@@ -9,6 +9,7 @@ struct MeshPayload {
     uint64_t id = 0, revision = 0;
     std::vector<MeshVertex> vertices;
     std::vector<uint32_t> indices;
+    std::vector<glm::vec4> pathTracingTangents; // Optional corner tangent + handedness, matching vertices; raster ignores it.
 };
 struct MaterialPayload {
     uint64_t id = 0, revision = 0;
@@ -28,10 +29,14 @@ struct SnapshotDraw {
     // Detached optical data for frozen procedural PT geometry. Raster passes ignore it.
     float pathTracingIor = 0;
     float pathTracingRoughness = 0; // Dielectric boundary only; zero is delta.
+    uint32_t pathTracingBsdfModel = 0; // 0 PBR, 1 Lambert, 2 GGX + Lambert, 3 thin diffuse reflection/transmission.
+    glm::vec3 pathTracingDiffuseTransmission{0}; // Linear RGB; no dielectric medium transition.
+    std::shared_ptr<const ImageRGBA8> pathTracingTransmissionTexture;
+    bool pathTracingRoughnessTexture = false; // Linear G channel of images[3].
     glm::vec3 pathTracingAbsorption{0},pathTracingScattering{0};
     float pathTracingAnisotropy=0;
     float pathTracingNormalScale = 1;
-    uint32_t pathTracingKind = 0; // 1 terrain, 2 grass, 3 ocean interface, 4 subsurface solid.
+    uint32_t pathTracingKind = 0; // 1 terrain, 2 grass, 3 ocean interface, 4 subsurface solid, 5 smooth thin dielectric.
     // Level-zero repeating beach maps and clamped terrain-UV shoreline mask.
     std::array<std::shared_ptr<const ImageRGBA8>,4> pathTracingShoreline;
 };

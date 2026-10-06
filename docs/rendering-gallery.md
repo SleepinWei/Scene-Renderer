@@ -470,7 +470,7 @@ CPU、Metal/Vulkan GPU PT 现已接入当前高度／材质 VT、沙滩 PBR、�
 | --- | --- |
 | ![湖岸沙滩 Path Tracing](../img/path-tracing/pt-mountain-lake-beach.png) | ![FFT 浅水折射 Path Tracing](../img/path-tracing/pt-ocean-clear.png) |
 
-2026-10-05 已用 CSM／PCSS 修复后的版本重新生成本节及页首的五张 Sponza 图片，替换旧图中地面的异常三角形阴影；相机、太阳和曝光保持一致。[问题原因、前后对照与验收](vt-csm-pcss-fixes.md#sponza-readme-旧图修正)。
+2026-10-05 已替换上面两张近景图：沙滩改为命中点按世界坐标采样原始贴图；浅水增加折射太阳延续采样，并提高到 4096 spp／64 次反弹，保持原太阳、材质与曝光。[修复、原始图与验收](path-tracing-procedural.md#水下太阳路径采样)。
 
 ![FFT 大浪海洋 Path Tracing，256 spp](../img/path-tracing/pt-ocean.png)
 
@@ -568,3 +568,43 @@ CPU、Metal、Vulkan 已接入各向同性 GGX VNDF 反射／折射、精确 Fre
 ```
 
 相关回归 Metal **5/5**、Vulkan/MoltenVK **5/5**，ASan/UBSan 的 CPU／介质／程序化测试 **3/3**；完整玉龙 160×120、128 spp 的 CPU/Vulkan 原始线性图逐像素 RGB 向量长度的相对 L1 为 **0.00764**、总 RGB 能量比（GPU/CPU）为 **1.00383**。单次散射 GGX 在高粗糙度下会损失能量，尚未补偿微表面多次散射；粗糙介电与体积 BDPT 仍明确拒绝。实现和数值验证见 [粗糙介电说明](path-tracing-rough-dielectric.md) 与 [验收记录](../img/path-tracing/rough-dielectric-validation.json)。[外观与加速迭代计划](path-tracing-appearance-plan.md) 第一阶段已完成，原生 GPU 求交、体积 BDPT／VCM／SMS、非均匀玉石按后续阶段推进。
+
+### Blender 测试场景
+
+新增 Blender 官方 **Classroom**（Christophe Seux，CC0）和 **Barcelona Pavilion**（eMirage / Hamza Cheggour，CC-BY）。Blender 离线读取 `.blend`、评估几何并烘焙颜色／world；最终图片由本仓库 **Metal PT** 输出，CPU 和 Vulkan 使用同一场景包。
+
+两图均为 **640×360、固定 256 spp、深度 24、曝光 1**，使用 OIDN albedo／normal 辅助降噪。
+
+| Classroom — Christophe Seux，CC0 | Barcelona Pavilion — eMirage，CC-BY |
+| --- | --- |
+| ![Classroom Metal PT](../img/path-tracing/blender-classroom-materials.png) | ![Barcelona Pavilion Metal PT](../img/path-tracing/blender-barcelona-materials.png) |
+
+Classroom 保留原相机和 673 个集合实例，有效三角形 **654,582**。Barcelona 保留原 sunset 场景与相机，有效三角形 **1,453,575**，明确使用 **512／20,622** 粒子实例预览预算；全量约 5,497 万个展开三角形，当前单级软件 BVH 无法承受。材质为受控转换：已加入平滑薄玻璃、顶层 alpha 遮罩和线性 roughness／metallic 图集；叶片透射、复杂节点组、bump／normal 和 compositor 尚未完整对应 Cycles。
+
+<details>
+<summary>查看未经降噪的原始预览</summary>
+
+| Classroom raw | Barcelona raw |
+| --- | --- |
+| ![Classroom raw](../img/path-tracing/blender-classroom-materials-raw.png) | ![Barcelona raw](../img/path-tracing/blender-barcelona-materials-raw.png) |
+
+</details>
+
+```sh
+# 需要本机 Blender；仅下载源资源可追加 --fetch-only。
+python3 tools/prepare_blender_scenes.py --blender /path/to/blender
+./build/pt/Scene-Renderer --path-trace-gpu blender-classroom \
+  --pt-size 640x360 --pt-samples 256 --pt-bounces 24 --pt-fixed --pt-denoise \
+  --pt-output build/path-tracing/blender/classroom
+./build/pt/Scene-Renderer --path-trace-gpu blender-barcelona \
+  --pt-size 640x360 --pt-samples 256 --pt-bounces 24 --pt-fixed --pt-denoise \
+  --pt-output build/path-tracing/blender/barcelona
+# CPU 使用 --path-trace；Vulkan 使用对应构建并追加 --backend Vulkan。
+# 自定义导出包：--pt-scene-file path/to/scene.json。
+```
+
+初次接入版本在 Apple M4 上，两张预览的追踪阶段分别约 **53.01 s／12.19 s**，不含导入／BVH／GPU 准备，且存在其他工作负载；不作为速度排名。160×90、64 spp、深度 16 的 CPU／Metal／Vulkan 原始线性图对照，GPU 相对 CPU 的逐像素 RGB 向量相对 L1 分别为 **0.004159／0.000195**，非有限样本为 0；相关回归 Metal **7/7**、Vulkan **7/7**、ASan/UBSan **4/4**。
+
+本轮平滑薄玻璃计入内部反射和 RGB 阴影透射，不进入介质栈；alpha 遮罩与不透明材质分开处理，避免 UV 空白产生几何空洞。已重绘两场景；本轮 GPU/CPU 原始 RGB 相对 L1 为 **0.005020／0.000301**，非有限样本均为 0，回归 Metal／Vulkan 各 **7/7**、ASan/UBSan **4/4**，实际 Blender 烘焙回归通过。保留 [前后对照和材质验收](blender-path-tracing.md#薄玻璃与多通道材质改进)。
+
+后续优先做 **节点组／法线与纹理过滤 → 性能与内存分解 → 软件 BLAS/TLAS 实例求交 → Metal 原生 RT／Vulkan 能力适配**，再推进非均匀玉石和体积 BDPT／VCM／SMS。导出格式、来源、转换限制见 [Blender 场景说明](blender-path-tracing.md)，具体完成标准见 [功能与系统优化计划](path-tracing-improvement-plan.md)，实测及校验值见 [验收记录](../img/path-tracing/blender-validation.json)。

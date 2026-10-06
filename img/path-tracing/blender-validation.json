@@ -1,0 +1,1576 @@
+{
+  "date": "2026-10-05",
+  "platform": "Apple M4, macOS arm64; Vulkan through MoltenVK",
+  "base_commit": "4373b05055d84a950c5fba3afb15dc8e48fd28be",
+  "source_sha256": {
+    "include/PT/ScenePackage.h": "c90c07bd6ea93983529c32d093f85c68db828a33b2daad76a0196c48f7f7525f",
+    "src/PT/ScenePackage.cpp": "08ef73042251eea070841c6d555efd2c8e3cfb79029721d4eb37a10945e14cd6",
+    "src/PT/CpuPathTracingEntry.cpp": "b872d72d8f58c4eae80bc82a32c6d336fc94896657fec0c53d1c06c35b835acf",
+    "tests/PT/ScenePackageTests.cpp": "21c5c1aeb1ff39f83945bda247941f2fc305e6c7fdf57f24850be4a060e31348",
+    "tools/export_blender_pt.py": "f2bd339f4760ba50ab9e7ecf315a1e728b301c57c2bdc6b5690adf2ae6f72c0f",
+    "tools/prepare_blender_scenes.py": "27367e9a0cddd90180b9b93f9bd6a8b1303d58f9c94b60045237a6de15b81f2d",
+    "samples/blender-assets.json": "6a75c52875f625c3845e0fc39ad75be28f00ffb02121866b31ce6357c117b4a9",
+    "src/PT/CpuPathTracer.cpp": "a6744d7ae0fe4d236d6f26247af4c2a52b42e287be7fd83c06f5d5f1854a400f",
+    "src/PT/GpuPathTracer.cpp": "eb412a6ded2d4b34bd9de26cf32850f9f3d17693e11da64036763d56eba1ae39",
+    "src/rhi/shaders/path-trace.comp": "7abdfb53b125eaa39413ac8357090454e2127646626d6259837c5c6c4a92c70d",
+    "src/rhi/shaders/pt-dielectric.glsl": "9b258286e23220cb580a6ef6b4e07b5c45af964d35f529dfc181d53a78106c82"
+  },
+  "portable_Blender": {
+    "version": "4.5.14 LTS arm64",
+    "url": "https://download.blender.org/release/Blender4.5/blender-4.5.14-macos-arm64.dmg",
+    "sha256": "65134d9b07b20e2fa8d3c9e44f6f44ffb5c9774dd521b95f50387310241ca170"
+  },
+  "images": {
+    "img/path-tracing/blender-barcelona-raw.png": "9f184b980f8c547bfe93c7b2b2fc7cb06d9d625c6e49083b52843a467e99ba9c",
+    "img/path-tracing/blender-barcelona.png": "6724974fdc8ccfb25f0ddce7c52a1dfe9f99cd50c58411e3f63e34996e78c368",
+    "img/path-tracing/blender-classroom-raw.png": "65878ab4c307c8f1dde6c62e55db3b29b805aa365bf739a37cb30c26ab893318",
+    "img/path-tracing/blender-classroom.png": "fbc367c5f374e2e17496655fddac70c4884ca7b68153ebad1560b1b1888ac690"
+  },
+  "scenes": {
+    "classroom": {
+      "source": {
+        "name": "classroom",
+        "blend": "classroom.blend",
+        "sha256": "0f0ecc58d45f12b2f4272a53e2d8e69135518e16e956b118f10c20d8dcfdf5e6",
+        "scene": "_mainScene",
+        "camera": "renderCam",
+        "frame": 1,
+        "url": "https://download.blender.org/demo/test/classroom.zip",
+        "author": "Christophe Seux",
+        "license": "CC0",
+        "source": "https://www.blender.org/download/demo-files/",
+        "archive_sha256": "0f0ecc58d45f12b2f4272a53e2d8e69135518e16e956b118f10c20d8dcfdf5e6",
+        "blend_sha256": "5c526ea3f280566e80253673c9955640527cd0f247ea41b1742620b5bc39f7a4"
+      },
+      "export": {
+        "blender_version": "4.5.14 LTS",
+        "unique_objects": 332,
+        "instances": 673,
+        "particle_instances_source": 0,
+        "particle_instances_retained": 0,
+        "particle_limit": 512,
+        "unique_triangles": 401932,
+        "expanded_triangles": 654696,
+        "color_atlases": 209,
+        "atlas_size": 256,
+        "seconds": 6.81750504206866,
+        "material_diagnostics": {
+          "zapBook_color": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "thin translucency approximated as diffuse",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "LeatherBook_cover": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "leatherBook_pages": [
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "beigeBook_cover": [
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "beigeBook_pages": [
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "varnishedWoodDoor": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "frostedGlass": [
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained"
+          ],
+          "beigePaintedwood": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "porcelainHandle": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained"
+          ],
+          "largeBox_glossyWhitePaper": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained"
+          ],
+          "largeBox_greyPaper": [
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "beigePaintedPlastic": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "base_metal": [
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained"
+          ],
+          "base_carbon": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "plasticGoldPen_greenPlastic": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "roughness graph reduced to socket default",
+            "selected lobe color graph baked into UV atlas",
+            "group-internal color socket uses constant fallback; cross-tree baking needs group flattening"
+          ],
+          "base_brass": [],
+          "base_PlastiqueNoir": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "roughness graph reduced to socket default",
+            "selected lobe color graph baked into UV atlas",
+            "group-internal color socket uses constant fallback; cross-tree baking needs group flattening"
+          ],
+          "pencil": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "whiteChalk": [],
+          "beigeWall": [
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "cork": [
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "drawing.002": [
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "sc.blade": [],
+          "coloredPlastic": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "roughness graph reduced to socket default",
+            "selected lobe color graph baked into UV atlas",
+            "group-internal color socket uses constant fallback; cross-tree baking needs group flattening"
+          ],
+          "drawing": [
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "drawing.004": [],
+          "drawing.005": [
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "beigePaint": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "beige_paintedPipe": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "suitCoat_darkWood": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "suitCoat_metal": [
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "roughness graph reduced to socket default",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "leatherCoat": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "suitCase_metal": [
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "suitCase_leather": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "dustbin_metal": [
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "dustbin_bottom_metal": [
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "roughness graph reduced to socket default",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "dustBin_wireframe": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "thin architectural transparent/glossy mixture approximated with alpha coverage, not closed dielectric",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "crinkledPaper_paper": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "thin translucency approximated as diffuse",
+            "transparent shader mask not retained in color atlas",
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "wallClock_darkWood": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "wallClock_whiteBackground": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "wallClock_blackPlastic": [
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "wallClock_Glass": [],
+          "woodPlanks": [
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "blackPaintedWood": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "yellowLetter": [],
+          "blackBoardLight": [],
+          "boardFrame": [
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "blackBoard": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "teacherDesk_wood": [
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "teacherDesk_plastic": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "teacherDesk_metal": [
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "roughness graph reduced to socket default",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "teacherDesk_blackPlastic": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained"
+          ],
+          "radiator_glossyPaint": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "dayLight_portal": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "thin architectural transparent/glossy mixture approximated with alpha coverage, not closed dielectric",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "whitePaintedWindow": [
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "greyDiffusePaint": [
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "ceilingAirVent": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "worldMap": [
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "woodFloor": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "white_glossPaint": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "drawing.003": [
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "paper": [],
+          "plaster": [],
+          "paintedCeiling": [
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "leatherChair_blackPlastic": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained"
+          ],
+          "leatherChair_metal": [
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "roughness graph reduced to socket default",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "leatherChair_leather": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "schoolDesk_wood": [
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "schoolDesk_metal": [
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "roughness graph reduced to socket default",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "schoolDesk_blackPlastic": [],
+          "schoolDesk_plastic": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "default": [],
+          "paintedBlind": [],
+          "ceilingLamp_metal": [
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "roughness graph reduced to socket default",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "ceilingLamp_BlackPlastic": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained"
+          ],
+          "ceillingLamp_glass": [
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained"
+          ]
+        },
+        "warnings": [
+          "blackBoard_light: area light energy/spread converted to uniform triangle emitter; node falloff/blackbody approximated",
+          "exterior_fillLight: area light energy/spread converted to uniform triangle emitter; node falloff/blackbody approximated",
+          "selected shader lobes use Lambert/GGX rather than full Cycles closure graphs",
+          "object-info random color shared by instances of the same evaluated object",
+          "bump, normal-map and shader displacement are not exported",
+          "alpha/translucent shader graphs require a future thin-surface implementation",
+          "depth of field, motion blur, compositor and Blender color management are not reproduced"
+        ]
+      },
+      "package_assets_sha256": {
+        "color-0000.png": "b5e55500361cd5c2b8b91c23bea0ff3945be7c414cadb1e525cc19cf1b925e77",
+        "color-0001.png": "edd7f710510ffc8e6c69abf81472d1f0d52a793557e4c3bd1938b7e1e8da4693",
+        "color-0002.png": "8486d1a4dd4fb707a38510226c770cbf07edd6edb62c2a93fe7444b90149ff37",
+        "color-0003.png": "2d18a6fc91b4e5acbb65c841d588e385828748c18529f32d25f45030a32f7bab",
+        "color-0004.png": "c7263196eb533fc9b1bd3f0efdb238c6abc76979fb0114cd811d4a144059070b",
+        "color-0005.png": "4e1bbd2eedd825352cb9c95666e7504ce92f589b1748080c57e4aff7a2459e7d",
+        "color-0006.png": "96eed4e6cb043979dd49dbe269a1bab3b499acc60f040c862452a56ba103f66e",
+        "color-0007.png": "56f2e6ba9465270c96f27b40b9fb5886c03f24e06b7f74f093448311de97d63a",
+        "color-0008.png": "b7312d6fcc576577d713f05c01af1ae3a988796c6a974b4529c289c1ed2f41a6",
+        "color-0009.png": "4405123861225287b76847328fdc86fdd8fd0264f656a86bcdd412ccb7e68891",
+        "color-0010.png": "02850657d368923f840ff2b44b61b4a5b2beb9db7500112ce1baf77dae5a50de",
+        "color-0011.png": "4405123861225287b76847328fdc86fdd8fd0264f656a86bcdd412ccb7e68891",
+        "color-0012.png": "c1693448f11d2b5d4fa34f0dbe3942fb740ad96ae916365a97bdf9338201581e",
+        "color-0013.png": "a08c508d988876a73808ef7c819a5a011f5d51da81ef20bb56defd66c597834d",
+        "color-0014.png": "bb3dfac42cadc926c3dcccb67c9946195d57abad43f258eda69bc5f773aba55b",
+        "color-0015.png": "65d3c47491e50a00b232834e5b1352aaf489c90f23f1bdba03a1325b355e6115",
+        "color-0016.png": "6cd707751ff236c069779707c73694419831ddbd92c8c863eab7574e4379b526",
+        "color-0017.png": "89861415daac4cafc4162da62e3adf14637e4fcfb58de2a0e2c8bf2ba69ceee9",
+        "color-0018.png": "5d8b6054467105bfd8c7916853e272e8fb7e64ea8ef77ed150431ca2580c1ce0",
+        "color-0019.png": "d0420117004a5431d0720f4f40fb6aadb32cbebcb884af848cc132345a6bba08",
+        "color-0020.png": "b5a6b35cfdc8e7fbd859f7ebfa9e9ee54294d0f1f6a4e9e4e9d9bc63f1dd9c1f",
+        "color-0021.png": "a592ce1dd54f4892f63465f75beee1a670f53e7a4fb83462a36ff241afdf15a5",
+        "color-0022.png": "a86a1c0d81756571c2af251bd7b583aac43f0f68d60df6fa1aa3c28b6e8df391",
+        "color-0023.png": "59cfe14a0bf77b3047df740c0c75cb83956bf5c621702b13842f181478f13653",
+        "color-0024.png": "3814f2fb1a005622a1ef063e48151867067ca6b8376cb92c2f02e7811f84a332",
+        "color-0025.png": "843e8ab43fe9cd700d57e74048081c8d35c9775edfc1b7bff6acbd6493420d20",
+        "color-0026.png": "3814f2fb1a005622a1ef063e48151867067ca6b8376cb92c2f02e7811f84a332",
+        "color-0027.png": "3814f2fb1a005622a1ef063e48151867067ca6b8376cb92c2f02e7811f84a332",
+        "color-0028.png": "f18f37069a279e0c8e7041ce18cb8f50dc24c6dd38ef3493c37cb61cde688da9",
+        "color-0029.png": "3814f2fb1a005622a1ef063e48151867067ca6b8376cb92c2f02e7811f84a332",
+        "color-0030.png": "09a726f1c07ce597581d6f4967b21cddb9d7ba51298aaec75f23119dacd24cbb",
+        "color-0031.png": "3814f2fb1a005622a1ef063e48151867067ca6b8376cb92c2f02e7811f84a332",
+        "color-0032.png": "608e51adba5d23a1d24cfef65dc194f9163edc34a1ad6b12933e1e3afa4202ec",
+        "color-0033.png": "3814f2fb1a005622a1ef063e48151867067ca6b8376cb92c2f02e7811f84a332",
+        "color-0034.png": "3814f2fb1a005622a1ef063e48151867067ca6b8376cb92c2f02e7811f84a332",
+        "color-0035.png": "fba8e5f15ce4470e827cb228976cd786b19200718d49dbbc7ba832f000f5ea4e",
+        "color-0036.png": "da5636602251167ef1940b6497b4f32242ab42e083f93c087078bf4207fe344c",
+        "color-0037.png": "3814f2fb1a005622a1ef063e48151867067ca6b8376cb92c2f02e7811f84a332",
+        "color-0038.png": "3814f2fb1a005622a1ef063e48151867067ca6b8376cb92c2f02e7811f84a332",
+        "color-0039.png": "b982a6622eecece6715d5cc95786e3e35e11bbee21cbedcdb45d0158459af26e",
+        "color-0040.png": "6bad9ea5696d0a85cba6a2f52c9512d497c09e04bd13aa29db60ea34b9f91896",
+        "color-0041.png": "0075bcb78c408b9a8b20446384ea947d8482fdfc718b09d1391c293f481fcbfb",
+        "color-0042.png": "794bb2270cc80a5a8fcdebdf09ccc702b52c4a52667293f6264daba3cdb24173",
+        "color-0043.png": "3a2380d5942c11ff76747ad01d2db475a10f78b2e773ff9786c51daeb123a5f1",
+        "color-0044.png": "cb6f1cf086979a86b2721afea8e0234b0de830b5bfc2e3ae1e43f867eb7c05c1",
+        "color-0045.png": "19e47944b6895846a3701ec99dff947b0b4a211b078935a84ee3c02b19a1710c",
+        "color-0046.png": "f30c0c7a91d1909f4c2de97640f42b27ea787db92f3588850643a4ff46e12424",
+        "color-0047.png": "71c94ae9e5189292af31dd46ea876a9c24f8e55b3eb0035c13857b6857886653",
+        "color-0048.png": "ad7db8ac717d6c7261093814b9c3069dcf55870cb912d1fcc26540cb355a8046",
+        "color-0049.png": "9332325974b9cc4586aaab993fdc38304bd2f683e0b37ceb9859557717c1484b",
+        "color-0050.png": "2dcaf709aceab78249ae2a513f245a1866c6768d138b7450833fbd6a71307aae",
+        "color-0051.png": "2dcaf709aceab78249ae2a513f245a1866c6768d138b7450833fbd6a71307aae",
+        "color-0052.png": "77dbd3267592a9f8fb9b6af72b6b3100ecaaa540c80dc4736712ec8c06e0b6ab",
+        "color-0053.png": "482c1e44a0acc0c6af43a57f7762eb6f993e01a8c9a73846a306f7ac1de9ffd0",
+        "color-0054.png": "0ea5e436cb831abe9563a2e9a43800832f0054b2af898faf88e2cfa3168d34f8",
+        "color-0055.png": "2d59b3b4a4e5c9221dd6544c496689c5f1cc9b61763d544944aa9595416510db",
+        "color-0056.png": "20092f3f1a9c3143c35b8f992b8e6fee272f1195ff7fa402361230b32cf62526",
+        "color-0057.png": "ba63ddd7df67d12e657a647f0400a3726b41384ec996be68a5154bd4f80fe3ff",
+        "color-0058.png": "ba63ddd7df67d12e657a647f0400a3726b41384ec996be68a5154bd4f80fe3ff",
+        "color-0059.png": "ba63ddd7df67d12e657a647f0400a3726b41384ec996be68a5154bd4f80fe3ff",
+        "color-0060.png": "ba63ddd7df67d12e657a647f0400a3726b41384ec996be68a5154bd4f80fe3ff",
+        "color-0061.png": "f85c1f4ee0bb15e389d8a3b13c9ede576ac205056d83476237f0925af7fb6331",
+        "color-0062.png": "6bf9f7f836d941a59e0598d469348b60ab037ed5868e8c11dae15241190fe298",
+        "color-0063.png": "7eca1d95814a33064f24b5101a8ae22c5d1c7500064953d21ae4214ecd542274",
+        "color-0064.png": "62b43a15084d544581a887e9a1aa053080a968759859368648872e83182e7376",
+        "color-0065.png": "3c4b2c5e9feb0f96ee156a848e166e9f45dbcff8287dba777b0a9c9f13d17c67",
+        "color-0066.png": "3c4b2c5e9feb0f96ee156a848e166e9f45dbcff8287dba777b0a9c9f13d17c67",
+        "color-0067.png": "6435e6f66cd7ba499ba37a865a86abfbe2226d0aa11483e1fbdbbb37c155cdee",
+        "color-0068.png": "4030f25f64b0caccedd3226f46d917c0fd87ba98acf21c5cd659e07cb523a979",
+        "color-0069.png": "9f60c103173e81c154f0eec8d4673e2d7cf30f0dc87c4633bafc2a69d1c6ad82",
+        "color-0070.png": "f577b44ab22e8cd38959704a3b77128ddd58f50a0d3044210f23e7388af5d3ed",
+        "color-0071.png": "5f732b805b11f4136e28f5b1b6d847e41df69f97d65aef8288a62565345f4f60",
+        "color-0072.png": "43d1db8bf771f473bc18572ccedb6a74c4d9ea42becc78497c303a528f62f5a0",
+        "color-0073.png": "876d1249582162f98c25e4390328dfef9df117ad84b7b6d05a19569c92d64f80",
+        "color-0074.png": "092a8881632778f997a8cc535043cca271f03b65e00bbb630154017ef0e7e0d0",
+        "color-0075.png": "d738c5894917074a2743a9cb39a76ebe276309ea1922782ede9690d9f26bce0d",
+        "color-0076.png": "2daf8d711ced203dc75cd791945b87df100479464545d4630df9a704f68aa8e8",
+        "color-0077.png": "a6abef1ba59fbf23b409ed7f36433fa12da60252b5dc8661e34f65fa83ab8049",
+        "color-0078.png": "74243c14dcc12316846bd98206d6405c739ab81a41b312b9c7026a90acaf096f",
+        "color-0079.png": "0f13ead378b4719a967c26d13e09898d86bd83331ba95faf6975cbd4f6cd1501",
+        "color-0080.png": "16c65f6e9a9b0ddecfed696d94d543c95115989ccde07d212cae63d7ca831897",
+        "color-0081.png": "35bf19c3f1ec3f28ea5da542d135b0c2c4b1e519abd2bd989b7c7f21beb264da",
+        "color-0082.png": "d7580eb765cea5da111110734ebfb70fbfc74efdbe71fca36c869ce5540d990b",
+        "color-0083.png": "09e588033df135d9a941ea1c3951f8baad61fcfa397f5e40f366344e13987d4c",
+        "color-0084.png": "603e4b4aca0be844cbc439be6960164c2f0ecded1988100b58ead5378e2837a4",
+        "color-0085.png": "baa8a0b47002313ea6c7f33f12754a74f3be10be5f613132446ab852ce56c4b3",
+        "color-0086.png": "230fe65dd592bf7b88952d1068cd6d19862d0f76d367942519fd81fa5cec9df1",
+        "color-0087.png": "468fc69de52ac839834f67db6d073d02a30846435d2fd2520fe424057243cb04",
+        "color-0088.png": "9ce793cc7b945de84ed3845a84eb4c1f4c837e9f027ad2faaa908c5614b324cf",
+        "color-0089.png": "3777fcf8527460c2127f84ea73bea107e464f3e3efc8ffaf947b965d0aad9cf8",
+        "color-0090.png": "45651ef435b221344e5c5592c8c2f122d58a1ec5d5e54ed095584db4bebc2a10",
+        "color-0091.png": "b1fe1273230c372037bedeb5130228a00bd586287e61dda2e86980db152a57ad",
+        "color-0092.png": "de90d75722780f3b7eec4a9b591a70352ee3705f4d3e429f49d5340763100106",
+        "color-0093.png": "ec0e04fe1b48c7f3f873d0230cea624a7fda7d4e0b55171ddadfbb114afbf6ae",
+        "color-0094.png": "ec0e04fe1b48c7f3f873d0230cea624a7fda7d4e0b55171ddadfbb114afbf6ae",
+        "color-0095.png": "ec0e04fe1b48c7f3f873d0230cea624a7fda7d4e0b55171ddadfbb114afbf6ae",
+        "color-0096.png": "ec0e04fe1b48c7f3f873d0230cea624a7fda7d4e0b55171ddadfbb114afbf6ae",
+        "color-0097.png": "73454bc5596b216a30c8c7895ebb6918a7f71735d2793af67e225fe07e2e532f",
+        "color-0098.png": "73454bc5596b216a30c8c7895ebb6918a7f71735d2793af67e225fe07e2e532f",
+        "color-0099.png": "73454bc5596b216a30c8c7895ebb6918a7f71735d2793af67e225fe07e2e532f",
+        "color-0100.png": "8316fb17aabb92fc81e0cb89bd7312a10c95e1b8154d343cf9fa5c42d4652b74",
+        "color-0101.png": "bb3dfac42cadc926c3dcccb67c9946195d57abad43f258eda69bc5f773aba55b",
+        "color-0102.png": "a08c508d988876a73808ef7c819a5a011f5d51da81ef20bb56defd66c597834d",
+        "color-0103.png": "c1693448f11d2b5d4fa34f0dbe3942fb740ad96ae916365a97bdf9338201581e",
+        "color-0104.png": "4405123861225287b76847328fdc86fdd8fd0264f656a86bcdd412ccb7e68891",
+        "color-0105.png": "02850657d368923f840ff2b44b61b4a5b2beb9db7500112ce1baf77dae5a50de",
+        "color-0106.png": "4405123861225287b76847328fdc86fdd8fd0264f656a86bcdd412ccb7e68891",
+        "color-0107.png": "3eb7983e5189c88fcf258ed9fc92f71f4ae7f07e1ca7df91d14f7bb16b766eac",
+        "color-0108.png": "d1b847b3670c06d18366905ee3e41e7c0ded71044f8fd41028ca4d87f928e557",
+        "color-0109.png": "73454bc5596b216a30c8c7895ebb6918a7f71735d2793af67e225fe07e2e532f",
+        "color-0110.png": "2484a7178db7fe63060e3c1933440564c3f423af8f19800a4b9f4bf70c961cef",
+        "color-0111.png": "2484a7178db7fe63060e3c1933440564c3f423af8f19800a4b9f4bf70c961cef",
+        "color-0112.png": "2484a7178db7fe63060e3c1933440564c3f423af8f19800a4b9f4bf70c961cef",
+        "color-0113.png": "2484a7178db7fe63060e3c1933440564c3f423af8f19800a4b9f4bf70c961cef",
+        "color-0114.png": "2484a7178db7fe63060e3c1933440564c3f423af8f19800a4b9f4bf70c961cef",
+        "color-0115.png": "2484a7178db7fe63060e3c1933440564c3f423af8f19800a4b9f4bf70c961cef",
+        "color-0116.png": "2484a7178db7fe63060e3c1933440564c3f423af8f19800a4b9f4bf70c961cef",
+        "color-0117.png": "2484a7178db7fe63060e3c1933440564c3f423af8f19800a4b9f4bf70c961cef",
+        "color-0118.png": "a9c397bddb7de95279fff92d80a84d2d33818f9f4530ceb1ad29a3469aabf45c",
+        "color-0119.png": "d2bb614f1ad37f6b23c7af59c9fbadb482d2ad56b0ba939920a06d40b78ab272",
+        "color-0120.png": "e4fa27dffef6fd1e8e1c3d0b2a7ffa80291caa2aa2f7e1ab79086915760737ba",
+        "color-0121.png": "b417af6e149c32666fac12817c6c0decf8f4d70d1784d719a5ce6ceca259be94",
+        "color-0122.png": "c17b54bd471f71f08c489b09b4261776592974a149d4d5cd6ba28e55b776096f",
+        "color-0123.png": "c17b54bd471f71f08c489b09b4261776592974a149d4d5cd6ba28e55b776096f",
+        "color-0124.png": "c17b54bd471f71f08c489b09b4261776592974a149d4d5cd6ba28e55b776096f",
+        "color-0125.png": "c17b54bd471f71f08c489b09b4261776592974a149d4d5cd6ba28e55b776096f",
+        "color-0126.png": "c17b54bd471f71f08c489b09b4261776592974a149d4d5cd6ba28e55b776096f",
+        "color-0127.png": "c17b54bd471f71f08c489b09b4261776592974a149d4d5cd6ba28e55b776096f",
+        "color-0128.png": "c17b54bd471f71f08c489b09b4261776592974a149d4d5cd6ba28e55b776096f",
+        "color-0129.png": "c17b54bd471f71f08c489b09b4261776592974a149d4d5cd6ba28e55b776096f",
+        "color-0130.png": "c17b54bd471f71f08c489b09b4261776592974a149d4d5cd6ba28e55b776096f",
+        "color-0131.png": "b7312d6fcc576577d713f05c01af1ae3a988796c6a974b4529c289c1ed2f41a6",
+        "color-0132.png": "c17b54bd471f71f08c489b09b4261776592974a149d4d5cd6ba28e55b776096f",
+        "color-0133.png": "c17b54bd471f71f08c489b09b4261776592974a149d4d5cd6ba28e55b776096f",
+        "color-0134.png": "c17b54bd471f71f08c489b09b4261776592974a149d4d5cd6ba28e55b776096f",
+        "color-0135.png": "c17b54bd471f71f08c489b09b4261776592974a149d4d5cd6ba28e55b776096f",
+        "color-0136.png": "c17b54bd471f71f08c489b09b4261776592974a149d4d5cd6ba28e55b776096f",
+        "color-0137.png": "c17b54bd471f71f08c489b09b4261776592974a149d4d5cd6ba28e55b776096f",
+        "color-0138.png": "c17b54bd471f71f08c489b09b4261776592974a149d4d5cd6ba28e55b776096f",
+        "color-0139.png": "559154d584a62528dbe43a4270f1050d8b4cb60fc971db22c577043d360c038d",
+        "color-0140.png": "559154d584a62528dbe43a4270f1050d8b4cb60fc971db22c577043d360c038d",
+        "color-0141.png": "559154d584a62528dbe43a4270f1050d8b4cb60fc971db22c577043d360c038d",
+        "color-0142.png": "559154d584a62528dbe43a4270f1050d8b4cb60fc971db22c577043d360c038d",
+        "color-0143.png": "768aa5efe9f04ec1e2e36e4eb4a0d1c723e8f55fef35c00f75f31dcc7ed9f902",
+        "color-0144.png": "559154d584a62528dbe43a4270f1050d8b4cb60fc971db22c577043d360c038d",
+        "color-0145.png": "50b1004f045da066163a3761d314a3b43d9883ce624fa423f8120171f2c8a63a",
+        "color-0146.png": "559154d584a62528dbe43a4270f1050d8b4cb60fc971db22c577043d360c038d",
+        "color-0147.png": "ac0f4807a2c1c8131c901395c8698c35ba226bf3ff95cddecba63e74dbe945f4",
+        "color-0148.png": "ba8ef9934ba6dbd513d59ea89d4c2cca9f38554dae4125a79d0e071b2c6c747d",
+        "color-0149.png": "67c76299f3b13fec9e09ad95b02bfcd1481e577596908e0198d60b7c45fd213f",
+        "color-0150.png": "67c76299f3b13fec9e09ad95b02bfcd1481e577596908e0198d60b7c45fd213f",
+        "color-0151.png": "67c76299f3b13fec9e09ad95b02bfcd1481e577596908e0198d60b7c45fd213f",
+        "color-0152.png": "2410ce92c862923771e8acff6f52cac172909a8cd66294e271b36cbe0675e11b",
+        "color-0153.png": "c42c383ca7104b478d7c45b8b84462315055c7de6d7b24dc27bf0f154ca36233",
+        "color-0154.png": "390b7795b33eea6aecb7bcec2dc9ad6e5be09c0c8d7a34db80ad52715b2b0203",
+        "color-0155.png": "f01dbbd46c7afcc126ab3ba5f8b9b1a21e18f1f5a378abc024bcd80cf6eb3393",
+        "color-0156.png": "3814f2fb1a005622a1ef063e48151867067ca6b8376cb92c2f02e7811f84a332",
+        "color-0157.png": "3814f2fb1a005622a1ef063e48151867067ca6b8376cb92c2f02e7811f84a332",
+        "color-0158.png": "04c3c99d7e4aa03e75442eb3baa26c7a5af0df4a3bd72352e7898f3ff5a9aaee",
+        "color-0159.png": "3814f2fb1a005622a1ef063e48151867067ca6b8376cb92c2f02e7811f84a332",
+        "color-0160.png": "7a0767bab5ca871b4fa2eb24a3a339c00f0fcef92995afc2494b824a41698126",
+        "color-0161.png": "3814f2fb1a005622a1ef063e48151867067ca6b8376cb92c2f02e7811f84a332",
+        "color-0162.png": "b8b1f66d2847ab9c5c8abaa479fd2f7025dab1ece8558b108ed859dd94401592",
+        "color-0163.png": "3814f2fb1a005622a1ef063e48151867067ca6b8376cb92c2f02e7811f84a332",
+        "color-0164.png": "74dee91db307c07034c5666bb7601c4a94a3913d2c862dcafc86efd3f5dcafeb",
+        "color-0165.png": "3814f2fb1a005622a1ef063e48151867067ca6b8376cb92c2f02e7811f84a332",
+        "color-0166.png": "31821fd846d6fef72c9cd036313de2fe1b15c1ef05dd62f3c482c8c8f308f194",
+        "color-0167.png": "3814f2fb1a005622a1ef063e48151867067ca6b8376cb92c2f02e7811f84a332",
+        "color-0168.png": "3814f2fb1a005622a1ef063e48151867067ca6b8376cb92c2f02e7811f84a332",
+        "color-0169.png": "e165dfa92ed7ec43f62534c0414e8396174f164b0a9725eda27447e851cb5513",
+        "color-0170.png": "3814f2fb1a005622a1ef063e48151867067ca6b8376cb92c2f02e7811f84a332",
+        "color-0171.png": "003910df42c1219563a84140961427bd3b15962469bf49ce3f6f82c82861d4ab",
+        "color-0172.png": "d0b6f9bb77a2805fad94913a911c41ee6d910cfd1f8dfca3d8dbd7d77500f2a5",
+        "color-0173.png": "d0b6f9bb77a2805fad94913a911c41ee6d910cfd1f8dfca3d8dbd7d77500f2a5",
+        "color-0174.png": "2eef8eefd5d2416e6652825ce738f56941af3b8a456d8e988857999493d3805c",
+        "color-0175.png": "620868fd5ec4edc67f7a113853c125f800ba98c4e9123e6873597449670cf4d2",
+        "color-0176.png": "7c60a78b1a04a7db179b557e493eb9066cacca195f5e764264a064ffa7262f06",
+        "color-0177.png": "9e4771165f7257ab6296acb3677aeab4ce963d8b3159496986ea8f51d5482b1e",
+        "color-0178.png": "eb90d58267643feac89b5a16c1d7a1e037553cd19a29eb13c890d765ad249289",
+        "color-0179.png": "a6abef1ba59fbf23b409ed7f36433fa12da60252b5dc8661e34f65fa83ab8049",
+        "color-0180.png": "a6abef1ba59fbf23b409ed7f36433fa12da60252b5dc8661e34f65fa83ab8049",
+        "color-0181.png": "7e2a4786274bab649e571c20002012275d5297c55cd629c9e6f6ea27db592122",
+        "color-0182.png": "89a9d772e7c8d79b8b804bb970ce390c9f04cede5dd53debf94e526ab850ce32",
+        "color-0183.png": "77faf61a9ae762e42b0eaabc6b9ad8a385d59aa5f8f8f801c91faa5c53580596",
+        "color-0184.png": "73fdc232672744b6811478614902bd6e620c4d6c90f044cc8ffd89d14bb4a8e4",
+        "color-0185.png": "8d951ca1cde406042bf9757134f9b910622a2cfd9fb92de46562e143bd9d8e14",
+        "color-0186.png": "3e33139c24d714820c19700e01db8c3a482e460fdcc510dbe0b61e8728928407",
+        "color-0187.png": "04f303d0d0ad0ee6e0adb6e1ef00282e9709aa4e24fc8958039fc5ddbb2640d4",
+        "color-0188.png": "6281684d2bf871a1bf3a5f2761b29cd9014cd0ce5025c0265265d07216bf510f",
+        "color-0189.png": "b75e4c315b3296fbe5fb6a1be0e6f95bca6cc4494be789909ba8ddecbc87bab0",
+        "color-0190.png": "d399b8ecf2652bc60432e2e22366fe56076990071f78536734213b206add4c87",
+        "color-0191.png": "969156295c39eefc9c0fe831017561b9a512b4ce038908db3980107159461abc",
+        "color-0192.png": "a83f1f1492fdc5aeb6c2d0382b64e30a3766440d19bd9e74d4e0c7bfe0ff426a",
+        "color-0193.png": "3b5d8bd915bba09f6ba3d34dcb607d3603e73e8f99f07b643b7ba237393d6df9",
+        "color-0194.png": "5b0516482625f0b72d08f6575234dc993cf9dd66e3971b7c99e92abb6deed149",
+        "color-0195.png": "0918b91979c65de81fc86c3c4502139a4d093357f5969f1ddfe2758c65d0033b",
+        "color-0196.png": "0918b91979c65de81fc86c3c4502139a4d093357f5969f1ddfe2758c65d0033b",
+        "color-0197.png": "0918b91979c65de81fc86c3c4502139a4d093357f5969f1ddfe2758c65d0033b",
+        "color-0198.png": "0918b91979c65de81fc86c3c4502139a4d093357f5969f1ddfe2758c65d0033b",
+        "color-0199.png": "0918b91979c65de81fc86c3c4502139a4d093357f5969f1ddfe2758c65d0033b",
+        "color-0200.png": "0918b91979c65de81fc86c3c4502139a4d093357f5969f1ddfe2758c65d0033b",
+        "color-0201.png": "94ce3c026014f7d10d2e053afd9d6d273638daf6bd0d308957c8be825403ee53",
+        "color-0202.png": "6f4433404c232a78254fd0f1e5a7c1892a5ccf45ce336441a9d9ebd30b4bedce",
+        "color-0203.png": "f24c247bbd3174507a37083bad69b0796d84c5ebc7765cd14f7aecac8484d278",
+        "color-0204.png": "f21bb5dcc62a6f7233e8fa56578c4c8b100c8efb32c9225b45fb3f1c2eb26e68",
+        "color-0205.png": "859608afe0ff06a6fc8cf7dae9826b6b6df9706307a360c36b982a2d88f9dd54",
+        "color-0206.png": "99ff0441256e43f4f08a06db3522fefb015ebf34e2a32a75daea9a10eb6bb4e0",
+        "color-0207.png": "d088b16651a6b49167e440e7e23b8e4b233d9f12c102045e63127ad9a168c0a8",
+        "color-0208.png": "ea1969153a3269984926fc9dfa2d6b91c51338b305fc15f1bc0d67835b094fda",
+        "environment.bin": "106f0647ae10a6516b1ab2968038161e287ef40d1b22ca047531ed768e594ef1",
+        "geometry.bin": "e60b442f27a5ab09e982d93d61d097a5080273e672044e6e64c6fe9936caceae",
+        "scene.json": "8994c7f2dec00650d8ad79507bc968fd311e9abc3a913715884a5ed1df6499ca"
+      },
+      "package": {
+        "draws": 922,
+        "materials": 360
+      },
+      "renders": {
+        "classroom": {
+          "report_sha256": "e8d963697087070cb43d82893109556db8c8fe0d25bd3daf7d6292060255058a",
+          "report": {
+            "absolute_error": 0.0005000000237487257,
+            "adaptive": false,
+            "average_spp": 256.0,
+            "bdpt": false,
+            "bvh_nodes": 221693,
+            "cache_depth": 2,
+            "cache_hits": 0,
+            "cache_minimum": 64,
+            "converged_pixels": 0,
+            "denoise_auxiliary": true,
+            "denoise_device": "Metal",
+            "denoise_seconds": 0.466471625,
+            "denoiser": "Open Image Denoise 2.5.1",
+            "dielectric_meshes": 8,
+            "environment": {
+              "height": 256,
+              "type": "linear HDR equirectangular, importance sampled",
+              "width": 512
+            },
+            "execution": "GPU Metal compute BVH",
+            "exposure": 1.0,
+            "frozen_time_seconds": 0.0,
+            "geometry_bvh_bytes": 91654768,
+            "gpu_buffer_bytes": 155858996,
+            "grass_meshes": 0,
+            "guide_cell_size": 0.0,
+            "guide_hits": 0,
+            "guiding": false,
+            "height": 360,
+            "integrator": "Lambert + GGX VNDF, environment/sun/emitter NEE, power MIS, Russian roulette",
+            "max_depth": 24,
+            "meshes": 922,
+            "minimum_samples": 64,
+            "non_finite_samples": 0,
+            "ocean_interfaces": 0,
+            "radiance_cache": false,
+            "rays": 1537240563,
+            "relative_error": 0.029999999329447746,
+            "render_seconds": 53.00673825,
+            "requested_threads": 0,
+            "sample_budget": 256,
+            "sampler": "dyadic-permuted padded 2D Sobol",
+            "samples": 256,
+            "scattering_meshes": 0,
+            "scene": "blender-classroom",
+            "seed": 1,
+            "setup_seconds": 0.08706925,
+            "subsurface_meshes": 0,
+            "sun_irradiance": [
+              15.0,
+              13.800000190734863,
+              12.300000190734863
+            ],
+            "sun_radius_degrees": 0.8593721985816956,
+            "terrain_meshes": 0,
+            "terrain_ocean": "frozen procedural meshes",
+            "total_samples": 58982400,
+            "trace_and_training_seconds": 53.00673825,
+            "trace_training_denoise_seconds": 53.473209874999995,
+            "trained_cells": 0,
+            "training_rays": 0,
+            "training_seconds": 0.0,
+            "training_spp": 0,
+            "triangles": 654582,
+            "volume_scattering_events": 0,
+            "width": 640
+          },
+          "raw_linear_PFM": {
+            "sha256": "1665507f3ddbfc76726ed79caa00e32f6f7810da8ec0dcbf790b9e1461572da8",
+            "width": 640,
+            "height": 360,
+            "finite": true,
+            "minimum": 0.0,
+            "maximum": 15542.0478515625,
+            "mean_RGB": [
+              0.5683480656148017,
+              0.5144932593488929,
+              0.44848679570483424
+            ]
+          }
+        },
+        "classroom-cpu-compare": {
+          "report_sha256": "ce0454312875be3dc4d3d12a1eda452c18fd901340d577a5b46989f9988b7f43",
+          "report": {
+            "absolute_error": 0.0005000000237487257,
+            "adaptive": false,
+            "average_spp": 64.0,
+            "bdpt": false,
+            "bvh_nodes": 221693,
+            "cache_depth": 2,
+            "cache_hits": 0,
+            "cache_minimum": 64,
+            "converged_pixels": 0,
+            "denoise_auxiliary": false,
+            "denoise_device": "",
+            "denoise_seconds": 0.0,
+            "denoiser": "",
+            "dielectric_meshes": 8,
+            "environment": {
+              "height": 256,
+              "type": "linear HDR equirectangular, importance sampled",
+              "width": 512
+            },
+            "execution": "CPU",
+            "exposure": 1.0,
+            "frozen_time_seconds": 0.0,
+            "geometry_bvh_bytes": 91654768,
+            "gpu_buffer_bytes": 0,
+            "grass_meshes": 0,
+            "guide_cell_size": 0.0,
+            "guide_hits": 0,
+            "guiding": false,
+            "height": 90,
+            "integrator": "Lambert + GGX VNDF, environment/sun/emitter NEE, power MIS, Russian roulette",
+            "max_depth": 16,
+            "meshes": 922,
+            "minimum_samples": 64,
+            "non_finite_samples": 0,
+            "ocean_interfaces": 0,
+            "radiance_cache": false,
+            "rays": 24021319,
+            "relative_error": 0.029999999329447746,
+            "render_seconds": 5.527999334,
+            "requested_threads": 8,
+            "sample_budget": 64,
+            "sampler": "dyadic-permuted padded 2D Sobol",
+            "samples": 64,
+            "scattering_meshes": 0,
+            "scene": "blender-classroom",
+            "seed": 1,
+            "setup_seconds": 0.0,
+            "subsurface_meshes": 0,
+            "sun_irradiance": [
+              15.0,
+              13.800000190734863,
+              12.300000190734863
+            ],
+            "sun_radius_degrees": 0.8593721985816956,
+            "terrain_meshes": 0,
+            "terrain_ocean": "frozen procedural meshes",
+            "total_samples": 921600,
+            "trace_and_training_seconds": 5.527999334,
+            "trace_training_denoise_seconds": 5.527999334,
+            "trained_cells": 0,
+            "training_rays": 0,
+            "training_seconds": 0.0,
+            "training_spp": 0,
+            "triangles": 654582,
+            "volume_scattering_events": 0,
+            "width": 160
+          },
+          "raw_linear_PFM": {
+            "sha256": "e19cadd371bc62ef4c6e82f9570b66726dd0fc4a9fbab348e0953f2bee6bc9d2",
+            "width": 160,
+            "height": 90,
+            "finite": true,
+            "minimum": 0.0,
+            "maximum": 1736.8079833984375,
+            "mean_RGB": [
+              0.5307728023405229,
+              0.48159463725890717,
+              0.4224399216446887
+            ]
+          }
+        },
+        "classroom-metal-compare": {
+          "report_sha256": "59c95c85838d6f010c08e9112c0ca2939aee4471828b8af5bdae270ebeb6163e",
+          "report": {
+            "absolute_error": 0.0005000000237487257,
+            "adaptive": false,
+            "average_spp": 64.0,
+            "bdpt": false,
+            "bvh_nodes": 221693,
+            "cache_depth": 2,
+            "cache_hits": 0,
+            "cache_minimum": 64,
+            "converged_pixels": 0,
+            "denoise_auxiliary": false,
+            "denoise_device": "",
+            "denoise_seconds": 0.0,
+            "denoiser": "",
+            "dielectric_meshes": 8,
+            "environment": {
+              "height": 256,
+              "type": "linear HDR equirectangular, importance sampled",
+              "width": 512
+            },
+            "execution": "GPU Metal compute BVH",
+            "exposure": 1.0,
+            "frozen_time_seconds": 0.0,
+            "geometry_bvh_bytes": 91654768,
+            "gpu_buffer_bytes": 138578996,
+            "grass_meshes": 0,
+            "guide_cell_size": 0.0,
+            "guide_hits": 0,
+            "guiding": false,
+            "height": 90,
+            "integrator": "Lambert + GGX VNDF, environment/sun/emitter NEE, power MIS, Russian roulette",
+            "max_depth": 16,
+            "meshes": 922,
+            "minimum_samples": 64,
+            "non_finite_samples": 0,
+            "ocean_interfaces": 0,
+            "radiance_cache": false,
+            "rays": 24021473,
+            "relative_error": 0.029999999329447746,
+            "render_seconds": 1.254063709,
+            "requested_threads": 0,
+            "sample_budget": 64,
+            "sampler": "dyadic-permuted padded 2D Sobol",
+            "samples": 64,
+            "scattering_meshes": 0,
+            "scene": "blender-classroom",
+            "seed": 1,
+            "setup_seconds": 0.108750917,
+            "subsurface_meshes": 0,
+            "sun_irradiance": [
+              15.0,
+              13.800000190734863,
+              12.300000190734863
+            ],
+            "sun_radius_degrees": 0.8593721985816956,
+            "terrain_meshes": 0,
+            "terrain_ocean": "frozen procedural meshes",
+            "total_samples": 921600,
+            "trace_and_training_seconds": 1.254063709,
+            "trace_training_denoise_seconds": 1.254063709,
+            "trained_cells": 0,
+            "training_rays": 0,
+            "training_seconds": 0.0,
+            "training_spp": 0,
+            "triangles": 654582,
+            "volume_scattering_events": 0,
+            "width": 160
+          },
+          "raw_linear_PFM": {
+            "sha256": "ad4c696f66f810bd7b329825c46332cef5b2d686e3dd58b2f643e83fed08b5b6",
+            "width": 160,
+            "height": 90,
+            "finite": true,
+            "minimum": 0.0,
+            "maximum": 1736.6287841796875,
+            "mean_RGB": [
+              0.5317384688658395,
+              0.4824634999852788,
+              0.4231781359413044
+            ]
+          }
+        },
+        "classroom-vulkan-compare": {
+          "report_sha256": "59d1eada87d5072ffb69ee4fcde8d3f925ea8db1a2e85f3bccea6132aa8fb5b1",
+          "report": {
+            "absolute_error": 0.0005000000237487257,
+            "adaptive": false,
+            "average_spp": 64.0,
+            "bdpt": false,
+            "bvh_nodes": 221693,
+            "cache_depth": 2,
+            "cache_hits": 0,
+            "cache_minimum": 64,
+            "converged_pixels": 0,
+            "denoise_auxiliary": false,
+            "denoise_device": "",
+            "denoise_seconds": 0.0,
+            "denoiser": "",
+            "dielectric_meshes": 8,
+            "environment": {
+              "height": 256,
+              "type": "linear HDR equirectangular, importance sampled",
+              "width": 512
+            },
+            "execution": "GPU Vulkan compute BVH",
+            "exposure": 1.0,
+            "frozen_time_seconds": 0.0,
+            "geometry_bvh_bytes": 91654768,
+            "gpu_buffer_bytes": 138578996,
+            "grass_meshes": 0,
+            "guide_cell_size": 0.0,
+            "guide_hits": 0,
+            "guiding": false,
+            "height": 90,
+            "integrator": "Lambert + GGX VNDF, environment/sun/emitter NEE, power MIS, Russian roulette",
+            "max_depth": 16,
+            "meshes": 922,
+            "minimum_samples": 64,
+            "non_finite_samples": 0,
+            "ocean_interfaces": 0,
+            "radiance_cache": false,
+            "rays": 24021473,
+            "relative_error": 0.029999999329447746,
+            "render_seconds": 1.251990708,
+            "requested_threads": 0,
+            "sample_budget": 64,
+            "sampler": "dyadic-permuted padded 2D Sobol",
+            "samples": 64,
+            "scattering_meshes": 0,
+            "scene": "blender-classroom",
+            "seed": 1,
+            "setup_seconds": 0.124712417,
+            "subsurface_meshes": 0,
+            "sun_irradiance": [
+              15.0,
+              13.800000190734863,
+              12.300000190734863
+            ],
+            "sun_radius_degrees": 0.8593721985816956,
+            "terrain_meshes": 0,
+            "terrain_ocean": "frozen procedural meshes",
+            "total_samples": 921600,
+            "trace_and_training_seconds": 1.251990708,
+            "trace_training_denoise_seconds": 1.251990708,
+            "trained_cells": 0,
+            "training_rays": 0,
+            "training_seconds": 0.0,
+            "training_spp": 0,
+            "triangles": 654582,
+            "volume_scattering_events": 0,
+            "width": 160
+          },
+          "raw_linear_PFM": {
+            "sha256": "ad4c696f66f810bd7b329825c46332cef5b2d686e3dd58b2f643e83fed08b5b6",
+            "width": 160,
+            "height": 90,
+            "finite": true,
+            "minimum": 0.0,
+            "maximum": 1736.6287841796875,
+            "mean_RGB": [
+              0.5317384688658395,
+              0.4824634999852788,
+              0.4231781359413044
+            ]
+          }
+        }
+      },
+      "preview_command": "./build/pt/Scene-Renderer --path-trace-gpu blender-classroom --pt-size 640x360 --pt-samples 256 --pt-bounces 24 --pt-fixed --pt-denoise --pt-output build/path-tracing/blender/classroom",
+      "comparison_commands": {
+        "cpu": "./build/pt/Scene-Renderer --path-trace blender-classroom --pt-size 160x90 --pt-samples 64 --pt-bounces 16 --pt-fixed --pt-threads 8 --pt-output build/path-tracing/blender/classroom-cpu-compare",
+        "metal": "./build/pt/Scene-Renderer --path-trace-gpu blender-classroom --pt-size 160x90 --pt-samples 64 --pt-bounces 16 --pt-fixed --pt-output build/path-tracing/blender/classroom-metal-compare",
+        "vulkan": "./build/pt-vulkan/Scene-Renderer --path-trace-gpu blender-classroom --pt-size 160x90 --pt-samples 64 --pt-bounces 16 --pt-fixed --backend Vulkan --pt-output build/path-tracing/blender/classroom-vulkan-compare"
+      }
+    },
+    "barcelona": {
+      "source": {
+        "name": "barcelona",
+        "blend": "pavillon_barcelone_v1.2.blend",
+        "sha256": "0a85bf512329f1780563069512b934d679a6c543eeb1a4ec4f60cddeab706697",
+        "scene": "2- time: sunset",
+        "camera": "Camera",
+        "frame": 1,
+        "url": "https://download.blender.org/demo/test/pabellon_barcelona_v1.scene_.zip",
+        "author": "eMirage / Hamza Cheggour",
+        "license": "CC-BY (version not specified by the official download page)",
+        "source": "https://www.blender.org/download/demo-files/",
+        "archive_sha256": "0a85bf512329f1780563069512b934d679a6c543eeb1a4ec4f60cddeab706697",
+        "blend_sha256": "92162db8cabcd03641c53df95554b604b494ba74a76a099c7e06637e9379120a"
+      },
+      "export": {
+        "blender_version": "4.5.14 LTS",
+        "unique_objects": 102,
+        "instances": 528,
+        "particle_instances_source": 20622,
+        "particle_instances_retained": 512,
+        "particle_limit": 512,
+        "unique_triangles": 282709,
+        "expanded_triangles": 1456647,
+        "color_atlases": 66,
+        "atlas_size": 256,
+        "seconds": 3.827314709080383,
+        "material_diagnostics": {
+          "pavet": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "metal": [],
+          "glass_architectural": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "thin architectural transparent/glossy mixture approximated with alpha coverage, not closed dielectric",
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained"
+          ],
+          "white_mat": [],
+          "black_glossy": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained"
+          ],
+          "pebbles.ground": [
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "concrete": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "marble": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "marmol verde": [
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "Material": [],
+          "wax": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "thin translucency approximated as diffuse",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "candle_flame": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "thin architectural transparent/glossy mixture approximated with alpha coverage, not closed dielectric",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "wood": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "leather_white": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained"
+          ],
+          "white_lotus_leafs": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "thin translucency approximated as diffuse",
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "white_lotus": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "thin translucency approximated as diffuse"
+          ],
+          "white_lotus_orange": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "thin translucency approximated as diffuse"
+          ],
+          "water": [
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained"
+          ],
+          "pebbles": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "grass": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ],
+          "trunk": [],
+          "leafs": [
+            "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+            "thin translucency approximated as diffuse",
+            "transparent shader mask not retained in color atlas",
+            "shader bump/displacement not retained; evaluated geometric modifiers are retained",
+            "selected lobe color graph baked into UV atlas"
+          ]
+        },
+        "warnings": [
+          "selected shader lobes use Lambert/GGX rather than full Cycles closure graphs",
+          "object-info random color shared by instances of the same evaluated object",
+          "bump, normal-map and shader displacement are not exported",
+          "alpha/translucent shader graphs require a future thin-surface implementation",
+          "depth of field, motion blur, compositor and Blender color management are not reproduced",
+          "preview particle budget retained 512/20622 instances; omitted particles may affect shadows/reflections"
+        ]
+      },
+      "package_assets_sha256": {
+        "color-0000.png": "246a63688ea5fccc5e380a9139992fb91cddb176f11b05e248e9b4bc5b7f5cd4",
+        "color-0001.png": "c3ca716ad90fcb8757ce9d275f272693b49d9efcf803372479540e8d499c1cbe",
+        "color-0002.png": "e39b44f1fdd45affcef81888445e9a6f19e9c5bc615a9ca8e97c40ccd1f15e92",
+        "color-0003.png": "246a63688ea5fccc5e380a9139992fb91cddb176f11b05e248e9b4bc5b7f5cd4",
+        "color-0004.png": "246a63688ea5fccc5e380a9139992fb91cddb176f11b05e248e9b4bc5b7f5cd4",
+        "color-0005.png": "eae6f6f98aa58bb3ebe83e25b310d0f9aab0db7b296f14d94e84f7cb9e864cf1",
+        "color-0006.png": "1220a4e64dbc78cda39d84362f38aa688e095cb0a4b0591f4b46eee4364fc647",
+        "color-0007.png": "63a86d2f92b6e00f372e4f3538a7456a0adb07b92bc083a4bf14b2226493cca3",
+        "color-0008.png": "fa8441ffb391260f3ae3a03c183cd752f3d7441ecc32e3491cc14d1b2a2ebb6c",
+        "color-0009.png": "a239ee8ee88ae620b32c382d206de429234e4a830fc0cb8108f231e1c4e24db6",
+        "color-0010.png": "837083acf1dd2ac60a568a6067a045d9197b1a9435d3543ad0a6fe8fd31ab3d2",
+        "color-0011.png": "c318073918f1cfa604ee07e2022d4e7aa33e9dbd4657f957f932ca3f3268f1c6",
+        "color-0012.png": "e59670f1b82a7b4aa955ac07bae7c8025a43232cc679c3eafac17fb6bd719d8c",
+        "color-0013.png": "8e7edaa692990f681595c43bbcbac30337f53e5f7607a34c37c7c8d2d679a38d",
+        "color-0014.png": "ce63174c73e638bcd970ee96d68279707ff655cf3c7bde8bf967c2f7fcd06087",
+        "color-0015.png": "9b6c33eb78ab734c26aadbcd75ead59697f7594d38a1bd647987d32ef6b680a1",
+        "color-0016.png": "d1a11d20f6f720e0bfe20231bfa9b1d08cec7fa383602dc98e1bbae36f47e939",
+        "color-0017.png": "ef27f82ff00a7d69f62a2170c63600960c4919fa145e2783ab1a9a88f8af2f6d",
+        "color-0018.png": "71c383bb33a34257cf22beaca88964faf9dc8a8f7e3dd84207d25b9723a8ec05",
+        "color-0019.png": "fb5b43a23fdc5552151796e2f0fe8803f668bf8eb3ae57abf4d3b9cc93ad1add",
+        "color-0020.png": "c48019620daea7293afcdb0324edb5339b5a67e7d2e6746804a031370a641fb2",
+        "color-0021.png": "85d63683e162c460e8a12732aee6b3474f2600ddb9900d6962df52afa3b257e0",
+        "color-0022.png": "2a8f9ce2ee9ca0e5830ceb1bcddcdf440987030edd7f5abfd9bbb0434468a39b",
+        "color-0023.png": "16fac5ab9631bee2014d045fb2099021a3cf3a1626fb96bf42e31e402c57a8e1",
+        "color-0024.png": "c8dd96a15b36b38d1f9cf9583e9ebe8e8e064ce542298ca4fd4ee5de7b9e2597",
+        "color-0025.png": "8495c70906fcfa1cfde9da1d0352ff156bbaa8fbeeb67c0083697e0e14358c2b",
+        "color-0026.png": "196badc1498813851f4809e56e709438bd72e970236ba1ae4fe68de91e5b075e",
+        "color-0027.png": "66351b18f9bf09ac42437b2d3a6c56e7421c2b1da1cb829b63a4b8d058af8c80",
+        "color-0028.png": "c9e6506fa64a1af77416d2640029a7356b7b12e296593a614e5b4606e1ad86de",
+        "color-0029.png": "01fb82db0028d0e888976118ca697f50bcbf4022a8b99ac69d2227905d524dda",
+        "color-0030.png": "a93cedcf05d39359dfda30fc15c37118b69220981b2a497107fde3d81b5b6147",
+        "color-0031.png": "6080911e4c26fccad0e0771e1795e911178ca183c1aa639b94d53670cac39fe2",
+        "color-0032.png": "09f2e4a0f9d9c8b865f82e2d1da0fed1b62923e64883894d2634e2a805687ad7",
+        "color-0033.png": "6738883704f8a069bec283a8ff025bc3ec55b9a8907b1eb458d83088a8175b71",
+        "color-0034.png": "e67cb5f8bf50b293d56cc85f2bd96926ebff28e0fe64980c76200325d06a5b0e",
+        "color-0035.png": "18f3e5571e3d3d2ec5d0f4b6f125471a934b4835a2a5fb7a764b00b8ed90d5d6",
+        "color-0036.png": "53d00c49f7793082ff43a7776e679f91b21fb813cd31ce6a97c6c9311ab8ad1a",
+        "color-0037.png": "cb4b6ad566c9e34d310987980bc4c5860a6fc89e788b47f7f5bdc37b57934c5a",
+        "color-0038.png": "a51a61085bd736102ff3aa5a231ed0b234448380aa5a1c580fa52e9e053dc93e",
+        "color-0039.png": "4c996b856dd7cda9665da79e2b54ac6406c15e63a3ddbd711926786ad5c72a1a",
+        "color-0040.png": "4ab37e04a8180b2eb5ee0c8d3d0d0d51d8134116825cd935d2b0ad79806d4afb",
+        "color-0041.png": "4ab37e04a8180b2eb5ee0c8d3d0d0d51d8134116825cd935d2b0ad79806d4afb",
+        "color-0042.png": "e4adf5e29bb2b59ae5bc68f290d9f8e41e7d3c16b944229006726d299f5c7df3",
+        "color-0043.png": "bb1e7db3e2d7a955037497dfbdcf87f40d03f4e229224be8bd23915bf2e847e1",
+        "color-0044.png": "e232ec9d0e5ec0a6c8d9c0a8f8139cb9569a41f2671339247830359fcf5ba71a",
+        "color-0045.png": "871d339ae97b146bcb1efcbd585adeba47aa9d85eaa52e4affab3802ca062596",
+        "color-0046.png": "871d339ae97b146bcb1efcbd585adeba47aa9d85eaa52e4affab3802ca062596",
+        "color-0047.png": "871d339ae97b146bcb1efcbd585adeba47aa9d85eaa52e4affab3802ca062596",
+        "color-0048.png": "871d339ae97b146bcb1efcbd585adeba47aa9d85eaa52e4affab3802ca062596",
+        "color-0049.png": "e8f1a585fee5486af70f8f08d8546f919b6b0f250e457d3dedce16d087c7485e",
+        "color-0050.png": "4ab37e04a8180b2eb5ee0c8d3d0d0d51d8134116825cd935d2b0ad79806d4afb",
+        "color-0051.png": "4ab37e04a8180b2eb5ee0c8d3d0d0d51d8134116825cd935d2b0ad79806d4afb",
+        "color-0052.png": "e8f1a585fee5486af70f8f08d8546f919b6b0f250e457d3dedce16d087c7485e",
+        "color-0053.png": "e8f1a585fee5486af70f8f08d8546f919b6b0f250e457d3dedce16d087c7485e",
+        "color-0054.png": "4ab37e04a8180b2eb5ee0c8d3d0d0d51d8134116825cd935d2b0ad79806d4afb",
+        "color-0055.png": "4ab37e04a8180b2eb5ee0c8d3d0d0d51d8134116825cd935d2b0ad79806d4afb",
+        "color-0056.png": "e8f1a585fee5486af70f8f08d8546f919b6b0f250e457d3dedce16d087c7485e",
+        "color-0057.png": "e8f1a585fee5486af70f8f08d8546f919b6b0f250e457d3dedce16d087c7485e",
+        "color-0058.png": "cf0025ef06ee48d8fbbdbc399bbba133c62d159241da6aba9a043b5b8cd74a1b",
+        "color-0059.png": "3e13cf2980e3ebfb509ad84bf67f8a78cc4df7ca50d1c65f2d9905a52c08d362",
+        "color-0060.png": "4f0c02cdafabeda13b7a72043cbd52db57ac4dd9180f5e71464ff1adf66a377e",
+        "color-0061.png": "c171396ab301a3a699f1fa113a6add0153a1f2de978c8031ccecd510dd25194e",
+        "color-0062.png": "a906cf51e8cd49ff2ef8ed115915d0232c6b9f08aa07d34ae4d7dd1bb5b3900a",
+        "color-0063.png": "a35a6e375f0951189e9030591d10952eb68cc4a146642f6cd0020dcd5ced9a6b",
+        "color-0064.png": "99c46978a70fed31fbd04380beca4592e1e2f5cd5784e85f801899ae15ddb099",
+        "color-0065.png": "681f7c9d92e0c7f29b69e971a23af8fae5c21719e771c49b4b9805d5165733dd",
+        "environment.bin": "55ef0904a65045c58dcdaabf708e5ebca6f77f52993e4a64bc098aa111c3f174",
+        "geometry.bin": "0fde5a94177de4c1929efe19d578450bf77071da536b31fa97d88506c1630fcd",
+        "scene.json": "0a91bb1eab64b731296cb0508fe1ebb0f1419849e748ef48545dba2edb2dd053"
+      },
+      "package": {
+        "draws": 635,
+        "materials": 112
+      },
+      "renders": {
+        "barcelona": {
+          "report_sha256": "fd332e1877c2621b2bea6d4e1e988d52639c40c535a66c13004c12b2af5f5bca",
+          "report": {
+            "absolute_error": 0.0005000000237487257,
+            "adaptive": false,
+            "average_spp": 256.0,
+            "bdpt": false,
+            "bvh_nodes": 504127,
+            "cache_depth": 2,
+            "cache_hits": 0,
+            "cache_minimum": 64,
+            "converged_pixels": 0,
+            "denoise_auxiliary": true,
+            "denoise_device": "Metal",
+            "denoise_seconds": 0.489603042,
+            "denoiser": "Open Image Denoise 2.5.1",
+            "dielectric_meshes": 1,
+            "environment": {
+              "height": 256,
+              "type": "linear HDR equirectangular, importance sampled",
+              "width": 512
+            },
+            "execution": "GPU Metal compute BVH",
+            "exposure": 1.0,
+            "frozen_time_seconds": 0.0,
+            "geometry_bvh_bytes": 203856900,
+            "gpu_buffer_bytes": 218665492,
+            "grass_meshes": 0,
+            "guide_cell_size": 0.0,
+            "guide_hits": 0,
+            "guiding": false,
+            "height": 360,
+            "integrator": "Lambert + GGX VNDF, environment/sun/emitter NEE, power MIS, Russian roulette",
+            "max_depth": 24,
+            "meshes": 635,
+            "minimum_samples": 64,
+            "non_finite_samples": 0,
+            "ocean_interfaces": 0,
+            "radiance_cache": false,
+            "rays": 304004988,
+            "relative_error": 0.029999999329447746,
+            "render_seconds": 12.187931833,
+            "requested_threads": 0,
+            "sample_budget": 256,
+            "sampler": "dyadic-permuted padded 2D Sobol",
+            "samples": 256,
+            "scattering_meshes": 0,
+            "scene": "blender-barcelona",
+            "seed": 1,
+            "setup_seconds": 0.148261542,
+            "subsurface_meshes": 0,
+            "sun_irradiance": [
+              5.0,
+              2.2503411769866943,
+              0.0
+            ],
+            "sun_radius_degrees": 0.5729386806488037,
+            "terrain_meshes": 0,
+            "terrain_ocean": "frozen procedural meshes",
+            "total_samples": 58982400,
+            "trace_and_training_seconds": 12.187931833,
+            "trace_training_denoise_seconds": 12.677534875000001,
+            "trained_cells": 0,
+            "training_rays": 0,
+            "training_seconds": 0.0,
+            "training_spp": 0,
+            "triangles": 1453575,
+            "volume_scattering_events": 0,
+            "width": 640
+          },
+          "raw_linear_PFM": {
+            "sha256": "4fd2b1379c113e93a95285a93efcd04a613c92a74368d5766cdac219684271fc",
+            "width": 640,
+            "height": 360,
+            "finite": true,
+            "minimum": 9.46409363677958e-06,
+            "maximum": 30.428524017333984,
+            "mean_RGB": [
+              0.29315411867946506,
+              0.21648523920825483,
+              0.15636042995478072
+            ]
+          }
+        },
+        "barcelona-cpu-compare": {
+          "report_sha256": "ff16dd9060177055abb732f4d34d0c2b81f6dbf6beecd8c7a12aa10a9df178c1",
+          "report": {
+            "absolute_error": 0.0005000000237487257,
+            "adaptive": false,
+            "average_spp": 64.0,
+            "bdpt": false,
+            "bvh_nodes": 504127,
+            "cache_depth": 2,
+            "cache_hits": 0,
+            "cache_minimum": 64,
+            "converged_pixels": 0,
+            "denoise_auxiliary": false,
+            "denoise_device": "",
+            "denoise_seconds": 0.0,
+            "denoiser": "",
+            "dielectric_meshes": 1,
+            "environment": {
+              "height": 256,
+              "type": "linear HDR equirectangular, importance sampled",
+              "width": 512
+            },
+            "execution": "CPU",
+            "exposure": 1.0,
+            "frozen_time_seconds": 0.0,
+            "geometry_bvh_bytes": 203856900,
+            "gpu_buffer_bytes": 0,
+            "grass_meshes": 0,
+            "guide_cell_size": 0.0,
+            "guide_hits": 0,
+            "guiding": false,
+            "height": 90,
+            "integrator": "Lambert + GGX VNDF, environment/sun/emitter NEE, power MIS, Russian roulette",
+            "max_depth": 16,
+            "meshes": 635,
+            "minimum_samples": 64,
+            "non_finite_samples": 0,
+            "ocean_interfaces": 0,
+            "radiance_cache": false,
+            "rays": 4758433,
+            "relative_error": 0.029999999329447746,
+            "render_seconds": 0.919062166,
+            "requested_threads": 8,
+            "sample_budget": 64,
+            "sampler": "dyadic-permuted padded 2D Sobol",
+            "samples": 64,
+            "scattering_meshes": 0,
+            "scene": "blender-barcelona",
+            "seed": 1,
+            "setup_seconds": 0.0,
+            "subsurface_meshes": 0,
+            "sun_irradiance": [
+              5.0,
+              2.2503411769866943,
+              0.0
+            ],
+            "sun_radius_degrees": 0.5729386806488037,
+            "terrain_meshes": 0,
+            "terrain_ocean": "frozen procedural meshes",
+            "total_samples": 921600,
+            "trace_and_training_seconds": 0.919062166,
+            "trace_training_denoise_seconds": 0.919062166,
+            "trained_cells": 0,
+            "training_rays": 0,
+            "training_seconds": 0.0,
+            "training_spp": 0,
+            "triangles": 1453575,
+            "volume_scattering_events": 0,
+            "width": 160
+          },
+          "raw_linear_PFM": {
+            "sha256": "b784b852a6ab029da69903b817e807c191dd75480aca56852c34b79b75585415",
+            "width": 160,
+            "height": 90,
+            "finite": true,
+            "minimum": 9.026750262819405e-07,
+            "maximum": 4.613300800323486,
+            "mean_RGB": [
+              0.29251564854248047,
+              0.216155893753521,
+              0.1563105016638513
+            ]
+          }
+        },
+        "barcelona-metal-compare": {
+          "report_sha256": "bd745cf41ba0f0a3a804e98d192e5ea87da06a642aa26aa01e27f33d9d38ead3",
+          "report": {
+            "absolute_error": 0.0005000000237487257,
+            "adaptive": false,
+            "average_spp": 64.0,
+            "bdpt": false,
+            "bvh_nodes": 504127,
+            "cache_depth": 2,
+            "cache_hits": 0,
+            "cache_minimum": 64,
+            "converged_pixels": 0,
+            "denoise_auxiliary": false,
+            "denoise_device": "",
+            "denoise_seconds": 0.0,
+            "denoiser": "",
+            "dielectric_meshes": 1,
+            "environment": {
+              "height": 256,
+              "type": "linear HDR equirectangular, importance sampled",
+              "width": 512
+            },
+            "execution": "GPU Metal compute BVH",
+            "exposure": 1.0,
+            "frozen_time_seconds": 0.0,
+            "geometry_bvh_bytes": 203856900,
+            "gpu_buffer_bytes": 201385492,
+            "grass_meshes": 0,
+            "guide_cell_size": 0.0,
+            "guide_hits": 0,
+            "guiding": false,
+            "height": 90,
+            "integrator": "Lambert + GGX VNDF, environment/sun/emitter NEE, power MIS, Russian roulette",
+            "max_depth": 16,
+            "meshes": 635,
+            "minimum_samples": 64,
+            "non_finite_samples": 0,
+            "ocean_interfaces": 0,
+            "radiance_cache": false,
+            "rays": 4758172,
+            "relative_error": 0.029999999329447746,
+            "render_seconds": 0.409747917,
+            "requested_threads": 0,
+            "sample_budget": 64,
+            "sampler": "dyadic-permuted padded 2D Sobol",
+            "samples": 64,
+            "scattering_meshes": 0,
+            "scene": "blender-barcelona",
+            "seed": 1,
+            "setup_seconds": 0.111863958,
+            "subsurface_meshes": 0,
+            "sun_irradiance": [
+              5.0,
+              2.2503411769866943,
+              0.0
+            ],
+            "sun_radius_degrees": 0.5729386806488037,
+            "terrain_meshes": 0,
+            "terrain_ocean": "frozen procedural meshes",
+            "total_samples": 921600,
+            "trace_and_training_seconds": 0.409747917,
+            "trace_training_denoise_seconds": 0.409747917,
+            "trained_cells": 0,
+            "training_rays": 0,
+            "training_seconds": 0.0,
+            "training_spp": 0,
+            "triangles": 1453575,
+            "volume_scattering_events": 0,
+            "width": 160
+          },
+          "raw_linear_PFM": {
+            "sha256": "95ed3febd2b594f6491f1545638fc4e2b6b673f9ad2d9c74e4aa9bbfd0da049b",
+            "width": 160,
+            "height": 90,
+            "finite": true,
+            "minimum": 9.032996217683831e-07,
+            "maximum": 4.613337993621826,
+            "mean_RGB": [
+              0.29247367116520007,
+              0.21613757176106016,
+              0.15630371997846026
+            ]
+          }
+        },
+        "barcelona-vulkan-compare": {
+          "report_sha256": "0c9e672f0073f80590bd2ee32e8332ea411515e26f6980cb00f72e170e9d01a9",
+          "report": {
+            "absolute_error": 0.0005000000237487257,
+            "adaptive": false,
+            "average_spp": 64.0,
+            "bdpt": false,
+            "bvh_nodes": 504127,
+            "cache_depth": 2,
+            "cache_hits": 0,
+            "cache_minimum": 64,
+            "converged_pixels": 0,
+            "denoise_auxiliary": false,
+            "denoise_device": "",
+            "denoise_seconds": 0.0,
+            "denoiser": "",
+            "dielectric_meshes": 1,
+            "environment": {
+              "height": 256,
+              "type": "linear HDR equirectangular, importance sampled",
+              "width": 512
+            },
+            "execution": "GPU Vulkan compute BVH",
+            "exposure": 1.0,
+            "frozen_time_seconds": 0.0,
+            "geometry_bvh_bytes": 203856900,
+            "gpu_buffer_bytes": 201385492,
+            "grass_meshes": 0,
+            "guide_cell_size": 0.0,
+            "guide_hits": 0,
+            "guiding": false,
+            "height": 90,
+            "integrator": "Lambert + GGX VNDF, environment/sun/emitter NEE, power MIS, Russian roulette",
+            "max_depth": 16,
+            "meshes": 635,
+            "minimum_samples": 64,
+            "non_finite_samples": 0,
+            "ocean_interfaces": 0,
+            "radiance_cache": false,
+            "rays": 4758172,
+            "relative_error": 0.029999999329447746,
+            "render_seconds": 0.3827445,
+            "requested_threads": 0,
+            "sample_budget": 64,
+            "sampler": "dyadic-permuted padded 2D Sobol",
+            "samples": 64,
+            "scattering_meshes": 0,
+            "scene": "blender-barcelona",
+            "seed": 1,
+            "setup_seconds": 0.130461917,
+            "subsurface_meshes": 0,
+            "sun_irradiance": [
+              5.0,
+              2.2503411769866943,
+              0.0
+            ],
+            "sun_radius_degrees": 0.5729386806488037,
+            "terrain_meshes": 0,
+            "terrain_ocean": "frozen procedural meshes",
+            "total_samples": 921600,
+            "trace_and_training_seconds": 0.3827445,
+            "trace_training_denoise_seconds": 0.3827445,
+            "trained_cells": 0,
+            "training_rays": 0,
+            "training_seconds": 0.0,
+            "training_spp": 0,
+            "triangles": 1453575,
+            "volume_scattering_events": 0,
+            "width": 160
+          },
+          "raw_linear_PFM": {
+            "sha256": "95ed3febd2b594f6491f1545638fc4e2b6b673f9ad2d9c74e4aa9bbfd0da049b",
+            "width": 160,
+            "height": 90,
+            "finite": true,
+            "minimum": 9.032996217683831e-07,
+            "maximum": 4.613337993621826,
+            "mean_RGB": [
+              0.29247367116520007,
+              0.21613757176106016,
+              0.15630371997846026
+            ]
+          }
+        }
+      },
+      "preview_command": "./build/pt/Scene-Renderer --path-trace-gpu blender-barcelona --pt-size 640x360 --pt-samples 256 --pt-bounces 24 --pt-fixed --pt-denoise --pt-output build/path-tracing/blender/barcelona",
+      "comparison_commands": {
+        "cpu": "./build/pt/Scene-Renderer --path-trace blender-barcelona --pt-size 160x90 --pt-samples 64 --pt-bounces 16 --pt-fixed --pt-threads 8 --pt-output build/path-tracing/blender/barcelona-cpu-compare",
+        "metal": "./build/pt/Scene-Renderer --path-trace-gpu blender-barcelona --pt-size 160x90 --pt-samples 64 --pt-bounces 16 --pt-fixed --pt-output build/path-tracing/blender/barcelona-metal-compare",
+        "vulkan": "./build/pt-vulkan/Scene-Renderer --path-trace-gpu blender-barcelona --pt-size 160x90 --pt-samples 64 --pt-bounces 16 --pt-fixed --backend Vulkan --pt-output build/path-tracing/blender/barcelona-vulkan-compare"
+      }
+    }
+  },
+  "test_results": {
+    "Metal": {
+      "passed": 7,
+      "failed": 0,
+      "test_names": [
+        "pt-cpu",
+        "pt-scene-package",
+        "pt-medium",
+        "pt-denoiser",
+        "pt-procedural",
+        "pt-cornell-scene",
+        "pt-native-sky"
+      ],
+      "log_sha256": "71a600bd2df6195a870755f90c0b616c4288bd7e5be2ed1fff6f99cd23fd1ddb",
+      "log": "Test project /Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/pt\n    Start 1: pt-cpu\n1/7 Test #1: pt-cpu ...........................   Passed    0.52 sec\n    Start 2: pt-scene-package\n2/7 Test #2: pt-scene-package .................   Passed    0.27 sec\n    Start 3: pt-medium\n3/7 Test #3: pt-medium ........................   Passed    0.04 sec\n    Start 4: pt-denoiser\n4/7 Test #4: pt-denoiser ......................   Passed    0.11 sec\n    Start 5: pt-procedural\n5/7 Test #5: pt-procedural ....................   Passed    0.01 sec\n    Start 6: pt-cornell-scene\n6/7 Test #6: pt-cornell-scene .................   Passed    0.03 sec\n    Start 7: pt-native-sky\n7/7 Test #7: pt-native-sky ....................   Passed   14.87 sec\n\n100% tests passed out of 7\n\nLabel Time Summary:\ngpu    =  14.87 sec*proc (1 test)\n\nTotal Test time (real) =  15.85 sec\n"
+    },
+    "Vulkan/MoltenVK": {
+      "passed": 7,
+      "failed": 0,
+      "test_names": [
+        "pt-cpu",
+        "pt-scene-package",
+        "pt-medium",
+        "pt-denoiser",
+        "pt-procedural",
+        "pt-cornell-scene",
+        "pt-native-sky"
+      ],
+      "log_sha256": "a20eca25ea991cfb46afb3e73741f5d8572b05c9bc8a3fa826c9cdf2f2df8442",
+      "log": "Test project /Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/pt-vulkan\n    Start 1: pt-cpu\n1/7 Test #1: pt-cpu ...........................   Passed    0.55 sec\n    Start 2: pt-scene-package\n2/7 Test #2: pt-scene-package .................   Passed    0.10 sec\n    Start 3: pt-medium\n3/7 Test #3: pt-medium ........................   Passed    0.04 sec\n    Start 4: pt-denoiser\n4/7 Test #4: pt-denoiser ......................   Passed    0.09 sec\n    Start 5: pt-procedural\n5/7 Test #5: pt-procedural ....................   Passed    0.02 sec\n    Start 6: pt-cornell-scene\n6/7 Test #6: pt-cornell-scene .................   Passed    0.29 sec\n    Start 7: pt-native-sky\n7/7 Test #7: pt-native-sky ....................   Passed   14.65 sec\n\n100% tests passed out of 7\n\nLabel Time Summary:\ngpu    =  14.65 sec*proc (1 test)\n\nTotal Test time (real) =  15.74 sec\n"
+    },
+    "ASan/UBSan": {
+      "passed": 4,
+      "failed": 0,
+      "test_names": [
+        "pt-cpu",
+        "pt-scene-package",
+        "pt-medium",
+        "pt-procedural"
+      ],
+      "log_sha256": "fca956a83c40b8f72d2d1a40c2d5deb5bec61ef074840570b74664ae738a84d0",
+      "log": "Test project /Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/pt-sanitize\n    Start 1: pt-cpu\n1/4 Test #1: pt-cpu ...........................   Passed   27.24 sec\n    Start 2: pt-scene-package\n2/4 Test #2: pt-scene-package .................   Passed    0.39 sec\n    Start 3: pt-medium\n3/4 Test #3: pt-medium ........................   Passed    2.13 sec\n    Start 5: pt-procedural\n4/4 Test #5: pt-procedural ....................   Passed    1.59 sec\n\n100% tests passed out of 4\n\nTotal Test time (real) =  31.36 sec\n"
+    }
+  },
+  "comparison_parameters": {
+    "width": 160,
+    "height": 90,
+    "samples": 64,
+    "max_depth": 16,
+    "seed": 1,
+    "sampler": "Sobol",
+    "adaptive": false,
+    "denoise": false,
+    "CPU_threads": 8
+  },
+  "metric_definitions": {
+    "pixel_RGB_relative_L1": "sum_pixels(length_RGB(GPU-CPU)) / sum_pixels(length_RGB(CPU))",
+    "componentwise_relative_L1": "sum(abs(GPU-CPU)) / sum(abs(CPU))",
+    "RGB_energy_ratio_GPU_over_CPU": "sum(GPU_RGB) / sum(CPU_RGB)"
+  },
+  "comparisons": {
+    "classroom": {
+      "metal": {
+        "pixel_RGB_relative_L1": 0.004159125955129761,
+        "componentwise_relative_L1": 0.004151822027294983,
+        "RGB_energy_ratio_GPU_over_CPU": 1.0017930933571964
+      },
+      "vulkan": {
+        "pixel_RGB_relative_L1": 0.004159125955129761,
+        "componentwise_relative_L1": 0.004151822027294983,
+        "RGB_energy_ratio_GPU_over_CPU": 1.0017930933571964
+      }
+    },
+    "barcelona": {
+      "metal": {
+        "pixel_RGB_relative_L1": 0.00019473768575213702,
+        "componentwise_relative_L1": 0.00017039021630306555,
+        "RGB_energy_ratio_GPU_over_CPU": 0.9998991235090608
+      },
+      "vulkan": {
+        "pixel_RGB_relative_L1": 0.00019473768575213702,
+        "componentwise_relative_L1": 0.00017039021630306555,
+        "RGB_energy_ratio_GPU_over_CPU": 0.9998991235090608
+      }
+    }
+  },
+  "barcelona_full_capture": {
+    "export": {
+      "blender_version": "4.5.14 LTS",
+      "unique_objects": 102,
+      "instances": 20638,
+      "unique_triangles": 282709,
+      "expanded_triangles": 54967499,
+      "color_atlases": 66,
+      "atlas_size": 256,
+      "seconds": 4.188017833977938,
+      "warnings": [
+        "selected shader lobes use Lambert/GGX rather than full Cycles closure graphs",
+        "object-info random color shared by instances of the same evaluated object",
+        "bump, normal-map and shader displacement are not exported",
+        "alpha/translucent shader graphs require a future thin-surface implementation",
+        "depth of field, motion blur, compositor and Blender color management are not reproduced"
+      ]
+    },
+    "rendered": false,
+    "reason": "54,967,499 expanded triangles exceed the loader budget of 2^27 vertices. Default preview explicitly retains 512/20,622 particle instances; collection instances are unaffected."
+  },
+  "measurement_limits": [
+    "Timing includes checkpoint output; excludes import, CPU BVH build and GPU preparation. Concurrent unrelated workloads were present; these are observations, not backend speed rankings.",
+    "geometry_bvh_bytes and gpu_buffer_bytes are logical payload counts, not total process/driver memory peaks.",
+    "Blender uses viewport depsgraph with subdivision render levels; render-only modifiers/hair/compositor are not fully captured.",
+    "Legacy shader lobes, thin-glass alpha coverage, missing translucency/masks/normal maps and legacy light nodes are approximations, not Cycles equivalence.",
+    "Blender generates only source color/world bakes. All displayed beauty PNGs are rendered by SceneRenderer Metal PT.",
+    "Metal and Vulkan raw RGB arrays match for the two recorded comparison runs; this does not establish equivalence for all scenes."
+  ]
+}

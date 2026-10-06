@@ -1,0 +1,1297 @@
+{
+  "date": "2026-10-05",
+  "iteration": "Barcelona tangent normals, UV orientation, hidden instancers and bounded pool optics",
+  "platform": "Apple M4, macOS arm64; Vulkan through MoltenVK",
+  "base_commit": "e993d4f836bd0c16e84688e35b209045c4d3cfef",
+  "source_sha256": {
+    "include/PT/CpuPathTracer.h": "85dd534b771ac03f182097556eaf494d4187c25d7b634162f94851f00aac6b61",
+    "include/PT/SceneData.h": "6f28f8f69710f204ef7511fb5b13ef54e2ef3775a0629b59b45b1089fe536a62",
+    "include/renderer/rhi/SceneSnapshot.h": "9539e7ab9c118f71d202aadc90d927aac571d585b7b3ebc7d6caff0b85db5bd3",
+    "include/PT/ScenePackage.h": "c90c07bd6ea93983529c32d093f85c68db828a33b2daad76a0196c48f7f7525f",
+    "src/PT/CpuPathTracer.cpp": "3b2dfee0e0a0d9ef2587189decf6fd424e8af286f9f27e1b07a5017c4eb81acf",
+    "src/PT/ScenePackage.cpp": "fb6c9281a3d55b53590a0d09c4c0a52330187887665bafa72d67e36b3457f013",
+    "src/PT/CpuPathTracingEntry.cpp": "b872d72d8f58c4eae80bc82a32c6d336fc94896657fec0c53d1c06c35b835acf",
+    "src/PT/PathTracingValidation.cpp": "00ce5230e56cd2a12379dbaa65ae08a4eb2cb837a0698cbb5b2999337c1b6f25",
+    "src/rhi/shaders/path-trace.comp": "f0726b1bb37e5e77bb0241aaeaa4423033cd220d99f9c98bb163b1f79e054f00",
+    "src/rhi/shaders/pt-dielectric.glsl": "47215e8b24d3803767a9d86c484d6a5b0b247f900de601ee0ee6c00f5393669b",
+    "tools/export_blender_pt.py": "e02ce6da7ad333c6c670006f93037fed49ee94709448e5e0ad08f9fec1e8a7ab",
+    "tests/PT/CpuPathTracerTests.cpp": "42c8d9e504b23f37669c3ebc5454ef89c42230e17427b3af79cd216ca0db8df7",
+    "tests/PT/ScenePackageTests.cpp": "5a3ed89b4b400b5bbd4616498c439fefcb041ce0482ba44a19acbc567e256599",
+    "tests/PT/BlenderExportTests.py": "2124d86cd7686cfc4e0461dcab64827f02f4bd044307a4467f03607e564ad5d8",
+    "tools/prepare_blender_scenes.py": "ee331c9b6c05cb3b21370791e0f4166906bcc931efe82c0839cd4b86e5c5defa",
+    "tools/render_blender_reference.py": "fdc1dbc19aa64c5d1d0a2fd0da3290a4112b11f378932ac167387f4af137b5a7"
+  },
+  "images": {
+    "img/path-tracing/blender-barcelona-water-raw.png": "3d627c3ddd588d9a5d71b321e6c17786c022d5244208760d6fc8f345fb58be25",
+    "img/path-tracing/blender-barcelona-water.png": "ee389a77b04b9dfd048af2cf7483a895762a5f75f00e9a73a8acd11b90816bab"
+  },
+  "comparison_parameters": {
+    "width": 160,
+    "height": 90,
+    "samples": 64,
+    "max_depth": 16,
+    "seed": 1,
+    "sampler": "Sobol",
+    "adaptive": false,
+    "denoise": false,
+    "CPU_threads": 8
+  },
+  "metric_definition": "sum_pixels(length_RGB(GPU-CPU))/sum_pixels(length_RGB(CPU)); energy ratio=sum(GPU_RGB)/sum(CPU_RGB)",
+  "comparisons": {
+    "metal": {
+      "pixel_RGB_relative_L1": 0.0003349661436174143,
+      "RGB_energy_ratio_GPU_over_CPU": 0.9998585004762235,
+      "finite": true
+    },
+    "vulkan": {
+      "pixel_RGB_relative_L1": 0.00033496618032948,
+      "RGB_energy_ratio_GPU_over_CPU": 0.9998585004512153,
+      "finite": true
+    }
+  },
+  "source": {
+    "name": "barcelona",
+    "blend": "pavillon_barcelone_v1.2.blend",
+    "sha256": "0a85bf512329f1780563069512b934d679a6c543eeb1a4ec4f60cddeab706697",
+    "scene": "2- time: sunset",
+    "camera": "Camera",
+    "frame": 1,
+    "url": "https://download.blender.org/demo/test/pabellon_barcelona_v1.scene_.zip",
+    "author": "eMirage / Hamza Cheggour",
+    "license": "CC-BY (version not specified by the official download page)",
+    "source": "https://www.blender.org/download/demo-files/",
+    "archive_sha256": "0a85bf512329f1780563069512b934d679a6c543eeb1a4ec4f60cddeab706697",
+    "blend_sha256": "92162db8cabcd03641c53df95554b604b494ba74a76a099c7e06637e9379120a"
+  },
+  "export": {
+    "material_revision": 4,
+    "water_profile": "pool",
+    "pool_depth": 0.5,
+    "blender_version": "4.5.14 LTS",
+    "unique_objects": 100,
+    "instances": 528,
+    "particle_instances_source": 20622,
+    "particle_instances_retained": 512,
+    "particle_limit": 512,
+    "unique_triangles": 281749,
+    "expanded_triangles": 1455687,
+    "color_atlases": 80,
+    "scalar_atlases": 80,
+    "normal_atlases": 29,
+    "native_mask_atlases": 7,
+    "atlas_size": 256,
+    "seconds": 20.453670042101294,
+    "material_diagnostics": {
+      "pavet": [
+        "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+        "selected surface normal/bump baked into tangent atlas; shader displacement remains unsupported",
+        "selected lobe color graph baked into UV atlas"
+      ],
+      "metal": [],
+      "glass_architectural": [
+        "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+        "angle-dependent transparent/glossy graph converted to smooth parallel thin dielectric; IOR=1.5 approximation, thin-sheet bump/rough layers omitted",
+        "selected surface normal/bump baked into tangent atlas; shader displacement remains unsupported"
+      ],
+      "white_mat": [],
+      "black_glossy": [
+        "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained"
+      ],
+      "pebbles.ground": [
+        "selected lobe color graph baked into UV atlas"
+      ],
+      "concrete": [
+        "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+        "selected lobe color graph baked into UV atlas"
+      ],
+      "marble": [
+        "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+        "selected lobe color graph baked into UV atlas"
+      ],
+      "marmol verde": [
+        "selected lobe color graph baked into UV atlas"
+      ],
+      "Material": [],
+      "wax": [
+        "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+        "thin translucency approximated as diffuse",
+        "selected lobe color graph baked into UV atlas"
+      ],
+      "candle_flame": [
+        "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+        "transparent shader coverage baked separately from color; thin translucency remains approximate",
+        "selected lobe color graph baked into UV atlas",
+        "masked UV graph baked separately with native repeated UVs; no smart-project leaf fragmentation"
+      ],
+      "wood": [
+        "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+        "selected lobe color graph baked into UV atlas"
+      ],
+      "leather_white": [
+        "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained"
+      ],
+      "white_lotus_leafs": [
+        "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+        "thin translucency approximated as diffuse",
+        "selected surface normal/bump baked into tangent atlas; shader displacement remains unsupported",
+        "selected lobe color graph baked into UV atlas",
+        "unsupported linked/mixed volume graph omitted"
+      ],
+      "white_lotus": [
+        "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+        "thin translucency approximated as diffuse"
+      ],
+      "white_lotus_orange": [
+        "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+        "thin translucency approximated as diffuse"
+      ],
+      "water": [
+        "selected surface normal/bump baked into tangent atlas; shader displacement remains unsupported",
+        "explicit pool profile: IOR 1.333, RGB absorption [0.12,0.035,0.015] per world unit, depth 0.5; source IOR differs"
+      ],
+      "pebbles": [
+        "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+        "selected lobe color graph baked into UV atlas"
+      ],
+      "grass": [
+        "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+        "group-internal or arbitrary normal-vector graph omitted; only top-level Bump/NormalMap outputs bake",
+        "selected lobe color graph baked into UV atlas"
+      ],
+      "trunk": [],
+      "leafs": [
+        "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+        "thin translucency approximated as diffuse",
+        "transparent shader coverage baked separately from color; thin translucency remains approximate",
+        "selected lobe color graph baked into UV atlas",
+        "masked UV graph baked separately with native repeated UVs; no smart-project leaf fragmentation"
+      ]
+    },
+    "warnings": [
+      "water_plane_still: open source water sheet closed with explicit pool depth 0.5",
+      "selected shader lobes use Lambert/GGX rather than full Cycles closure graphs",
+      "object-info random color shared by instances of the same evaluated object",
+      "selected surface bump/normal baked; shader displacement and full layered normal closures are not exported",
+      "thin translucency and group-internal alpha require future closure/group support",
+      "direction-dependent color/scalars are not physically reproduced by UV baking",
+      "depth of field, motion blur, compositor and Blender color management are not reproduced",
+      "preview particle budget retained 512/20622 instances; omitted particles may affect shadows/reflections"
+    ]
+  },
+  "package_assets_sha256": {
+    "color-0047.png": "9884653a7ab67f812baf90288caa96168f1968aacf01e5257e8c87208713e23d",
+    "color-0049.png": "9884653a7ab67f812baf90288caa96168f1968aacf01e5257e8c87208713e23d",
+    "color-0059.png": "9884653a7ab67f812baf90288caa96168f1968aacf01e5257e8c87208713e23d",
+    "color-0061.png": "9884653a7ab67f812baf90288caa96168f1968aacf01e5257e8c87208713e23d",
+    "color-0065.png": "9884653a7ab67f812baf90288caa96168f1968aacf01e5257e8c87208713e23d",
+    "color-0067.png": "9884653a7ab67f812baf90288caa96168f1968aacf01e5257e8c87208713e23d",
+    "color-0079.png": "fe7785dbe2f45a78f8c098faca3287a32b793a15dca72e754629311584b5e284",
+    "color-opaque-0000.png": "1bbdc2a556979366f32731acd10fa03f0b1c1178f8987245fb56752b30f5f810",
+    "color-opaque-0001.png": "f5e77e3a92cb09870db0c33d649b8985527cab697658ca6db1ff1a9052329a1e",
+    "color-opaque-0002.png": "8c438d06ffe2db9023a49144e439f0fb20b0dd7892b80ac4b9f61f4d6ae6928f",
+    "color-opaque-0003.png": "f09947cce47d930b10a9284bf88154bc62ece5fd7d6d77e50ebb69c75fe1b35a",
+    "color-opaque-0004.png": "1bbdc2a556979366f32731acd10fa03f0b1c1178f8987245fb56752b30f5f810",
+    "color-opaque-0005.png": "1bbdc2a556979366f32731acd10fa03f0b1c1178f8987245fb56752b30f5f810",
+    "color-opaque-0006.png": "63486e6857cde90e5fd9673c285ddd4a163b7700111e1b6dc1ee3c1d1a5b2f47",
+    "color-opaque-0007.png": "baef222f16e12a4635bd8a672e5a80cc9e355e9724c0f23b1ff17d4837725f4e",
+    "color-opaque-0008.png": "e3eaa03b0013ef04537ba549ec213e936bc466ca9ab61cb1e3f6af88e2db8fb6",
+    "color-opaque-0009.png": "c090ee2098c9486fb9347428f3172e9f44f40bf9dd84d1a0d3693a19333ea4cf",
+    "color-opaque-0010.png": "2f90d691ed2d1ffb29722bbc585eac06dbef723aa0753c1af22f5051b2b1153d",
+    "color-opaque-0011.png": "38a8737842afd8fe275195acab0b935681aa439978dc8dc07a0c2586e0a30205",
+    "color-opaque-0012.png": "60e03da0b466cbbce5102b1791f238bcd383d8e7790bfa709302037410457d6b",
+    "color-opaque-0013.png": "e054efe4c92da1f465b0bb417ac5e4f8558c831d90f181968e99d26c97480915",
+    "color-opaque-0014.png": "c82032fd84a6b96b2b85d4bf20d4bb9c96bc2380adab342920e4073b088e14cb",
+    "color-opaque-0015.png": "a5572bde62207243bd5c1537b00478f189d0c2c5db15ebb5ce78a0f898753257",
+    "color-opaque-0016.png": "f99d3bc21028a88203d9d39a11a6f41a1c49c6814133dc6e8e2c57c0b7e968c0",
+    "color-opaque-0017.png": "4240b7e53c877a97ccd6aba2540212707436aa6ea54d6d8f9578f9838f26f961",
+    "color-opaque-0018.png": "63a4bdc5b99ff5c23f32744447cd987e0247091b6e2fafa78d56b2c3fe8d0500",
+    "color-opaque-0019.png": "71c383bb33a34257cf22beaca88964faf9dc8a8f7e3dd84207d25b9723a8ec05",
+    "color-opaque-0020.png": "b6596c883022b18a134ee38871eeab69492e3b258432c59662d4e2192a5dd85d",
+    "color-opaque-0021.png": "8ec3f9e3822a83e36b6b6446d62a4b7d9362cae7b3fff736ef63195437c7a30d",
+    "color-opaque-0022.png": "caab764bd552261c0922cad98d445bb3caf2e01d05fbf13cc5e57339a2181878",
+    "color-opaque-0023.png": "00d62a114434d77ce1ab1b8f24200764ecd964e23f8e7e4adbcbfc3ff0aaa712",
+    "color-opaque-0024.png": "f5e77e3a92cb09870db0c33d649b8985527cab697658ca6db1ff1a9052329a1e",
+    "color-opaque-0025.png": "f5e77e3a92cb09870db0c33d649b8985527cab697658ca6db1ff1a9052329a1e",
+    "color-opaque-0026.png": "ec10eb4393b56957f44172553850d6c5f2e03edca6c64dd2013f9237fda8911c",
+    "color-opaque-0027.png": "df5565fa4ffeece767b88df1c98d459ce5c48b937eb38fcb70f9990ba72e4f2b",
+    "color-opaque-0028.png": "08730d6d783f133204eaf5d253cef6421a991fde1e7a957259a186c02de0035e",
+    "color-opaque-0029.png": "2aeb73701437cbd0c1e2ca1892f3858726bc4e1e42d676d4176553222ca8df26",
+    "color-opaque-0030.png": "ca405128cae841d7b99d392e9ef50120957c2b8e8776ad7671582081f9457572",
+    "color-opaque-0031.png": "73a6a16d453e845cd63143ff5da68076782ff7a616c178124c94ec9b895fde33",
+    "color-opaque-0032.png": "c4cd9862d6d93040ce30d2ad85790594f0f0a4f7664a39fc002f18172309dfe5",
+    "color-opaque-0033.png": "a1a25a5cdaddc4117053d5d0f9305638023ceb9393dde35a06a94a2fce640e13",
+    "color-opaque-0034.png": "3f46092d66fe9f30ae5df8e05218441a626bb048221283c037d410ed461e23ad",
+    "color-opaque-0035.png": "0b8e50f6bf4166cbf1df7e3f93c325f07da1b4f89c9e30f4b02ad97352c78eb9",
+    "color-opaque-0036.png": "eb57e568cc159287e167d130f2cc4fef03f92c81abc5cf34991818b060c51511",
+    "color-opaque-0037.png": "a0b259e82d9b2ab34d3536969735b077dcefc85649fd17da83f4db45ba9ff2df",
+    "color-opaque-0038.png": "0c3f7b938a2246f4f529afa512c479570677f46677fb742f70cf061e2a63b853",
+    "color-opaque-0039.png": "480938fac91b4a0cf62497ec7e01745a155629d1da7eaf56702f786a5c5e831f",
+    "color-opaque-0040.png": "531ba044990f25fb9206d5c906ed82d50a8788ac39ad448df8438a4714928f1f",
+    "color-opaque-0041.png": "adedcd2bd73d3470e2148a2b782c4530ad577a815e6fc946c68fa738377e3bbd",
+    "color-opaque-0042.png": "aa132f620cb9cd30c923da39a4e4150472d842ed876ab13661d70b34832cef0c",
+    "color-opaque-0043.png": "8771613a17b543da26cb569af0aa9b1c8ccc0962d14deb24a7e3f07d8a2d6f32",
+    "color-opaque-0044.png": "58452f647dbf0e41dfd88d78c27d3742a13a9b213869e0f966d86fd3597dcede",
+    "color-opaque-0045.png": "93498872e6229ea66e4823671251ea393af79de997b3be03e62b754d5e3f221f",
+    "color-opaque-0046.png": "4ab37e04a8180b2eb5ee0c8d3d0d0d51d8134116825cd935d2b0ad79806d4afb",
+    "color-opaque-0048.png": "4ab37e04a8180b2eb5ee0c8d3d0d0d51d8134116825cd935d2b0ad79806d4afb",
+    "color-opaque-0050.png": "9014633b675868d4b13145330af68310afedeb7be53bfaa03f7782183f526b51",
+    "color-opaque-0051.png": "3a4852a5d541d396f07b81944d96f4ff02099296ffc1d7c4f52dc6848bec3dd4",
+    "color-opaque-0052.png": "d1706369308669cfd6084ea0718aad78e5b17484412b46b3322cea4ac4eb5ad9",
+    "color-opaque-0053.png": "b816545e96ed2adfb60aed3206008a57e9b63beb62d35975c8eac3878ecb7dd9",
+    "color-opaque-0054.png": "b816545e96ed2adfb60aed3206008a57e9b63beb62d35975c8eac3878ecb7dd9",
+    "color-opaque-0055.png": "b816545e96ed2adfb60aed3206008a57e9b63beb62d35975c8eac3878ecb7dd9",
+    "color-opaque-0056.png": "b816545e96ed2adfb60aed3206008a57e9b63beb62d35975c8eac3878ecb7dd9",
+    "color-opaque-0057.png": "e6c99d2765d8e45f4c099cf00bba80bcf25f9b34c0202c35184345de33e2e4d0",
+    "color-opaque-0058.png": "4ab37e04a8180b2eb5ee0c8d3d0d0d51d8134116825cd935d2b0ad79806d4afb",
+    "color-opaque-0060.png": "4ab37e04a8180b2eb5ee0c8d3d0d0d51d8134116825cd935d2b0ad79806d4afb",
+    "color-opaque-0062.png": "e6c99d2765d8e45f4c099cf00bba80bcf25f9b34c0202c35184345de33e2e4d0",
+    "color-opaque-0063.png": "e6c99d2765d8e45f4c099cf00bba80bcf25f9b34c0202c35184345de33e2e4d0",
+    "color-opaque-0064.png": "4ab37e04a8180b2eb5ee0c8d3d0d0d51d8134116825cd935d2b0ad79806d4afb",
+    "color-opaque-0066.png": "4ab37e04a8180b2eb5ee0c8d3d0d0d51d8134116825cd935d2b0ad79806d4afb",
+    "color-opaque-0068.png": "e6c99d2765d8e45f4c099cf00bba80bcf25f9b34c0202c35184345de33e2e4d0",
+    "color-opaque-0069.png": "e6c99d2765d8e45f4c099cf00bba80bcf25f9b34c0202c35184345de33e2e4d0",
+    "color-opaque-0070.png": "cf0025ef06ee48d8fbbdbc399bbba133c62d159241da6aba9a043b5b8cd74a1b",
+    "color-opaque-0071.png": "3e13cf2980e3ebfb509ad84bf67f8a78cc4df7ca50d1c65f2d9905a52c08d362",
+    "color-opaque-0072.png": "4f0c02cdafabeda13b7a72043cbd52db57ac4dd9180f5e71464ff1adf66a377e",
+    "color-opaque-0073.png": "9b339f50493bca9ca44afbf47514e43fd1671675025d1002044ed9babc8394d9",
+    "color-opaque-0074.png": "c171396ab301a3a699f1fa113a6add0153a1f2de978c8031ccecd510dd25194e",
+    "color-opaque-0075.png": "a906cf51e8cd49ff2ef8ed115915d0232c6b9f08aa07d34ae4d7dd1bb5b3900a",
+    "color-opaque-0076.png": "a35a6e375f0951189e9030591d10952eb68cc4a146642f6cd0020dcd5ced9a6b",
+    "color-opaque-0077.png": "99c46978a70fed31fbd04380beca4592e1e2f5cd5784e85f801899ae15ddb099",
+    "color-opaque-0078.png": "681f7c9d92e0c7f29b69e971a23af8fae5c21719e771c49b4b9805d5165733dd",
+    "environment.bin": "55ef0904a65045c58dcdaabf708e5ebca6f77f52993e4a64bc098aa111c3f174",
+    "geometry.bin": "606b829ba0a1825e0d8618e21646340bf85dcdd225536c26ab69f0558fdf7c4e",
+    "normal-0000.png": "02f0220da02999eafe3a54155201b4e542087e1744432e3e2d55630070e71a4b",
+    "normal-0001.png": "59139f36c8ef8e5c6a7a48559ae064f27c254e4e7b9c57b320ee069330177fb4",
+    "normal-0002.png": "0611cee2fe35197588110e23e6c04885b014a4289c33082696e0a3313f9d261e",
+    "normal-0003.png": "c4842589159c554ab37b914ef93f82754af58ff0a307ac61c5fe8c05f8f4d28c",
+    "normal-0004.png": "31362402bd34a5c5ba8dbbd30eb7bc79468e35efa163f9bd1b4806de2e920c43",
+    "normal-0005.png": "31362402bd34a5c5ba8dbbd30eb7bc79468e35efa163f9bd1b4806de2e920c43",
+    "normal-0006.png": "dbb7091e934cd9d12a9085d56b080d273b4db3a2650f07d7b77397992cac2e33",
+    "normal-0007.png": "17e0cecc69b153da6f513f129da4971433a59afec5239d37ffd97be212fd7842",
+    "normal-0008.png": "3f9f1db8b9747272778cf9c5351039327c7f9fd1800d10a8e086ce02565fdbe4",
+    "normal-0009.png": "4ec042bce803b272449e23fc7d434b0a61a19c2df3d55660e317630fbdb550a2",
+    "normal-0010.png": "a9cdce04d3a6ef404768ee31b5b595cdab3e6ca3c7884c1e8b9a1688bba3e948",
+    "normal-0011.png": "42cb8de188b3e9caab1348efd437fd8e77753d2be9a71c4196244890c25fb1e9",
+    "normal-0012.png": "1f02dad4dbf8dddde4e4dfee4d872e7029ead6a3aa4118ebc2a01ca63ad2033f",
+    "normal-0013.png": "ffba466d0f3bc69b8239b8ab00b3858bd81d97774ec63d50267f1de06d4eedb8",
+    "normal-0014.png": "9393a14dd5cd056ab9f6d66ae2d5443888c8a1b067a311fb0df4c64c1ed2ce31",
+    "normal-0015.png": "54c6b11653c5c326348960cdc9c5415057fa79a32236014b23c825606bae5ec3",
+    "normal-0016.png": "9f36fcb56a8223b2c4651ad83317ab17a8c0697d1b97562c420f78f2c362085d",
+    "normal-0017.png": "23c9bbc650f9b64d4d6b5c56a746d98fcd311abbe81e34cc628f9d80aa00a4a8",
+    "normal-0018.png": "10d071a257ef97b8b6675015c7dec2c14bbec1e59218e8db14725c33077831b4",
+    "normal-0023.png": "a786b22a43f4f9c75ca6c05f9f9857b628ff84490d63c018a8685f6853c78701",
+    "normal-0024.png": "2dfb3b9e62e58428e0d9faf225bd70ffef80c7f843f64c0b5af0b3b638b38287",
+    "normal-0025.png": "79b2d3f828393f32a2c61ef5b2a3fd4ec57ae5e933e5c350ac7d95b5f3a849a2",
+    "normal-0026.png": "789f03b5a237765b8bd2f974033dc3cbb02804e008179f2320f12a5c5238d142",
+    "normal-0027.png": "6c8dec2ced39351da4ed26362e66f77195be84c206eb9e33f063d22e845b7dbf",
+    "normal-0028.png": "d1c8f2c763fe137585eeea0656c137cb02454222ab57ccbaf30e86a0ec1a9878",
+    "normal-0070.png": "91acd2628ec0311a5571bf5d1663407e643b06edd33bbfa82486c41bf96aaa7d",
+    "normal-0071.png": "7be746f716bdba46e371f1353668ae179a73b3c62dc5367c8636b4a4e7e3f39c",
+    "normal-0072.png": "11b2ec17066875a0211140a1e6c4e1931cb7596b87a473559ca136d42668d81c",
+    "normal-0073.png": "b0f305a1baf055bd588b0b974712393877735d3c5fa0540c01203c09cd08d825",
+    "orm-0000.png": "38f5a8fd80edaf00117a4e7974368da65084f902edae3bf5cb9803c024aaebbe",
+    "orm-0001.png": "d1bec89e76eed3913db506b026f247c0d83e3c45179be3cbd1d60207c0df1c62",
+    "orm-0002.png": "0ce84025a797a2863b1571c2fb9c21e495302df9d82fde6b527d643a4f61d08c",
+    "orm-0003.png": "a04953ce33dd6e41b0f92111ed7d8177fe3a6aa3484224a44f5857b828f08bb2",
+    "orm-0004.png": "38f5a8fd80edaf00117a4e7974368da65084f902edae3bf5cb9803c024aaebbe",
+    "orm-0005.png": "38f5a8fd80edaf00117a4e7974368da65084f902edae3bf5cb9803c024aaebbe",
+    "orm-0006.png": "cb09d8f3ab5d72337b3320d458ed5ab942d7f47f93c87160c5c5e6d32ec7c288",
+    "orm-0007.png": "437649f48ba01fe6229c88089b6a55a22bb6e70084e189281669cbc437820c4a",
+    "orm-0008.png": "b46345348577e14e388d8a4121da33eb25a52592a1405536c5a2d846cec92ce5",
+    "orm-0009.png": "d1822d3ea4d0566366e538306c0bccee7e37a608b4e1e20861f3c2b60388f68a",
+    "orm-0010.png": "9db6dd1ba612ba023900a5c359f604e06400cfe5eff944060e7538002decd8ef",
+    "orm-0011.png": "cc758e12d1e738b31ec43d0bb8fb2dd6c2e1dc834deb98cad497c06179d2d370",
+    "orm-0012.png": "63f265be28c26a874c64718a30b5aeb96e19010d36c14ddd5f91638445a8f868",
+    "orm-0013.png": "5c38311613d6cbb12498b2187543c89a5e0bf207bf646973ad909aa6801c9772",
+    "orm-0014.png": "c8d8231fba3c39bb551ce3c669ee9182b98721b3106eab31e804d9648d24cc74",
+    "orm-0015.png": "1dddd8b8c75ddac05ff504d2de8d001e3541f77d021d417694120f144aafd88d",
+    "orm-0016.png": "1bd2d82f50359b80a805a8ac7239f859a1c6efd82cd8ce8ee4fc50ab7f5fb576",
+    "orm-0017.png": "410c7b6203e369f110dc477da95f87e6127846714fe4908623eceb1270d89bba",
+    "orm-0018.png": "e1c3bf3d762848eaf6e53b884d077ea5c63ddf24308bb46c6458eba2c9e9ced0",
+    "orm-0019.png": "d1bec89e76eed3913db506b026f247c0d83e3c45179be3cbd1d60207c0df1c62",
+    "orm-0020.png": "bbac31074ec3475efb3f4622dce85da961abe14f35deccb010d2963c34d128da",
+    "orm-0021.png": "8f38de30f08cdcd2d4e310a5ae14c9098889ee27ff40b51f599a55c9f4e2af4c",
+    "orm-0022.png": "11215c7f229bbf67b3d34db6ba0606b8d2f41d659b43fa9bcbf2cfa7b50d90ea",
+    "orm-0023.png": "f2a98b1b1ae916426c04ef56a6944f824769d27fe238ada78754cc1c59346441",
+    "orm-0024.png": "d1bec89e76eed3913db506b026f247c0d83e3c45179be3cbd1d60207c0df1c62",
+    "orm-0025.png": "d1bec89e76eed3913db506b026f247c0d83e3c45179be3cbd1d60207c0df1c62",
+    "orm-0026.png": "d1bec89e76eed3913db506b026f247c0d83e3c45179be3cbd1d60207c0df1c62",
+    "orm-0027.png": "d1bec89e76eed3913db506b026f247c0d83e3c45179be3cbd1d60207c0df1c62",
+    "orm-0028.png": "d1bec89e76eed3913db506b026f247c0d83e3c45179be3cbd1d60207c0df1c62",
+    "orm-0029.png": "93a32c69476a479db2b4437300f2bbfff98ef74c88acb75706451763dd0da428",
+    "orm-0030.png": "93a32c69476a479db2b4437300f2bbfff98ef74c88acb75706451763dd0da428",
+    "orm-0031.png": "93a32c69476a479db2b4437300f2bbfff98ef74c88acb75706451763dd0da428",
+    "orm-0032.png": "93a32c69476a479db2b4437300f2bbfff98ef74c88acb75706451763dd0da428",
+    "orm-0033.png": "93a32c69476a479db2b4437300f2bbfff98ef74c88acb75706451763dd0da428",
+    "orm-0034.png": "93a32c69476a479db2b4437300f2bbfff98ef74c88acb75706451763dd0da428",
+    "orm-0035.png": "93a32c69476a479db2b4437300f2bbfff98ef74c88acb75706451763dd0da428",
+    "orm-0036.png": "93a32c69476a479db2b4437300f2bbfff98ef74c88acb75706451763dd0da428",
+    "orm-0037.png": "93a32c69476a479db2b4437300f2bbfff98ef74c88acb75706451763dd0da428",
+    "orm-0038.png": "93a32c69476a479db2b4437300f2bbfff98ef74c88acb75706451763dd0da428",
+    "orm-0039.png": "93a32c69476a479db2b4437300f2bbfff98ef74c88acb75706451763dd0da428",
+    "orm-0040.png": "93a32c69476a479db2b4437300f2bbfff98ef74c88acb75706451763dd0da428",
+    "orm-0041.png": "93a32c69476a479db2b4437300f2bbfff98ef74c88acb75706451763dd0da428",
+    "orm-0042.png": "93a32c69476a479db2b4437300f2bbfff98ef74c88acb75706451763dd0da428",
+    "orm-0043.png": "93a32c69476a479db2b4437300f2bbfff98ef74c88acb75706451763dd0da428",
+    "orm-0044.png": "34989f842f007ac1369e4b81a85ebe1b154e9e256507f7fdad5c17e373e9d705",
+    "orm-0045.png": "d1bec89e76eed3913db506b026f247c0d83e3c45179be3cbd1d60207c0df1c62",
+    "orm-0046.png": "cf04dc4c86a164911476e105606225bed8f03bfc114b2a4b1d2e8d52abfb825a",
+    "orm-0047.png": "f360153fc3213d647838ed762b6ed97d9ed918fa452fc51216c503d0440d6979",
+    "orm-0048.png": "cf04dc4c86a164911476e105606225bed8f03bfc114b2a4b1d2e8d52abfb825a",
+    "orm-0049.png": "f360153fc3213d647838ed762b6ed97d9ed918fa452fc51216c503d0440d6979",
+    "orm-0050.png": "ea720c332d9989229227d1dc2ca81bcb46c7ee9bee6ae4bd710512e45db6220b",
+    "orm-0051.png": "772359e29149e41d81c6d9b64416e312757cb642879940d8a84b4fdc0c480798",
+    "orm-0052.png": "c050744c5b521f1ed3b0f9f0d6cfe5481819a0646a305c6322078644f68a63c5",
+    "orm-0053.png": "9617b1addf70c3db79f17fd47eb466a7ac186379f4b9b2f09dfdfd156254e612",
+    "orm-0054.png": "9617b1addf70c3db79f17fd47eb466a7ac186379f4b9b2f09dfdfd156254e612",
+    "orm-0055.png": "9617b1addf70c3db79f17fd47eb466a7ac186379f4b9b2f09dfdfd156254e612",
+    "orm-0056.png": "9617b1addf70c3db79f17fd47eb466a7ac186379f4b9b2f09dfdfd156254e612",
+    "orm-0057.png": "700733e7f89def212ca7d695b5dfb965e6de78ecf96cd83d93e59e808800d4a9",
+    "orm-0058.png": "cf04dc4c86a164911476e105606225bed8f03bfc114b2a4b1d2e8d52abfb825a",
+    "orm-0059.png": "f360153fc3213d647838ed762b6ed97d9ed918fa452fc51216c503d0440d6979",
+    "orm-0060.png": "cf04dc4c86a164911476e105606225bed8f03bfc114b2a4b1d2e8d52abfb825a",
+    "orm-0061.png": "f360153fc3213d647838ed762b6ed97d9ed918fa452fc51216c503d0440d6979",
+    "orm-0062.png": "700733e7f89def212ca7d695b5dfb965e6de78ecf96cd83d93e59e808800d4a9",
+    "orm-0063.png": "700733e7f89def212ca7d695b5dfb965e6de78ecf96cd83d93e59e808800d4a9",
+    "orm-0064.png": "cf04dc4c86a164911476e105606225bed8f03bfc114b2a4b1d2e8d52abfb825a",
+    "orm-0065.png": "f360153fc3213d647838ed762b6ed97d9ed918fa452fc51216c503d0440d6979",
+    "orm-0066.png": "cf04dc4c86a164911476e105606225bed8f03bfc114b2a4b1d2e8d52abfb825a",
+    "orm-0067.png": "f360153fc3213d647838ed762b6ed97d9ed918fa452fc51216c503d0440d6979",
+    "orm-0068.png": "700733e7f89def212ca7d695b5dfb965e6de78ecf96cd83d93e59e808800d4a9",
+    "orm-0069.png": "700733e7f89def212ca7d695b5dfb965e6de78ecf96cd83d93e59e808800d4a9",
+    "orm-0070.png": "227a8cb5eb26ec521e22db7f852021040a58b065923c4e8a292ca879add04b34",
+    "orm-0071.png": "eaa89b5e39a7ba0894cee66a9f91591fddd93c81f61bfdb5e4403fae8eea3f46",
+    "orm-0072.png": "9c43f0933430d90c11401670d1b104f4f0b66e9c0567d716b6bae56baf44cdcd",
+    "orm-0073.png": "59c0c3065ab837541d4085e4b2e8c6a98bed277811be9e21d2b5bad203c7a07c",
+    "orm-0074.png": "566f31f9faf0972f486bcb9bf7f198236b9045e351eff263d78bd2bc9959aaa8",
+    "orm-0075.png": "e15e49f2f483ec575aaa159ed1ce8241b9fc6d4b463b2e1b8d907c7a2fc24b1d",
+    "orm-0076.png": "d2d41868a6fd6a04cd737fe45c6fbd02a60e6bc647c2b7172847ee6bb627e154",
+    "orm-0077.png": "417ac41e79a60a8931fbdb96fc57e85d993a190031dcc7a1f498721e59725320",
+    "orm-0078.png": "d1bec89e76eed3913db506b026f247c0d83e3c45179be3cbd1d60207c0df1c62",
+    "orm-0079.png": "70e6c873c0641342063ed24f49c5fb30444669da1436c4fe2be017c153aad614"
+  },
+  "reports": {
+    "": {
+      "absolute_error": 0.0005000000237487257,
+      "adaptive": false,
+      "average_spp": 256.0,
+      "bdpt": false,
+      "bvh_nodes": 503905,
+      "cache_depth": 2,
+      "cache_hits": 0,
+      "cache_minimum": 64,
+      "converged_pixels": 0,
+      "denoise_auxiliary": true,
+      "denoise_device": "Metal",
+      "denoise_seconds": 0.446352541,
+      "denoiser": "Open Image Denoise 2.5.1",
+      "dielectric_meshes": 7,
+      "environment": {
+        "height": 256,
+        "type": "linear HDR equirectangular, importance sampled",
+        "width": 512
+      },
+      "execution": "GPU Metal compute BVH",
+      "exposure": 1.0,
+      "frozen_time_seconds": 0.0,
+      "geometry_bvh_bytes": 203722500,
+      "gpu_buffer_bytes": 250796292,
+      "grass_meshes": 0,
+      "guide_cell_size": 0.0,
+      "guide_hits": 0,
+      "guiding": false,
+      "height": 360,
+      "integrator": "Lambert + GGX VNDF, environment/sun/emitter NEE, power MIS, Russian roulette",
+      "max_depth": 24,
+      "media": [
+        {
+          "dielectric_roughness": 0.054772257804870605,
+          "hg_g": 0.0,
+          "id": 121,
+          "ior": 1.3329999446868896,
+          "kind": 4,
+          "sigma_a": [
+            0.11999999731779099,
+            0.03500000014901161,
+            0.014999999664723873
+          ],
+          "sigma_s": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "meshes": 633,
+      "minimum_samples": 64,
+      "non_finite_samples": 0,
+      "ocean_interfaces": 0,
+      "radiance_cache": false,
+      "rays": 428077453,
+      "relative_error": 0.029999999329447746,
+      "render_seconds": 19.371714417,
+      "requested_threads": 0,
+      "sample_budget": 256,
+      "sampler": "dyadic-permuted padded 2D Sobol",
+      "samples": 256,
+      "scattering_meshes": 0,
+      "scene": "blender-barcelona",
+      "scene_package": {
+        "draws": 633,
+        "expanded_triangles": 1455687,
+        "export": {
+          "atlas_size": 256,
+          "blender_version": "4.5.14 LTS",
+          "color_atlases": 80,
+          "expanded_triangles": 1455687,
+          "instances": 528,
+          "material_diagnostics": {
+            "Material": [],
+            "black_glossy": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained"
+            ],
+            "candle_flame": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "transparent shader coverage baked separately from color; thin translucency remains approximate",
+              "selected lobe color graph baked into UV atlas",
+              "masked UV graph baked separately with native repeated UVs; no smart-project leaf fragmentation"
+            ],
+            "concrete": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "glass_architectural": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "angle-dependent transparent/glossy graph converted to smooth parallel thin dielectric; IOR=1.5 approximation, thin-sheet bump/rough layers omitted",
+              "selected surface normal/bump baked into tangent atlas; shader displacement remains unsupported"
+            ],
+            "grass": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "group-internal or arbitrary normal-vector graph omitted; only top-level Bump/NormalMap outputs bake",
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "leafs": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "thin translucency approximated as diffuse",
+              "transparent shader coverage baked separately from color; thin translucency remains approximate",
+              "selected lobe color graph baked into UV atlas",
+              "masked UV graph baked separately with native repeated UVs; no smart-project leaf fragmentation"
+            ],
+            "leather_white": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained"
+            ],
+            "marble": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "marmol verde": [
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "metal": [],
+            "pavet": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "selected surface normal/bump baked into tangent atlas; shader displacement remains unsupported",
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "pebbles": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "pebbles.ground": [
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "trunk": [],
+            "water": [
+              "selected surface normal/bump baked into tangent atlas; shader displacement remains unsupported",
+              "explicit pool profile: IOR 1.333, RGB absorption [0.12,0.035,0.015] per world unit, depth 0.5; source IOR differs"
+            ],
+            "wax": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "thin translucency approximated as diffuse",
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "white_lotus": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "thin translucency approximated as diffuse"
+            ],
+            "white_lotus_leafs": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "thin translucency approximated as diffuse",
+              "selected surface normal/bump baked into tangent atlas; shader displacement remains unsupported",
+              "selected lobe color graph baked into UV atlas",
+              "unsupported linked/mixed volume graph omitted"
+            ],
+            "white_lotus_orange": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "thin translucency approximated as diffuse"
+            ],
+            "white_mat": [],
+            "wood": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "selected lobe color graph baked into UV atlas"
+            ]
+          },
+          "material_revision": 4,
+          "native_mask_atlases": 7,
+          "normal_atlases": 29,
+          "particle_instances_retained": 512,
+          "particle_instances_source": 20622,
+          "particle_limit": 512,
+          "pool_depth": 0.5,
+          "scalar_atlases": 80,
+          "seconds": 20.453670042101294,
+          "unique_objects": 100,
+          "unique_triangles": 281749,
+          "warnings": [
+            "water_plane_still: open source water sheet closed with explicit pool depth 0.5",
+            "selected shader lobes use Lambert/GGX rather than full Cycles closure graphs",
+            "object-info random color shared by instances of the same evaluated object",
+            "selected surface bump/normal baked; shader displacement and full layered normal closures are not exported",
+            "thin translucency and group-internal alpha require future closure/group support",
+            "direction-dependent color/scalars are not physically reproduced by UV baking",
+            "depth of field, motion blur, compositor and Blender color management are not reproduced",
+            "preview particle budget retained 512/20622 instances; omitted particles may affect shadows/reflections"
+          ],
+          "water_profile": "pool"
+        },
+        "file": "samples/assets/blender/barcelona/scene.json",
+        "import_seconds": 0.079833625,
+        "materials": 110,
+        "source": {
+          "archive_sha256": "0a85bf512329f1780563069512b934d679a6c543eeb1a4ec4f60cddeab706697",
+          "author": "eMirage / Hamza Cheggour",
+          "blend": "pavillon_barcelone_v1.2.blend",
+          "blend_sha256": "92162db8cabcd03641c53df95554b604b494ba74a76a099c7e06637e9379120a",
+          "camera": "Camera",
+          "frame": 1,
+          "license": "CC-BY (version not specified by the official download page)",
+          "name": "barcelona",
+          "scene": "2- time: sunset",
+          "sha256": "0a85bf512329f1780563069512b934d679a6c543eeb1a4ec4f60cddeab706697",
+          "source": "https://www.blender.org/download/demo-files/",
+          "url": "https://download.blender.org/demo/test/pabellon_barcelona_v1.scene_.zip"
+        },
+        "unique_mesh_ranges": 110
+      },
+      "seed": 1,
+      "setup_seconds": 0.156051625,
+      "subsurface_meshes": 1,
+      "sun_irradiance": [
+        5.0,
+        2.2503411769866943,
+        0.0
+      ],
+      "sun_radius_degrees": 0.5729386806488037,
+      "terrain_meshes": 0,
+      "terrain_ocean": "frozen procedural meshes",
+      "total_samples": 58982400,
+      "trace_and_training_seconds": 19.371714417,
+      "trace_training_denoise_seconds": 19.818066958,
+      "trained_cells": 0,
+      "training_rays": 0,
+      "training_seconds": 0.0,
+      "training_spp": 0,
+      "triangles": 1452615,
+      "volume_scattering_events": 0,
+      "width": 640
+    },
+    "-cpu": {
+      "absolute_error": 0.0005000000237487257,
+      "adaptive": false,
+      "average_spp": 64.0,
+      "bdpt": false,
+      "bvh_nodes": 503905,
+      "cache_depth": 2,
+      "cache_hits": 0,
+      "cache_minimum": 64,
+      "converged_pixels": 0,
+      "denoise_auxiliary": false,
+      "denoise_device": "",
+      "denoise_seconds": 0.0,
+      "denoiser": "",
+      "dielectric_meshes": 7,
+      "environment": {
+        "height": 256,
+        "type": "linear HDR equirectangular, importance sampled",
+        "width": 512
+      },
+      "execution": "CPU",
+      "exposure": 1.0,
+      "frozen_time_seconds": 0.0,
+      "geometry_bvh_bytes": 203722500,
+      "gpu_buffer_bytes": 0,
+      "grass_meshes": 0,
+      "guide_cell_size": 0.0,
+      "guide_hits": 0,
+      "guiding": false,
+      "height": 90,
+      "integrator": "Lambert + GGX VNDF, environment/sun/emitter NEE, power MIS, Russian roulette",
+      "max_depth": 16,
+      "media": [
+        {
+          "dielectric_roughness": 0.054772257804870605,
+          "hg_g": 0.0,
+          "id": 121,
+          "ior": 1.3329999446868896,
+          "kind": 4,
+          "sigma_a": [
+            0.11999999731779099,
+            0.03500000014901161,
+            0.014999999664723873
+          ],
+          "sigma_s": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "meshes": 633,
+      "minimum_samples": 64,
+      "non_finite_samples": 0,
+      "ocean_interfaces": 0,
+      "radiance_cache": false,
+      "rays": 6681899,
+      "relative_error": 0.029999999329447746,
+      "render_seconds": 1.511900833,
+      "requested_threads": 8,
+      "sample_budget": 64,
+      "sampler": "dyadic-permuted padded 2D Sobol",
+      "samples": 64,
+      "scattering_meshes": 0,
+      "scene": "blender-barcelona",
+      "scene_package": {
+        "draws": 633,
+        "expanded_triangles": 1455687,
+        "export": {
+          "atlas_size": 256,
+          "blender_version": "4.5.14 LTS",
+          "color_atlases": 80,
+          "expanded_triangles": 1455687,
+          "instances": 528,
+          "material_diagnostics": {
+            "Material": [],
+            "black_glossy": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained"
+            ],
+            "candle_flame": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "transparent shader coverage baked separately from color; thin translucency remains approximate",
+              "selected lobe color graph baked into UV atlas",
+              "masked UV graph baked separately with native repeated UVs; no smart-project leaf fragmentation"
+            ],
+            "concrete": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "glass_architectural": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "angle-dependent transparent/glossy graph converted to smooth parallel thin dielectric; IOR=1.5 approximation, thin-sheet bump/rough layers omitted",
+              "selected surface normal/bump baked into tangent atlas; shader displacement remains unsupported"
+            ],
+            "grass": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "group-internal or arbitrary normal-vector graph omitted; only top-level Bump/NormalMap outputs bake",
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "leafs": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "thin translucency approximated as diffuse",
+              "transparent shader coverage baked separately from color; thin translucency remains approximate",
+              "selected lobe color graph baked into UV atlas",
+              "masked UV graph baked separately with native repeated UVs; no smart-project leaf fragmentation"
+            ],
+            "leather_white": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained"
+            ],
+            "marble": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "marmol verde": [
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "metal": [],
+            "pavet": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "selected surface normal/bump baked into tangent atlas; shader displacement remains unsupported",
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "pebbles": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "pebbles.ground": [
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "trunk": [],
+            "water": [
+              "selected surface normal/bump baked into tangent atlas; shader displacement remains unsupported",
+              "explicit pool profile: IOR 1.333, RGB absorption [0.12,0.035,0.015] per world unit, depth 0.5; source IOR differs"
+            ],
+            "wax": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "thin translucency approximated as diffuse",
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "white_lotus": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "thin translucency approximated as diffuse"
+            ],
+            "white_lotus_leafs": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "thin translucency approximated as diffuse",
+              "selected surface normal/bump baked into tangent atlas; shader displacement remains unsupported",
+              "selected lobe color graph baked into UV atlas",
+              "unsupported linked/mixed volume graph omitted"
+            ],
+            "white_lotus_orange": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "thin translucency approximated as diffuse"
+            ],
+            "white_mat": [],
+            "wood": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "selected lobe color graph baked into UV atlas"
+            ]
+          },
+          "material_revision": 4,
+          "native_mask_atlases": 7,
+          "normal_atlases": 29,
+          "particle_instances_retained": 512,
+          "particle_instances_source": 20622,
+          "particle_limit": 512,
+          "pool_depth": 0.5,
+          "scalar_atlases": 80,
+          "seconds": 20.453670042101294,
+          "unique_objects": 100,
+          "unique_triangles": 281749,
+          "warnings": [
+            "water_plane_still: open source water sheet closed with explicit pool depth 0.5",
+            "selected shader lobes use Lambert/GGX rather than full Cycles closure graphs",
+            "object-info random color shared by instances of the same evaluated object",
+            "selected surface bump/normal baked; shader displacement and full layered normal closures are not exported",
+            "thin translucency and group-internal alpha require future closure/group support",
+            "direction-dependent color/scalars are not physically reproduced by UV baking",
+            "depth of field, motion blur, compositor and Blender color management are not reproduced",
+            "preview particle budget retained 512/20622 instances; omitted particles may affect shadows/reflections"
+          ],
+          "water_profile": "pool"
+        },
+        "file": "samples/assets/blender/barcelona/scene.json",
+        "import_seconds": 0.083894833,
+        "materials": 110,
+        "source": {
+          "archive_sha256": "0a85bf512329f1780563069512b934d679a6c543eeb1a4ec4f60cddeab706697",
+          "author": "eMirage / Hamza Cheggour",
+          "blend": "pavillon_barcelone_v1.2.blend",
+          "blend_sha256": "92162db8cabcd03641c53df95554b604b494ba74a76a099c7e06637e9379120a",
+          "camera": "Camera",
+          "frame": 1,
+          "license": "CC-BY (version not specified by the official download page)",
+          "name": "barcelona",
+          "scene": "2- time: sunset",
+          "sha256": "0a85bf512329f1780563069512b934d679a6c543eeb1a4ec4f60cddeab706697",
+          "source": "https://www.blender.org/download/demo-files/",
+          "url": "https://download.blender.org/demo/test/pabellon_barcelona_v1.scene_.zip"
+        },
+        "unique_mesh_ranges": 110
+      },
+      "seed": 1,
+      "setup_seconds": 0.0,
+      "subsurface_meshes": 1,
+      "sun_irradiance": [
+        5.0,
+        2.2503411769866943,
+        0.0
+      ],
+      "sun_radius_degrees": 0.5729386806488037,
+      "terrain_meshes": 0,
+      "terrain_ocean": "frozen procedural meshes",
+      "total_samples": 921600,
+      "trace_and_training_seconds": 1.511900833,
+      "trace_training_denoise_seconds": 1.511900833,
+      "trained_cells": 0,
+      "training_rays": 0,
+      "training_seconds": 0.0,
+      "training_spp": 0,
+      "triangles": 1452615,
+      "volume_scattering_events": 0,
+      "width": 160
+    },
+    "-metal": {
+      "absolute_error": 0.0005000000237487257,
+      "adaptive": false,
+      "average_spp": 64.0,
+      "bdpt": false,
+      "bvh_nodes": 503905,
+      "cache_depth": 2,
+      "cache_hits": 0,
+      "cache_minimum": 64,
+      "converged_pixels": 0,
+      "denoise_auxiliary": false,
+      "denoise_device": "",
+      "denoise_seconds": 0.0,
+      "denoiser": "",
+      "dielectric_meshes": 7,
+      "environment": {
+        "height": 256,
+        "type": "linear HDR equirectangular, importance sampled",
+        "width": 512
+      },
+      "execution": "GPU Metal compute BVH",
+      "exposure": 1.0,
+      "frozen_time_seconds": 0.0,
+      "geometry_bvh_bytes": 203722500,
+      "gpu_buffer_bytes": 233516292,
+      "grass_meshes": 0,
+      "guide_cell_size": 0.0,
+      "guide_hits": 0,
+      "guiding": false,
+      "height": 90,
+      "integrator": "Lambert + GGX VNDF, environment/sun/emitter NEE, power MIS, Russian roulette",
+      "max_depth": 16,
+      "media": [
+        {
+          "dielectric_roughness": 0.054772257804870605,
+          "hg_g": 0.0,
+          "id": 121,
+          "ior": 1.3329999446868896,
+          "kind": 4,
+          "sigma_a": [
+            0.11999999731779099,
+            0.03500000014901161,
+            0.014999999664723873
+          ],
+          "sigma_s": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "meshes": 633,
+      "minimum_samples": 64,
+      "non_finite_samples": 0,
+      "ocean_interfaces": 0,
+      "radiance_cache": false,
+      "rays": 6681307,
+      "relative_error": 0.029999999329447746,
+      "render_seconds": 0.825155416,
+      "requested_threads": 0,
+      "sample_budget": 64,
+      "sampler": "dyadic-permuted padded 2D Sobol",
+      "samples": 64,
+      "scattering_meshes": 0,
+      "scene": "blender-barcelona",
+      "scene_package": {
+        "draws": 633,
+        "expanded_triangles": 1455687,
+        "export": {
+          "atlas_size": 256,
+          "blender_version": "4.5.14 LTS",
+          "color_atlases": 80,
+          "expanded_triangles": 1455687,
+          "instances": 528,
+          "material_diagnostics": {
+            "Material": [],
+            "black_glossy": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained"
+            ],
+            "candle_flame": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "transparent shader coverage baked separately from color; thin translucency remains approximate",
+              "selected lobe color graph baked into UV atlas",
+              "masked UV graph baked separately with native repeated UVs; no smart-project leaf fragmentation"
+            ],
+            "concrete": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "glass_architectural": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "angle-dependent transparent/glossy graph converted to smooth parallel thin dielectric; IOR=1.5 approximation, thin-sheet bump/rough layers omitted",
+              "selected surface normal/bump baked into tangent atlas; shader displacement remains unsupported"
+            ],
+            "grass": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "group-internal or arbitrary normal-vector graph omitted; only top-level Bump/NormalMap outputs bake",
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "leafs": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "thin translucency approximated as diffuse",
+              "transparent shader coverage baked separately from color; thin translucency remains approximate",
+              "selected lobe color graph baked into UV atlas",
+              "masked UV graph baked separately with native repeated UVs; no smart-project leaf fragmentation"
+            ],
+            "leather_white": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained"
+            ],
+            "marble": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "marmol verde": [
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "metal": [],
+            "pavet": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "selected surface normal/bump baked into tangent atlas; shader displacement remains unsupported",
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "pebbles": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "pebbles.ground": [
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "trunk": [],
+            "water": [
+              "selected surface normal/bump baked into tangent atlas; shader displacement remains unsupported",
+              "explicit pool profile: IOR 1.333, RGB absorption [0.12,0.035,0.015] per world unit, depth 0.5; source IOR differs"
+            ],
+            "wax": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "thin translucency approximated as diffuse",
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "white_lotus": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "thin translucency approximated as diffuse"
+            ],
+            "white_lotus_leafs": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "thin translucency approximated as diffuse",
+              "selected surface normal/bump baked into tangent atlas; shader displacement remains unsupported",
+              "selected lobe color graph baked into UV atlas",
+              "unsupported linked/mixed volume graph omitted"
+            ],
+            "white_lotus_orange": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "thin translucency approximated as diffuse"
+            ],
+            "white_mat": [],
+            "wood": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "selected lobe color graph baked into UV atlas"
+            ]
+          },
+          "material_revision": 4,
+          "native_mask_atlases": 7,
+          "normal_atlases": 29,
+          "particle_instances_retained": 512,
+          "particle_instances_source": 20622,
+          "particle_limit": 512,
+          "pool_depth": 0.5,
+          "scalar_atlases": 80,
+          "seconds": 20.453670042101294,
+          "unique_objects": 100,
+          "unique_triangles": 281749,
+          "warnings": [
+            "water_plane_still: open source water sheet closed with explicit pool depth 0.5",
+            "selected shader lobes use Lambert/GGX rather than full Cycles closure graphs",
+            "object-info random color shared by instances of the same evaluated object",
+            "selected surface bump/normal baked; shader displacement and full layered normal closures are not exported",
+            "thin translucency and group-internal alpha require future closure/group support",
+            "direction-dependent color/scalars are not physically reproduced by UV baking",
+            "depth of field, motion blur, compositor and Blender color management are not reproduced",
+            "preview particle budget retained 512/20622 instances; omitted particles may affect shadows/reflections"
+          ],
+          "water_profile": "pool"
+        },
+        "file": "samples/assets/blender/barcelona/scene.json",
+        "import_seconds": 0.086058291,
+        "materials": 110,
+        "source": {
+          "archive_sha256": "0a85bf512329f1780563069512b934d679a6c543eeb1a4ec4f60cddeab706697",
+          "author": "eMirage / Hamza Cheggour",
+          "blend": "pavillon_barcelone_v1.2.blend",
+          "blend_sha256": "92162db8cabcd03641c53df95554b604b494ba74a76a099c7e06637e9379120a",
+          "camera": "Camera",
+          "frame": 1,
+          "license": "CC-BY (version not specified by the official download page)",
+          "name": "barcelona",
+          "scene": "2- time: sunset",
+          "sha256": "0a85bf512329f1780563069512b934d679a6c543eeb1a4ec4f60cddeab706697",
+          "source": "https://www.blender.org/download/demo-files/",
+          "url": "https://download.blender.org/demo/test/pabellon_barcelona_v1.scene_.zip"
+        },
+        "unique_mesh_ranges": 110
+      },
+      "seed": 1,
+      "setup_seconds": 0.254339083,
+      "subsurface_meshes": 1,
+      "sun_irradiance": [
+        5.0,
+        2.2503411769866943,
+        0.0
+      ],
+      "sun_radius_degrees": 0.5729386806488037,
+      "terrain_meshes": 0,
+      "terrain_ocean": "frozen procedural meshes",
+      "total_samples": 921600,
+      "trace_and_training_seconds": 0.825155416,
+      "trace_training_denoise_seconds": 0.825155416,
+      "trained_cells": 0,
+      "training_rays": 0,
+      "training_seconds": 0.0,
+      "training_spp": 0,
+      "triangles": 1452615,
+      "volume_scattering_events": 0,
+      "width": 160
+    },
+    "-vulkan": {
+      "absolute_error": 0.0005000000237487257,
+      "adaptive": false,
+      "average_spp": 64.0,
+      "bdpt": false,
+      "bvh_nodes": 503905,
+      "cache_depth": 2,
+      "cache_hits": 0,
+      "cache_minimum": 64,
+      "converged_pixels": 0,
+      "denoise_auxiliary": false,
+      "denoise_device": "",
+      "denoise_seconds": 0.0,
+      "denoiser": "",
+      "dielectric_meshes": 7,
+      "environment": {
+        "height": 256,
+        "type": "linear HDR equirectangular, importance sampled",
+        "width": 512
+      },
+      "execution": "GPU Vulkan compute BVH",
+      "exposure": 1.0,
+      "frozen_time_seconds": 0.0,
+      "geometry_bvh_bytes": 203722500,
+      "gpu_buffer_bytes": 233516292,
+      "grass_meshes": 0,
+      "guide_cell_size": 0.0,
+      "guide_hits": 0,
+      "guiding": false,
+      "height": 90,
+      "integrator": "Lambert + GGX VNDF, environment/sun/emitter NEE, power MIS, Russian roulette",
+      "max_depth": 16,
+      "media": [
+        {
+          "dielectric_roughness": 0.054772257804870605,
+          "hg_g": 0.0,
+          "id": 121,
+          "ior": 1.3329999446868896,
+          "kind": 4,
+          "sigma_a": [
+            0.11999999731779099,
+            0.03500000014901161,
+            0.014999999664723873
+          ],
+          "sigma_s": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "meshes": 633,
+      "minimum_samples": 64,
+      "non_finite_samples": 0,
+      "ocean_interfaces": 0,
+      "radiance_cache": false,
+      "rays": 6681307,
+      "relative_error": 0.029999999329447746,
+      "render_seconds": 0.564051208,
+      "requested_threads": 0,
+      "sample_budget": 64,
+      "sampler": "dyadic-permuted padded 2D Sobol",
+      "samples": 64,
+      "scattering_meshes": 0,
+      "scene": "blender-barcelona",
+      "scene_package": {
+        "draws": 633,
+        "expanded_triangles": 1455687,
+        "export": {
+          "atlas_size": 256,
+          "blender_version": "4.5.14 LTS",
+          "color_atlases": 80,
+          "expanded_triangles": 1455687,
+          "instances": 528,
+          "material_diagnostics": {
+            "Material": [],
+            "black_glossy": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained"
+            ],
+            "candle_flame": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "transparent shader coverage baked separately from color; thin translucency remains approximate",
+              "selected lobe color graph baked into UV atlas",
+              "masked UV graph baked separately with native repeated UVs; no smart-project leaf fragmentation"
+            ],
+            "concrete": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "glass_architectural": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "angle-dependent transparent/glossy graph converted to smooth parallel thin dielectric; IOR=1.5 approximation, thin-sheet bump/rough layers omitted",
+              "selected surface normal/bump baked into tangent atlas; shader displacement remains unsupported"
+            ],
+            "grass": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "group-internal or arbitrary normal-vector graph omitted; only top-level Bump/NormalMap outputs bake",
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "leafs": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "thin translucency approximated as diffuse",
+              "transparent shader coverage baked separately from color; thin translucency remains approximate",
+              "selected lobe color graph baked into UV atlas",
+              "masked UV graph baked separately with native repeated UVs; no smart-project leaf fragmentation"
+            ],
+            "leather_white": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained"
+            ],
+            "marble": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "marmol verde": [
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "metal": [],
+            "pavet": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "selected surface normal/bump baked into tangent atlas; shader displacement remains unsupported",
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "pebbles": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "pebbles.ground": [
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "trunk": [],
+            "water": [
+              "selected surface normal/bump baked into tangent atlas; shader displacement remains unsupported",
+              "explicit pool profile: IOR 1.333, RGB absorption [0.12,0.035,0.015] per world unit, depth 0.5; source IOR differs"
+            ],
+            "wax": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "thin translucency approximated as diffuse",
+              "selected lobe color graph baked into UV atlas"
+            ],
+            "white_lotus": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "thin translucency approximated as diffuse"
+            ],
+            "white_lotus_leafs": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "thin translucency approximated as diffuse",
+              "selected surface normal/bump baked into tangent atlas; shader displacement remains unsupported",
+              "selected lobe color graph baked into UV atlas",
+              "unsupported linked/mixed volume graph omitted"
+            ],
+            "white_lotus_orange": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "thin translucency approximated as diffuse"
+            ],
+            "white_mat": [],
+            "wood": [
+              "shader mixture reduced to dominant diffuse/glass/metal lobe; Fresnel/layer-weight mixing not retained",
+              "selected lobe color graph baked into UV atlas"
+            ]
+          },
+          "material_revision": 4,
+          "native_mask_atlases": 7,
+          "normal_atlases": 29,
+          "particle_instances_retained": 512,
+          "particle_instances_source": 20622,
+          "particle_limit": 512,
+          "pool_depth": 0.5,
+          "scalar_atlases": 80,
+          "seconds": 20.453670042101294,
+          "unique_objects": 100,
+          "unique_triangles": 281749,
+          "warnings": [
+            "water_plane_still: open source water sheet closed with explicit pool depth 0.5",
+            "selected shader lobes use Lambert/GGX rather than full Cycles closure graphs",
+            "object-info random color shared by instances of the same evaluated object",
+            "selected surface bump/normal baked; shader displacement and full layered normal closures are not exported",
+            "thin translucency and group-internal alpha require future closure/group support",
+            "direction-dependent color/scalars are not physically reproduced by UV baking",
+            "depth of field, motion blur, compositor and Blender color management are not reproduced",
+            "preview particle budget retained 512/20622 instances; omitted particles may affect shadows/reflections"
+          ],
+          "water_profile": "pool"
+        },
+        "file": "samples/assets/blender/barcelona/scene.json",
+        "import_seconds": 0.077707459,
+        "materials": 110,
+        "source": {
+          "archive_sha256": "0a85bf512329f1780563069512b934d679a6c543eeb1a4ec4f60cddeab706697",
+          "author": "eMirage / Hamza Cheggour",
+          "blend": "pavillon_barcelone_v1.2.blend",
+          "blend_sha256": "92162db8cabcd03641c53df95554b604b494ba74a76a099c7e06637e9379120a",
+          "camera": "Camera",
+          "frame": 1,
+          "license": "CC-BY (version not specified by the official download page)",
+          "name": "barcelona",
+          "scene": "2- time: sunset",
+          "sha256": "0a85bf512329f1780563069512b934d679a6c543eeb1a4ec4f60cddeab706697",
+          "source": "https://www.blender.org/download/demo-files/",
+          "url": "https://download.blender.org/demo/test/pabellon_barcelona_v1.scene_.zip"
+        },
+        "unique_mesh_ranges": 110
+      },
+      "seed": 1,
+      "setup_seconds": 0.174878083,
+      "subsurface_meshes": 1,
+      "sun_irradiance": [
+        5.0,
+        2.2503411769866943,
+        0.0
+      ],
+      "sun_radius_degrees": 0.5729386806488037,
+      "terrain_meshes": 0,
+      "terrain_ocean": "frozen procedural meshes",
+      "total_samples": 921600,
+      "trace_and_training_seconds": 0.564051208,
+      "trace_training_denoise_seconds": 0.564051208,
+      "trained_cells": 0,
+      "training_rays": 0,
+      "training_seconds": 0.0,
+      "training_spp": 0,
+      "triangles": 1452615,
+      "volume_scattering_events": 0,
+      "width": 160
+    }
+  },
+  "tests": {
+    "Metal": "7/7",
+    "Vulkan": "7/7",
+    "ASan_UBSan": "4/4",
+    "Blender_actual_bake": "passed: source normal, UV orientation, closed pool volume, hidden instancer, optical coefficients and unsupported volume mix"
+  },
+  "limits": [
+    "512/20622 source particle instances retained; not full scene benchmark",
+    "Lambert/GGX dominant lobe mapping; full Layer Weight closure, node group normals and displacement unsupported",
+    "pool is explicit artistic IOR=1.333, depth=.5, absorption=[.12,.035,.015]; source IOR=1.1 and open sheet differ",
+    "no pool caustics-specific sampling or volume BDPT",
+    "render observations include checkpoints, exclude import/BVH/GPU preparation; concurrent work present",
+    "Cycles source reference has different shaders, source water and full particles; not an integrator-error comparison"
+  ],
+  "logs": {
+    "build/path-tracing/blender/water-tests.log": "f87b6a46d2926484af27def4d35417598cf28715f78c679e8f5d2796acb3a942",
+    "build/path-tracing/blender/water-vulkan-tests.log": "c3722382dc245ab891a6a40990a5ce9c76a094978bb101681725a66f7dfa4f99",
+    "build/path-tracing/blender/water-sanitize-tests.log": "5821e85a4b459ae37d781b0854a90effb1573a20adb4287201c0b78de0611c47",
+    "build/path-tracing/blender/water-fixture.log": "493edeff92ad1504aa8d76948b80269b7e8f25e1ec3049af414f49993f2137c3",
+    "build/path-tracing/blender/water-export.log": "12ef04095138013c35d0f2b3e27b594ec57b29e8b5609fa5a9b27e106a961f1a",
+    "build/path-tracing/blender/water-render.log": "e72354685ad9031fc6f51d73898163fe12b5b77266d9689e8be98b086517d7d3",
+    "build/path-tracing/blender/water-cpu.log": "256696c060d745b62fdca71877e10763389b76a6f803a70ae19158d6f4d086bf",
+    "build/path-tracing/blender/water-metal.log": "54b46d2fa4d5751a0bc3d583c495854f79358ed1f9fb487f6ac41c5bbf40c9ac",
+    "build/path-tracing/blender/water-vulkan.log": "b106fb43d9a6bd3822bcce9b182d3c2c986c7459ffa163613a641184e08ee60f"
+  }
+}
