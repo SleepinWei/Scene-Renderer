@@ -6,8 +6,9 @@ layout(location=0) out vec4 color;
 layout(set=0,binding=0,std140) uniform UnderwaterParameters {
     mat4 inverseVP;mat4 coastInverse;mat4 coastModel;
     vec4 coastPatch;vec4 coastPreviousPatch;vec4 coastFeatures;vec4 coastBedInfo;
-    vec4 camera;vec4 waves;vec4 absorb;vec4 scatter;vec4 direction;vec4 diffuse;vec4 controls;
+    vec4 camera;vec4 waves;vec4 absorb;vec4 scatter;vec4 direction;vec4 diffuse;vec4 controls;vec4 diving;vec4 shaftPatch;vec4 shaftProjection;
 };
+layout(set=0,binding=1) uniform sampler2D sunShaftField;
 layout(set=1,binding=0) uniform sampler2D eyeScene;
 layout(set=1,binding=1) uniform sampler2D eyePosition;
 layout(set=1,binding=2) uniform sampler2D eyeNormal;
@@ -20,12 +21,17 @@ layout(set=1,binding=7) uniform sampler2D eyeOriginal;
 #include "water-coast.glsl"
 #include "water-shadow.glsl"
 #define WATER_MEDIUM_VISIBILITY(point) waterSunVisibility(point,int(controls.w))
+#include "water-shafts-sample.glsl"
+#define WATER_MEDIUM_SOLAR_FLUX(point) waterSunShaftFlux(point,sunShaftField,shaftPatch,shaftProjection,diving.z)
+#define WATER_MEDIUM_STEPS int(diving.w)
+#define WATER_PARTICLE_DENSITY diving.y
+#define WATER_PARTICLE_TIME diving.x
 #include "water-medium.glsl"
 void main() {
     if(!waterEyeInside(camera.xyz,eyeDisplace,eyeShore,eyeMask,waves,controls.x))discard;
     vec4 farPoint=inverseVP*vec4(uv*vec2(2,-2)+vec2(-1,1),1,1);
     vec3 ray=normalize(farPoint.xyz/farPoint.w-camera.xyz);
-    vec2 capturedUV=camera.w>.5?vec2(uv.x*.5,uv.y):uv;
+    vec2 capturedUV=camera.w>.5?vec2(uv.x/camera.w,uv.y):uv;
     vec3 position=texture(eyePosition,uv).xyz,N=texture(eyeNormal,uv).xyz;
     bool geometry=dot(N,N)>.25;
     float distance=geometry?min(length(position-camera.xyz),absorb.w):absorb.w;

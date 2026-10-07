@@ -401,7 +401,7 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
                     }
                     payload->material.minimum = payload->height.minimum;
                     payload->material.maximum = payload->height.maximum;
-                    if(water)payload->bathymetry=prepareWaterBathymetry(payload->height,payload->material);
+                    if(water)payload->bathymetry=prepareWaterBathymetry(payload->height,payload->material,material?material->albedoFactor:glm::vec3(.3f,.45f,.2f));
                     for (auto *vt : {&payload->height, &payload->material}) {
                         uint32_t mip = 0;
                         for (uint32_t n = vt->extent / 64; n > 1; n /= 2)
@@ -462,6 +462,10 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
                 s.detailWaves = configuration.detailWaves;
                 s.detailStrength = configuration.detailStrength;
                 s.shortWaveRipples=configuration.shortWaveRipples;
+                s.bedCaustics=configuration.bedCaustics;s.causticStrength=configuration.causticStrength;
+                s.causticCascades=configuration.causticCascades;s.causticMeshReceivers=configuration.causticMeshReceivers;
+                s.underwaterWideRefraction=configuration.underwaterWideRefraction;s.underwaterSunShafts=configuration.underwaterSunShafts;s.sunShaftStrength=configuration.sunShaftStrength;
+                s.underwaterParticles=configuration.underwaterParticles;s.particleDensity=configuration.particleDensity;s.underwaterVolumeSteps=configuration.underwaterVolumeSteps;
                 s.rippleRmsHeight=configuration.rippleRmsHeight;
                 s.cameraGrid = configuration.cameraGrid;
                 s.gridFocus = configuration.gridFocus;

@@ -56,6 +56,14 @@ Snell 窗口本身是水出空气的临界角结果，仍然存在；局部波�
 
 Metal API／GPU Shader Validation 与 Vulkan/MoltenVK `--water-self-test` 均通过，包括既有双向透射、全反射、捕获遮挡和 TSAA 回归。[Metal 日志](../img/diagnostics/water/ripple-demo/metal-validation.log)、[Vulkan 日志](../img/diagnostics/water/ripple-demo/vulkan-validation.log)、[独立光路参照](../img/diagnostics/water/ripple-demo/reference/marker-reference.txt)。截图数据使用验证层与 GPU counters，仅用于图像验收，不作为发布帧率结论；[采集日志](../img/diagnostics/water/ripple-demo/gallery.log)和[逐视角元数据](../img/diagnostics/water/ripple-demo/coastal-underwater-water-metrics.json)保留开关、时间和波高。
 
+## 海底潜水
+
+需要置身海底的整体效果时，打开 `--classic underwater-dive`。它从 6 m 水深平视礁石与沙沟，加入海草、蓝绿色距离衰减和可开关的悬浮颗粒，见 [潜水场景与验证](water-underwater-diving.md)。
+
+## 水底细节与实时焦散
+
+`coastal-underwater` 现在默认开启可开关的 FFT 水底焦散，`coastal-seabed` 使用同一场景并将镜头转向水底。细砂纹、法线微起伏、颜色分辨率修复以及同镜头焦散／雾对比见 [水底验收与性能报告](water-seabed-caustics.md)。
+
 ## 图像对照
 
 | 水下观察海面 | 同镜头关闭水中雾 |

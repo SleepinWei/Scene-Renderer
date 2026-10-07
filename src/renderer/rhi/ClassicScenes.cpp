@@ -138,11 +138,63 @@ void atmosphere(const std::shared_ptr<RenderScene>& target) {
     for (int i = 0; i < 6; ++i) { sky->data[i] = static_cast<unsigned char*>(std::malloc(48)); std::fill(sky->data[i], sky->data[i]+48, 16); }
     target->addSky(sky);
 }
+// Organic reef geometry and all grass blades are batched into two draws.
+float diveBed(float x,float z) {
+    float sand=-10.5f+.45f*std::sin(x*.12f+z*.07f)+.25f*std::sin(z*.23f);
+    return sand+4.8f*std::exp(-((x+8)*(x+8)/22+(z-5)*(z-5)/65))
+        +3.1f*std::exp(-((x-9)*(x-9)/25+(z-13)*(z-13)/80))
+        +2.f*std::exp(-((x+12)*(x+12)/60+(z-32)*(z-32)/100));
+}
+std::shared_ptr<Mesh> diveReef() {
+    std::vector<Vertex> vertices;std::vector<unsigned> indices;
+    constexpr int rings=14,sectors=24;
+    for(int rock=0;rock<34;++rock) {
+        float k=float(rock),x=(rock%2?1.f:-1.f)*(4.8f+std::fmod(k*2.71f,10.f));
+        float z=-4.f+std::fmod(k*5.31f,43.f),size=.65f+std::fmod(k*1.39f,2.1f);
+        if(rock==0){x=-4.5f;z=0;size=2.1f;}
+        if(rock==1){x=5.8f;z=7;size=2.7f;}
+        auto offset=unsigned(vertices.size());
+        for(int y=0;y<=rings;++y)for(int a=0;a<=sectors;++a) {
+            float theta=float(y)/rings*3.14159265f,phi=float(a)/sectors*6.2831853f;
+            glm::vec3 d(std::sin(theta)*std::cos(phi),std::cos(theta),std::sin(theta)*std::sin(phi));
+            float radius=1.f+.13f*std::sin(phi*3+k)*std::sin(theta)*std::sin(theta)+.09f*std::sin(theta*5+phi*2+k)*std::sin(theta);
+            Vertex v{};v.Position=glm::vec3(x,diveBed(x,z)+size*.25f,z)+d*glm::vec3(size,size*.78f,size*.82f)*radius;
+            v.TexCoords={float(a)/sectors,float(y)/rings};vertices.push_back(v);
+        }
+        for(int y=0;y<rings;++y)for(int a=0;a<sectors;++a) {
+            unsigned i=offset+y*(sectors+1)+a,j=i+sectors+1;
+            if(y!=0)indices.insert(indices.end(),{i,i+1,j});
+            if(y!=rings-1)indices.insert(indices.end(),{i+1,j+1,j});
+        }
+    }
+    for(size_t i=0;i<indices.size();i+=3){auto& a=vertices[indices[i]];auto& b=vertices[indices[i+1]];auto& c=vertices[indices[i+2]];
+        auto n=glm::cross(b.Position-a.Position,c.Position-a.Position);a.Normal+=n;b.Normal+=n;c.Normal+=n;}
+    for(auto& v:vertices){v.Normal=glm::length(v.Normal)>1e-6f?glm::normalize(v.Normal):glm::vec3(0,1,0);
+        auto axis=std::abs(v.Normal.y)<.95f?glm::vec3(0,1,0):glm::vec3(1,0,0);v.Tangent=glm::normalize(glm::cross(axis,v.Normal));v.Bitangent=glm::cross(v.Normal,v.Tangent);}
+    return std::make_shared<Mesh>(vertices,indices);
+}
+std::shared_ptr<Mesh> diveGrass() {
+    std::vector<Vertex> vertices;std::vector<unsigned> indices;
+    for(int clump=0;clump<160;++clump) {
+        float x=-16.f+std::fmod(float(clump)*7.137f,32.f),z=-8.f+std::fmod(float(clump)*3.719f,42.f);
+        if(std::abs(x)<3.4f)continue; // Open sandy swimming channel.
+        for(int blade=0;blade<9;++blade) {
+            float a=float(clump+blade)*2.399963f,h=.35f+std::fmod(float(clump*9+blade)*.137f,.75f);
+            glm::vec3 root(x+.28f*std::cos(a),0,z+.28f*std::sin(a));root.y=diveBed(root.x,root.z)+.02f;
+            auto side=glm::vec3(std::cos(a),0,std::sin(a))*.032f;unsigned offset=unsigned(vertices.size());
+            for(int segment=0;segment<=4;++segment){float t=float(segment)/4;glm::vec3 p=root+glm::vec3(.32f*t*t*std::sin(a),h*t,.21f*t*t);
+                for(int edge=0;edge<2;++edge){Vertex v{};v.Position=p+side*(edge?1.f:-1.f)*(1.f-.85f*t);v.Normal=glm::normalize(glm::cross(side,glm::vec3(0,1,.3f)));v.Tangent=glm::normalize(side);v.Bitangent=glm::cross(v.Normal,v.Tangent);v.TexCoords={float(edge),t};vertices.push_back(v);}}
+            for(int segment=0;segment<4;++segment){unsigned i=offset+segment*2;indices.insert(indices.end(),{i,i+1,i+2,i+1,i+3,i+2});}
+        }
+    }
+    return std::make_shared<Mesh>(vertices,indices);
+}
 void floor(const std::shared_ptr<RenderScene>& target) {
     addMeshes(target, "Gallery floor", {quad({glm::vec3(-30,0,30),{30,0,30},{30,0,-30},{-30,0,-30}}, {0,1,0})}, pbr({.32f,.36f,.41f}, .75f));
 }
 }
 std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
+    if(name=="coastal-seabed"){auto scene=makeClassicScene("coastal-underwater");scene->mainCamera()->setAngles(80,-35);return scene;}
     if(name=="ocean" || name=="ocean-clear")return makeOceanScene(name=="ocean-clear");
     auto target = std::make_shared<RenderScene>();
     auto manager = RenderManager::GetInstance();
@@ -150,22 +202,59 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
     // Shadow attachments belong to the lights in each scene.
 
 
-    if(name=="coastal-beach"||name=="coastal-water"||name=="coastal-underwater") {
+    if(name=="underwater-dive") {
+        auto terrain=std::make_shared<Terrain>();auto component=std::make_shared<TerrainComponent>();
+        constexpr int n=513,texSize=2048;std::vector<float> heights(n*n);
+        for(int y=0;y<n;++y)for(int x=0;x<n;++x){float wx=(float(x)/(n-1)-.5f)*128,wz=(float(y)/(n-1)-.5f)*128;
+            heights[y*n+x]=diveBed(wx,wz)+.018f*std::sin(wx*14.f+std::sin(wz*1.1f));}
+        auto bed=pbr(glm::vec3(1),.87f);auto texture=std::make_shared<Texture>();std::vector<uint8_t> pixels(texSize*texSize*3);
+        for(int y=0;y<texSize;++y)for(int x=0;x<texSize;++x){float wx=(float(x)/(texSize-1)-.5f)*128,wz=(.5f-float(y)/(texSize-1))*128;
+            float reef=glm::smoothstep(-9.4f,-7.5f,diveBed(wx,wz));
+            float ripple=.5f+.5f*std::sin(wx*14.f+std::sin(wz*1.1f));
+            uint32_t hash=uint32_t(x)*1664525u+uint32_t(y)*1013904223u;hash^=hash>>13;
+            float noise=float(hash&255)/255.f,patch=.5f+.5f*std::sin(wx*2.3f)*std::sin(wz*3.1f);
+            auto color=glm::mix(glm::vec3(.72f,.68f,.50f)*(.70f+.22f*ripple+.08f*noise),glm::vec3(.29f,.35f,.28f)*(.60f+.30f*patch+.10f*noise),reef);
+            for(int c=0;c<3;++c)pixels[(y*texSize+x)*3+c]=uint8_t(color[c]*255);}
+        texture->setPixels(texSize,texSize,3,std::move(pixels));bed->addTexture(texture,"material.albedo");component->setHeightData(n,n,std::move(heights));
+        component->updateSettings([&](auto& v){v.model=glm::scale(glm::mat4(1),glm::vec3(64,1,64));v.material=bed;v.maxLeaves=8192;});terrain->addComponent(component);
+        auto ocean=std::make_shared<Ocean>();ocean->updateSettings([](auto& v){v.fft_size=512;v.MeshSize=513;v.MeshLength=4096;v.SpectrumLength=128;v.seaLevel=0;
+            v.A=.00008f;v.HeightScale=.65f;v.WindScale=10;v.Lambda=.25f;v.BubblesScale=.25f;v.detailStrength=.65f;v.shortWaveRipples=true;
+            v.bedCaustics=true;v.robustRefraction=true;v.multipleScattering=true;
+            v.absorption={.13f,.032f,.018f};v.scattering={.012f,.035f,.048f};v.scatteringAnisotropy=.55f;v.subsurfaceStrength=1.f;v.deepWaterDistance=90;
+            v.underwaterSunShafts=true;v.sunShaftStrength=1.8f;v.underwaterParticles=true;v.particleDensity=.45f;v.underwaterVolumeSteps=32;v.shore.enabled=false;});terrain->addComponent(ocean);target->addTerrain(terrain);
+        auto stone=pbr(glm::vec3(1),.92f);auto rockTexture=std::make_shared<Texture>();std::vector<uint8_t> rockPixels(256*256*3);
+        for(int y=0;y<256;++y)for(int x=0;x<256;++x){float shade=.6f+.17f*std::sin(x*.19f+std::sin(y*.23f))+.13f*std::sin(x*.053f)*std::sin(y*.07f);auto c=glm::mix(glm::vec3(.35f,.39f,.30f),glm::vec3(.48f,.40f,.31f),.5f+.5f*std::sin(x*.11f+y*.07f))*shade;for(int k=0;k<3;++k)rockPixels[(y*256+x)*3+k]=uint8_t(c[k]*255);}
+        rockTexture->setPixels(256,256,3,std::move(rockPixels));stone->addTexture(rockTexture,"material.albedo");addMeshes(target,"Dive reef outcrops",{diveReef()},stone);
+        // A visible air-side reference for the diving scene's Snell window.
+        const glm::vec3 buoy(0,0,-5);
+        addMeshes(target,"Dive surface orange float",box(),pbr({1,.48f,.025f},.4f),buoy+glm::vec3(0,.12f,0),{1.2f,.28f,1.2f});
+        addMeshes(target,"Dive surface marker mast",box(),pbr({1,.82f,.12f},.35f),buoy+glm::vec3(0,1.6f,0),{.18f,1.5f,.18f});
+        addMeshes(target,"Dive surface blue cap",box(),pbr({.025f,.28f,1},.35f),buoy+glm::vec3(0,3.1f,0),{.55f,.1f,.55f});
+        auto grass=pbr({.16f,.28f,.10f},.8f);grass->setTwoSided(true);addMeshes(target,"Dive seagrass meadows",{diveGrass()},grass);
+        target->setCamera(std::make_shared<Camera>(glm::vec3(0,-6,-12),glm::vec3(0,1,0),90,-8));target->mainCamera()->setClipPlanes(.08f,600);target->mainCamera()->setZoom(68);target->mainCamera()->setExposure(1.35f);
+        atmosphere(target);sun(target,glm::vec3(5),{-.35f,-.85f,-.35f});manager->setting.enableSSAO=false;manager->setting.shadowSettings.distance=90;
+    } else if(name=="coastal-beach"||name=="coastal-water"||name=="coastal-underwater") {
         // A precise authored coast: source spacing 0.25 m, no downloaded asset.
         auto terrain=std::make_shared<Terrain>();auto component=std::make_shared<TerrainComponent>();
         constexpr uint32_t n=513;std::vector<float> heights(size_t(n)*n);
         for(uint32_t y=0;y<n;++y)for(uint32_t x=0;x<n;++x){float wx=(float(x)/(n-1)-.5f)*128,wz=(float(y)/(n-1)-.5f)*128;
             float shoreline=2.5f*std::sin(wx*.085f),beach=.075f*(wz-shoreline);
             float reef=.9f*std::exp(-((wx-12)*(wx-12)+(wz+8)*(wz+8))*.035f);
-            heights[size_t(y)*n+x]=beach+reef;
+            float bedDetail=(.012f*std::sin(wx*6.1f+.7f*std::sin(wz*.6f))+.006f*std::sin(wz*4.3f+wx*.8f))*(1.f-glm::smoothstep(-.5f,.5f,beach));
+            heights[size_t(y)*n+x]=beach+reef+bedDetail;
         }
-        auto sand=pbr({.8f,.72f,.54f},.85f,0);
-        auto grain=std::make_shared<Texture>();std::vector<uint8_t> pixels(256*256*3);
-        for(int y=0;y<256;++y)for(int x=0;x<256;++x){uint32_t hash=uint32_t(x)*1664525u+uint32_t(y)*1013904223u;hash^=hash>>13;
-            float shade=.92f+.08f*float(hash&255)/255.f;const float rgb[]={.8f,.72f,.54f};
-            for(int c=0;c<3;++c)pixels[(y*256+x)*3+c]=uint8_t(255*rgb[c]*shade);
+        auto sand=pbr(glm::vec3(1),.85f,0);
+        constexpr int grainSize=2048;
+        auto grain=std::make_shared<Texture>(),sandNormals=std::make_shared<Texture>();std::vector<uint8_t> pixels(grainSize*grainSize*3),normalPixels(pixels.size());
+        for(int y=0;y<grainSize;++y)for(int x=0;x<grainSize;++x){uint32_t hash=uint32_t(x)*1664525u+uint32_t(y)*1013904223u;hash^=hash>>13;
+            float wx=(float(x)/(grainSize-1)-.5f)*128,wz=(.5f-float(y)/(grainSize-1))*128;
+            float ridges=.5f+.5f*std::cos(wx*25.1f+1.1f*std::sin(wz*1.7f));
+            float patches=.5f+.5f*std::sin(wx*.35f)*std::sin(wz*.28f);
+            float shade=.6f+.3f*ridges+.03f*patches+.07f*float(hash&255)/255.f;const float rgb[]={.8f,.72f,.54f};
+            auto normal=glm::normalize(glm::vec3(.002f*25.1f*std::sin(wx*25.1f+1.1f*std::sin(wz*1.7f)),-.002f*1.1f*1.7f*std::cos(wz*1.7f)*std::sin(wx*25.1f+1.1f*std::sin(wz*1.7f)),1));
+            for(int c=0;c<3;++c){pixels[(y*grainSize+x)*3+c]=uint8_t(255*rgb[c]*shade);normalPixels[(y*grainSize+x)*3+c]=uint8_t(255*(normal[c]*.5f+.5f));}
         }
-        grain->setPixels(256,256,3,std::move(pixels));sand->addTexture(grain,"material.albedo");
+        grain->setPixels(grainSize,grainSize,3,std::move(pixels));sand->addTexture(grain,"material.albedo");sandNormals->setPixels(grainSize,grainSize,3,std::move(normalPixels));sand->addTexture(sandNormals,"material.normal");
         component->setHeightData(n,n,std::move(heights));
         component->updateSettings([&](auto& v){v.model=glm::scale(glm::mat4(1),glm::vec3(64,1,64));v.material=sand;v.maxLeaves=8192;});
         terrain->addComponent(component);auto ocean=std::make_shared<Ocean>();
@@ -177,7 +266,7 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
         target->setCamera(std::make_shared<Camera>(glm::vec3(-12,6,23),glm::vec3(0,1,0),-76,-18));
         if(name=="coastal-water")target->setCamera(std::make_shared<Camera>(glm::vec3(-8,8,-28),glm::vec3(0,1,0),80,-30));
         if(name=="coastal-underwater") {
-            ocean->updateSettings([](auto& v){v.shortWaveRipples=true;v.detailStrength=1;});
+            ocean->updateSettings([](auto& v){v.shortWaveRipples=true;v.bedCaustics=true;v.detailStrength=1;});
             // A partly submerged marker gives the interface a recognizable
             // silhouette and straight colour boundaries to refract.
             const glm::vec3 marker(-7.4f,0,-24.6f);
@@ -390,6 +479,6 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
             point(target,{8,7,6},{4,5,0});
         }
         manager->setting.enableRSM = true;
-    } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose terrain, mountain-lake, coastal-beach, coastal-water, coastal-underwater, sky, cloud-volume, cloud-inside, cloud-vortex, clouds, clouds-sunset, clouds-storm, shadow-test, bunny, dragon, buddha, armadillo, helmet, cornell, sponza, san-miguel, sibenik, ocean or ocean-clear");
+    } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose underwater-dive, coastal-seabed, terrain, mountain-lake, coastal-beach, coastal-water, coastal-underwater, sky, cloud-volume, cloud-inside, cloud-vortex, clouds, clouds-sunset, clouds-storm, shadow-test, bunny, dragon, buddha, armadillo, helmet, cornell, sponza, san-miguel, sibenik, ocean or ocean-clear");
     return target;
 }

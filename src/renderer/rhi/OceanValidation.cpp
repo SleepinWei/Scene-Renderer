@@ -60,6 +60,7 @@ void validateOceanRhi(std::shared_ptr<rhi::GraphicsDevice> device,const std::str
         const float sign=((i%n+i/n)&1)?-1.f:1.f;
         check(std::abs(displace[4*i+1]-heights[4*i]*sign/(n*n)*settings.heightScale)<1e-5,"signed height/centering/normalization mismatch");
         low=std::min(low,displace[4*i+1]);high=std::max(high,displace[4*i+1]);
+        check(std::abs(normals[4*i+3]-foam[4*i])<1e-6,"packed normal foam differs from standalone foam");
         const glm::vec3 normal(normals[4*i],normals[4*i+1],normals[4*i+2]);check(std::abs(glm::length(normal)-1)<1e-5,"non-unit ocean normal");
         check(foam[4*i]>=0 && foam[4*i]<=1 && std::isfinite(foam[4*i+3]),"invalid foam/Jacobian");
     }

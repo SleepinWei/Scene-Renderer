@@ -1,0 +1,35 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#include "water-shafts-parameters.glsl"
+layout(local_size_x=8,local_size_y=8) in;
+layout(set=0,binding=1) uniform sampler2D shaftLarge;
+layout(set=0,binding=2) uniform sampler2D shaftDetail;
+layout(set=0,binding=3) uniform sampler2D shaftLargeNormal;
+layout(set=0,binding=4) uniform sampler2D shaftDetailNormal;
+layout(set=0,binding=5) uniform sampler2D shaftShore;
+layout(set=0,binding=6) uniform sampler2D shaftMask;
+layout(rgba32f,set=1,binding=0) writeonly uniform image2D shaftSource;
+layout(rgba32f,set=1,binding=1) writeonly uniform image2D shaftDirection;
+#include "water-waves.glsl"
+#include "water-coast.glsl"
+#include "water-medium.glsl"
+void main(){
+    ivec2 p=ivec2(gl_GlobalInvocationID.xy);if(any(greaterThanEqual(p,ivec2(grid.x))))return;
+    imageStore(shaftSource,p,vec4(0));imageStore(shaftDirection,p,vec4(0));if(sun.y<=.01)return;
+    vec2 xz=shaftPatch.xy-shaftSettings.y+vec2(p)*shaftSettings.z;
+    if(max(abs(xz.x),abs(xz.y))>shaftSettings.x)return;
+    vec4 state=coastSample(shaftShore,xz,coastPatch);
+    if(textureLod(shaftMask,xz/(shaftSettings.x*2.)*vec2(1,-1)+.5,0).r<.5&&!(coastFeatures.z>.5&&state.x>.005))return;
+    vec2 q=xz;for(int i=0;i<3;++i)q=xz-waterDisplacement(q,shaftLarge,shaftDetail,waves).xz;
+    vec3 displacement=waterDisplacement(q,shaftLarge,shaftDetail,waves);
+    float height=coastDetailedHeight(xz,waves.x+displacement.y,waterMacroHeight(xz,shaftLarge,waves),shaftShore,coastPatch,waves.x,coastFeatures.z);
+    vec3 n=textureLod(shaftLargeNormal,waterWaveUV(q,waves.y,shaftLargeNormal),0).xyz;vec2 slope=n.xz/max(n.y,.1);
+    // Filter unresolved ripple slopes to the photon lattice footprint.
+    vec2 fine=vec2(0);if(waves.w>.5){for(int i=0;i<4;++i){vec2 at=q+vec2((i%2==0?-.25:.25),(i<2?-.25:.25))*shaftSettings.z;vec3 d=textureLod(shaftDetailNormal,waterWaveUV(at,waves.z,shaftDetailNormal),0).xyz;fine+=d.xz/max(d.y,.1)*.25;}slope+=fine;}
+    if(coastFeatures.z>.5){vec2 dx=vec2(coastPatch.w,0);float a=coastElevation(shaftShore,xz-dx,coastPatch,waves.x),b=coastElevation(shaftShore,xz+dx,coastPatch,waves.x),c=coastElevation(shaftShore,xz-dx.yx,coastPatch,waves.x),d=coastElevation(shaftShore,xz+dx.yx,coastPatch,waves.x);slope=mix(slope,-vec2(b-a,d-c)/(2.*coastPatch.w)+fine,coastBlend(xz,state,coastPatch,waves.x));}
+    n=normalize(vec3(slope.x,1,slope.y));float cosine=dot(n,sun.xyz);vec3 ray=refract(-sun.xyz,n,1./1.333);if(cosine<=0.||ray.y>=-.05)return;
+    // Relative horizontal-plane flux: Beer extinction and flat-interface
+    // Fresnel are applied once later by the volume integrator.
+    float flux=cosine/max(n.y*sun.y,.02)*(1.-waterDielectricFresnel(cosine,1./1.333))/max(1.-waterDielectricFresnel(sun.y,1./1.333),.01);
+    imageStore(shaftSource,p,vec4(xz.x,height,xz.y,1));imageStore(shaftDirection,p,vec4(ray,flux));
+}

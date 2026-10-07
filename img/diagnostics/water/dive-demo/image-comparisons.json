@@ -1,0 +1,17 @@
+{
+  "no-particles": {
+    "mean_absolute_rgb_8bit": 0.32042932510375977,
+    "max_rgb_8bit": 76.0,
+    "pixels_with_channel_delta_over_2": 26458
+  },
+  "no-medium": {
+    "mean_absolute_rgb_8bit": 63.9752311706543,
+    "max_rgb_8bit": 209.0,
+    "pixels_with_channel_delta_over_2": 921600
+  },
+  "later": {
+    "mean_absolute_rgb_8bit": 2.954019546508789,
+    "max_rgb_8bit": 121.0,
+    "pixels_with_channel_delta_over_2": 200655
+  }
+}

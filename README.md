@@ -14,7 +14,7 @@ Detailed guides are currently available in Chinese.
 
 ## Scenes and effects
 
-All images below were rendered by this project. Real-time images use native Metal; path-traced images identify the integrator and denoising used. Reproduction commands, sampling settings, feature comparisons, and intermediate buffers are documented in the [full gallery](docs/rendering-gallery.md).
+Images below were rendered by this project unless explicitly labeled as Blender Cycles references. Real-time images use native Metal; path-traced images identify the integrator and denoising used. Reproduction commands, sampling settings, feature comparisons, and intermediate buffers are documented in the [full gallery](docs/rendering-gallery.md).
 
 ### Classic scenes and PBR
 
@@ -74,7 +74,27 @@ Underwater views add distance-dependent absorption and scattering, water-to-air 
 
 | Underwater surface | Looking down at the seabed |
 | --- | --- |
-| ![Metal underwater surface](img/diagnostics/water/ripple-demo/coastal-underwater.png) | ![Metal underwater seabed](img/diagnostics/water/ripple-demo/coastal-underwater-bottom.png) |
+| ![Metal underwater surface](img/diagnostics/water/ripple-demo/coastal-underwater.png) | ![Metal underwater seabed](img/diagnostics/water/seabed-demo/coastal-underwater-seabed.png) |
+
+The seabed demo adds 25 cm sand ripples, fine normal detail, and optional solar caustics projected through the live FFT surface. Open `--classic coastal-seabed`; toggle **FFT seabed caustics** and adjust **Caustic strength** in the Ocean panel. [Seabed comparisons, implementation and GPU timings](docs/water-seabed-caustics.md).
+
+### Underwater diving, sun shafts, and refraction
+
+The `underwater-dive` preset starts 6 m underwater, looking along a sandy channel between reef outcrops and seagrass. Distance-dependent absorption and single scattering produce blue-green visibility; drifting sediment, 16/48/128 m cascaded caustics on terrain and submerged meshes, and wave-focused sun shafts add depth and moving light. The preset uses 32 samples for shadowed volume lighting.
+
+| Diving view: sun shafts and seabed caustics | Looking up: refracted sky, sun, and floating marker |
+| --- | --- |
+| ![Metal underwater diving scene with sun shafts](img/diagnostics/water/air-refraction/underwater-dive.png) | ![Underwater refraction of the sky and surface marker](img/diagnostics/water/air-refraction/underwater-dive-snell-window.png) |
+
+```sh
+./build/Scene-Renderer --classic underwater-dive --size 1280x720
+```
+
+Hold the right mouse button to look around; use **W/A/S/D** to move and **Q/E** to move vertically. Set **Camera → View pitch** to about **68°** to inspect the sky window. Near-horizontal underwater views show total internal reflection; the window boundary follows the wave normals.
+
+The Ocean panel independently controls **Underwater distance fog**, **Underwater sun shafts**, **FFT seabed caustics**, and **Wide air refraction**, with adjustable shaft contrast, particle density, and volume samples. Wide air refraction adds an upward capture to recover surface objects outside the original camera view; a unit scattering gain preserves sky and object contrast. Metal and Vulkan water validation passes. Wide capture remains a screen-space approximation, and this preset prioritizes visual quality over a 60 fps target.
+
+[Dive scene and controls](docs/water-underwater-diving.md) · [Caustic coverage](docs/water-caustic-cascades.md) · [Sun-shaft implementation](docs/water-sun-shafts.md) · [Refraction comparisons, validation, and performance](docs/water-air-refraction.md)
 
 ### Large terrain, lakes, and vegetation
 

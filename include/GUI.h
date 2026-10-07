@@ -132,6 +132,8 @@ public:
 		if (ImGui::CollapsingHeader("Camera")) {
 			if (scene->mainCamera()) {
                 ImGui::TextWrapped("Shift: faster | Alt: slower | Scroll: field of view");
+                float pitch=scene->mainCamera()->getPitch();
+                if(ImGui::SliderFloat("View pitch",&pitch,-89,89))scene->mainCamera()->setAngles(scene->mainCamera()->getYaw(),pitch);
                 bool fixed=scene->mainCamera()->isFixed();
                 if(ImGui::Checkbox("Lock camera",&fixed))scene->mainCamera()->setFixed(fixed);
 				// exposure
@@ -337,6 +339,12 @@ public:
                     ImGui::Checkbox("Underwater view + total reflection", &oceanSettings.underwaterView);
                     ImGui::Checkbox("Underwater distance fog", &oceanSettings.underwaterFog);
                     if(ImGui::IsItemHovered())ImGui::SetTooltip("Uses the same absorption/scattering coefficients. Water-side view fog is applied once per optical path.");
+                    ImGui::Checkbox("Wide air refraction", &oceanSettings.underwaterWideRefraction);
+                    ImGui::Checkbox("Underwater sun shafts", &oceanSettings.underwaterSunShafts);
+                    if(oceanSettings.underwaterSunShafts)ImGui::SliderFloat("Sun shaft contrast", &oceanSettings.sunShaftStrength, 0, 3);
+                    ImGui::SliderInt("Underwater volume samples", &oceanSettings.underwaterVolumeSteps, 4, 32);
+                    ImGui::Checkbox("Suspended underwater particles", &oceanSettings.underwaterParticles);
+                    if(oceanSettings.underwaterParticles)ImGui::SliderFloat("Particle density", &oceanSettings.particleDensity, 0, 1);
                     ImGui::Checkbox("Robust refraction + terrain fallback", &oceanSettings.robustRefraction);
                     ImGui::Checkbox("Multiple scattering (slab LUT)", &oceanSettings.multipleScattering);
                     if(ImGui::IsItemHovered())ImGui::SetTooltip("Local 2+ volume scattering. Requires Integrate water volume; spatial BSSRDF is not included.");
@@ -363,6 +371,12 @@ public:
                 ImGui::Checkbox("Small FFT waves", &oceanSettings.detailWaves);
                 ImGui::SliderFloat("Small wave detail", &oceanSettings.detailStrength, 0, 2);
                 if(rhi::usesNativeRenderer()) {
+                    ImGui::Checkbox("FFT seabed caustics", &oceanSettings.bedCaustics);
+                    if(oceanSettings.bedCaustics){
+                        ImGui::SliderFloat("Caustic strength", &oceanSettings.causticStrength, 0, 1);
+                        ImGui::Checkbox("Near / mid / far caustics", &oceanSettings.causticCascades);
+                        ImGui::Checkbox("Caustics on submerged meshes", &oceanSettings.causticMeshReceivers);
+                    }
                     ImGui::Checkbox("Short wave ripples", &oceanSettings.shortWaveRipples);
                     if(oceanSettings.shortWaveRipples)ImGui::SliderFloat("Ripple RMS height (m)", &oceanSettings.rippleRmsHeight, 0, .06f, "%.3f");
                 }

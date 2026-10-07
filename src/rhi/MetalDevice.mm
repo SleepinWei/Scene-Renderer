@@ -135,8 +135,8 @@ protected:
         const auto formats=rhi::colorFormats(desc);
         for(size_t i=0;i<formats.size();++i) {
             auto a=d.colorAttachments[i];a.pixelFormat=format(formats[i]);a.blendingEnabled=desc.attachmentBlend.empty()?desc.blend:desc.attachmentBlend.at(i);
-            a.sourceRGBBlendFactor=MTLBlendFactorSourceAlpha;a.destinationRGBBlendFactor=MTLBlendFactorOneMinusSourceAlpha;
-            a.sourceAlphaBlendFactor=MTLBlendFactorOne;a.destinationAlphaBlendFactor=MTLBlendFactorOneMinusSourceAlpha;
+            a.sourceRGBBlendFactor=desc.additiveBlend?MTLBlendFactorOne:MTLBlendFactorSourceAlpha;a.destinationRGBBlendFactor=desc.additiveBlend?MTLBlendFactorOne:MTLBlendFactorOneMinusSourceAlpha;
+            a.sourceAlphaBlendFactor=MTLBlendFactorOne;a.destinationAlphaBlendFactor=desc.additiveBlend?MTLBlendFactorOne:MTLBlendFactorOneMinusSourceAlpha;
         }
         if(desc.depthAttachment)d.depthAttachmentPixelFormat=MTLPixelFormatDepth32Float;
         NSError* error=nil;if(archive_){d.binaryArchives=@[archive_];[archive_ addRenderPipelineFunctionsWithDescriptor:d error:&error];}

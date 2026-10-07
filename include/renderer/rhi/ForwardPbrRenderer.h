@@ -74,6 +74,7 @@ public:
     std::vector<float> readShadowDepth();
     ShadowParameters shadowParameters() const; // Value snapshot for render-thread diagnostics.
     std::vector<float> readGBuffer(uint32_t attachment);
+    std::vector<float> readWaterCaustics(uint64_t ocean,uint32_t cascade=0);
     std::vector<float> readWaterCapture(uint64_t ocean,bool positions=false,bool aboveWater=false);
     std::vector<float> readShoreWater(uint64_t ocean,bool foam=false);
     uint32_t shoreSubsteps(uint64_t ocean) const;

@@ -1,0 +1,18 @@
+underwater-dive HDR mean RGB 0.180499, peak 0.925781
+Rendered img/diagnostics/water/caustic-cascades/underwater-dive.png
+underwater-dive-old-coverage HDR mean RGB 0.180931, peak 0.95459
+Rendered img/diagnostics/water/caustic-cascades/underwater-dive-old-coverage.png
+underwater-dive-terrain-only HDR mean RGB 0.180638, peak 0.95459
+Rendered img/diagnostics/water/caustic-cascades/underwater-dive-terrain-only.png
+underwater-dive-no-caustics HDR mean RGB 0.180828, peak 0.768555
+Rendered img/diagnostics/water/caustic-cascades/underwater-dive-no-caustics.png
+underwater-dive-no-particles HDR mean RGB 0.180461, peak 0.925781
+Rendered img/diagnostics/water/caustic-cascades/underwater-dive-no-particles.png
+underwater-dive-later HDR mean RGB 0.180993, peak 0.874512
+Rendered img/diagnostics/water/caustic-cascades/underwater-dive-later.png
+underwater-dive-no-medium HDR mean RGB 0.139356, peak 1.39062
+Rendered img/diagnostics/water/caustic-cascades/underwater-dive-no-medium.png
+underwater-dive-surface HDR mean RGB 0.494607, peak 1.53223
+Rendered img/diagnostics/water/caustic-cascades/underwater-dive-surface.png
+underwater-dive-above HDR mean RGB 0.163791, peak 0.781738
+Rendered img/diagnostics/water/caustic-cascades/underwater-dive-above.png

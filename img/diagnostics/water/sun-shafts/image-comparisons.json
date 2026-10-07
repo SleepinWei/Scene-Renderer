@@ -1,0 +1,21 @@
+{
+  "shafts_on_off": {
+    "mean_abs_rgb_8bit": 4.321191310882568,
+    "pixels_rgb_max_delta_over_2": 674383
+  },
+  "wave_time_8_to_8_35": {
+    "mean_abs_rgb_8bit": 10.14470386505127,
+    "pixels_rgb_max_delta_over_2": 820193
+  },
+  "background_water_column_roi": {
+    "x": [
+      0,
+      1280
+    ],
+    "y": [
+      210,
+      310
+    ],
+    "on_off_mean_abs_rgb_8bit": 6.18318510055542
+  }
+}

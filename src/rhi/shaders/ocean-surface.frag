@@ -2,7 +2,7 @@
 #extension GL_GOOGLE_include_directive : require
 #include "sky-mapping.glsl"
 const float PI=3.14159265359;
-layout(set=0,binding=1,std140) uniform WaterFragment {mat4 waterFragmentVP;mat4 view;vec4 camera;vec4 direction;vec4 diffuse;vec4 specular;vec4 shallow;vec4 deep;vec4 foamColor;vec4 specularColor;vec4 ambientColor;vec4 optics;vec4 volume;vec4 absorb;vec4 scatter;vec4 surface;vec4 flags;mat4 coastInverse;mat4 coastModel;vec4 coastPatch;vec4 coastPreviousPatch;vec4 coastFeatures;vec4 coastBedInfo;vec4 meshBoundary;vec4 underwaterControls;};
+layout(set=0,binding=1,std140) uniform WaterFragment {mat4 waterFragmentVP;mat4 view;vec4 camera;vec4 direction;vec4 diffuse;vec4 specular;vec4 shallow;vec4 deep;vec4 foamColor;vec4 specularColor;vec4 ambientColor;vec4 optics;vec4 volume;vec4 absorb;vec4 scatter;vec4 surface;vec4 flags;mat4 coastInverse;mat4 coastModel;vec4 coastPatch;vec4 coastPreviousPatch;vec4 coastFeatures;vec4 coastBedInfo;vec4 meshBoundary;vec4 underwaterControls;vec4 causticPatch;vec4 causticControls;vec4 diving;vec4 causticMiddle;vec4 causticFar;vec4 causticProjection;vec4 shaftPatch;vec4 shaftProjection;mat4 airVP;mat4 airView;vec4 airCapture;vec4 sunDisplay;};
 struct DirLight {vec3 direction;vec3 diffuse;vec3 specular;};
 #define dirLight DirLight(direction.xyz,diffuse.xyz,specular.xyz)
 #define viewPos camera.xyz
@@ -30,10 +30,10 @@ layout(location=2) in vec2 WaterMaskCoord;
 layout(location=6) in vec4 PreviousClip;layout(location=7) in float PreviousDepth;
 layout(location=0) out vec4 FragColor;layout(location=1) out vec4 TemporalMotion;
 layout(set=1,binding=0) uniform sampler2D NormalRT;
-layout(set=1,binding=1) uniform sampler2D BubblesRT;
+layout(set=1,binding=1) uniform sampler2D sunShaftField;
 layout(set=1,binding=2) uniform sampler2D skyview;
 layout(set=1,binding=3) uniform sampler2D detailNormal;
-layout(set=1,binding=4) uniform sampler2D detailFoam;
+layout(set=1,binding=4) uniform sampler2D bedCausticMap;
 layout(set=1,binding=5) uniform sampler2D opaqueScene;
 layout(set=1,binding=6) uniform sampler2D scenePosition;
 layout(set=1,binding=7) uniform sampler2D sceneNormal;
@@ -43,22 +43,26 @@ layout(set=2,binding=2) uniform sampler2D bathymetryMap;
 layout(set=2,binding=5) uniform sampler2D fragmentShoreState;
 layout(set=2,binding=6) uniform sampler2D shoreFoam;
 layout(set=2,binding=7) uniform sampler2D multipleScatterLut;
+
+#include "water-caustics-sample.glsl"
 #include "water-waves.glsl"
 #include "water-coast.glsl"
 #include "water-shadow.glsl"
 float lastWaterDistance,lastWaterSource,lastWaterConfidence;bool lastWaterHit;vec3 lastWaterT;
-bool queryAboveWater=false;
+bool queryAboveWater=false,queryWideAir=false;
+mat4 waterQueryVP(){return queryWideAir?airVP:waterFragmentVP;}
+mat4 waterQueryView(){return queryWideAir?airView:view;}
 vec2 waterQueryUV(vec2 uv) {
-    return volume.w>.5?vec2(uv.x*.5+(queryAboveWater?.5:0.),uv.y):uv;
+    return volume.w>.5?vec2((uv.x+(queryWideAir?2.:queryAboveWater?1.:0.))/airCapture.y,uv.y):uv;
 }
 ivec2 waterQuerySize() {
-    ivec2 size=textureSize(scenePosition,0);if(volume.w>.5)size.x/=2;return size;
+    ivec2 size=textureSize(scenePosition,0);if(volume.w>.5)size.x/=int(airCapture.y);return size;
 }
 vec4 waterQueryPosition(vec2 uv) {
     return texture(scenePosition,waterQueryUV(uv));
 }
 vec4 waterQueryTexel(ivec2 pixel) {
-    if(queryAboveWater&&volume.w>.5)pixel.x+=waterQuerySize().x;
+    if(queryAboveWater&&volume.w>.5)pixel.x+=waterQuerySize().x*(queryWideAir?2:1);
     return texelFetch(scenePosition,pixel,0);
 }
 vec3 waterQueryColor(vec2 uv) {
@@ -69,10 +73,20 @@ vec3 skyRadiance(vec3 direction) {
     if(hasSky==0)return vec3(0);
     return sampleSkyLut(skyview,direction);
 }
+vec3 waterAirSky(vec3 ray,vec3 towardSun){
+    vec3 radiance=skyRadiance(ray);
+    if(hasSky!=0&&towardSun.y>0.&&ray.y>0.){
+        float angle=atan(length(cross(ray,towardSun)),clamp(dot(ray,towardSun),-1.,1.));
+        float footprint=max(fwidth(angle),1e-6),disk=1.-smoothstep(sunDisplay.w-footprint*.5,sunDisplay.w+footprint*.5,angle);
+        radiance+=sunDisplay.rgb*disk;
+    }
+    return min(radiance,vec3(65000));
+}
 vec2 screenUV(vec3 point) {
     vec4 clip=waterFragmentVP*vec4(point,1);
     return clip.xy/max(clip.w,1e-5)*vec2(.5,-.5)+.5;
 }
+vec2 waterQueryScreenUV(vec3 point){vec4 clip=waterQueryVP()*vec4(point,1);return clip.xy/max(clip.w,1e-5)*vec2(.5,-.5)+.5;}
 bool submerged(vec2 uv,vec3 surface,vec3 V) {
     if(any(lessThan(uv,vec2(0))) || any(greaterThan(uv,vec2(1))))return false;
     vec4 samplePosition=waterQueryPosition(uv);vec3 p=samplePosition.xyz;
@@ -109,6 +123,11 @@ bool refractedUV(vec3 surface,vec3 V,vec3 R,float range,out vec2 hitUV) {
 }
 #include "water-refraction.glsl"
 #define WATER_MEDIUM_VISIBILITY(point) waterSunVisibility(point,int(scatter.w))
+#include "water-shafts-sample.glsl"
+#define WATER_MEDIUM_SOLAR_FLUX(point) waterSunShaftFlux(point,sunShaftField,shaftPatch,shaftProjection,diving.z)
+#define WATER_MEDIUM_STEPS int(diving.w)
+#define WATER_PARTICLE_DENSITY diving.y
+#define WATER_PARTICLE_TIME diving.x
 #include "water-medium.glsl"
 vec3 underwaterSegment(vec3 background,vec3 origin,vec3 ray,float distance,vec3 L) {
     if(underwaterControls.y<.5)return background;
@@ -121,7 +140,7 @@ vec3 bedRadiance(vec3 point,vec3 base,vec3 bedN,vec3 L) {
         if(all(greaterThanEqual(at,vec2(0)))&&all(lessThanEqual(at,vec2(1))))base*=mix(1.,.45,texture(shoreFoam,at).g);}
     float depth=max(waterMediumHeight(point.xz,volumeDisplace,fragmentShoreState,vec4(seaLevel,surface.z,32,0))-point.y,0.);
     float sunF=.02037+.97963*pow(1.-max(L.y,0.),5.);
-    vec3 light=dirLight.diffuse*max(dot(bedN,towardSun),0.)*(1.-sunF)*exp(-(absorption+scattering)*depth/max(towardSun.y,.05))*waterSunVisibility(point,int(scatter.w));
+    vec3 light=dirLight.diffuse*max(dot(bedN,towardSun),0.)*(1.-sunF)*exp(-(absorption+scattering)*depth/max(towardSun.y,.05))*waterSunVisibility(point,int(scatter.w))*waterCausticFactor(point,bedCausticMap,causticPatch,causticMiddle,causticFar,causticProjection,causticControls);
     return base*(light/PI+skyRadiance(vec3(0,1,0))*.25);
 }
 vec3 underwaterInterface(vec3 N,vec3 V,vec3 L,out float F) {
@@ -132,12 +151,18 @@ vec3 underwaterInterface(vec3 N,vec3 V,vec3 L,out float F) {
     vec3 transmitted=vec3(0),reflected=vec3(0);vec2 hitUV;float distance,confidence;
     vec3 R=refract(-V,N,1.333);
     if(F<1.&&underwaterControls.z>.5&&dot(R,R)>1e-8){
-        R=normalize(mix(-V,normalize(R),refractionStrength));transmitted=skyRadiance(R);
+        R=normalize(mix(-V,normalize(R),refractionStrength));transmitted=waterAirSky(R,L);
         queryAboveWater=true;
         if(camera.w>.5&&waterDDA(FragPos,V,R,max(underwaterControls.w,deepWaterDistance),hitUV,distance,confidence)){
             transmitted=waterQueryColor(hitUV);lastWaterSource=1.;lastWaterConfidence=confidence;lastWaterHit=true;}
+        else if(camera.w>.5&&airCapture.w>.5){
+            queryWideAir=true;
+            if(waterDDA(FragPos,V,R,max(underwaterControls.w,deepWaterDistance),hitUV,distance,confidence)){
+                transmitted=waterQueryColor(hitUV);lastWaterSource=3.;lastWaterConfidence=confidence;lastWaterHit=true;}
+            queryWideAir=false;
+        }
     }
-    queryAboveWater=false;R=normalize(reflect(-V,N));float reflectedDistance=deepWaterDistance;
+    queryAboveWater=false;queryWideAir=false;R=normalize(reflect(-V,N));float reflectedDistance=deepWaterDistance;
     bool bedHit=false;
     if(coastBedInfo.x>.5){vec3 base,bedN;
         if(waterBedRay(FragPos,R,deepWaterDistance,distance,base,bedN)){
@@ -275,9 +300,9 @@ void main() {
     float NoV=max(dot(N,V),0.0),NoL=max(dot(N,L),0.0);
     float F0=clamp(outer_FresnelScale,0.0,1.0);
     float fresnel=F0+(1.0-F0)*pow(1.0-NoV,5.0);
-    float foam=clamp(texture(BubblesRT,FragTexCoord).r,0.0,1.0)*largeResolved;
-    if(enableDetail!=0){vec2 at=DetailTexCoord*vec2(textureSize(detailFoam,0));float resolved=1.-smoothstep(2.,16.,max(length(dFdx(at)),length(dFdy(at))));
-        foam=1.0-(1.0-foam)*(1.0-clamp(texture(detailFoam,DetailTexCoord).r,0.0,1.0)*resolved);}
+    float foam=clamp(texture(NormalRT,FragTexCoord).a,0.0,1.0)*largeResolved;
+    if(enableDetail!=0){vec2 at=DetailTexCoord*vec2(textureSize(detailNormal,0));float resolved=1.-smoothstep(2.,16.,max(length(dFdx(at)),length(dFdy(at))));
+        foam=1.0-(1.0-foam)*(1.0-clamp(texture(detailNormal,DetailTexCoord).w,0.0,1.0)*resolved);}
     if(shoreWeight>0.&&coastFeatures.w>.5){float coastalFoam=texture(shoreFoam,(FragPos.xz-coastPatch.xy)/coastPatch.z).r;
         vec2 velocity=localShore.yz/max(localShore.x,.02),foamUV=FragPos.xz-velocity*.15;
         float pattern=.65*foamNoise(foamUV*2.)+.35*foamNoise(foamUV*9.);
@@ -297,7 +322,7 @@ void main() {
         vec3 foamLight=outer_BubblesColor*(dirLight.diffuse*max(L.y,0.)/PI+skyRadiance(vec3(0,1,0))*.25);
         result=mix(result,foamLight,foam);
         result=underwaterSegment(result,viewPos,normalize(FragPos-viewPos),lastWaterDistance,L);
-        if(absorb.w>0.)result=absorb.w<1.5?lastWaterT:absorb.w<2.5?vec3(lastWaterDistance/deepWaterDistance):absorb.w<3.5?vec3(lastWaterHit?1.:0.):absorb.w<4.5?vec3(lastWaterSource==1.?1.:0.,0,lastWaterSource==0.?1.:0.):vec3(lastWaterConfidence);
+        if(absorb.w>0.)result=absorb.w<1.5?lastWaterT:absorb.w<2.5?vec3(lastWaterDistance/deepWaterDistance):absorb.w<3.5?vec3(lastWaterHit?1.:0.):absorb.w<4.5?vec3(lastWaterSource==1.?1.:0.,lastWaterSource==3.?1.:0.,lastWaterSource==0.?1.:0.):vec3(lastWaterConfidence);
         // Screen-space hits and rapidly changing critical-angle boundaries are
         // unreliable optical histories; keep their temporal confidence zero.
         TemporalMotion=vec4(0);FragColor=vec4(max(result,vec3(0)),1);return;

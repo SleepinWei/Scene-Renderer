@@ -60,7 +60,7 @@ python3 tools/fetch_gi_assets.py
 | 命令 | 用途 |
 | --- | --- |
 | `--demo` | 自动生成的功能演示，无需历史资产包 |
-| `--classic <name>` | 选择 `cornell`、`bunny`、`dragon`、`buddha`、`armadillo`、`helmet`、`sponza`、`san-miguel`、`sibenik`、`sky`、`clouds`、`clouds-sunset`、`clouds-storm`、`cloud-volume`、`cloud-inside`、`cloud-vortex`、`shadow-test`、`ocean`、`ocean-clear`、`coastal-beach`、`coastal-water`、`coastal-underwater`、`terrain`、`mountain-lake`、`mountain-lake-ground` 或 `mountain-lake-beach` |
+| `--classic <name>` | 选择 `cornell`、`bunny`、`dragon`、`buddha`、`armadillo`、`helmet`、`sponza`、`san-miguel`、`sibenik`、`sky`、`clouds`、`clouds-sunset`、`clouds-storm`、`cloud-volume`、`cloud-inside`、`cloud-vortex`、`shadow-test`、`ocean`、`ocean-clear`、`coastal-beach`、`coastal-water`、`coastal-underwater`、`coastal-seabed`、`underwater-dive`、`terrain`、`mountain-lake`、`mountain-lake-ground` 或 `mountain-lake-beach` |
 | `--frames <N>` | 窗口渲染 N 帧后退出 |
 | `--render-gallery <目录> core` | 离屏生成三个随仓库提供的基础示例 |
 | `--render-gallery <目录> gi` | 生成两个 GI 场景、RSM 开关对照及纯间接光／太阳／天空贡献图 |
@@ -108,6 +108,7 @@ done
 | `cloud-gallery` | 远景云层、日落、阴天及无云／不透明度对照；无需下载 |
 | `cloud-volume-gallery` | 三维体素云、云内、风暴与密度／距离／光照切片；无需下载 |
 | `ocean` / `ocean-clear` | 大浪／浅水及功能开关对照；无需下载 |
+| `underwater-dive` | 6 m 深海底潜水，礁石、沙沟、海草、悬浮颗粒与蓝绿色能见度；[说明与对照](water-underwater-diving.md) |
 | `coastal-underwater` | 海岸水下视角，水中距离雾、双向折射与全反射；[说明与对照](water-underwater-rendering.md) |
 | `coastal-beach` / `coastal-water` | 同一程序化海岸的岸侧／水侧视角，启用可选折射、局部多次散射、浅水波、泡沫与湿沙；[说明与动画](water-coastal-features.md) |
 | `diagnostics` | 地形 VT、CSM／PCSS 原始诊断缓冲；[可视化步骤](render-diagnostics-gallery.md) |

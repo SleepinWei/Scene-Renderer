@@ -103,6 +103,7 @@ struct GraphicsPipelineDesc {
     std::vector<bool> attachmentBlend; // Empty inherits blend; otherwise one entry per color target.
     bool wireframe = false;
     bool blend = false; // src alpha / one-minus-src-alpha, alpha uses one.
+    bool additiveBlend = false; // When blend is enabled, accumulate source + destination.
     std::string label;
 };
 struct ColorAttachment {

@@ -46,12 +46,18 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
     if(coastalPerformance)names={selection=="coastal-performance-water"?"coastal-water":"coastal-beach"};
     const bool coastalMotion=selection=="coastal-motion"||selection=="coastal-motion-camera";
     if(coastalMotion)names={"coastal-beach"};
-    const bool underwaterGallery=selection=="underwater-gallery";
+    const bool causticGallery=selection=="dive-caustics-gallery";
+    const bool refractionGallery=selection=="dive-refraction-gallery";
+    const bool shaftsGallery=selection=="dive-shafts-gallery";
+    const bool diveGallery=selection=="dive-gallery"||causticGallery||shaftsGallery||refractionGallery;
+    if(diveGallery)names={"underwater-dive"};
+    const bool seabedGallery=selection=="seabed-gallery";
+    const bool underwaterGallery=selection=="underwater-gallery"||seabedGallery;
     if(underwaterGallery)names={"coastal-underwater"};
     const bool diagnostics=selection=="diagnostics";
     const bool water=selection.rfind("coastal-",0)==0 || selection.rfind("cloud-",0)==0 || selection=="ocean" || selection=="ocean-clear" || selection=="mountain-lake" || selection=="mountain-lake-ground" || selection=="mountain-lake-beach";int width=water?1920:960,height=water?1080:720;
     if(coastalMotion){width=960;height=540;}
-    if(underwaterGallery){width=1280;height=720;}
+    if(underwaterGallery||diveGallery){width=1280;height=720;}
     if(coastalPerformance){width=1280;height=720;if(auto e=std::getenv("SCENERENDERER_BENCH_WIDTH")){width=std::max(64,std::atoi(e));height=width*9/16;}}
 #ifdef __APPLE__
     glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER,GLFW_FALSE);
@@ -66,15 +72,15 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
                 SceneAdapter adapter(device);ForwardPbrRenderer renderer(device,rhi::defaultShaderDirectory(),width,height,PbrPath::Scene);
                 FrameData lastFrame;
                 const bool cloudScene=name.rfind("cloud",0)==0;
-                const bool waterScene=name=="coastal-water" || name=="coastal-beach" || name=="coastal-underwater" || name=="ocean" || name=="ocean-clear" || name=="mountain-lake" || name=="mountain-lake-ground" || name=="mountain-lake-beach";
+                const bool waterScene=name=="underwater-dive" || name=="coastal-water" || name=="coastal-beach" || name=="coastal-underwater" || name=="ocean" || name=="ocean-clear" || name=="mountain-lake" || name=="mountain-lake-ground" || name=="mountain-lake-beach";
                 nlohmann::json cloudMetrics,waterMetrics;
                 SceneSnapshotBuilder diagnosticBuilder;
                 float galleryTime=8;
                 auto collect=[&]() {
-                    if(!diagnostics)return adapter.collect(scene,galleryTime);
+                    if(!diagnostics&&!seabedGallery&&!diveGallery)return adapter.collect(scene,galleryTime);
                     // Prepare CPU sources synchronously, then exercise the editor's
                     // asynchronous page IO and depth-feedback path on the GPU.
-                    auto snapshot=*diagnosticBuilder.capture(scene,8,width,height,true);
+                    auto snapshot=*diagnosticBuilder.capture(scene,galleryTime,width,height,true);
                     snapshot.asynchronousStreaming=true;
                     return adapter.resolve(snapshot);
                 };
@@ -115,7 +121,7 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
                 }
                 auto capture=[&](const std::string& suffix,bool rsm,bool only,bool sun,bool sky){
                     renderer.resetTemporal();
-                    std::vector<double> gpuTimes;const int captureFrames=cloudScene?32:(diagnostics?64:16);
+                    std::vector<double> gpuTimes;std::map<std::string,std::vector<double>> passTimes;const int captureFrames=cloudScene?32:(diveGallery?32:(diagnostics||seabedGallery?64:16));
                     for(int i=0;i<captureFrames;++i){
                         glfwPollEvents();
                         // Drain the previous presentation fence before timing the
@@ -130,8 +136,8 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
                         frame.frame.shadowSettings=manager->setting.shadowSettings;
                         frame.frame.rsmSettings.indirectOnly=only;frame.frame.rsmSettings.sunBounce=sun;frame.frame.rsmSettings.skyBounce=sky;
                         renderer.render(frame.frame,frame.packets,frame.exposure);
-                        if(waterScene){device->waitIdle();auto timing=device->gpuTimingStats();if(i>=4 && timing.supported)gpuTimes.push_back(timing.milliseconds);}
-                        if(diagnostics){
+                        if(waterScene){device->waitIdle();auto timing=device->gpuTimingStats();if(i>=4 && timing.supported)gpuTimes.push_back(timing.milliseconds);for(const auto& sample:device->drainGpuProfile())if(i>=4)passTimes[sample.label].push_back(sample.endMilliseconds-sample.startMilliseconds);}
+                        if(diagnostics||waterScene){
                             auto feedbackFrame=frame.frame;feedbackFrame.viewProjection=renderer.renderedViewProjection();
                             adapter.recordVirtualFeedback(feedbackFrame,renderer.depthView(),renderer.shadowVisibilityViews());
                         }
@@ -159,15 +165,30 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
                         metric={{"backend",rhi::requestedBackend()==rhi::Backend::Metal?"Metal":"Vulkan"},{"width",width},{"height",height},{"frames",captureFrames},{"time_seconds",galleryTime},
                             {"camera_grid",settings.cameraGrid},{"grid_focus_m",settings.gridFocus},{"underwater_capture",settings.underwaterCapture},{"volume_integration",settings.volumeIntegration},
                             {"robust_refraction",settings.robustRefraction},{"multiple_scattering_lut",settings.multipleScattering},{"shallow_water",settings.shore.enabled},{"shore_foam",settings.shore.foam},{"wet_sand",settings.shore.wetSand},
-                            {"underwater_view",settings.underwaterView},{"underwater_fog",settings.underwaterFog},{"short_wave_ripples",settings.shortWaveRipples},{"ripple_rms_height_m",settings.rippleRmsHeight},{"detail_strength",settings.detailStrength},
+                            {"wide_air_refraction",settings.underwaterWideRefraction},{"underwater_view",settings.underwaterView},{"underwater_fog",settings.underwaterFog},{"underwater_sun_shafts",settings.underwaterSunShafts},{"sun_shaft_contrast",settings.sunShaftStrength},{"underwater_particles",settings.underwaterParticles},{"particle_density",settings.particleDensity},{"volume_samples",settings.underwaterVolumeSteps},{"camera_m",{camera.x,camera.y,camera.z}},{"absorption_per_m",{settings.absorption.x,settings.absorption.y,settings.absorption.z}},{"scattering_per_m",{settings.scattering.x,settings.scattering.y,settings.scattering.z}},{"short_wave_ripples",settings.shortWaveRipples},{"ripple_rms_height_m",settings.rippleRmsHeight},{"bed_caustics",settings.bedCaustics},{"caustic_strength",settings.causticStrength},{"caustic_cascades",settings.causticCascades},{"caustic_mesh_receivers",settings.causticMeshReceivers},{"detail_strength",settings.detailStrength},
                             {"mesh_size",settings.MeshSize},{"mesh_domain_m",settings.MeshLength},{"detail_waves",settings.detailWaves},{"subsurface_strength",settings.subsurfaceStrength},
                             {"near_camera_cell_m",settings.cameraGrid?nlohmann::json({spacing(camera.x),spacing(camera.z)}):nlohmann::json({domain/(settings.MeshSize-1),domain/(settings.MeshSize-1)})},
                             {"measurement","main native rendering submission: capture, scene, water, TSAA and tone mapping; separately submitted FFT and shallow simulation excluded; first 4 frames excluded"},{"gpu_ms_samples",gpuTimes}};
                         if(!gpuTimes.empty()){metric["mean_gpu_ms"]=std::accumulate(gpuTimes.begin(),gpuTimes.end(),0.)/gpuTimes.size();std::sort(gpuTimes.begin(),gpuTimes.end());metric["median_gpu_ms"]=(gpuTimes[(gpuTimes.size()-1)/2]+gpuTimes[gpuTimes.size()/2])*.5;}
+                        for(const auto& entry:passTimes){auto sorted=entry.second;std::sort(sorted.begin(),sorted.end());metric["pass_median_ms"][entry.first]=(sorted[(sorted.size()-1)/2]+sorted[sorted.size()/2])*.5;}
+                        if(seabedGallery){const auto vt=adapter.terrainVirtualTextures().material;
+                            if(suffix=="-seabed"){
+                                auto atlas=device->readTexture(vt->atlasTexture());auto dim=uint32_t(std::sqrt(atlas.size()/4));stbi_write_png((std::filesystem::path(directory)/"sand-atlas.png").string().c_str(),dim,dim,4,atlas.data(),dim*4);
+                                auto capture=renderer.readWaterCapture(lastFrame.oceans.at(0).id);std::vector<uint8_t> pixels(width*height*4);for(int y=0;y<height;++y)for(int x=0;x<width;++x)for(int c=0;c<4;++c)pixels[4*(y*width+x)+c]=c==3?255:uint8_t(255*std::pow(1.-std::exp(-std::max(capture[4*(y*width+x)+c],0.f)*1.2f),1.f/2.2f));stbi_write_png((std::filesystem::path(directory)/"seabed-capture.png").string().c_str(),width,height,4,pixels.data(),width*4);
+                            }
+                            auto table=device->readTextureFloat(vt->tableTexture());metric["material_vt"]={{"extent",vt->extent()},{"resident",vt->residentPages()},{"feedback_pages",vt->feedbackPageCount()},{"feedback_samples",vt->feedbackSamples()}};auto width=vt->extent()/64;size_t row=0;for(uint32_t mip=0;mip<=vt->maxMip();++mip){int count=0;for(uint32_t y=0;y<width;++y)for(uint32_t x=0;x<width;++x)if(table[4*((row+y)*(vt->extent()/64)+x)+3]>.5){++count;metric["material_vt"]["resident_pages"].push_back({mip,x,y});}metric["material_vt"]["resident_by_mip"].push_back(count);row+=width;width/=2;}}
                         if(underwaterGallery){auto positions=renderer.readWaterCapture(lastFrame.oceans.at(0).id,true);size_t terrainPixels=0;
                             for(size_t i=3;i<positions.size();i+=4)if(positions[i]>1.5f)++terrainPixels;
                             metric["captured_terrain_pixels"]=terrainPixels;
                             if(suffix=="-above"&&!terrainPixels)throw std::runtime_error("Air-side capture did not mark the virtual-textured terrain");}
+                    }
+                    if(causticGallery){auto positions=renderer.readWaterCapture(lastFrame.oceans.at(0).id,true);auto colors=renderer.readWaterCapture(lastFrame.oceans.at(0).id);double energy=0;size_t pixels=0;std::vector<uint8_t> mask(width*height*4,0);
+                        for(size_t i=0;i<positions.size();i+=4){bool mesh=positions[i+3]>.5&&positions[i+3]<1.5;if(mesh){++pixels;energy+=colors[i]+colors[i+1]+colors[i+2];}for(int c=0;c<3;++c)mask[i+c]=mesh?255:0;mask[i+3]=255;}
+                        auto& metric=waterMetrics[name+suffix];metric["mesh_receiver_pixels"]=pixels;metric["captured_mesh_mean_rgb"]=energy/std::max(size_t(1),pixels*3);
+                        if(suffix.empty()){stbi_write_png((std::filesystem::path(directory)/"mesh-receiver-mask.png").string().c_str(),width,height,4,mask.data(),width*4);
+                            for(uint32_t level=0;level<3;++level){auto data=renderer.readWaterCaustics(lastFrame.oceans.at(0).id,level);std::vector<uint8_t> image(data.size());double sum=0;size_t valid=0;
+                                for(size_t i=0;i<data.size();i+=4){if(data[i+3]<9000){sum+=data[i];++valid;}for(int c=0;c<3;++c)image[i+c]=uint8_t(255*glm::clamp(data[i+c]/3.f,0.f,1.f));image[i+3]=255;}
+                                metric["caustic_maps"].push_back({{"level",level},{"valid_receivers",valid},{"mean_red_gain",sum/std::max(size_t(1),valid)}});auto file=std::filesystem::path(directory)/("caustic-level-"+std::to_string(level)+".png");stbi_write_png(file.string().c_str(),512,512,4,image.data(),512*4);}}
                     }
                     auto hdr=renderer.readHDR();double energy=0;float peak=0;for(size_t i=0;i<hdr.size();i+=4)for(int c=0;c<3;++c){if(!std::isfinite(hdr[i+c]))throw std::runtime_error("Nonfinite gallery HDR");energy+=hdr[i+c];peak=std::max(peak,hdr[i+c]);}
                     std::cout<<name<<suffix<<" HDR mean RGB "<<energy/(3*width*height)<<", peak "<<peak<<"\n";
@@ -280,8 +301,44 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
                     ocean->setSettings(original);ocean->updateSettings([](auto& v){v.shore.wetSand=false;});capture("-no-wet-sand",false,false,true,true);
                     ocean->setSettings(original);ocean->updateSettings([](auto& v){v.opticalDebug=4;});capture("-hit-source",false,false,true,true);ocean->setSettings(original);
                 }
+                if(diveGallery){
+                    auto ocean=scene->terrain()->getComponent<Ocean>();const auto original=ocean->settings();
+                    if(refractionGallery){
+                        scene->mainCamera()->setAngles(90,68);capture("-snell-window",false,false,true,true);
+                        ocean->updateSettings([](auto& s){s.subsurfaceStrength=3.f;s.underwaterWideRefraction=false;});capture("-window-old-medium",false,false,true,true);ocean->setSettings(original);
+                        ocean->updateSettings([](auto& s){s.underwaterFog=false;});capture("-window-no-medium",false,false,true,true);ocean->setSettings(original);
+                        ocean->updateSettings([](auto& s){s.refraction=false;});capture("-window-no-refraction",false,false,true,true);ocean->setSettings(original);
+                        scene->mainCamera()->setPosition({0,-1,-12});scene->mainCamera()->setAngles(90,30);capture("-shallow-window",false,false,true,true);
+                        scene->mainCamera()->setPosition({0,-6,-12});scene->mainCamera()->setAngles(90,-8);
+                    }
+                    if(shaftsGallery){
+                        ocean->updateSettings([](auto& s){s.underwaterSunShafts=false;});capture("-no-shafts",false,false,true,true);ocean->setSettings(original);
+                        ocean->updateSettings([](auto& s){s.bedCaustics=false;});capture("-no-caustics",false,false,true,true);ocean->setSettings(original);
+                        galleryTime=8.35f;capture("-rays-later",false,false,true,true);galleryTime=8;
+                        scene->mainCamera()->setAngles(55,28);capture("-toward-sun",false,false,true,true);
+                        ocean->updateSettings([](auto& s){s.underwaterSunShafts=false;});capture("-toward-sun-no-shafts",false,false,true,true);ocean->setSettings(original);
+                        scene->mainCamera()->setAngles(90,-8);
+                    }
+                    if(causticGallery){
+                        ocean->updateSettings([](auto& s){s.causticCascades=false;s.causticMeshReceivers=false;});capture("-old-coverage",false,false,true,true);ocean->setSettings(original);
+                        ocean->updateSettings([](auto& s){s.causticMeshReceivers=false;});capture("-terrain-only",false,false,true,true);ocean->setSettings(original);
+                        ocean->updateSettings([](auto& s){s.bedCaustics=false;});capture("-no-caustics",false,false,true,true);ocean->setSettings(original);
+                    }
+                    ocean->updateSettings([](auto& s){s.underwaterParticles=false;});capture("-no-particles",false,false,true,true);ocean->setSettings(original);
+                    galleryTime=12;capture("-later",false,false,true,true);galleryTime=8;
+                    ocean->updateSettings([](auto& s){s.underwaterFog=false;});capture("-no-medium",false,false,true,true);ocean->setSettings(original);
+                    scene->mainCamera()->setAngles(65,68);capture("-surface",false,false,true,true);
+                    scene->mainCamera()->setPosition({0,3,-12});scene->mainCamera()->setAngles(90,-35);capture("-above",false,false,true,true);
+                }
                 if(underwaterGallery){
                     auto ocean=scene->terrain()->getComponent<Ocean>();const auto original=ocean->settings();
+                    if(seabedGallery){
+                        scene->mainCamera()->setAngles(80,-45);capture("-seabed",false,false,true,true);
+                        ocean->updateSettings([](auto& v){v.bedCaustics=false;});capture("-seabed-no-caustics",false,false,true,true);ocean->setSettings(original);
+                        galleryTime=8.35f;capture("-seabed-later",false,false,true,true);galleryTime=8;
+                        ocean->updateSettings([](auto& v){v.underwaterFog=false;});capture("-seabed-no-fog",false,false,true,true);ocean->setSettings(original);
+                        scene->mainCamera()->setAngles(80,50);
+                    }
                     ocean->updateSettings([](auto& s){s.shortWaveRipples=false;});capture("-no-ripples",false,false,true,true);ocean->setSettings(original);
                     galleryTime=8.35f;capture("-ripples-later",false,false,true,true);galleryTime=8;
                     ocean->updateSettings([](auto& s){s.underwaterFog=false;});capture("-no-fog",false,false,true,true);ocean->setSettings(original);

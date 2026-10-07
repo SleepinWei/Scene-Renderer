@@ -7,36 +7,40 @@
 #include <algorithm>
 #include "renderer/rhi/ShadowRenderer.h"
 #include "renderer/rhi/GpuShoreWater.h"
+#include "renderer/rhi/GpuWaterCaustics.h"
+#include "renderer/rhi/GpuWaterSunShafts.h"
 #include "renderer/rhi/WaterTransport.h"
 #include <glm/gtc/matrix_inverse.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 namespace render {
 namespace {
 rhi::ShaderAsset asset(const std::string& dir,const char* name){std::string p=dir+"/"+name;return {p+".glsl",p+".metallib",p+".spv",p+".json","main0"};}
 struct alignas(16) Advanced {glm::mat4 inverseBed,bedModel;glm::vec4 patch,previousPatch,features,bedInfo;};
 struct alignas(16) Vertex {glm::mat4 vp,model,previousVP,previousView,previousModel;glm::ivec4 flags;glm::vec4 settings,grid,previousGrid;Advanced advanced;};
-struct alignas(16) Fragment {glm::mat4 vp,view;glm::vec4 camera,direction,diffuse,specular,shallow,deep,foamColor,specularColor,ambientColor,optics,volume,absorb,scatter,surface,flags;Advanced advanced;glm::vec4 meshBoundary,underwaterControls;};
-struct alignas(16) Eye {glm::mat4 inverseVP;Advanced advanced;glm::vec4 camera,waves,absorb,scatter,direction,diffuse,controls;};
-static_assert(sizeof(Advanced)==192 && sizeof(Vertex)==576 && sizeof(Fragment)==592 && sizeof(Eye)==368,"Water block ABI");
+struct alignas(16) Fragment {glm::mat4 vp,view;glm::vec4 camera,direction,diffuse,specular,shallow,deep,foamColor,specularColor,ambientColor,optics,volume,absorb,scatter,surface,flags;Advanced advanced;glm::vec4 meshBoundary,underwaterControls,causticPatch,causticControls,diving,causticMiddle,causticFar,causticProjection,shaftPatch,shaftProjection;glm::mat4 airVP,airView;glm::vec4 airCapture,sunDisplay;};
+struct alignas(16) Eye {glm::mat4 inverseVP;Advanced advanced;glm::vec4 camera,waves,absorb,scatter,direction,diffuse,controls,diving,shaftPatch,shaftProjection;};
+static_assert(sizeof(Advanced)==192 && sizeof(Vertex)==576 && sizeof(Fragment)==880 && sizeof(Eye)==416,"Water block ABI");
 rhi::BindingLayout eyeImages(){using namespace rhi;BindingLayout l{1,{}};const char* names[]={"eyeScene","eyePosition","eyeNormal","eyeDisplace","eyeShore","eyeMask","eyeSky","eyeOriginal"};
     for(uint32_t i=0;i<8;++i)l.entries.push_back({i,BindingType::SampledTexture,ShaderStage::Fragment,names[i],0});return l;}
 }
 struct OceanSurface::WaterTargets {
-    Resources resources;uint32_t width,height;
+    Resources resources;uint32_t width,height,columns;
     rhi::TextureViewHandle color,position,depth;
     rhi::TextureHandle colorTexture,positionTexture;
     rhi::TextureHandle intervals; rhi::TextureViewHandle chain;
     std::vector<rhi::TextureViewHandle> intervalViews;
-    WaterTargets(std::shared_ptr<rhi::GraphicsDevice> d,uint32_t w,uint32_t h):resources(d),width(w),height(h){
+    WaterTargets(std::shared_ptr<rhi::GraphicsDevice> d,uint32_t w,uint32_t h,uint32_t cols):resources(d),width(w),height(h),columns(cols){
         using namespace rhi;
-        // Two columns: underwater on the left, air on the right.
+        // Independent columns: underwater, primary air, optional wide air.
+        // Preserve primary-air resolution for precise local silhouettes.
         // All retain full viewport resolution and share
         // sampler bindings to stay within the portable Metal stage limit.
-        colorTexture=resources.texture({w*2,h,Format::RGBA16Float,TextureUsage::ColorAttachment|TextureUsage::Sampled|TextureUsage::CopySource,"Underwater HDR"});color=resources.view(colorTexture);
-        positionTexture=resources.texture({w*2,h,Format::RGBA32Float,TextureUsage::ColorAttachment|TextureUsage::Sampled|TextureUsage::CopySource,"Underwater position/validity"});position=resources.view(positionTexture);
-        depth=resources.view(resources.texture({w*2,h,Format::Depth32Float,TextureUsage::DepthAttachment,"Water capture depth"}));
+        colorTexture=resources.texture({w*cols,h,Format::RGBA16Float,TextureUsage::ColorAttachment|TextureUsage::Sampled|TextureUsage::CopySource,"Underwater HDR"});color=resources.view(colorTexture);
+        positionTexture=resources.texture({w*cols,h,Format::RGBA32Float,TextureUsage::ColorAttachment|TextureUsage::Sampled|TextureUsage::CopySource,"Underwater position/validity"});position=resources.view(positionTexture);
+        depth=resources.view(resources.texture({w*cols,h,Format::Depth32Float,TextureUsage::DepthAttachment,"Water capture depth"}));
     }
     void ensureHierarchy(){
-        if(chain)return;using namespace rhi;auto d=resources.device;uint32_t w=width*2,h=height;
+        if(chain)return;using namespace rhi;auto d=resources.device;uint32_t w=width*columns,h=height;
         uint32_t levels=1;if(d->supportsTextureSubresources())for(uint32_t n=std::max(w,h);n>1;n>>=1)++levels;
         intervals=resources.texture({w,h,Format::RGBA32Float,TextureUsage::Storage|TextureUsage::Sampled|TextureUsage::CopySource,"Water min/max depth intervals",levels});
         chain=resources.view(intervals,{0,levels,0,1});for(uint32_t i=0;i<levels;++i)intervalViews.push_back(resources.view(intervals,{i,1,0,1}));
@@ -63,7 +67,7 @@ struct OceanSurface::Coastal {
         d->writeTextureFloat(texture,s.bathymetry?reinterpret_cast<const float*>(s.bathymetry->heightColor.data()):&fallback.x,size_t(n)*n*16);
         auto zero=resources.texture({1,1,Format::RGBA32Float,TextureUsage::Sampled|TextureUsage::CopyDestination,"Inactive shore state"});empty=resources.view(zero);const glm::vec4 black(0);d->writeTextureFloat(zero,&black.x,16);
         const auto p=dir+"/water-depth.comp";
-        depthLayouts={{0,{{0,BindingType::UniformBuffer,ShaderStage::Compute,"WaterDepthParameters",80},{1,BindingType::SampledTexture,ShaderStage::Compute,"depthSource",0}}},
+        depthLayouts={{0,{{0,BindingType::UniformBuffer,ShaderStage::Compute,"WaterDepthParameters",144},{1,BindingType::SampledTexture,ShaderStage::Compute,"depthSource",0}}},
             {1,{{0,BindingType::StorageTextureWrite,ShaderStage::Compute,"depthDestination",0}}}};
         depthPipeline=resources.computePipeline({{p+".glsl",p+".metallib",p+".spv",p+".json","main0"},depthLayouts,{8,8,1},"Water conservative min/max depth"});
     }
@@ -99,7 +103,7 @@ OceanSurface::OceanSurface(std::shared_ptr<rhi::GraphicsDevice> d,const std::str
     p.bindings={{0,{{0,BindingType::UniformBuffer,ShaderStage::Vertex,"WaterVertex",sizeof(Vertex)},{1,BindingType::UniformBuffer,ShaderStage::Fragment,"WaterFragment",sizeof(Fragment)}}},{1,{}}};
     const char* vertexNames[]={"DisplaceRT","detailDisplace","previousDisplace","previousDetailDisplace"};for(uint32_t i=0;i<4;++i)p.bindings[0].entries.push_back({i+2,BindingType::SampledTexture,ShaderStage::Vertex,vertexNames[i],0});
     p.bindings[0].entries.push_back({6,BindingType::SampledTexture,ShaderStage::Vertex,"vertexShoreState",0});p.bindings[0].entries.push_back({7,BindingType::SampledTexture,ShaderStage::Vertex,"previousShoreState",0});
-    const char* fragmentNames[]={"NormalRT","BubblesRT","skyview","detailNormal","detailFoam","opaqueScene","scenePosition","sceneNormal"};for(uint32_t i=0;i<8;++i)p.bindings[1].entries.push_back({i,BindingType::SampledTexture,ShaderStage::Fragment,fragmentNames[i],0});
+    const char* fragmentNames[]={"NormalRT","sunShaftField","skyview","detailNormal","bedCausticMap","opaqueScene","scenePosition","sceneNormal"};for(uint32_t i=0;i<8;++i)p.bindings[1].entries.push_back({i,BindingType::SampledTexture,ShaderStage::Fragment,fragmentNames[i],0});
     for(const auto& stage:{p.vertex,p.fragment}){
         auto reflection=nlohmann::json::parse(readShaderText(stage.reflectionPath));
         for(const auto& u:reflection.at("ubos")){
@@ -136,12 +140,13 @@ OceanSurface::OceanSurface(std::shared_ptr<rhi::GraphicsDevice> d,const std::str
         {2,BindingType::SampledTexture,ShaderStage::Fragment,"skyRadianceLut",0},
         {3,BindingType::SampledTexture,ShaderStage::Fragment,"skyIrradianceLut",0},
         {4,BindingType::SampledTexture,ShaderStage::Fragment,"shadowAtlas",0},
-        {5,BindingType::UniformBuffer,ShaderStage::Fragment,"WaterCapture",240},
+        {5,BindingType::UniformBuffer,ShaderStage::Fragment,"WaterCapture",320},
         {6,BindingType::SampledTexture,ShaderStage::Fragment,"captureDisplace",0},
         {7,BindingType::SampledTexture,ShaderStage::Fragment,"captureDetailDisplace",0}}};
     p={};p.vertex=asset(dir,"forward.vert");p.fragment=asset(dir,"water-capture.frag");p.vertexStride=sizeof(MeshVertex);p.attributes=GpuMesh::attributes();
     p.bindings={ForwardPbrRenderer::frameLayout(),GpuMaterial::layout(),captureLayout_};p.colorFormat=Format::RGBA16Float;p.additionalColorFormats={Format::RGBA32Float};
     p.bindings[0].entries.push_back({7,BindingType::SampledTexture,ShaderStage::Fragment,"captureShoreState",0});
+    p.bindings[0].entries.push_back({6,BindingType::SampledTexture,ShaderStage::Fragment,"captureCausticMap",0});
     p.bindings[0].entries.push_back({4,BindingType::UniformBuffer,ShaderStage::Fragment,"WaterWetParameters",32});p.bindings[0].entries.push_back({5,BindingType::SampledTexture,ShaderStage::Fragment,"waterWetHistory",0});
     p.depthAttachment=p.depthTest=p.depthWrite=true;p.label="Clipped underwater color/depth";
     capturePipeline_=resources_.pipeline(p);
@@ -149,7 +154,7 @@ OceanSurface::OceanSurface(std::shared_ptr<rhi::GraphicsDevice> d,const std::str
 
     p={};p.vertex=asset(dir,"tonemap.vert");p.fragment=asset(dir,"water-underwater.frag");p.vertexStride=16;
     p.attributes={{0,VertexFormat::Float2,0},{1,VertexFormat::Float2,8}};p.colorFormat=Format::RGBA16Float;
-    p.bindings={{0,{{0,BindingType::UniformBuffer,ShaderStage::Fragment,"UnderwaterParameters",sizeof(Eye)}}},eyeImages(),
+    p.bindings={{0,{{0,BindingType::UniformBuffer,ShaderStage::Fragment,"UnderwaterParameters",sizeof(Eye)},{1,BindingType::SampledTexture,ShaderStage::Fragment,"sunShaftField",0}}},eyeImages(),
         {2,{{3,BindingType::UniformBuffer,ShaderStage::Fragment,"ShadowData",sizeof(ShadowParameters)},{4,BindingType::SampledTexture,ShaderStage::Fragment,"waterShadowAtlas",0}}}};
     p.label="Underwater view segment transport";fogPipeline_=resources_.pipeline(p);
     const float quad[]={-1,-1,0,1,1,-1,1,1,1,1,1,0,-1,-1,0,1,1,1,1,0,-1,1,0,0};
@@ -157,11 +162,12 @@ OceanSurface::OceanSurface(std::shared_ptr<rhi::GraphicsDevice> d,const std::str
 
 }
 OceanSurface::~OceanSurface()=default;
+std::vector<float> OceanSurface::readCaustics(uint32_t cascade)const{if(!causticsReady_)throw std::logic_error("Caustics have not been rendered");return caustics_->read(cascade);}
 std::vector<float> OceanSurface::readCapture(bool positions,bool aboveWater) const {
     if(!underwater_)throw std::logic_error("Water capture has not been rendered");
     const auto atlas=resources_.device->readTextureFloat(positions?underwater_->positionTexture:underwater_->colorTexture);
     std::vector<float> left(size_t(underwater_->width)*underwater_->height*4);
-    for(uint32_t y=0;y<underwater_->height;++y)std::copy_n(atlas.data()+size_t(y)*underwater_->width*8+(aboveWater?underwater_->width*4:0),underwater_->width*4,left.data()+size_t(y)*underwater_->width*4);
+    for(uint32_t y=0;y<underwater_->height;++y)std::copy_n(atlas.data()+size_t(y)*underwater_->width*underwater_->columns*4+(aboveWater?underwater_->width*4:0),underwater_->width*4,left.data()+size_t(y)*underwater_->width*4);
     return left;
 }
 bool OceanSurface::compatible(const OceanSurfaceSettings& s)const{return s.spectrum.size==initial_.spectrum.size && s.spectrum.length==initial_.spectrum.length && s.meshSize==initial_.meshSize && s.surfaceLength==initial_.surfaceLength && s.waterMask==initial_.waterMask && s.cameraGrid==initial_.cameraGrid && s.shore.enabled==initial_.shore.enabled && s.bathymetry==initial_.bathymetry && s.bathymetryModel==initial_.bathymetryModel;}
@@ -183,18 +189,41 @@ uint32_t OceanSurface::shoreSubsteps() const {return coastal_->shore?coastal_->s
 void OceanSurface::captureUnderwater(Resources& frame,rhi::CommandList& c,const FrameData& f,const OceanSurfaceSettings& s,
                                     const std::vector<DrawPacket>& packets,rhi::BufferHandle camera,rhi::BufferHandle lighting,
                                     const std::vector<rhi::BindingEntry>& environment,uint32_t width,uint32_t height){
-    captured_=false;
+    captured_=false;causticsReady_=false;sunShaftsReady_=false;int causticSun=-1;
+    if(s.underwaterSunShafts&&s.sunShaftStrength>0&&s.underwaterView&&s.underwaterFog&&s.volumeIntegration&&!s.opticalDebug){
+        glm::vec3 L(0,-1,0);for(const auto& light:f.lights)if(light.positionType.w==0){L=glm::normalize(-glm::vec3(light.directionOuter));break;}
+        if(L.y>.01f){if(!sunShafts_)sunShafts_=std::make_unique<GpuWaterSunShafts>(resources_.device,directory_);
+            sunShafts_->record(frame,c,s,f.cameraPosition,L,simulation_->images,coastal_->shore?coastal_->shore->state():coastal_->empty,shorePatch(),mask_->view());sunShaftsReady_=true;}
+    }
+    if(s.bedCaustics&&s.causticStrength>0&&s.bathymetry){
+        glm::vec3 L(0,-1,0);for(size_t i=0;i<f.lights.size();++i)if(f.lights[i].positionType.w==0){L=glm::normalize(-glm::vec3(f.lights[i].directionOuter));causticSun=int(i);break;}
+        if(causticSun>=0){
+            if(!caustics_)caustics_=std::make_unique<GpuWaterCaustics>(resources_.device,directory_);
+            caustics_->record(frame,c,s,f.cameraPosition,L,simulation_->images,coastal_->bed,coastal_->shore?coastal_->shore->state():coastal_->empty,shorePatch(),mask_->view(),packets);causticsReady_=true;
+        }
+    }
     opaqueGeometry_=std::any_of(packets.begin(),packets.end(),[](const auto& packet){return !packet.material->transparent();});
     if(!s.underwaterCapture||!s.refraction||!opaqueGeometry_)return;
     using namespace rhi;
-    if(!underwater_||underwater_->width!=width||underwater_->height!=height)underwater_=std::make_unique<WaterTargets>(resources_.device,width,height);
+    const bool wideAir=s.underwaterWideRefraction&&s.underwaterView&&f.cameraPosition.y<s.seaLevel+std::max(s.spectrum.heightScale,1.f)&&width*3<=resources_.device->graphicsLimits().maxTextureDimension2D;
+    const uint32_t columns=wideAir?3:2;
+    if(!underwater_||underwater_->width!=width||underwater_->height!=height||underwater_->columns!=columns)underwater_=std::make_unique<WaterTargets>(resources_.device,width,height,columns);
+    // An upward hemisphere view recovers air objects outside the original
+    // camera frustum. Keep the primary view for precise near-object edges.
+    glm::vec3 horizontalForward(-f.view[0][2],0,-f.view[2][2]);
+    if(glm::dot(horizontalForward,horizontalForward)<1e-6f)horizontalForward={0,0,1};
+    airView_=glm::lookAt(f.cameraPosition,f.cameraPosition+glm::vec3(0,1,0),-glm::normalize(horizontalForward));
+    glm::mat4 depth(1);depth[2][2]=.5f;depth[3][2]=.5f;
+    airVP_=depth*glm::perspective(glm::radians(145.f),float(width)/height,f.nearPlane,f.farPlane)*airView_;
+    airFocal_=2.f/std::tan(glm::radians(145.f)*.5f)*float(height)*.5f;
     const bool shore=bool(coastal_->shore);
-    struct alignas(16) Capture {glm::vec4 waves,extinction;Advanced advanced;glm::vec4 eye;};
+    struct alignas(16) Capture {glm::vec4 waves,extinction;Advanced advanced;glm::vec4 eye,causticPatch,causticControls,causticMiddle,causticFar,causticProjection;};
     Capture parameters{{s.seaLevel,s.spectrum.length,32,s.detailWaves?1.f:0.f},glm::vec4(s.absorption+s.scattering,0),
         {glm::inverse(s.bathymetryModel),s.bathymetryModel,shorePatch(),shore?coastal_->shore->previousPatch():shorePatch(),
-        {s.robustRefraction?1.f:0.f,s.multipleScattering?1.f:0.f,shore?1.f:0.f,s.shore.foam?1.f:0.f},{s.bathymetry?1.f:0.f,s.shore.wetSand?1.f:0.f,0,0}},glm::vec4(f.cameraPosition,s.underwaterView?1.f:0.f)};
-    static_assert(sizeof(Capture)==240,"Water capture ABI");
-    auto captureLayer=[&](WaterTargets& targets,float mode) {
+        {s.robustRefraction?1.f:0.f,s.multipleScattering?1.f:0.f,shore?1.f:0.f,s.shore.foam?1.f:0.f},{s.bathymetry?1.f:0.f,s.shore.wetSand?1.f:0.f,0,0}},glm::vec4(f.cameraPosition,s.underwaterView?1.f:0.f),causticsReady_?caustics_->patch():glm::vec4(0),glm::vec4(causticsReady_?s.causticStrength:0,float(causticSun),causticsReady_?float(caustics_->cascadeCount()):0,0),
+        causticsReady_?caustics_->patches()[1]:glm::vec4(0),causticsReady_?caustics_->patches()[2]:glm::vec4(0),causticsReady_?caustics_->projection():glm::vec4(0)};
+    static_assert(sizeof(Capture)==320,"Water capture ABI");
+    auto captureLayer=[&](WaterTargets& targets,float mode,bool wide=false) {
         parameters.eye.w=mode;
         auto buffer=frame.buffer({sizeof(parameters),BufferUsage::Uniform,"Water capture parameters"},&parameters);
         auto entries=environment;entries.insert(entries.end(),{{5,buffer,0,sizeof(parameters),{},{}},{6,{},0,0,simulation_->images[0],repeat_},{7,{},0,0,simulation_->images[3],repeat_}});
@@ -202,14 +231,16 @@ void OceanSurface::captureUnderwater(Resources& frame,rhi::CommandList& c,const 
         const std::array<glm::vec4,2> wetData={shorePatch(),glm::vec4(shore&&s.shore.wetSand?1.f:0.f,s.shore.foam?1.f:0.f,0,0)};
         auto wetBuffer=frame.buffer({32,BufferUsage::Uniform,"Captured underwater wet material"},wetData.data());
         RenderPassDesc pass;pass.color=targets.color;pass.clearColor={0,0,0,0};pass.additionalColors={{targets.position}};pass.depth=targets.depth;
-        pass.viewport={mode>1.5f?width:0,0,width,height};
+        pass.viewport={wide?width*2:mode>1.5f?width:0,0,width,height};
+        auto captureCamera=wide?frame.buffer({64,BufferUsage::Uniform,"Wide air camera"},&airVP_):camera;
         if(mode>1.5f){pass.colorLoad=LoadOp::Load;pass.depthLoad=LoadOp::Load;pass.additionalColors[0].load=LoadOp::Load;}
-        c.setLabel(mode>1.5f?"water/capture-air":"water/capture");c.beginRenderPass(pass);
+        c.setLabel(wide?"water/capture-air-wide":mode>1.5f?"water/capture-air":"water/capture");c.beginRenderPass(pass);
         for(const auto& packet:packets){
             if(packet.material->transparent())continue;
             std::array<glm::mat4,2> object={packet.model,glm::transpose(glm::inverse(packet.model))};
             auto data=frame.buffer({sizeof(object),BufferUsage::Uniform,"Underwater object"},object.data());
-            auto layout=ForwardPbrRenderer::frameLayout();std::vector<BindingEntry> bindings={{0,camera,0,64,{},{}},{1,data,0,128,{},{}},{2,lighting,0,1472,{},{}}};
+            auto layout=ForwardPbrRenderer::frameLayout();std::vector<BindingEntry> bindings={{0,captureCamera,0,64,{},{}},{1,data,0,128,{},{}},{2,lighting,0,1472,{},{}}};
+            layout.entries.push_back({6,BindingType::SampledTexture,ShaderStage::Fragment,"captureCausticMap",0});bindings.push_back({6,{},0,0,causticsReady_?caustics_->view():coastal_->empty,clamp_});
             layout.entries.push_back({7,BindingType::SampledTexture,ShaderStage::Fragment,"captureShoreState",0});bindings.push_back({7,{},0,0,shore?coastal_->shore->state():coastal_->empty,clamp_});
             layout.entries.push_back({4,BindingType::UniformBuffer,ShaderStage::Fragment,"WaterWetParameters",32});bindings.push_back({4,wetBuffer,0,32,{},{}});
             layout.entries.push_back({5,BindingType::SampledTexture,ShaderStage::Fragment,"waterWetHistory",0});bindings.push_back({5,{},0,0,wetnessView(),clamp_});
@@ -224,17 +255,18 @@ void OceanSurface::captureUnderwater(Resources& frame,rhi::CommandList& c,const 
     captureLayer(*underwater_,0.f);
     if(s.underwaterView) {
         captureLayer(*underwater_,2.f);
+        if(wideAir)captureLayer(*underwater_,2.f,true);
     }
     captured_=true;
     if(s.robustRefraction) {
         underwater_->ensureHierarchy();
-        struct alignas(16) Depth {glm::mat4 view;glm::ivec4 mode;};
+        struct alignas(16) Depth {glm::mat4 view,airView;glm::ivec4 mode;};
         for(uint32_t mip=0;mip<underwater_->intervalViews.size();++mip) {
-            Depth p{f.view,{int(mip),0,0,0}};auto data=frame.buffer({80,BufferUsage::Uniform,"Water depth mip parameters"},&p);
+            Depth p{f.view,airView_,{int(mip),int(width*2),0,0}};auto data=frame.buffer({144,BufferUsage::Uniform,"Water depth mip parameters"},&p);
             auto input=mip?underwater_->intervalViews[mip-1]:underwater_->position;
-            auto a=frame.bindings({coastal_->depthLayouts[0],{{0,data,0,80,{},{}},{1,{},0,0,input,positionSampler_}}});
+            auto a=frame.bindings({coastal_->depthLayouts[0],{{0,data,0,144,{},{}},{1,{},0,0,input,positionSampler_}}});
             auto b=frame.bindings({coastal_->depthLayouts[1],{{0,{},0,0,underwater_->intervalViews[mip],{}}}});
-            c.setLabel("water/depth-chain");c.dispatch(coastal_->depthPipeline,{a,b},{(std::max(1u,(width*2)>>mip)+7)/8,(std::max(1u,height>>mip)+7)/8,1});
+            c.setLabel("water/depth-chain");c.dispatch(coastal_->depthPipeline,{a,b},{(std::max(1u,(width*columns)>>mip)+7)/8,(std::max(1u,height>>mip)+7)/8,1});
         }
     }
 }
@@ -253,7 +285,8 @@ void OceanSurface::record(Resources& frame,rhi::CommandList& c,const FrameData& 
     advanced.bedInfo.z=std::max(std::abs(projection[0][0])*float(f.viewportWidth),std::abs(projection[1][1])*float(f.viewportHeight));
     Vertex v{f.viewProjection,model,history_?previousVP_:f.viewProjection,history_?previousView_:f.view,history_?previousModel_:model,{s.detailWaves?1:0,history_?1:0,0,0},{32,s.spectrum.length,float(s.meshSize),0},grid,history_?previousGrid_:grid,advanced};
     LightData sun{{0,0,0,0},{0,0,0,0},{0,-1,-.1f,0}};int sunIndex=-1;for(size_t i=0;i<f.lights.size();++i)if(f.lights[i].positionType.w==0){sun=f.lights[i];sunIndex=int(i);break;}
-    Fragment p{f.viewProjection,f.view,glm::vec4(f.cameraPosition,opaqueGeometry_?1.f:0.f),sun.directionOuter,sun.colorInner,sun.colorInner,glm::vec4(s.shallow,0),glm::vec4(s.deep,0),glm::vec4(s.foamColor,0),glm::vec4(s.specular,0),glm::vec4(s.ambient,0),{s.fresnel,s.gloss,s.refractionStrength,s.deepWaterDistance},{s.subsurfaceStrength,s.anisotropy,s.volumeIntegration?4.f:0.f,captured?1.f:0.f},glm::vec4(s.absorption,float(s.opticalDebug)),glm::vec4(s.scattering,float(sunIndex)),{s.seaLevel,std::max(s.spectrum.heightScale,.01f),s.spectrum.length,s.detailWaves?1.f:0.f},{f.sky?1.f:0.f,s.detailWaves?1.f:0.f,s.refraction&&(opaqueGeometry_||s.bathymetry)?1.f:0.f,history_?1.f:0.f},advanced,{domain*.5f,0,0,0},{s.underwaterView?1.f:0.f,s.underwaterFog?1.f:0.f,s.refraction?1.f:0.f,f.farPlane}};
+    Fragment p{f.viewProjection,f.view,glm::vec4(f.cameraPosition,opaqueGeometry_?1.f:0.f),sun.directionOuter,sun.colorInner,sun.colorInner,glm::vec4(s.shallow,0),glm::vec4(s.deep,0),glm::vec4(s.foamColor,0),glm::vec4(s.specular,0),glm::vec4(s.ambient,0),{s.fresnel,s.gloss,s.refractionStrength,s.deepWaterDistance},{s.subsurfaceStrength,s.anisotropy,s.volumeIntegration?4.f:0.f,captured?1.f:0.f},glm::vec4(s.absorption,float(s.opticalDebug)),glm::vec4(s.scattering,float(sunIndex)),{s.seaLevel,std::max(s.spectrum.heightScale,.01f),s.spectrum.length,s.detailWaves?1.f:0.f},{f.sky?1.f:0.f,s.detailWaves?1.f:0.f,s.refraction&&(opaqueGeometry_||s.bathymetry)?1.f:0.f,history_?1.f:0.f},advanced,{domain*.5f,0,0,0},{s.underwaterView?1.f:0.f,s.underwaterFog?1.f:0.f,s.refraction?1.f:0.f,f.farPlane},causticsReady_?caustics_->patch():glm::vec4(0),glm::vec4(causticsReady_?s.causticStrength:0,0,causticsReady_?float(caustics_->cascadeCount()):0,0),{s.animate?f.timeSeconds*s.timeScale:0,s.underwaterParticles?s.particleDensity:0,sunShaftsReady_?s.sunShaftStrength:0,float(s.underwaterVolumeSteps)},causticsReady_?caustics_->patches()[1]:glm::vec4(0),causticsReady_?caustics_->patches()[2]:glm::vec4(0),causticsReady_?caustics_->projection():glm::vec4(0),sunShaftsReady_?sunShafts_->patch():glm::vec4(0),sunShaftsReady_?sunShafts_->projection():glm::vec4(0),airVP_,airView_,{airFocal_,captured?float(underwater_->columns):0,0,captured&&underwater_->columns==3?1.f:0.f},
+        glm::vec4(glm::vec3(sun.colorInner)/std::max(3.14159265359f*std::pow(std::sin(f.atmosphere.radii.y),2.f),1e-8f),f.atmosphere.radii.y)};
     auto vd=frame.buffer({sizeof(v),BufferUsage::Uniform,"Water vertex parameters"},&v),fd=frame.buffer({sizeof(p),BufferUsage::Uniform,"Water fragment parameters"},&p);
     BindingLayout vertex{0,{{0,BindingType::UniformBuffer,ShaderStage::Vertex,"WaterVertex",sizeof(Vertex)},{1,BindingType::UniformBuffer,ShaderStage::Fragment,"WaterFragment",sizeof(Fragment)}}},fragment{1,{}};
     std::vector<BindingEntry> ve{{0,vd,0,sizeof(v),{},{}},{1,fd,0,sizeof(p),{},{}}},fe;
@@ -261,8 +294,8 @@ void OceanSurface::record(Resources& frame,rhi::CommandList& c,const FrameData& 
     for(uint32_t i=0;i<4;++i){vertex.entries.push_back({i+2,BindingType::SampledTexture,ShaderStage::Vertex,vn[i],0});ve.push_back({i+2,{},0,0,vi[i],repeat_});}
     vertex.entries.push_back({6,BindingType::SampledTexture,ShaderStage::Vertex,"vertexShoreState",0});ve.push_back({6,{},0,0,shore?coastal_->shore->state():coastal_->empty,clamp_});
     vertex.entries.push_back({7,BindingType::SampledTexture,ShaderStage::Vertex,"previousShoreState",0});ve.push_back({7,{},0,0,shore?coastal_->shore->previous():coastal_->empty,clamp_});
-    const char* fn[]={"NormalRT","BubblesRT","skyview","detailNormal","detailFoam","opaqueScene","scenePosition","sceneNormal"};const TextureViewHandle fi[]={simulation_->images[1],simulation_->images[2],sky,simulation_->images[4],simulation_->images[5],opaque,position,normal};
-    for(uint32_t i=0;i<8;++i){fragment.entries.push_back({i,BindingType::SampledTexture,ShaderStage::Fragment,fn[i],0});fe.push_back({i,{},0,0,fi[i],i>=6||(i==5&&captured)?positionSampler_:i==5?clamp_:repeat_});}
+    const char* fn[]={"NormalRT","sunShaftField","skyview","detailNormal","bedCausticMap","opaqueScene","scenePosition","sceneNormal"};const TextureViewHandle fi[]={simulation_->images[1],sunShaftsReady_?sunShafts_->view():coastal_->empty,sky,simulation_->images[4],causticsReady_?caustics_->view():coastal_->empty,opaque,position,normal};
+    for(uint32_t i=0;i<8;++i){fragment.entries.push_back({i,BindingType::SampledTexture,ShaderStage::Fragment,fn[i],0});fe.push_back({i,{},0,0,fi[i],i>=6||(i==5&&captured)?positionSampler_:i==5||i==4||i==1?clamp_:repeat_});}
     BindingLayout advancedLayout{2,{{0,BindingType::SampledTexture,ShaderStage::Fragment,"waterMask",0},{1,BindingType::SampledTexture,ShaderStage::Fragment,"volumeDisplace",0},{2,BindingType::SampledTexture,ShaderStage::Fragment,"bathymetryMap",0},{3,BindingType::UniformBuffer,ShaderStage::Fragment,"ShadowData",sizeof(ShadowParameters)},{4,BindingType::SampledTexture,ShaderStage::Fragment,"waterShadowAtlas",0},
         {5,BindingType::SampledTexture,ShaderStage::Fragment,"fragmentShoreState",0},{6,BindingType::SampledTexture,ShaderStage::Fragment,"shoreFoam",0},{7,BindingType::SampledTexture,ShaderStage::Fragment,"multipleScatterLut",0}}};
     auto advancedBindings=frame.bindings({advancedLayout,{{0,{},0,0,mask_->view(),clamp_},{1,{},0,0,simulation_->images[0],repeat_},{2,{},0,0,coastal_->bed,clamp_},{3,shadowParameters,0,sizeof(ShadowParameters),{},{}},{4,{},0,0,shadowAtlas,positionSampler_},
@@ -279,11 +312,12 @@ void OceanSurface::recordUnderwaterFog(Resources& frame,rhi::CommandList& c,cons
     LightData sun{{0,0,0,0},{0,0,0,0},{0,-1,-.1f,0}};int sunIndex=-1;
     for(size_t i=0;i<f.lights.size();++i)if(f.lights[i].positionType.w==0){sun=f.lights[i];sunIndex=int(i);break;}
     Eye p{glm::inverse(f.viewProjection),{glm::inverse(s.bathymetryModel),s.bathymetryModel,shorePatch(),shorePatch(),
-        {0,0,shore?1.f:0.f,0},{s.bathymetry?1.f:0.f,0,0,0}},glm::vec4(f.cameraPosition,captured_?1.f:0.f),
+        {0,0,shore?1.f:0.f,0},{s.bathymetry?1.f:0.f,0,0,0}},glm::vec4(f.cameraPosition,captured_?float(underwater_->columns):0.f),
         {s.seaLevel,s.spectrum.length,32,0},glm::vec4(s.absorption,s.deepWaterDistance),glm::vec4(s.scattering,s.anisotropy),sun.directionOuter,sun.colorInner,
-        {(s.surfaceLength>0?s.surfaceLength:s.spectrum.length)*.5f,f.sky?1.f:0.f,s.volumeIntegration?s.subsurfaceStrength:0.f,float(sunIndex)}};
+        {(s.surfaceLength>0?s.surfaceLength:s.spectrum.length)*.5f,f.sky?1.f:0.f,s.volumeIntegration?s.subsurfaceStrength:0.f,float(sunIndex)},
+        {s.animate?f.timeSeconds*s.timeScale:0,s.underwaterParticles?s.particleDensity:0,sunShaftsReady_?s.sunShaftStrength:0,float(s.underwaterVolumeSteps)},sunShaftsReady_?sunShafts_->patch():glm::vec4(0),sunShaftsReady_?sunShafts_->projection():glm::vec4(0)};
     auto data=frame.buffer({sizeof(p),BufferUsage::Uniform,"Underwater eye parameters"},&p);
-    auto a=frame.bindings({{0,{{0,BindingType::UniformBuffer,ShaderStage::Fragment,"UnderwaterParameters",sizeof(Eye)}}},{{0,data,0,sizeof(p),{},{}}}});
+    auto a=frame.bindings({{0,{{0,BindingType::UniformBuffer,ShaderStage::Fragment,"UnderwaterParameters",sizeof(Eye)},{1,BindingType::SampledTexture,ShaderStage::Fragment,"sunShaftField",0}}},{{0,data,0,sizeof(p),{},{}},{1,{},0,0,sunShaftsReady_?sunShafts_->view():coastal_->empty,clamp_}}});
     const TextureViewHandle images[]={captured_?underwater_->color:opaque,position,normal,simulation_->images[0],shore?coastal_->shore->state():coastal_->empty,mask_->view(),sky,opaque};
     std::vector<BindingEntry> entries;for(uint32_t i=0;i<8;++i)entries.push_back({i,{},0,0,images[i],i==1||i==2?positionSampler_:i==3?repeat_:clamp_});
     auto b=frame.bindings({eyeImages(),entries});

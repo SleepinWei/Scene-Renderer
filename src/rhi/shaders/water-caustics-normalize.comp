@@ -1,0 +1,46 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#include "water-caustics-parameters.glsl"
+layout(local_size_x=8,local_size_y=8) in;
+layout(set=0,binding=1) uniform sampler2D causticBedMap;
+layout(set=0,binding=2) uniform sampler2D causticAccumulation;
+layout(set=0,binding=3) uniform sampler2D causticLarge;
+layout(set=0,binding=4) uniform sampler2D causticShore;
+layout(set=0,binding=5) uniform sampler2D causticReceiverPosition;
+layout(set=0,binding=6) uniform sampler2D causticReceiverNormal;
+layout(rgba16f,set=1,binding=0) writeonly uniform image2D causticOutput;
+#include "water-waves.glsl"
+#include "water-coast.glsl"
+#include "water-caustics-bed.glsl"
+float dielectric(float c){float eta=1./1.333,ct=sqrt(max(1.-eta*eta*(1.-c*c),0.));float a=(eta*c-ct)/(eta*c+ct),b=(c-eta*ct)/(c+eta*ct);return .5*(a*a+b*b);}
+void main(){
+    ivec2 p=ivec2(gl_GlobalInvocationID.xy),size=ivec2(grid.y);if(any(greaterThanEqual(p,size)))return;
+    ivec2 offset=ivec2(grid.z*grid.y,0),outPixel=p+offset;
+    vec2 coordinate=photonPatch.xy+(vec2(p)+.5)/vec2(size)*photonPatch.z;
+    vec3 point,N;float bed;bool mesh=false;
+    vec4 receiver=vec4(0);if(receiverProjection.w>.5)receiver=texelFetch(causticReceiverPosition,outPixel,0);
+    if(receiverProjection.w>.5&&receiver.w>.5){point=receiver.xyz;bed=point.y;N=normalize(texelFetch(causticReceiverNormal,outPixel,0).xyz);mesh=true;}
+    else {
+        if(!causticBed(coordinate,bed)){imageStore(causticOutput,outPixel,vec4(1,1,1,10000));return;}
+        point=vec3(coordinate.x,bed,coordinate.y);
+        // The light-space coordinate belongs to the flat reference ray, not
+        // to its XZ receiver position. Refine terrain position on that ray.
+        if(receiverProjection.w>.5)for(int j=0;j<4;++j){point.xz=coordinate+receiverProjection.xy*(bed-receiverProjection.z);if(!causticBed(point.xz,bed))break;point.y=bed;}
+        float dx=max(length(coastModel[0].xz)*2./float(textureSize(causticBedMap,0).x-1),.05),dz=max(length(coastModel[2].xz)*2./float(textureSize(causticBedMap,0).y-1),.05);
+        float a=bed,b=bed,c=bed,d=bed;if(!causticBed(point.xz-vec2(dx,0),a))a=bed;if(!causticBed(point.xz+vec2(dx,0),b))b=bed;if(!causticBed(point.xz-vec2(0,dz),c))c=bed;if(!causticBed(point.xz+vec2(0,dz),d))d=bed;
+        N=normalize(vec3(-(b-a)/(2.*dx),1,-(d-c)/(2.*dz)));
+    }
+    float surface=coastHeight(point.xz,waterMacroHeight(point.xz,causticLarge,waves),causticShore,coastPatch,waves.x,coastFeatures.z);
+    if(bed>=surface||sun.y<=.01){imageStore(causticOutput,outPixel,vec4(1,1,1,10000));return;}
+    vec3 towardSun=-refract(-sun.xyz,vec3(0,1,0),1./1.333);
+    vec3 referenceFlux=(1.-dielectric(sun.y))*sun.y*max(dot(N,towardSun),0.)/max(towardSun.y,.05)*exp(-extinction.xyz*max(surface-bed,0.)/max(towardSun.y,.05));
+    vec3 energy=vec3(0);float totalWeight=0.;
+    for(int y=-1;y<=1;++y)for(int x=-1;x<=1;++x){ivec2 q=clamp(p+ivec2(x,y),ivec2(0),size-1)+offset;float weight=float((x==0?2:1)*(y==0?2:1));
+        // Keep filtering on the same surface across reef silhouettes.
+        if(mesh){vec4 neighbor=texelFetch(causticReceiverPosition,q,0);if(neighbor.w<.5||abs(neighbor.y-bed)>max(.2,photonPatch.w*3.))continue;}
+        energy+=texelFetch(causticAccumulation,q,0).rgb*weight;totalWeight+=weight;}
+    energy/=max(totalWeight,1.);
+    if(texelFetch(causticAccumulation,outPixel,0).a<.5||max(referenceFlux.x,max(referenceFlux.y,referenceFlux.z))<1e-6){imageStore(causticOutput,outPixel,vec4(1,1,1,10000));return;}
+    vec3 ratio=clamp(energy/max(referenceFlux,vec3(.0001)),vec3(0),vec3(8));
+    imageStore(causticOutput,outPixel,vec4(ratio,bed-receiverProjection.z));
+}

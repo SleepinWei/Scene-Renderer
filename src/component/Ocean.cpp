@@ -228,13 +228,14 @@ void Ocean::setSettings(OceanConfiguration value) {
        value.MeshSize<2 || value.MeshSize>1025 || value.MeshLength<=0)
         throw std::invalid_argument("Invalid ocean domain or mesh resolution");
     value.FFTPow=0;for(int n=value.fft_size;n>1;n>>=1)++value.FFTPow;
-    for(float v:{value.MeshLength,value.SpectrumLength,value.TimeScale,value.detailStrength,value.rippleRmsHeight,value.A,value.Lambda,value.HeightScale,
+    for(float v:{value.MeshLength,value.SpectrumLength,value.TimeScale,value.detailStrength,value.rippleRmsHeight,value.causticStrength,value.particleDensity,value.sunShaftStrength,value.A,value.Lambda,value.HeightScale,
                  value.BubblesScale,value.BubblesThreshold,value.WindScale,value.seaLevel,value.refractionStrength,
                  value.deepWaterDistance,value.subsurfaceStrength,value.scatteringAnisotropy,value.outer_FresnelScale,value.gridFocus,
                  value.shore.length,value.shore.maxDepth,value.shore.swellHeight,value.shore.swellPeriod,value.shore.swellDirection.x,value.shore.swellDirection.y,
                  value.shore.foamStrength,value.shore.foamLifetime,value.shore.dryingTime})
         if(!std::isfinite(v))throw std::invalid_argument("Nonfinite ocean configuration");
-    if(value.SpectrumLength<0 || value.A<0 || value.WindScale<0 || value.HeightScale<0 || value.BubblesScale<0 || value.detailStrength<0 || value.rippleRmsHeight<0 || value.rippleRmsHeight>.1f ||
+    if(value.SpectrumLength<0 || value.A<0 || value.WindScale<0 || value.HeightScale<0 || value.BubblesScale<0 || value.detailStrength<0 || value.rippleRmsHeight<0 || value.rippleRmsHeight>.1f || value.causticStrength<0 || value.causticStrength>1 ||
+       value.sunShaftStrength<0 || value.sunShaftStrength>3 || value.particleDensity<0 || value.particleDensity>1 || value.underwaterVolumeSteps<4 || value.underwaterVolumeSteps>32 ||
        value.deepWaterDistance<=0 || value.gridFocus<=0 || value.subsurfaceStrength<0 || std::abs(value.scatteringAnisotropy)>=1 ||
        value.outer_FresnelScale<0 || value.outer_FresnelScale>1 || value.outer_Gloss<0 || value.refractionStrength<0)
         throw std::invalid_argument("Invalid ocean optical or spectrum configuration");

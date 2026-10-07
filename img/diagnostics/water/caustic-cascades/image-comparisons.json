@@ -1,0 +1,26 @@
+{
+  "old-coverage": {
+    "mean_abs_rgb_8bit": 2.5171360969543457,
+    "mesh_interior_mean_abs_rgb_8bit": 0.5602729916572571,
+    "mesh_interior_pixels_over_2": 9697,
+    "mesh_interior_pixels": 94072
+  },
+  "terrain-only": {
+    "mean_abs_rgb_8bit": 1.4687864780426025,
+    "mesh_interior_mean_abs_rgb_8bit": 0.5608363747596741,
+    "mesh_interior_pixels_over_2": 9698,
+    "mesh_interior_pixels": 94072
+  },
+  "no-caustics": {
+    "mean_abs_rgb_8bit": 3.5239977836608887,
+    "mesh_interior_mean_abs_rgb_8bit": 0.5733906030654907,
+    "mesh_interior_pixels_over_2": 9140,
+    "mesh_interior_pixels": 94072
+  },
+  "later": {
+    "mean_abs_rgb_8bit": 4.690855026245117,
+    "mesh_interior_mean_abs_rgb_8bit": 0.7910217642784119,
+    "mesh_interior_pixels_over_2": 9271,
+    "mesh_interior_pixels": 94072
+  }
+}

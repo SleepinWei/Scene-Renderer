@@ -1,0 +1,13 @@
+Test project /private/tmp/scenerenderer-water-push-build
+    Start 10: engine-concurrency
+1/4 Test #10: engine-concurrency ...............   Passed    0.29 sec
+    Start 11: rhi-image-decoder
+2/4 Test #11: rhi-image-decoder ................   Passed    0.27 sec
+    Start 12: rhi-contract
+3/4 Test #12: rhi-contract .....................   Passed    0.26 sec
+    Start 13: rhi-graphics-contract
+4/4 Test #13: rhi-graphics-contract ............   Passed    0.50 sec
+
+100% tests passed out of 4
+
+Total Test time (real) =   1.33 sec

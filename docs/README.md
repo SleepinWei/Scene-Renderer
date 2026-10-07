@@ -26,6 +26,11 @@
 | [实时水体升级验收](water-realtime-upgrade.md) | 近景密集网格、水下捕获、路径散射、对比与 GPU 耗时 |
 | [近岸水体功能验收](water-coastal-features.md) | 可开关折射、局部多次散射、浅水波／泡沫／湿沙、动画与双后端验证 |
 | [近岸水体第一轮性能报告](water-coastal-performance.md) | 操作提示、边界修复、CPU／GPU 分阶段计时、提交间隙、前后对比与复测 |
+| [透明天空窗口与空气侧折射](water-air-refraction.md) | 宽空气捕获、太阳圆盘、浮标、折射／全反射与可见性验证 |
+| [水下太阳光束](water-sun-shafts.md) | FFT 折射光通量、水深切片、体积散射、独立开关与性能对照 |
+| [分级焦散与礁石接收](water-caustic-cascades.md) | 16／48／128 m 覆盖、沿阳光方向接收捕获、层级过渡、网格与能量验证 |
+| [海底潜水场景](water-underwater-diving.md) | 6 m 水深、礁石沙沟、海草、悬浮颗粒、水体能见度与上下水面对照 |
+| [水底细节与实时焦散](water-seabed-caustics.md) | 细砂纹、实时 FFT 光子投射、开关对照、能量校验与 GPU 耗时 |
 | [实时水下渲染](water-underwater-rendering.md) | 水中距离雾、双向折射、Snell 窗口／全反射、透明水底、验证和视角对照 |
 | [折射、BSSRDF 与近岸海浪审阅稿](water-refraction-bssrdf-shoreline-plan.md) | 方案依据、空间散射／翻卷波扩展、分阶段质量门槛与实施差异 |
 | [地形与 Virtual Texture](terrain-virtual-texture.md) | 四叉树、分页、预算与离线工具 |

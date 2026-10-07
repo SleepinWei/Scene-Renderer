@@ -1,0 +1,10 @@
+#version 450
+layout(local_size_x=8,local_size_y=8) in;
+layout(set=0,binding=0) uniform sampler2D shaftAccumulation;
+layout(rgba16f,set=1,binding=0) writeonly uniform image2D shaftOutput;
+void main(){
+    ivec2 p=ivec2(gl_GlobalInvocationID.xy);if(any(greaterThanEqual(p,ivec2(2048,256))))return;
+    int start=(p.x/256)*256;float sum=0.,weight=0.;
+    for(int y=-1;y<=1;++y)for(int x=-1;x<=1;++x){float w=float((x==0?2:1)*(y==0?2:1));ivec2 q=clamp(p+ivec2(x,y),ivec2(start,0),ivec2(start+255,255));sum+=texelFetch(shaftAccumulation,q,0).r*w;weight+=w;}
+    imageStore(shaftOutput,p,vec4(clamp(sum/weight,0.,12.),0,0,1));
+}

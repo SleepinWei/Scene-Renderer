@@ -288,7 +288,7 @@ protected:
                     glUseProgram(program);glBindVertexArray(pipelines_.at(program));glPolygonMode(GL_FRONT_AND_BACK,p.wireframe?GL_LINE:GL_FILL);
                     if (p.depthTest) glEnable(GL_DEPTH_TEST);else glDisable(GL_DEPTH_TEST);glDepthFunc(p.depthCompare==DepthCompare::Less?GL_LESS:p.depthCompare==DepthCompare::LessEqual?GL_LEQUAL:p.depthCompare==DepthCompare::Greater?GL_GREATER:GL_ALWAYS);glDepthMask(p.depthWrite);
                     glFrontFace(GL_CW);if(p.cull==CullMode::None)glDisable(GL_CULL_FACE);else {glEnable(GL_CULL_FACE);glCullFace(p.cull==CullMode::Back?GL_BACK:GL_FRONT);glFrontFace(GL_CW);}
-                    for(size_t i=0;i<colors.size();++i){if(p.attachmentBlend.empty()?p.blend:p.attachmentBlend.at(i))glEnablei(GL_BLEND,i);else glDisablei(GL_BLEND,i);glBlendFuncSeparatei(GLuint(i),GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA,GL_ONE,GL_ONE_MINUS_SRC_ALPHA);}
+                    for(size_t i=0;i<colors.size();++i){if(p.attachmentBlend.empty()?p.blend:p.attachmentBlend.at(i))glEnablei(GL_BLEND,i);else glDisablei(GL_BLEND,i);glBlendFuncSeparatei(GLuint(i),p.additiveBlend?GL_ONE:GL_SRC_ALPHA,p.additiveBlend?GL_ONE:GL_ONE_MINUS_SRC_ALPHA,GL_ONE,p.additiveBlend?GL_ONE:GL_ONE_MINUS_SRC_ALPHA);}
                     glBindBuffer(GL_ARRAY_BUFFER, GLuint(nativeBuffer(draw.vertices, BufferUsage::Vertex)));
                     for (const auto& a : p.attributes) {
                         glEnableVertexAttribArray(a.location);const int count = a.format == VertexFormat::Float2 ? 2 : a.format == VertexFormat::Float3 ? 3 : 4;

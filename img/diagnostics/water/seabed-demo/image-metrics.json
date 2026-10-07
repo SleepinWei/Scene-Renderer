@@ -1,0 +1,14 @@
+{
+  "caustics_switch": {
+    "encoded_rgb_mean_absolute_difference": 0.046586345996732025,
+    "pixels_differing_over_0_02": 724409
+  },
+  "wave_motion": {
+    "encoded_rgb_mean_absolute_difference": 0.07606943026053013,
+    "pixels_differing_over_0_02": 754926
+  },
+  "fog_switch": {
+    "encoded_rgb_mean_absolute_difference": 0.06574714194126724,
+    "pixels_differing_over_0_02": 888752
+  }
+}

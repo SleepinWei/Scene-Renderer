@@ -1,5 +1,5 @@
 float waterPixelFootprint(vec3 point) {
-    return 2.*max(-(view*vec4(point,1)).z,.1)/max(coastBedInfo.z,1.);
+    return 2.*max(-(waterQueryView()*vec4(point,1)).z,.1)/max(queryWideAir?airCapture.x:coastBedInfo.z,1.);
 }
 bool waterCandidate(vec3 origin,vec3 V,vec3 ray,float range,vec2 uv,float nearT,float farT,out float distance,out float confidence) {
     if(!submerged(uv,origin,V))return false;
@@ -11,7 +11,7 @@ bool waterCandidate(vec3 origin,vec3 V,vec3 ray,float range,vec2 uv,float nearT,
     vec3 dx=px.xyz-position,dy=py.xyz-position,n=cross(dx,dy);
     if(px.w>.5&&py.w>.5&&length(dx)<tolerance*6.&&length(dy)<tolerance*6.&&dot(n,n)>1e-14) {
         n=normalize(n);float denom=dot(n,ray);
-        if(abs(denom)>.005){float planeT=dot(n,position-origin)/denom;vec2 projected=screenUV(origin+ray*planeT)*vec2(size);
+        if(abs(denom)>.005){float planeT=dot(n,position-origin)/denom;vec2 projected=waterQueryScreenUV(origin+ray*planeT)*vec2(size);
             if(max(abs(projected.x-float(pixel.x)-.5),abs(projected.y-float(pixel.y)-.5))<1.) {t=planeT;error=0.;}}
     }
     if(t<max(0.,nearT-tolerance*2.)||t>min(range,farT+tolerance*2.)||error>tolerance)return false;
@@ -21,11 +21,11 @@ bool waterCandidate(vec3 origin,vec3 V,vec3 ray,float range,vec2 uv,float nearT,
 // advances through contiguous pixels along the dominant projected axis.
 bool waterDDA(vec3 origin,vec3 V,vec3 ray,float range,out vec2 hitUV,out float distance,out float confidence) {
     vec3 first=origin+ray*.01,last=origin+ray*range;
-    vec4 h0=waterFragmentVP*vec4(first,1),h1=waterFragmentVP*vec4(last,1);
-    float vz=(view*vec4(ray,0)).z;
-    if(vz>0.) {float limit=(-.05-(view*vec4(origin,1)).z)/vz;range=min(range,max(limit,.01));last=origin+ray*range;h1=waterFragmentVP*vec4(last,1);}
+    vec4 h0=waterQueryVP()*vec4(first,1),h1=waterQueryVP()*vec4(last,1);
+    float vz=(waterQueryView()*vec4(ray,0)).z;
+    if(vz>0.) {float limit=(-.05-(waterQueryView()*vec4(origin,1)).z)/vz;range=min(range,max(limit,.01));last=origin+ray*range;h1=waterQueryVP()*vec4(last,1);}
     if(h0.w<=0.||h1.w<=0.)return false;
-    vec2 size=vec2(waterQuerySize()),p0=screenUV(first)*size,p1=screenUV(last)*size,delta=p1-p0;
+    vec2 size=vec2(waterQuerySize()),p0=waterQueryScreenUV(first)*size,p1=waterQueryScreenUV(last)*size,delta=p1-p0;
     float extent=max(abs(delta.x),abs(delta.y)),k0=1./h0.w,k1=1./h1.w;
     vec3 q0=first*k0,q1=last*k1;
     if(extent<.5) {
@@ -42,7 +42,7 @@ bool waterDDA(vec3 origin,vec3 V,vec3 ray,float range,out vec2 hitUV,out float d
             // arbitrary starting point. Use exact min/max texels, not bilinear
             // filtering, which is not conservative for depth intervals.
             int mip=min(5,textureQueryLevels(sceneNormal)-1);float cell=exp2(float(mip));
-            vec2 offset=vec2(queryAboveWater&&volume.w>.5?size.x:0.,0.);
+            vec2 offset=vec2(queryAboveWater&&volume.w>.5?size.x*(queryWideAir?2.:1.):0.,0.);
             vec2 tile=floor((pixel+step*.0001+offset)/cell);
             vec2 boundary=(tile+vec2(step.x>=0.?1.:0.,step.y>=0.?1.:0.))*cell-offset;
             vec2 exitDistance=vec2(1e20);
@@ -54,7 +54,7 @@ bool waterDDA(vec3 origin,vec3 V,vec3 ray,float range,out vec2 hitUV,out float d
                 vec4 interval=texelFetch(sceneNormal,at,mip);
                 float a=traveled/extent,b=(traveled+advance)/extent;
                 vec3 qa=mix(q0,q1,a)/mix(k0,k1,a),qb=mix(q0,q1,b)/mix(k0,k1,b);
-                float da=-(view*vec4(qa,1)).z,db=-(view*vec4(qb,1)).z,tolerance=max(waterPixelFootprint(qa),waterPixelFootprint(qb))*2.+.002;
+                float da=-(waterQueryView()*vec4(qa,1)).z,db=-(waterQueryView()*vec4(qb,1)).z,tolerance=max(waterPixelFootprint(qa),waterPixelFootprint(qb))*2.+.002;
                 if(interval.z<.5||max(da,db)<interval.x-tolerance||min(da,db)>interval.y+tolerance)stride=advance;
             }
         }

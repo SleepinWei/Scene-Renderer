@@ -1,0 +1,62 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#include "water-caustics-parameters.glsl"
+layout(local_size_x=8,local_size_y=8) in;
+layout(set=0,binding=1) uniform sampler2D causticBedMap;
+layout(set=0,binding=2) uniform sampler2D causticLarge;
+layout(set=0,binding=3) uniform sampler2D causticDetail;
+layout(set=0,binding=4) uniform sampler2D causticLargeNormal;
+layout(set=0,binding=5) uniform sampler2D causticDetailNormal;
+layout(set=0,binding=6) uniform sampler2D causticShore;
+layout(set=0,binding=7) uniform sampler2D causticMask;
+layout(set=1,binding=2) uniform sampler2D causticReceiverPosition;
+layout(set=1,binding=3) uniform sampler2D causticReceiverNormal;
+layout(rgba32f,set=1,binding=0) writeonly uniform image2D causticHit;
+layout(rgba32f,set=1,binding=1) writeonly uniform image2D causticFlux;
+#include "water-waves.glsl"
+#include "water-coast.glsl"
+#include "water-medium.glsl"
+#include "water-caustics-bed.glsl"
+#include "water-caustics-receiver.glsl"
+void main(){
+    ivec2 p=ivec2(gl_GlobalInvocationID.xy);if(any(greaterThanEqual(p,ivec2(grid.x))))return;
+    imageStore(causticHit,p,vec4(0));imageStore(causticFlux,p,vec4(0));
+    if(sun.y<=.01)return;
+    vec2 xz=photonPatch.xy-sourceSettings.x+vec2(p)/float(grid.x-1)*(photonPatch.z+2.*sourceSettings.x);
+    float macro=waterMacroHeight(xz,causticLarge,waves),full=waterHeight(xz,causticLarge,causticDetail,waves);
+    float height=coastDetailedHeight(xz,full,macro,causticShore,coastPatch,waves.x,coastFeatures.z);
+    float bed;if(!causticReceiverHeight(vec3(xz.x,height,xz.y),bed)||height-bed<.025)return;
+    vec4 state=coastSample(causticShore,xz,coastPatch);
+    if(textureLod(causticMask,xz/(controls.y*2.)*vec2(1,-1)+.5,0).r<.5&&!(coastFeatures.z>.5&&state.x>.005))return;
+    vec2 sourceXZ=xz;for(int i=0;i<3;++i)sourceXZ=xz-waterDisplacement(sourceXZ,causticLarge,causticDetail,waves).xz;
+    vec3 N=normalize(textureLod(causticLargeNormal,waterWaveUV(sourceXZ,waves.y,causticLargeNormal),0).xyz);
+    vec2 fine=vec2(0);
+    if(waves.w>.5){vec3 d=textureLod(causticDetailNormal,waterWaveUV(sourceXZ,waves.z,causticDetailNormal),0).xyz;fine=d.xz/max(d.y,.1);}
+    // The far source grid is coarser. Filter its unresolved detail slopes
+    // rather than aliasing short FFT waves into large moving stripes.
+    if(waves.w>.5&&sourceSettings.y>1.5*waves.z/float(textureSize(causticDetailNormal,0).x)){
+        vec2 dx=vec2(sourceSettings.y*.5,0);vec2 filtered=fine*2.;
+        for(int j=0;j<4;++j){vec2 at=sourceXZ+(j==0?dx:j==1?-dx:j==2?dx.yx:-dx.yx);vec3 d=textureLod(causticDetailNormal,waterWaveUV(at,waves.z,causticDetailNormal),0).xyz;filtered+=d.xz/max(d.y,.1);}fine=filtered/6.;
+    }
+    vec2 slope=N.xz/max(N.y,.1)+fine;
+    if(coastFeatures.z>.5){vec2 dx=vec2(coastPatch.w,0);float a=coastElevation(causticShore,xz-dx,coastPatch,waves.x),b=coastElevation(causticShore,xz+dx,coastPatch,waves.x);
+        float c=coastElevation(causticShore,xz-dx.yx,coastPatch,waves.x),d=coastElevation(causticShore,xz+dx.yx,coastPatch,waves.x);
+        slope=mix(slope,-vec2(b-a,d-c)/(2.*coastPatch.w)+fine*coastDetailWeight(xz,causticShore,coastPatch,waves.x,1.),coastBlend(xz,state,coastPatch,waves.x));}
+    N=normalize(vec3(slope.x,1,slope.y));float cosine=dot(N,sun.xyz);if(cosine<=0.)return;
+    vec3 ray=refract(-sun.xyz,N,1./1.333),origin=vec3(xz.x,height,xz.y);
+    if(ray.y>=-.05)return;
+    // March the first captured receiver sheet, then refine. Stable terrain
+    // remains available beyond the mesh capture footprint.
+    float previous=0.,low=0.,high=0.;bool hit=false;
+    for(int i=1;i<=64;++i){float t=controls.x*float(i)/64.;vec3 q=origin+ray*t;
+        if(!causticReceiverHeight(q,bed))break;
+        if(q.y<=bed){low=previous;high=t;hit=true;break;}previous=t;}
+    if(!hit)return;
+    for(int j=0;j<8;++j){float t=(low+high)*.5;vec3 q=origin+ray*t;
+        if(!causticReceiverHeight(q,bed))return;if(q.y>bed)low=t;else high=t;}
+    float distance=(low+high)*.5;vec3 q=origin+ray*distance;
+    float F=waterDielectricFresnel(cosine,1./1.333);
+    // Incident flux per horizontal source area, including tilted-surface area.
+    vec3 energy=(1.-F)*exp(-extinction.xyz*distance)*cosine/max(N.y,.2);
+    imageStore(causticHit,p,vec4(q,1));imageStore(causticFlux,p,vec4(energy,1));
+}

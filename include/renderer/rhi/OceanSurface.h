@@ -14,7 +14,7 @@ struct WaterBathymetry {
     std::vector<glm::vec4> heightColor;
 };
 struct VirtualTextureSource;
-std::shared_ptr<const WaterBathymetry> prepareWaterBathymetry(const VirtualTextureSource&,const VirtualTextureSource&);
+std::shared_ptr<const WaterBathymetry> prepareWaterBathymetry(const VirtualTextureSource&,const VirtualTextureSource&,glm::vec3 albedoFactor=glm::vec3(1));
 struct OceanSurfaceSettings {
     uint64_t id=1;OceanSettings spectrum;uint32_t meshSize=129;float surfaceLength=0;
     float seaLevel=-5,timeScale=1,detailStrength=1,refractionStrength=1,deepWaterDistance=40,subsurfaceStrength=1,anisotropy=.65f,fresnel=.02f,gloss=256;
@@ -22,7 +22,16 @@ struct OceanSurfaceSettings {
     bool cameraGrid=true,underwaterCapture=true,volumeIntegration=true;
     bool robustRefraction=false,multipleScattering=false;
     bool underwaterView=true,underwaterFog=true;
+    bool underwaterWideRefraction=true; // Recover refracted air geometry outside the camera frustum.
+    bool underwaterParticles=false;
+    bool underwaterSunShafts=false;
+    float sunShaftStrength=1; // Contrast of refracted solar flux in the volume, 0..3.
+    int underwaterVolumeSteps=4; // Eye and submerged surface paths, 4..32.
+    float particleDensity=.35f; // Occupancy of world-space suspended sediment cells.
     bool shortWaveRipples=false;
+    bool bedCaustics=false;
+    bool causticCascades=true,causticMeshReceivers=true;
+    float causticStrength=1;
     float rippleRmsHeight=.025f; // Metres, before Small wave detail multiplier.
     ShoreWaterSettings shore;
     std::shared_ptr<const WaterBathymetry> bathymetry;
@@ -52,9 +61,12 @@ public:
     void recordUnderwaterFog(Resources&,rhi::CommandList&,const FrameData&,const OceanSurfaceSettings&,
                             rhi::TextureViewHandle target,rhi::TextureViewHandle opaque,rhi::TextureViewHandle position,rhi::TextureViewHandle normal,rhi::TextureViewHandle sky,
                             rhi::BufferHandle shadowParameters,rhi::TextureViewHandle shadowAtlas);
+    std::vector<float> readCaustics(uint32_t cascade=0) const;
     std::vector<float> readCapture(bool positions=false,bool aboveWater=false) const;
 private:
     struct WaterTargets;std::unique_ptr<WaterTargets> underwater_;
+    std::unique_ptr<class GpuWaterSunShafts> sunShafts_;bool sunShaftsReady_=false;
+    std::unique_ptr<class GpuWaterCaustics> caustics_;bool causticsReady_=false;
     rhi::PipelineHandle capturePipeline_,captureInstanced_;
     rhi::BindingLayout captureLayout_;
     rhi::PipelineHandle fogPipeline_;rhi::BufferHandle fogQuad_;
@@ -67,6 +79,7 @@ private:
     glm::mat4 previousVP_{1},previousView_{1},previousModel_{1};bool history_=false;
     glm::vec4 previousGrid_{0};
     bool captured_=false,opaqueGeometry_=true;
+    glm::mat4 airVP_{1},airView_{1};float airFocal_=1;
     std::shared_ptr<GpuImageCache> imageCache_;
     std::shared_ptr<GpuImage> mask_;
 };

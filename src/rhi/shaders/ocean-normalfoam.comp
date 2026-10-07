@@ -18,5 +18,5 @@ void main() {
     n=n2>1e-12?n*inversesqrt(n2):vec3(0,1,0);
     float J=(1.0+dx.x)*(1.0+dz.z)-dx.z*dz.x;
     float foam=clamp((BubblesThreshold-J)*BubblesScale,0.0,1.0);
-    imageStore(NormalRT,p,vec4(n,1));imageStore(BubblesRT,p,vec4(vec3(foam),J));
+    imageStore(NormalRT,p,vec4(n,foam));imageStore(BubblesRT,p,vec4(vec3(foam),J));
 }

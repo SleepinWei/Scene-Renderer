@@ -12,7 +12,7 @@
 
 ## 场景与效果
 
-以下图片由本项目实际渲染。实时效果使用原生 Metal；路径追踪图标明积分方式与降噪。复现命令、采样配置、开关对照和中间产物见[完整图集](docs/rendering-gallery.md)。
+以下图片除标明 Blender Cycles 参考的对照外，均由本项目实际渲染。实时效果使用原生 Metal；路径追踪图标明积分方式与降噪。复现命令、采样配置、开关对照和中间产物见[完整图集](docs/rendering-gallery.md)。
 
 ### 经典场景与 PBR
 
@@ -72,7 +72,27 @@ Sponza、San Miguel 与 Sibenik 用于观察建筑材质、阴影和太阳／天
 
 | 水下观察海面 | 俯视水底 |
 | --- | --- |
-| ![Metal 水下海面](img/diagnostics/water/ripple-demo/coastal-underwater.png) | ![Metal 水下水底](img/diagnostics/water/ripple-demo/coastal-underwater-bottom.png) |
+| ![Metal 水下海面](img/diagnostics/water/ripple-demo/coastal-underwater.png) | ![Metal 水下水底](img/diagnostics/water/seabed-demo/coastal-underwater-seabed.png) |
+
+海床示例加入 25 cm 沙纹、细微法线与穿过实时 FFT 波面的太阳焦散。用 `--classic coastal-seabed` 打开，在 Ocean 面板切换 **FFT seabed caustics** 并调整 **Caustic strength**。[海床对照、实现与 GPU 耗时](docs/water-seabed-caustics.md)。
+
+### 海底潜水、太阳光束与水面折射
+
+`underwater-dive` 预设从水下 6 米开始，沿礁石与海草之间的沙质通道观察。距离吸收与单次散射形成蓝绿色能见度；漂浮颗粒、覆盖地形和水下模型的 16／48／128 米级联焦散，以及随波面聚焦的太阳光束，表现海底潜水的空间与动态光照。预设使用 32 步带阴影的体积光积分。
+
+| 海底潜水：太阳光束与海床焦散 | 抬头观察：折射天空、太阳与浮标 |
+| --- | --- |
+| ![Metal 海底潜水与太阳光束](img/diagnostics/water/air-refraction/underwater-dive.png) | ![水下折射的天空、太阳与浮标](img/diagnostics/water/air-refraction/underwater-dive-snell-window.png) |
+
+```sh
+./build/Scene-Renderer --classic underwater-dive --size 1280x720
+```
+
+按住鼠标右键转头，**W/A/S/D** 移动，**Q/E** 垂直移动。将 **Camera → View pitch** 设为约 **68°** 可观察天空窗口；接近水平的水下视角会出现全反射，窗口边界随波面法线移动。
+
+Ocean 面板可独立切换 **Underwater distance fog**、**Underwater sun shafts**、**FFT seabed caustics** 和 **Wide air refraction**，并调整光束对比度、颗粒密度与体积步数。宽空气视图补充原相机视野外的水上物体；潜水预设将散射增益设为 1，保留天空与物体的对比。Metal／Vulkan 水体验证通过。宽视图仍是屏幕空间近似，当前预设优先展示画质，尚未达到 60 fps 目标。
+
+[潜水场景与操作](docs/water-underwater-diving.md) · [焦散覆盖范围](docs/water-caustic-cascades.md) · [太阳光束实现](docs/water-sun-shafts.md) · [折射对照、验证与性能](docs/water-air-refraction.md)
 
 ### 大地形、湖泊与植被
 

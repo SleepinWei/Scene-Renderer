@@ -19,7 +19,16 @@ struct OceanConfiguration {
     bool cameraGrid=true, underwaterCapture=true, volumeIntegration=true;
     bool robustRefraction=false,multipleScattering=false;
     bool underwaterView=true,underwaterFog=true;
+    bool underwaterWideRefraction=true; // Recover refracted air geometry outside the camera frustum.
+    bool underwaterParticles=false;
+    bool underwaterSunShafts=false;
+    float sunShaftStrength=1; // Contrast of refracted solar flux in the volume, 0..3.
+    int underwaterVolumeSteps=4; // Eye and submerged surface paths, 4..32.
+    float particleDensity=.35f; // Occupancy of world-space suspended sediment cells.
     bool shortWaveRipples=false;
+    bool bedCaustics=false;
+    bool causticCascades=true,causticMeshReceivers=true;
+    float causticStrength=1;
     float rippleRmsHeight=.025f; // Metres, before Small wave detail multiplier.
     uint32_t opticalDebug=0;
     ShoreWaterSettings shore;

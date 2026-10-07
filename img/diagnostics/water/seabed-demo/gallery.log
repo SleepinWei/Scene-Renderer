@@ -1,0 +1,22 @@
+coastal-underwater HDR mean RGB 0.0769895, peak 0.615234
+Rendered img/diagnostics/water/seabed-demo/coastal-underwater.png
+coastal-underwater-seabed HDR mean RGB 0.0656589, peak 0.720215
+Rendered img/diagnostics/water/seabed-demo/coastal-underwater-seabed.png
+coastal-underwater-seabed-no-caustics HDR mean RGB 0.0670395, peak 0.127075
+Rendered img/diagnostics/water/seabed-demo/coastal-underwater-seabed-no-caustics.png
+coastal-underwater-seabed-later HDR mean RGB 0.0680601, peak 0.65625
+Rendered img/diagnostics/water/seabed-demo/coastal-underwater-seabed-later.png
+coastal-underwater-seabed-no-fog HDR mean RGB 0.0860056, peak 0.182129
+Rendered img/diagnostics/water/seabed-demo/coastal-underwater-seabed-no-fog.png
+coastal-underwater-no-ripples HDR mean RGB 0.0791137, peak 0.418945
+Rendered img/diagnostics/water/seabed-demo/coastal-underwater-no-ripples.png
+coastal-underwater-ripples-later HDR mean RGB 0.0776904, peak 0.581055
+Rendered img/diagnostics/water/seabed-demo/coastal-underwater-ripples-later.png
+coastal-underwater-no-fog HDR mean RGB 0.0890194, peak 1.03906
+Rendered img/diagnostics/water/seabed-demo/coastal-underwater-no-fog.png
+coastal-underwater-snell-window HDR mean RGB 0.073548, peak 0.608887
+Rendered img/diagnostics/water/seabed-demo/coastal-underwater-snell-window.png
+coastal-underwater-bottom HDR mean RGB 0.0665875, peak 0.763184
+Rendered img/diagnostics/water/seabed-demo/coastal-underwater-bottom.png
+coastal-underwater-above HDR mean RGB 0.110803, peak 0.876953
+Rendered img/diagnostics/water/seabed-demo/coastal-underwater-above.png

@@ -60,7 +60,7 @@ std::string pipelineKey(const GraphicsPipelineDesc& desc,Backend backend) {
     key.number(desc.depthAttachment);key.number(desc.depthTest);key.number(desc.depthWrite);
     key.number(uint32_t(desc.depthCompare));key.number(uint32_t(desc.cull));
     key.number(desc.attachmentBlend.size());for(bool blend:desc.attachmentBlend)key.number(blend);
-    key.number(desc.wireframe);key.number(desc.blend);
+    key.number(desc.wireframe);key.number(desc.blend);key.number(desc.additiveBlend);
     return std::move(key.bytes);
 }
 std::string pipelineKey(const ComputePipelineDesc& desc,Backend backend) {

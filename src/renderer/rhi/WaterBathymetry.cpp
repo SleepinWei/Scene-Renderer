@@ -9,8 +9,8 @@
 namespace render {
 namespace {
 struct Raster {uint32_t size;std::vector<glm::vec4> pixels;};
-Raster sourceRaster(const VirtualTextureSource& source) {
-    uint32_t mip=0,n=source.extent;while(n>1024){n>>=1;++mip;}
+Raster sourceRaster(const VirtualTextureSource& source,uint32_t maxExtent=1024) {
+    uint32_t mip=0,n=source.extent;while(n>maxExtent){n>>=1;++mip;}
     Raster out{n,std::vector<glm::vec4>(size_t(n)*n)};
     const bool floating=source.formats.at(0)==rhi::Format::RGBA32Float;
     if(!floating && source.formats.at(0)!=rhi::Format::RGBA8UNorm)throw std::invalid_argument("Bathymetry source format");
@@ -34,13 +34,14 @@ glm::vec4 sample(const Raster& r,float u,float v) {
     return glm::mix(glm::mix(r.pixels[b*r.size+a],r.pixels[b*r.size+aa],x-a),glm::mix(r.pixels[bb*r.size+a],r.pixels[bb*r.size+aa],x-a),y-b);
 }
 }
-std::shared_ptr<const WaterBathymetry> prepareWaterBathymetry(const VirtualTextureSource& height,const VirtualTextureSource& material) {
-    auto h=sourceRaster(height),m=sourceRaster(material);auto out=std::make_shared<WaterBathymetry>();out->size=h.size;
-    out->heightColor.resize(h.pixels.size());
-    for(uint32_t y=0;y<h.size;++y)for(uint32_t x=0;x<h.size;++x) {
+std::shared_ptr<const WaterBathymetry> prepareWaterBathymetry(const VirtualTextureSource& height,const VirtualTextureSource& material,glm::vec3 albedoFactor) {
+    for(int c=0;c<3;++c)if(!std::isfinite(albedoFactor[c])||albedoFactor[c]<0)throw std::invalid_argument("Invalid bathymetry albedo factor");
+    auto h=sourceRaster(height),m=sourceRaster(material,2048);auto out=std::make_shared<WaterBathymetry>();out->size=std::max(h.size,m.size);
+    out->heightColor.resize(size_t(out->size)*out->size);
+    for(uint32_t y=0;y<out->size;++y)for(uint32_t x=0;x<out->size;++x) {
         // Terrain vertices invert V for material UVs, but not for height UVs.
-        auto color=sample(m,float(x)/(h.size-1),1.f-float(y)/(h.size-1));
-        out->heightColor[size_t(y)*h.size+x]={h.pixels[size_t(y)*h.size+x].x,color.r,color.g,color.b};
+        auto color=sample(m,float(x)/(out->size-1),1.f-float(y)/(out->size-1));
+        out->heightColor[size_t(y)*out->size+x]={sample(h,float(x)/(out->size-1),float(y)/(out->size-1)).x,color.r*albedoFactor.r,color.g*albedoFactor.g,color.b*albedoFactor.b};
     }
     return out;
 }
