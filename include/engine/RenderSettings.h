@@ -31,6 +31,7 @@ struct RenderSetting {
     float aoRadius = 1, aoBias = .025f, aoPower = 1.5f;
     bool aoHorizon=true,aoDenoise=true;
     int aoSlices=4,aoSteps=4;
+    render::PostProcessSettings postProcess;
     render::RsmSettings rsmSettings;
     render::ShadowSettings shadowSettings;
 };

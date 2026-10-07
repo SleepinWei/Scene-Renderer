@@ -233,6 +233,8 @@ if(BUILD_TESTING)
     if(SCENERENDERER_METAL OR SCENERENDERER_DEFAULT_VULKAN)
         add_test(NAME pt-native-sky COMMAND ${PROJECT_NAME} --pt-self-test)
         add_test(NAME water-native COMMAND ${PROJECT_NAME} --water-self-test)
+        add_test(NAME post-process-native COMMAND ${PROJECT_NAME} --post-process-self-test)
+        set_tests_properties(post-process-native PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 120 LABELS gpu)
         set_tests_properties(water-native PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 120 LABELS gpu)
         set_tests_properties(pt-native-sky PROPERTIES LABELS "gpu" TIMEOUT 60 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
     endif()
@@ -295,6 +297,7 @@ if(SCENERENDERER_VULKAN_PROTOTYPE)
         src/renderer/rhi/GpuClouds.cpp src/renderer/rhi/CloudValidation.cpp src/component/Cloud.cpp src/component/Component.cpp
         src/renderer/rhi/GpuOcean.cpp src/renderer/rhi/OceanValidation.cpp src/renderer/rhi/ShadowRenderer.cpp src/renderer/rhi/SceneEffectsValidation.cpp
         src/renderer/rhi/GpuAtmosphere.cpp src/renderer/rhi/OceanSurface.cpp src/renderer/rhi/WaterValidation.cpp
+        src/renderer/rhi/GpuPostProcessor.cpp src/renderer/rhi/PostProcessValidation.cpp
         src/renderer/rhi/GpuWaterCaustics.cpp src/renderer/rhi/GpuWaterSunShafts.cpp src/renderer/rhi/GpuShoreWater.cpp src/renderer/rhi/WaterBathymetry.cpp src/renderer/rhi/WaterTransport.cpp
         src/renderer/rhi/AtmosphereValidation.cpp src/renderer/rhi/GpuSubdivision.cpp src/renderer/rhi/SubdivisionValidation.cpp src/renderer/rhi/GpuTerrain.cpp src/renderer/rhi/GpuVirtualTexture.cpp src/renderer/rhi/VirtualTextureValidation.cpp src/renderer/rhi/TerrainValidation.cpp src/renderer/rhi/GpuGrass.cpp src/renderer/rhi/GrassGeometry.cpp src/renderer/rhi/GpuTemporal.cpp src/renderer/rhi/TemporalValidation.cpp)
     target_include_directories(rhi-vulkan-validation BEFORE PRIVATE "$<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>")

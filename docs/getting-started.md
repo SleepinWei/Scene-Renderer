@@ -61,6 +61,7 @@ python3 tools/fetch_gi_assets.py
 | --- | --- |
 | `--demo` | 自动生成的功能演示，无需历史资产包 |
 | `--classic <name>` | 选择 `cornell`、`bunny`、`dragon`、`buddha`、`armadillo`、`helmet`、`sponza`、`san-miguel`、`sibenik`、`sky`、`clouds`、`clouds-sunset`、`clouds-storm`、`cloud-volume`、`cloud-inside`、`cloud-vortex`、`shadow-test`、`ocean`、`ocean-clear`、`coastal-beach`、`coastal-water`、`coastal-underwater`、`coastal-seabed`、`underwater-dive`、`terrain`、`mountain-lake`、`mountain-lake-ground` 或 `mountain-lake-beach` |
+| `--post-process-self-test` | 原生后处理 GPU 验证；编辑器 Post processing 面板提供独立开关，[说明与对照](post-processing.md) |
 | `--frames <N>` | 窗口渲染 N 帧后退出 |
 | `--render-gallery <目录> core` | 离屏生成三个随仓库提供的基础示例 |
 | `--render-gallery <目录> gi` | 生成两个 GI 场景、RSM 开关对照及纯间接光／太阳／天空贡献图 |
@@ -107,6 +108,7 @@ done
 | `benchmarks` | Dragon、Buddha、Armadillo、Sibenik；先执行 `python3 tools/fetch_benchmark_assets.py` |
 | `cloud-gallery` | 远景云层、日落、阴天及无云／不透明度对照；无需下载 |
 | `cloud-volume-gallery` | 三维体素云、云内、风暴与密度／距离／光照切片；无需下载 |
+| `post-gallery` | 同一 Cornell 场景的默认显示、Bloom、景深、调色与组合后处理；[说明](post-processing.md) |
 | `ocean` / `ocean-clear` | 大浪／浅水及功能开关对照；无需下载 |
 | `underwater-dive` | 6 m 深海底潜水，礁石、沙沟、海草、悬浮颗粒与蓝绿色能见度；[说明与对照](water-underwater-diving.md) |
 | `coastal-underwater` | 海岸水下视角，水中距离雾、双向折射与全反射；[说明与对照](water-underwater-rendering.md) |

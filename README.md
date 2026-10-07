@@ -118,6 +118,24 @@ Height/material VT uses physical page caches, page tables, ancestor fallback, an
 
 The comparison shows PCF, PCSS with the default sun, and PCSS with a larger light, respectively. The third column illustrates a wider penumbra. See [page tables, shadow atlases, and full diagnostics](docs/render-diagnostics-gallery.md).
 
+### Post processing
+
+A shared native HDR-to-display module adds optional Bloom, depth of field, camera motion blur, color grading, FXAA, sharpening, vignette, chromatic aberration, and film grain. The **Post processing** panel offers independent controls, exponential / ACES fitted / Reinhard / linear tone mapping, and a soft cinematic preset; extra effects default to off. [Controls, pipeline, comparisons, and limitations](docs/post-processing.md).
+
+| Default display | ACES and combined post effects |
+| --- | --- |
+| ![Cornell default display](img/diagnostics/post-processing/cornell-post-off.png) | ![Cornell combined post processing](img/diagnostics/post-processing/cornell-post-combined.png) |
+
+| HDR Bloom | Depth of field: foreground focus |
+| --- | --- |
+| ![Cornell HDR Bloom](img/diagnostics/post-processing/cornell-bloom.png) | ![Cornell depth of field](img/diagnostics/post-processing/cornell-dof.png) |
+
+```sh
+./build/Scene-Renderer --classic cornell --size 1280x720
+```
+
+Open **Post processing** to enable individual effects or **Soft cinematic preset**. Metal and Vulkan validation passes; depth of field uses opaque depth, and motion blur currently covers camera motion.
+
 ### Path tracing, caustics, and subsurface scattering
 
 CPU/Metal/Vulkan path tracing supports multiple bounces, textured materials, refraction, and random walks in homogeneous media. CPU BDPT renders smooth-glass caustics. Procedural terrain, vegetation, and FFT water can be frozen into offline scenes. Unless marked as raw photon mapping, the images below use Open Image Denoise (OIDN).

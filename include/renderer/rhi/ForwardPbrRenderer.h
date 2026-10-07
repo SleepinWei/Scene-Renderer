@@ -4,6 +4,7 @@
 #include "renderer/rhi/GpuAtmosphere.h"
 #include "renderer/rhi/OceanSurface.h"
 #include "renderer/rhi/GpuTemporal.h"
+#include "renderer/rhi/GpuPostProcessor.h"
 #include "component/CloudSettings.h"
 namespace render {
 struct alignas(16) LightData {
@@ -34,6 +35,7 @@ struct FrameData {
     bool aoHorizon=true,aoDenoise=true;
     int aoSlices=4,aoSteps=4;
     bool toneMapping=true,forwardShading=false;
+    PostProcessSettings postProcess;
     RsmSettings rsmSettings;
     ShadowSettings shadowSettings;
     bool directionalEnabled=true;
@@ -96,6 +98,7 @@ private:
     std::map<uint64_t,std::unique_ptr<OceanSurface>> oceans_;
     std::string directory_;
     std::unique_ptr<GpuTemporal> temporal_;
+    std::unique_ptr<GpuPostProcessor> post_;
     std::unique_ptr<Targets> targets_;
     rhi::PipelineHandle motionPipeline_,motionInstanced_,backDepthPipeline_,transparentPipeline_,transparentInstanced_;
     rhi::BindingLayout motionLayout_,transparentLayout_;
@@ -107,8 +110,8 @@ private:
     rhi::BindingSetHandle effectsBindings_;
     rhi::PipelineHandle ssaoPipeline_,aoFilterPipeline_,sceneForward_,sceneForwardInstanced_,sceneForwardWire_,sceneForwardWireInstanced_;
     rhi::BindingLayout sceneForwardLayout_;
-    rhi::BufferHandle camera_, lighting_, tone_, quad_;
-    rhi::PipelineHandle forward_, instanced_,wireframe_,wireframeInstanced_,tonePipeline_, deferredPipeline_;
+    rhi::BufferHandle camera_, lighting_, quad_;
+    rhi::PipelineHandle forward_, instanced_,wireframe_,wireframeInstanced_, deferredPipeline_;
     PbrPath path_;
     rhi::BindingLayout geometryLayout_;
     rhi::SamplerHandle hdrSampler_,skySampler_;

@@ -1,0 +1,2 @@
+RHI editor framebuffer 640x480 pixels
+RHI editor rendered 8 frames in 1.09069 seconds; frame limit 3

@@ -1,0 +1,10 @@
+cornell-post-off HDR mean RGB 0.464309, peak 13.8672
+Rendered img/diagnostics/post-processing/cornell-post-off.png
+cornell-bloom HDR mean RGB 0.464309, peak 13.8672
+Rendered img/diagnostics/post-processing/cornell-bloom.png
+cornell-dof HDR mean RGB 0.464309, peak 13.8672
+Rendered img/diagnostics/post-processing/cornell-dof.png
+cornell-grade HDR mean RGB 0.464309, peak 13.8672
+Rendered img/diagnostics/post-processing/cornell-grade.png
+cornell-post-combined HDR mean RGB 0.464309, peak 13.8672
+Rendered img/diagnostics/post-processing/cornell-post-combined.png

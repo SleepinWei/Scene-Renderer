@@ -46,11 +46,11 @@ struct ForwardPbrRenderer::Targets {
     uint32_t width, height;
     rhi::TextureHandle hdr, depth, output;
     rhi::TextureViewHandle hdrView, depthView, outputView;
-    rhi::BindingSetHandle toneBindings, deferredBindings, lightBindings,ssaoBindings,aoFilterBindings,effectBindings;
+    rhi::BindingSetHandle deferredBindings, lightBindings,ssaoBindings,aoFilterBindings,effectBindings;
     rhi::TextureHandle ao,rawAo,opaque,motion,backDepth,backTest; rhi::TextureViewHandle aoView,rawAoView,opaqueView,motionView,backDepthView,backTestView;
     std::array<rhi::TextureHandle,6> gbuffer{};
     std::array<rhi::TextureViewHandle,6> gbufferViews{};
-    Targets(std::shared_ptr<rhi::GraphicsDevice> d, uint32_t w, uint32_t h, rhi::BufferHandle tone, rhi::SamplerHandle sampler, rhi::BufferHandle lighting, PbrPath path,ShadowRenderer* shadow,rhi::BufferHandle effects,rhi::BufferHandle skyParams,rhi::TextureViewHandle sky,rhi::TextureViewHandle irradiance,rhi::SamplerHandle skySampler) : resources(std::move(d)), width(w), height(h) {
+    Targets(std::shared_ptr<rhi::GraphicsDevice> d, uint32_t w, uint32_t h, rhi::SamplerHandle sampler, rhi::BufferHandle lighting, PbrPath path,ShadowRenderer* shadow,rhi::BufferHandle effects,rhi::BufferHandle skyParams,rhi::TextureViewHandle sky,rhi::TextureViewHandle irradiance,rhi::SamplerHandle skySampler) : resources(std::move(d)), width(w), height(h) {
         using namespace rhi;
         hdr = resources.texture({w, h, Format::RGBA16Float, TextureUsage::ColorAttachment | TextureUsage::Sampled | TextureUsage::CopySource, "Forward HDR"});hdrView = resources.view(hdr);
         if(path==PbrPath::Scene) {
@@ -64,8 +64,6 @@ struct ForwardPbrRenderer::Targets {
             depth=transients->texture("depth");depthView=transients->view("depth");
         } else {depth = resources.texture({w, h, Format::Depth32Float, TextureUsage::DepthAttachment|TextureUsage::Sampled|TextureUsage::CopySource, "Forward depth"});depthView = resources.view(depth);}
         output = resources.texture({w, h, Format::RGBA8UNorm, TextureUsage::ColorAttachment | TextureUsage::CopySource | TextureUsage::Sampled, "Tone mapped output"});outputView = resources.view(output);
-        BindingLayout layout{0, {{0, BindingType::UniformBuffer, ShaderStage::Fragment, "ToneMap", 16}, {1, BindingType::SampledTexture, ShaderStage::Fragment, "hdrBuffer", 0}}};
-        toneBindings = resources.bindings({layout, {{0, tone, 0, 16, {}, {}}, {1, {}, 0, 0, hdrView, sampler}}});
         if (path != PbrPath::Forward) {
             BindingLayout images{1,{}};std::vector<BindingEntry> entries;
             const char* names[] = {"positionBuffer","normalBuffer","albedoBuffer","emissiveBuffer"};
@@ -124,14 +122,10 @@ ForwardPbrRenderer::ForwardPbrRenderer(std::shared_ptr<rhi::GraphicsDevice> devi
     forward_ = resources_.pipeline(p);
     if(resources_.device->supportsWireframe()){auto wire=p;wire.wireframe=true;wireframe_=resources_.pipeline(wire);}
     if(resources_.device->computeLimits().supported){auto instance=p;instance.vertex=shader(directory,"instanced.vert");instance.bindings[0].entries.push_back({3,BindingType::StorageRead,ShaderStage::Vertex,"OutPose",64});instanced_=resources_.pipeline(instance);if(resources_.device->supportsWireframe()){instance.wireframe=true;wireframeInstanced_=resources_.pipeline(instance);}}
-    p = {};p.vertex = shader(directory,"tonemap.vert");p.fragment = shader(directory,"tonemap.frag");p.vertexStride = 16;
-    p.attributes = {{0,VertexFormat::Float2,0},{1,VertexFormat::Float2,8}};
-    p.bindings = {{0, {{0,BindingType::UniformBuffer,ShaderStage::Fragment,"ToneMap",16},{1,BindingType::SampledTexture,ShaderStage::Fragment,"hdrBuffer",0}}}};p.label = "HDR tone map";
-    checkBlock(p.fragment,"ToneMap",{{"exposureGamma",0}},16);tonePipeline_ = resources_.pipeline(p);
+    post_=std::make_unique<GpuPostProcessor>(resources_.device,directory);
     if(path_==PbrPath::Scene){auto back=rhi::GraphicsPipelineDesc{};back.vertex=shader(directory,"forward.vert");back.fragment=shader(directory,"material-backdepth.frag");back.vertexStride=32;back.attributes=GpuMesh::attributes();back.bindings={ShadowRenderer::objectLayout(),GpuMaterial::shadowLayout()};back.colorFormat=Format::RGBA32Float;back.depthAttachment=back.depthTest=back.depthWrite=true;back.depthCompare=DepthCompare::Greater;back.cull=CullMode::Front;backDepthPipeline_=resources_.pipeline(back);}
     camera_ = resources_.buffer({64,BufferUsage::Uniform | BufferUsage::CopyDestination,"PBR camera"});
     lighting_ = resources_.buffer({1472,BufferUsage::Uniform | BufferUsage::CopyDestination,"PBR lights"});
-    tone_ = resources_.buffer({16,BufferUsage::Uniform | BufferUsage::CopyDestination,"PBR exposure"});
     const float quad[] = {-1,-1,0,1, 1,-1,1,1, 1,1,1,0, -1,-1,0,1, 1,1,1,0, -1,1,0,0};
     quad_ = resources_.buffer({sizeof(quad),BufferUsage::Vertex,"Tone map fullscreen"},quad);
     hdrSampler_ = resources_.sampler({Filter::Nearest,AddressMode::ClampToEdge});skySampler_=resources_.sampler({Filter::Linear,AddressMode::Repeat});
@@ -185,13 +179,15 @@ ForwardPbrRenderer::ForwardPbrRenderer(std::shared_ptr<rhi::GraphicsDevice> devi
 }
 void ForwardPbrRenderer::resize(uint32_t width, uint32_t height) {
     if (targets_ && targets_->width == width && targets_->height == height) return;
-    auto targets = std::make_unique<Targets>(resources_.device,width,height,tone_,hdrSampler_,lighting_,path_,shadows_.get(),effects_,skyParameters_,skyView_,irradianceView_,skySampler_);if(temporal_)temporal_->resize(width,height);targets_.swap(targets);previousModels_.clear();temporalOutput_=false;
+    auto targets = std::make_unique<Targets>(resources_.device,width,height,hdrSampler_,lighting_,path_,shadows_.get(),effects_,skyParameters_,skyView_,irradianceView_,skySampler_);if(temporal_)temporal_->resize(width,height);targets_.swap(targets);previousModels_.clear();temporalOutput_=false;
 }
 void ForwardPbrRenderer::resetTemporal() {
     if(clouds_)clouds_->reset();
+    if(post_)post_->reset();
     if(temporal_)temporal_->reset();previousModels_.clear();previousTaa_=false;temporalOutput_=false;
 }
 void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawPacket>& packets, float exposure, float gamma) {
+    validatePostProcessSettings(source.postProcess);
     FrameData frame=source;frame.viewportWidth=targets_->width;frame.viewportHeight=targets_->height;
     SunState solar;
     if (!std::isfinite(exposure) || exposure < 0 || !std::isfinite(gamma) || gamma <= 0 || !std::isfinite(frame.ambient) || frame.ambient < 0 || frame.lights.size() > 30)
@@ -278,7 +274,6 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
         const float diskArea=3.14159265359f*std::pow(std::sin(frame.atmosphere.radii.y),2);
         SkyBlock sky{glm::inverse(frame.viewProjection),glm::vec4(frame.cameraPosition,0),{frame.sky?1.f:0.f,frame.forwardShading?1.f:0.f,frame.sky?atmosphereHorizon(frame.atmosphere,solar.observerHeightKm):0,1},glm::vec4(solar.direction,frame.atmosphere.radii.y),glm::vec4(solar.irradiance*transmission/std::max(diskArea,1e-8f),0)};device.writeBuffer(skyParameters_,0,sizeof(sky),&sky);finiteMatrix(frame.view);EffectsBlock effects{frame.view,frame.viewProjection*glm::inverse(frame.view),{frame.aoRadius,frame.aoBias,frame.aoPower,frame.ssao?1.f:0.f},{frame.aoHorizon?1.f:0.f,float(frame.aoSlices),float(frame.aoSteps),frame.aoDenoise?1.f:0.f}};device.writeBuffer(effects_,0,sizeof(effects),&effects);}
     device.writeBuffer(camera_,0,64,&frame.viewProjection);device.writeBuffer(lighting_,0,sizeof(lighting),&lighting);
-    const glm::vec4 tone(exposure,gamma,frame.toneMapping?0.f:1.f,0);device.writeBuffer(tone_,0,16,&tone);
     while (objects_.size() < packets.size()) {
         auto data = resources_.buffer({128,rhi::BufferUsage::Uniform | rhi::BufferUsage::CopyDestination,"PBR object"});
         std::vector<rhi::BindingEntry> entries{{0,camera_,0,64,{},{}},{1,data,0,128,{},{}}};
@@ -660,21 +655,13 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
                           resolved = temporal_->record(frameResources, commands, frame, targets_->hdrView,
                                                        targets_->depthView, targets_->motionView);
                   });
-    graph.add("tone", {{frame.taa ? "resolved" : "hdr", A::Read}, {"output", A::Write}}, [&] {
-        pass.color = targets_->outputView;
-        commands.beginRenderPass(pass);
-        commands.bindPipeline(tonePipeline_);
-        commands.bindBindingSet(
-            resolved
-                ? frameResources.bindings(
-                      {{0,
-                        {{0, rhi::BindingType::UniformBuffer, rhi::ShaderStage::Fragment, "ToneMap", 16},
-                         {1, rhi::BindingType::SampledTexture, rhi::ShaderStage::Fragment, "hdrBuffer", 0}}},
-                       {{0, tone_, 0, 16, {}, {}}, {1, {}, 0, 0, resolved, hdrSampler_}}})
-                : targets_->toneBindings);
-        commands.bindVertexBuffer(quad_);
-        commands.draw(6);
-        commands.endRenderPass();
+    graph.add("post-process", {{frame.taa ? "resolved" : "hdr", A::Read}, {"depth", A::Read}, {"output", A::Write}}, [&] {
+        PostProcessView view;view.view=frame.view;view.viewProjection=frame.viewProjection;
+        view.unjitteredViewProjection=source.viewProjection;view.cameraPosition=frame.cameraPosition;
+        view.time=frame.timeSeconds;view.historyKey=frame.historyKey;
+        post_->record(frameResources,commands,targets_->width,targets_->height,
+                      resolved?resolved:targets_->hdrView,targets_->depthView,targets_->outputView,
+                      frame.postProcess,view,exposure,gamma,frame.toneMapping);
     });
     if(path_==PbrPath::Scene) {
         auto plan=graph.compile();size_t a=SIZE_MAX,b=SIZE_MAX;
@@ -683,6 +670,7 @@ void ForwardPbrRenderer::render(const FrameData& source, const std::vector<DrawP
     }
     graph.execute([&](const std::string& name){commands.setLabel(name);});
     device.submit(commands);
+    post_->commit();
     if(frame.clouds.enabled)clouds_->commit(frame);
     renderedVP_=frame.viewProjection;
     temporalOutput_ = frame.taa;

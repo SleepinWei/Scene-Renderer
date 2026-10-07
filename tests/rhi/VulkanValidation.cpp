@@ -18,6 +18,7 @@ int main() {
         render::validateTerrainRhi(device,SR_RHI_SHADER_DIR);
         render::validateSubdivisionRhi(device,rhi::defaultShaderDirectory());
         render::validateTemporalRhi(device,SR_RHI_SHADER_DIR);
+        render::validatePostProcessing(device,SR_RHI_SHADER_DIR);
         rhi::validateComputeAndIndirect(*device);
         render::validateOceanRhi(device,SR_RHI_SHADER_DIR);
             rhi::validateFrameLifecycle(device);

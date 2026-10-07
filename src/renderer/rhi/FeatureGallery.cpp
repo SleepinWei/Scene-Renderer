@@ -41,6 +41,8 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
     else if(selection=="diagnostics")names={"terrain","shadow-test"};else names={selection};
     if(selection=="cloud-gallery")names={"clouds","clouds-sunset","clouds-storm"};
     if(selection=="cloud-volume-gallery")names={"cloud-volume","cloud-inside","cloud-vortex"};
+    const bool postGallery=selection=="post-gallery";
+    if(postGallery)names={"cornell"};
     if(selection=="ao")names={"cornell","sponza"};
     const bool coastalPerformance=selection=="coastal-performance"||selection=="coastal-performance-water";
     if(coastalPerformance)names={selection=="coastal-performance-water"?"coastal-water":"coastal-beach"};
@@ -73,7 +75,7 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
                 FrameData lastFrame;
                 const bool cloudScene=name.rfind("cloud",0)==0;
                 const bool waterScene=name=="underwater-dive" || name=="coastal-water" || name=="coastal-beach" || name=="coastal-underwater" || name=="ocean" || name=="ocean-clear" || name=="mountain-lake" || name=="mountain-lake-ground" || name=="mountain-lake-beach";
-                nlohmann::json cloudMetrics,waterMetrics;
+                nlohmann::json cloudMetrics,waterMetrics,postMetrics;
                 SceneSnapshotBuilder diagnosticBuilder;
                 float galleryTime=8;
                 auto collect=[&]() {
@@ -127,16 +129,18 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
                         // Drain the previous presentation fence before timing the
                         // current renderer submission; its completion must not
                         // overwrite this frame's GPU duration during waitIdle.
-                        if(waterScene)device->waitIdle();
+                        if(waterScene||postGallery)device->waitIdle();
                         device->beginFrame();auto frame=collect();
                         frame.frame.shadows=manager->setting.enableShadow;frame.frame.ssao=manager->setting.enableSSAO;
                         const auto& ao=manager->setting;frame.frame.aoRadius=ao.aoRadius;frame.frame.aoBias=ao.aoBias;frame.frame.aoPower=ao.aoPower;frame.frame.aoHorizon=ao.aoHorizon;frame.frame.aoDenoise=ao.aoDenoise;frame.frame.aoSlices=ao.aoSlices;frame.frame.aoSteps=ao.aoSteps;
                         if(selection=="ao")frame.frame.taa=false;
+                        frame.frame.postProcess=manager->setting.postProcess;
+                        if(postGallery)frame.frame.taa=false;
                         frame.frame.rsm=rsm;frame.frame.rsmSettings=manager->setting.rsmSettings;
                         frame.frame.shadowSettings=manager->setting.shadowSettings;
                         frame.frame.rsmSettings.indirectOnly=only;frame.frame.rsmSettings.sunBounce=sun;frame.frame.rsmSettings.skyBounce=sky;
                         renderer.render(frame.frame,frame.packets,frame.exposure);
-                        if(waterScene){device->waitIdle();auto timing=device->gpuTimingStats();if(i>=4 && timing.supported)gpuTimes.push_back(timing.milliseconds);for(const auto& sample:device->drainGpuProfile())if(i>=4)passTimes[sample.label].push_back(sample.endMilliseconds-sample.startMilliseconds);}
+                        if(waterScene||postGallery){device->waitIdle();auto timing=device->gpuTimingStats();if(i>=4 && timing.supported)gpuTimes.push_back(timing.milliseconds);for(const auto& sample:device->drainGpuProfile())if(i>=4)passTimes[sample.label].push_back(sample.endMilliseconds-sample.startMilliseconds);}
                         if(diagnostics||waterScene){
                             auto feedbackFrame=frame.frame;feedbackFrame.viewProjection=renderer.renderedViewProjection();
                             adapter.recordVirtualFeedback(feedbackFrame,renderer.depthView(),renderer.shadowVisibilityViews());
@@ -155,6 +159,15 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
                             {"measurement","whole frame native command buffer, including presentation copy; first 4 frames excluded"},
                             {"gpu_ms_samples",gpuTimes}};
                         if(!gpuTimes.empty()){cloudMetrics[name+suffix]["mean_gpu_ms"]=std::accumulate(gpuTimes.begin(),gpuTimes.end(),0.)/gpuTimes.size();std::sort(gpuTimes.begin(),gpuTimes.end());cloudMetrics[name+suffix]["median_gpu_ms"]=(gpuTimes[(gpuTimes.size()-1)/2]+gpuTimes[gpuTimes.size()/2])*.5;}
+                    }
+                    if(postGallery){
+                        auto& metric=postMetrics[name+suffix];const auto& p=manager->setting.postProcess;
+                        metric={{"width",width},{"height",height},{"frames",captureFrames},{"warmup",4},{"backend",rhi::requestedBackend()==rhi::Backend::Metal?"Metal":"Vulkan"},
+                            {"taa",false},{"bloom",p.bloom},{"bloom_strength",p.bloomStrength},{"depth_of_field",p.depthOfField},{"focus_distance",p.focusDistance},
+                            {"color_grading",p.colorGrading},{"tone_mapper",int(p.toneMapper)},{"fxaa",p.fxaa},{"sharpen",p.sharpen},{"vignette",p.vignette},{"film_grain",p.filmGrain},
+                            {"gpu_ms_samples",gpuTimes},{"scope","main render submission before presentation; stage intervals may overlap and include waits"}};
+                        if(!gpuTimes.empty()){auto sorted=gpuTimes;std::sort(sorted.begin(),sorted.end());metric["median_gpu_ms"]=(sorted[(sorted.size()-1)/2]+sorted[sorted.size()/2])*.5;}
+                        for(const auto& entry:passTimes){auto sorted=entry.second;std::sort(sorted.begin(),sorted.end());metric["stage_median_ms"][entry.first]=(sorted[(sorted.size()-1)/2]+sorted[sorted.size()/2])*.5;}
                     }
                     if(waterScene){
                         const auto settings=scene->terrain()->getComponent<Ocean>()->settings();
@@ -223,7 +236,16 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
                         {"measurement","main GPU excludes separately submitted FFT and shallow simulation; render CPU+GPU includes those submissions and waitIdle, excludes asset collection, screenshot and presentation; first 4 frames excluded"}};
                     std::ofstream(std::filesystem::path(directory)/"coastal-motion.json")<<motion.dump(2)<<'\n';continue;
                 }
-                if(selection=="ao"){
+                if(postGallery) {
+                    auto original=manager->setting.postProcess;
+                    auto& p=manager->setting.postProcess;p=PostProcessSettings{};
+                    capture("-post-off",true,false,true,true);
+                    p.bloom=true;p.bloomStrength=.3f;capture("-bloom",true,false,true,true);
+                    p=PostProcessSettings{};p.depthOfField=true;p.focusDistance=8;p.focusRange=3;p.dofRadius=10;capture("-dof",true,false,true,true);
+                    p=PostProcessSettings{};p.colorGrading=true;p.temperature=.7f;p.saturation=.8f;p.toneMapper=ToneMapper::ACES;capture("-grade",true,false,true,true);
+                    p.fxaa=true;p.bloom=true;p.vignette=true;p.sharpen=true;p.filmGrain=true;capture("-post-combined",true,false,true,true);
+                    p=original;
+                } else if(selection=="ao"){
                     const auto previous=manager->setting;nlohmann::json metrics;
                     for(const auto& mode:std::vector<std::string>{"off","legacy","gtao-raw","gtao"}){
                         auto& setting=manager->setting;setting.enableSSAO=mode!="off";
@@ -370,6 +392,7 @@ void runFeatureGallery(const std::string& directory,const std::string& selection
                 }
                 if(gi && (name=="sponza" || name=="san-miguel" || name=="sibenik")){capture("-indirect",true,true,true,true);capture("-sun-indirect",true,true,true,false);capture("-sky-indirect",true,true,false,true);}
                 } // Regular gallery selection.
+                if(postGallery){std::ofstream file(std::filesystem::path(directory)/"post-process-metrics.json");file<<postMetrics.dump(2)<<'\n';if(!file)throw std::runtime_error("Cannot save post-process metrics");}
             }
             scene->destroy();
         }

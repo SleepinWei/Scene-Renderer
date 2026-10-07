@@ -116,6 +116,24 @@ Mountain Lake 展示 8×8 km 山湖地形：高度与材质 VT 分页、LOD、FF
 
 PCSS 对照依次为 PCF、默认太阳和放大光源；第三列用于展示更宽的半影。[页表、阴影图集与完整诊断](docs/render-diagnostics-gallery.md)。
 
+### 后处理
+
+统一的原生 HDR 到显示模块支持可选 Bloom、景深、相机运动模糊、调色、FXAA、锐化、暗角、色差与颗粒。**Post processing** 面板提供独立参数、指数／ACES fitted／Reinhard／线性四种色调映射和轻量电影预设；新增效果默认关闭。[操作、管线、对照与限制](docs/post-processing.md)。
+
+| 默认显示 | ACES 与组合后处理 |
+| --- | --- |
+| ![Cornell 默认显示](img/diagnostics/post-processing/cornell-post-off.png) | ![Cornell 组合后处理](img/diagnostics/post-processing/cornell-post-combined.png) |
+
+| HDR Bloom | 景深：前方箱体清晰 |
+| --- | --- |
+| ![Cornell HDR Bloom](img/diagnostics/post-processing/cornell-bloom.png) | ![Cornell 景深](img/diagnostics/post-processing/cornell-dof.png) |
+
+```sh
+./build/Scene-Renderer --classic cornell --size 1280x720
+```
+
+展开 **Post processing**，独立启用效果，或选择 **Soft cinematic preset**。Metal／Vulkan 验证通过；景深使用不透明深度，运动模糊目前支持相机运动。
+
 ### 路径追踪、焦散与次表面散射
 
 CPU／Metal／Vulkan 路径追踪支持多次反弹、纹理材质、折射和均匀介质随机游走；CPU BDPT 用于平滑玻璃焦散。程序化地形、植被与 FFT 水面可冻结为离线场景。

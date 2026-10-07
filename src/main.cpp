@@ -134,7 +134,7 @@ void NativeRealTimeRun(GLFWwindow* window,shared_ptr<RenderScene>& scene){
             auto captured=snapshots.capture(scene,settings.timeOverride>=0?settings.timeOverride:float(logicClock.seconds()),uint32_t(width),uint32_t(height),false);
             if(captured){
                 auto snapshot=std::make_shared<render::RenderWorldSnapshot>(*captured);auto& frame=snapshot->frame;
-                frame.shadows=settings.enableShadow;frame.ssao=settings.enableSSAO;frame.rsm=settings.enableRSM;frame.taa=settings.enableTSAA;frame.aoRadius=settings.aoRadius;frame.aoBias=settings.aoBias;frame.aoPower=settings.aoPower;frame.aoHorizon=settings.aoHorizon;frame.aoDenoise=settings.aoDenoise;frame.aoSlices=settings.aoSlices;frame.aoSteps=settings.aoSteps;frame.toneMapping=settings.enableHDR;frame.rsmSettings=settings.rsmSettings;frame.shadowSettings=settings.shadowSettings;frame.directionalEnabled=settings.enableDirectional;frame.forwardShading=!settings.useDefer;
+                frame.shadows=settings.enableShadow;frame.ssao=settings.enableSSAO;frame.rsm=settings.enableRSM;frame.taa=settings.enableTSAA;frame.aoRadius=settings.aoRadius;frame.aoBias=settings.aoBias;frame.aoPower=settings.aoPower;frame.aoHorizon=settings.aoHorizon;frame.aoDenoise=settings.aoDenoise;frame.aoSlices=settings.aoSlices;frame.aoSteps=settings.aoSteps;frame.toneMapping=settings.enableHDR;frame.postProcess=settings.postProcess;frame.rsmSettings=settings.rsmSettings;frame.shadowSettings=settings.shadowSettings;frame.directionalEnabled=settings.enableDirectional;frame.forwardShading=!settings.useDefer;
                 snapshot->automaticQuality=settings.automaticQuality;
                 engine::RenderPacket packet;packet.sampledAt=inputSampledAt;packet.world=std::move(snapshot);packet.gui=render::GuiFrame::capture(ImGui::GetDrawData());
                 if(!nativeScreenshot.empty() && frameLimit==1)packet.screenshot=nativeScreenshot;
@@ -226,7 +226,7 @@ int main(int argc, char** argv) {
 #endif
     if (argc > 1 && (std::string(argv[1]) == "--path-trace" || std::string(argv[1]) == "--path-trace-gpu")) return pt::runCommandLine(argc,argv);
     if (argc > 1 && (std::string(argv[1]) == "--rhi-forward" || std::string(argv[1]) == "--rhi-deferred" || std::string(argv[1]) == "--rhi-scene")) { render::runForwardScene(argc,argv);return 0; }
-    if (argc > 1 && std::string(argv[1]) == "--water-self-test") {
+    if (argc > 1 && (std::string(argv[1]) == "--water-self-test" || std::string(argv[1]) == "--post-process-self-test")) {
         if(rhi::requestedBackend()==rhi::Backend::OpenGL)throw std::invalid_argument("Water validation requires Metal or Vulkan");
 #ifdef SCENERENDERER_HAS_VULKAN
         if(rhi::requestedBackend()==rhi::Backend::Vulkan)rhi::configureVulkanWindowing();
@@ -235,7 +235,9 @@ int main(int argc, char** argv) {
         glfwWindowHint(GLFW_VISIBLE,GLFW_FALSE);GLFWwindow* window=nullptr;
         try {
             if(createWindow(window,64,64)!=0 || gladInit()!=0)throw std::runtime_error("Water validation device initialization failed");
-            render::validateAtmosphereRhi(rhi::graphicsDevice(),rhi::defaultShaderDirectory());render::validateOceanRhi(rhi::graphicsDevice(),rhi::defaultShaderDirectory());render::validateTemporalRhi(rhi::graphicsDevice(),rhi::defaultShaderDirectory());rhi::shutdown();
+            if(std::string(argv[1])=="--post-process-self-test")render::validatePostProcessing(rhi::graphicsDevice(),rhi::defaultShaderDirectory());
+            else {render::validateAtmosphereRhi(rhi::graphicsDevice(),rhi::defaultShaderDirectory());render::validateOceanRhi(rhi::graphicsDevice(),rhi::defaultShaderDirectory());render::validateTemporalRhi(rhi::graphicsDevice(),rhi::defaultShaderDirectory());}
+            rhi::shutdown();
         }catch(...){try{rhi::shutdown();}catch(...){}if(window)glfwDestroyWindow(window);glfwTerminate();throw;}
         glfwDestroyWindow(window);glfwTerminate();return 0;
     }

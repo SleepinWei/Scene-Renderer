@@ -193,6 +193,50 @@ public:
 		}
 
 		ImGui::Separator();
+        if(nativeUi_ && ImGui::CollapsingHeader("Post processing")) {
+            auto& p=RenderManager::GetInstance()->setting.postProcess;
+            ImGui::Checkbox("Enable post effects",&p.enabled);
+            if(ImGui::Button("Reset post effects"))p=render::PostProcessSettings{};
+            ImGui::SameLine();
+            if(ImGui::Button("Soft cinematic preset")) {
+                p=render::PostProcessSettings{};p.toneMapper=render::ToneMapper::ACES;
+                p.bloom=true;p.bloomStrength=.12f;p.colorGrading=true;p.saturation=.95f;
+                p.vignette=true;p.vignetteStrength=.2f;
+            }
+            if(p.enabled) {
+                int mapper=int(p.toneMapper);
+                if(ImGui::Combo("Tone mapper",&mapper,"Exponential\0ACES fitted\0Reinhard\0Linear clamp\0"))p.toneMapper=render::ToneMapper(mapper);
+                ImGui::SliderFloat("Post exposure (EV)",&p.exposureEV,-5,5);
+                ImGui::Checkbox("Bloom",&p.bloom);
+                if(p.bloom){
+                    ImGui::SliderFloat("Bloom threshold (HDR)",&p.bloomThreshold,0,10);
+                    ImGui::SliderFloat("Bloom soft knee",&p.bloomKnee,0,2);
+                    ImGui::SliderFloat("Bloom strength",&p.bloomStrength,0,1);
+                    ImGui::SliderFloat("Bloom scatter",&p.bloomScatter,0,1);
+                }
+                ImGui::Checkbox("Depth of field",&p.depthOfField);
+                if(p.depthOfField){
+                    ImGui::SliderFloat("Focus distance (m)",&p.focusDistance,.1f,200);
+                    ImGui::SliderFloat("Focus transition (m)",&p.focusRange,.1f,50);
+                    ImGui::SliderFloat("DOF radius (pixels)",&p.dofRadius,0,32);
+                    ImGui::TextWrapped("Approximate depth gather; transparent water and glass use the opaque depth behind them.");
+                }
+                ImGui::Checkbox("Camera motion blur",&p.motionBlur);
+                if(p.motionBlur){ImGui::SliderFloat("Shutter fraction",&p.shutter,0,2);ImGui::SliderFloat("Maximum motion (pixels)",&p.motionMaxPixels,0,64);}
+                ImGui::Checkbox("Color grading",&p.colorGrading);
+                if(p.colorGrading){ImGui::SliderFloat("Saturation",&p.saturation,0,2);ImGui::SliderFloat("Contrast",&p.contrast,0,2);ImGui::SliderFloat("Warm / cool",&p.temperature,-1,1);ImGui::SliderFloat("Green / magenta",&p.tint,-1,1);}
+                ImGui::Checkbox("FXAA",&p.fxaa);
+                ImGui::Checkbox("Sharpen",&p.sharpen);
+                if(p.sharpen)ImGui::SliderFloat("Sharpness",&p.sharpness,0,1);
+                ImGui::Checkbox("Vignette",&p.vignette);
+                if(p.vignette){ImGui::SliderFloat("Vignette strength",&p.vignetteStrength,0,1);ImGui::SliderFloat("Vignette roundness",&p.vignetteRoundness,0,1);}
+                ImGui::Checkbox("Chromatic aberration",&p.chromaticAberration);
+                if(p.chromaticAberration)ImGui::SliderFloat("Chromatic offset (pixels)",&p.chromaticPixels,0,8);
+                ImGui::Checkbox("Film grain",&p.filmGrain);
+                if(p.filmGrain)ImGui::SliderFloat("Grain strength",&p.grainStrength,0,.2f);
+            }
+        }
+        ImGui::Separator();
 		if (ImGui::CollapsingHeader("Point Light")) {
 			auto& lights = scene->pointLights();
 			for (int i = 0; i < lights.size(); i++) {
