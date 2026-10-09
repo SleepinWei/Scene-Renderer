@@ -1,0 +1,40 @@
+[  0%] Generating pt-package/shaders/complete.stamp
+/Users/octopusz/Documents/Unreal Projects/SceneRenderer/src/rhi/shaders/path-trace.comp
+/Users/octopusz/Documents/Unreal Projects/SceneRenderer/src/rhi/shaders/pt-display.comp
+[  0%] Built target pt-package-shaders
+[  0%] Building CXX object CMakeFiles/pt-package-render.dir/src/PT/BidirectionalPathTracer.cpp.o
+[  0%] Building CXX object CMakeFiles/pt-package-render.dir/src/PT/ScenePackage.cpp.o
+[  0%] Building CXX object CMakeFiles/pt-package-render.dir/src/PT/Sampler.cpp.o
+[ 12%] Building CXX object CMakeFiles/pt-package-render.dir/tools/render_pt_package.cpp.o
+[ 25%] Building CXX object CMakeFiles/pt-package-render.dir/src/PT/CpuPathTracer.cpp.o
+[ 37%] Building CXX object CMakeFiles/pt-package-render.dir/src/PT/PhotonMap.cpp.o
+In file included from /Users/octopusz/Documents/Unreal Projects/SceneRenderer/tools/render_pt_package.cpp:5:
+/Users/octopusz/Documents/Unreal Projects/SceneRenderer/external/stb/stb_image_write.h:742:13: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
+  742 |       len = sprintf(buffer, "EXPOSURE=          1.0000000000000\n\n-Y %d +X %d\n", y, x);
+      |             ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/_stdio.h:278:1: note: 'sprintf' has been explicitly marked deprecated here
+  278 | __deprecated_msg("This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead.")
+      | ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/sys/cdefs.h:218:48: note: expanded from macro '__deprecated_msg'
+  218 |         #define __deprecated_msg(_msg) __attribute__((__deprecated__(_msg)))
+      |                                                       ^
+[ 37%] Building CXX object CMakeFiles/pt-package-render.dir/src/PT/ProceduralGeometry.cpp.o
+[ 50%] Building CXX object CMakeFiles/pt-package-render.dir/src/PT/GpuPathTracer.cpp.o
+[ 50%] Building CXX object CMakeFiles/pt-package-render.dir/src/PT/ValidationScenes.cpp.o
+[ 62%] Building CXX object CMakeFiles/pt-package-render.dir/src/PT/Denoiser.cpp.o
+[ 62%] Building CXX object CMakeFiles/pt-package-render.dir/src/rhi/Device.cpp.o
+[ 62%] Building CXX object CMakeFiles/pt-package-render.dir/src/rhi/GraphicsDevice.cpp.o
+[ 75%] Building CXX object CMakeFiles/pt-package-render.dir/src/rhi/ShaderAssets.cpp.o
+[ 75%] Building OBJCXX object CMakeFiles/pt-package-render.dir/src/rhi/MetalDevice.mm.o
+1 warning generated.
+[ 87%] Building CXX object CMakeFiles/pt-package-render.dir/src/rhi/VulkanDevice.cpp.o
+[ 87%] Building CXX object CMakeFiles/pt-package-render.dir/src/renderer/rhi/WeatherLighting.cpp.o
+/Users/octopusz/Documents/Unreal Projects/SceneRenderer/src/rhi/VulkanDevice.cpp:5:9: warning: 'GLFW_INCLUDE_NONE' macro redefined [-Wmacro-redefined]
+    5 | #define GLFW_INCLUDE_NONE
+      |         ^
+<command line>:1:9: note: previous definition is here
+    1 | #define GLFW_INCLUDE_NONE 1
+      |         ^
+1 warning generated.
+[100%] Linking CXX executable pt-package-render
+[100%] Built target pt-package-render

@@ -1,0 +1,10 @@
+{
+  "denoise_auxiliary": true,
+  "denoise_device": "CPU",
+  "denoise_seconds": 0.626092833,
+  "denoiser": "Open Image Denoise 2.5.1",
+  "exposure": 0.6000000238418579,
+  "height": 512,
+  "input": "build/pt-hair-sunlit/straight/metal.pfm",
+  "width": 512
+}

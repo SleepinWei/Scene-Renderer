@@ -1,0 +1,10 @@
+{
+  "denoise_auxiliary": true,
+  "denoise_device": "CPU",
+  "denoise_seconds": 0.829718041,
+  "denoiser": "Open Image Denoise 2.5.1",
+  "exposure": 0.6000000238418579,
+  "height": 512,
+  "input": "build/pt-hair-sunlit/wavy/metal.pfm",
+  "width": 512
+}

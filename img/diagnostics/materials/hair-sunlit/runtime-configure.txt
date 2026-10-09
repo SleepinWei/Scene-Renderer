@@ -1,0 +1,4 @@
+-- Found Vulkan: /Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/_deps/moltenvk/MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib (found version "1.4.357") found components: glslangValidator missing components: glslc
+-- Configuring done (0.3s)
+-- Generating done (0.0s)
+-- Build files have been written to: /Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/pt-hair-sunlit/runtime

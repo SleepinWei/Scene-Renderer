@@ -138,6 +138,12 @@ PCSS 对照依次为 PCF、默认太阳和放大光源；第三列用于展示�
 
 CPU／Metal／Vulkan 路径追踪支持多次反弹、纹理材质、折射和均匀介质随机游走；CPU BDPT 用于平滑玻璃焦散。程序化地形、植被与 FFT 水面可冻结为离线场景。
 
+这组头发展示采用圆形纤维散射与实时大气捕获的晴空照明。低角度天空和太阳一起旋转、增强到 10 倍源强度，并采用更窄的发丝高光，呈现暖色太阳反射；每套保留 **50,000 根发丝，Metal PT，512×512、1024 spp、12 次反弹，OIDN 展示图**。头部为中性漫反射材质。毛发来源：[Cem Yuksel](https://www.cemyuksel.com/research/hairmodels/)；头模由 **Murat Afshar** 提供。[照明、材质参数、原始图与验收](docs/path-tracing-hair-sunlight.md)。
+
+| 强日光中的直发 | 强日光中的波浪发 |
+|---|---|
+| ![强日光直发](img/path-tracing/yuksel-straight-sunlit.png) | ![强日光波浪发](img/path-tracing/yuksel-wavy-sunlit.png) |
+
 下面展示上文建筑与自然环境场景的路径追踪结果，除标明未降噪的 photon mapping 样例外，使用 Open Image Denoise（OIDN）降噪。Sponza 与 San Miguel 使用 Metal PT，分辨率为 320×240、64 spp、16 次反弹；地形、山湖与海洋使用 640×480 Metal PT，将程序化动画冻结在 8 秒时刻。采样配置与未降噪原图见[路径追踪图集](docs/rendering-gallery.md#路径追踪)。
 
 | Sponza：Metal PT＋OIDN，64 spp | San Miguel：Metal PT＋OIDN，64 spp |

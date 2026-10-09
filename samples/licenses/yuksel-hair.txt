@@ -1,0 +1,23 @@
+Hair geometry: Cem Yuksel.
+Matching woman head model: courtesy of Murat Afshar.
+Source and terms: https://www.cemyuksel.com/research/hairmodels/
+
+The author's page permits downloading and using the supplied hair files for
+personal or research projects. Public images, videos, numerical results,
+publications, software documentation and other public material produced using
+these files must link to the source page. Acknowledgement is appreciated.
+This note summarizes the source page; it does not assign a new license or
+extend the hair-file terms to other assets. The head archive is credited as
+provided on the same page; it contains no separate license document.
+
+Project changes: head/hair receive the same orientation-preserving axis
+permutation, uniform scale and translation. All hair strands, points and
+source thickness are preserved. Rendering uses fixed-camera ribbons and an
+explicit hair absorption preset. Source transparency/color remain in the
+authoritative .hair file; they are not used as opacity/optical reflectance.
+Head geometry uses a neutral diffuse material; supplied texture maps are not
+applied. PBRT reference uses ray-facing native flat curves for the original
+line segments. Data archives and generated assets are kept out of Git.
+
+Pinned SHA256 values were computed from HTTPS downloads on 2026-10-09; they
+are project reproducibility checks, not checksums published by the author.

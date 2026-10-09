@@ -1,0 +1,111 @@
+{
+  "input_sha256": {
+    "build/pt-hair-sky/straight/scene.json": "d68afb21412da10420306a3f12d4c2b311cd4e921a8ed480dbefc535a2751a54",
+    "build/pt-hair-sky/straight/geometry.bin": "ffaad4aecb609113e72df1a55282ea0a559d7b6dda79cc032ef84e13ad7a2879",
+    "build/pt-hair-sky/straight/tangents.bin": "c08e2c72c65e119c1f1a966e21e6b30e4d1afddd1741370a684f9506ea959af1",
+    "build/pt-hair-sunlit/low-sun-environment.hdr": "3b30abb9ba8adb2c163aa846ff44e255974bc67b3bd42a3d84d01097bff5007a",
+    "build/pt-hair-sunlit/low-sun-environment.hdr.json": "2d575c1bf1c1c809de98d4ab314f794f078df554c3d9c626585a0c38b0224c60",
+    "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/tools/create_pt_hair_sunlit.py": "ae2d6d8f5133957c80b71ccc020dffbdbffaa3b5d55a85196bd853a86e176d50",
+    "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/tools/create_pt_hair_sky.py": "0663aaaab56a7115d50c7b02b6d6e4be10d55312b36d9658ec8a80cff8917733"
+  },
+  "geometry_unchanged": true,
+  "tangents_unchanged": true,
+  "camera_unchanged": true,
+  "yaw_degrees": 160.0,
+  "hdr_texel_shift": 227.55555555555554,
+  "light_scale": 10,
+  "source_sun": {
+    "sun_direction": [
+      -0.0,
+      0.1736481934785843,
+      -0.9848078489303589
+    ],
+    "sun_irradiance": [
+      2.139672040939331,
+      1.378801941871643,
+      0.6653726696968079
+    ],
+    "sun_radius": 0.004999999888241291
+  },
+  "sun": {
+    "direction": [
+      0.336824121639405,
+      0.1736481934785843,
+      0.9254166685319019
+    ],
+    "irradiance": [
+      21.39672040939331,
+      13.78801941871643,
+      6.653726696968079
+    ],
+    "radius": 0.004999999888241291
+  },
+  "source_sky": {
+    "width": 512,
+    "height": 256,
+    "minimum": 2.1457672119140625e-06,
+    "maximum": 1.109375
+  },
+  "original_materials": [
+    {
+      "metallic": 0,
+      "bsdf_model": "lambert",
+      "base_color": [
+        0.62,
+        0.5,
+        0.41
+      ]
+    },
+    {
+      "metallic": 0,
+      "bsdf_model": "hair",
+      "base_color": [
+        1,
+        1,
+        1
+      ],
+      "absorption": [
+        0.2,
+        0.45,
+        0.8
+      ],
+      "two_sided": true,
+      "hair_beta_m": 0.3,
+      "hair_beta_n": 0.3,
+      "hair_ior": 1.55,
+      "hair_tilt": 0.03490658503988659
+    }
+  ],
+  "materials": [
+    {
+      "metallic": 0,
+      "bsdf_model": "lambert",
+      "base_color": [
+        0.62,
+        0.5,
+        0.41
+      ]
+    },
+    {
+      "metallic": 0,
+      "bsdf_model": "hair",
+      "base_color": [
+        1,
+        1,
+        1
+      ],
+      "absorption": [
+        0.2,
+        0.45,
+        0.8
+      ],
+      "two_sided": true,
+      "hair_beta_m": 0.12,
+      "hair_beta_n": 0.2,
+      "hair_ior": 1.55,
+      "hair_tilt": 0.03490658503988659
+    }
+  ],
+  "exposure": 0.6,
+  "limits": "Static ribbons; neutral diffuse head; no additional area lights or native curves"
+}

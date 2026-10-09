@@ -1,0 +1,239 @@
+{
+  "format": "SceneRenderer.PT.v1",
+  "geometry": "geometry.bin",
+  "tangents": "tangents.bin",
+  "materials": [
+    {
+      "metallic": 0,
+      "bsdf_model": "lambert",
+      "base_color": [
+        0.62,
+        0.5,
+        0.41
+      ]
+    },
+    {
+      "metallic": 0,
+      "bsdf_model": "hair",
+      "base_color": [
+        1,
+        1,
+        1
+      ],
+      "absorption": [
+        0.2,
+        0.45,
+        0.8
+      ],
+      "two_sided": true,
+      "hair_beta_m": 0.12,
+      "hair_beta_n": 0.2,
+      "hair_ior": 1.55,
+      "hair_tilt": 0.03490658503988659
+    }
+  ],
+  "draws": [
+    {
+      "offset": 8,
+      "vertices": 235560,
+      "tangents_offset": 8,
+      "material": 0,
+      "model": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        4,
+        0,
+        1
+      ]
+    },
+    {
+      "offset": 7537928,
+      "vertices": 14400000,
+      "tangents_offset": 3768968,
+      "material": 1,
+      "model": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        4,
+        0,
+        1
+      ]
+    }
+  ],
+  "camera": {
+    "world": [
+      0.939793423488437,
+      0.0,
+      -0.3417430630867044,
+      0,
+      0.09446671689698811,
+      0.9610351644718343,
+      0.2597834714667173,
+      0,
+      0.3284271008406394,
+      -0.2764261432075382,
+      0.9031745273117584,
+      0,
+      2.4,
+      3.4,
+      6.6,
+      1
+    ],
+    "projection": [
+      3.8667130948987376,
+      0,
+      0,
+      0,
+      0,
+      3.8667130948987376,
+      0,
+      0,
+      0,
+      0,
+      -1.0006001800540163,
+      -1,
+      0,
+      0,
+      -0.060018005401620486,
+      0
+    ],
+    "aspect": 1
+  },
+  "environment": {
+    "file": "environment.bin",
+    "width": 512,
+    "height": 256
+  },
+  "source": {
+    "name": "Yuksel wavy benchmark / atmosphere sky / stronger solar reflections / finite sun off control",
+    "credit": "Hair geometry: Cem Yuksel; matching woman head: courtesy of Murat Afshar",
+    "source_url": "https://www.cemyuksel.com/research/hairmodels/",
+    "original_hair": "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/samples/assets/pt/hair-benchmarks/wWavy.hair",
+    "original_hair_sha256": "ee264968bb3cfb7a0952226f86040851350237d95d5ca3d405070165a3b028ff",
+    "head_sha256": "7d7f3d3af349e0052f59a920c4643e46d53d7927f3cebb2c9659926f46414fbd",
+    "strands": 50000,
+    "points": 2450000,
+    "normalization": {
+      "axis_permutation": [
+        1,
+        2,
+        0
+      ],
+      "scale": 0.02166713641442728,
+      "original_center": [
+        -5.499866485599998,
+        -0.09324073795000132,
+        0.13613128664999863
+      ],
+      "original_low": [
+        -48.4714126587,
+        -48.2492294312,
+        -59.8625679016
+      ],
+      "floor_offset": 0.035
+    },
+    "hair_triangles": 4800000,
+    "attributes": {
+      "default_thickness": 0.10000000149011612,
+      "default_transparency": 0.3560125231742859,
+      "default_color": [
+        0.4862745404243469,
+        0.43137258291244507,
+        0.3529411852359772
+      ],
+      "flags": 2,
+      "width": "source thickness interpreted as diameter; uniform scale only; no synthetic taper",
+      "optical_material": "explicit sigma_a [0.2,0.45,0.8], eta 1.55, beta_m/beta_n 0.3, tilt 2 degrees",
+      "unused": "Source transparency/color retained in original HAIR, not mapped to opacity or reflectance. Head textures not applied; neutral diffuse head."
+    },
+    "representation": "fixed reference-camera ribbons; source HAIR remains authoritative control data",
+    "lighting": "Yaw-rotated clear atmosphere + finite sun; both scaled equally",
+    "reference_camera": [
+      2.4,
+      3.4,
+      6.6
+    ],
+    "camera_target": [
+      0,
+      5.42,
+      0
+    ],
+    "model_translation": [
+      0,
+      4,
+      0
+    ],
+    "solar_relight": {
+      "yaw_degrees": 160.0,
+      "light_scale": 10,
+      "original_materials": [
+        {
+          "metallic": 0,
+          "bsdf_model": "lambert",
+          "base_color": [
+            0.62,
+            0.5,
+            0.41
+          ]
+        },
+        {
+          "metallic": 0,
+          "bsdf_model": "hair",
+          "base_color": [
+            1,
+            1,
+            1
+          ],
+          "absorption": [
+            0.2,
+            0.45,
+            0.8
+          ],
+          "two_sided": true,
+          "hair_beta_m": 0.3,
+          "hair_beta_n": 0.3,
+          "hair_ior": 1.55,
+          "hair_tilt": 0.03490658503988659
+        }
+      ],
+      "hair_beta_m": 0.12,
+      "hair_beta_n": 0.2
+    }
+  },
+  "sun": {
+    "direction": [
+      0.336824121639405,
+      0.1736481934785843,
+      0.9254166685319019
+    ],
+    "irradiance": [
+      0,
+      0,
+      0
+    ],
+    "radius": 0.004999999888241291
+  },
+  "exposure": 0.6
+}

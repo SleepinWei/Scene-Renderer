@@ -1,0 +1,958 @@
+{
+  "date": "2026-10-09",
+  "device": "Apple M4",
+  "scenes": {
+    "straight": {
+      "imported": {
+        "input_sha256": {
+          "build/pt-hair-sky/straight/scene.json": "d68afb21412da10420306a3f12d4c2b311cd4e921a8ed480dbefc535a2751a54",
+          "build/pt-hair-sky/straight/geometry.bin": "ffaad4aecb609113e72df1a55282ea0a559d7b6dda79cc032ef84e13ad7a2879",
+          "build/pt-hair-sky/straight/tangents.bin": "c08e2c72c65e119c1f1a966e21e6b30e4d1afddd1741370a684f9506ea959af1",
+          "build/pt-hair-sunlit/low-sun-environment.hdr": "3b30abb9ba8adb2c163aa846ff44e255974bc67b3bd42a3d84d01097bff5007a",
+          "build/pt-hair-sunlit/low-sun-environment.hdr.json": "2d575c1bf1c1c809de98d4ab314f794f078df554c3d9c626585a0c38b0224c60",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/tools/create_pt_hair_sunlit.py": "ae2d6d8f5133957c80b71ccc020dffbdbffaa3b5d55a85196bd853a86e176d50",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/tools/create_pt_hair_sky.py": "0663aaaab56a7115d50c7b02b6d6e4be10d55312b36d9658ec8a80cff8917733"
+        },
+        "geometry_unchanged": true,
+        "tangents_unchanged": true,
+        "camera_unchanged": true,
+        "yaw_degrees": 160.0,
+        "hdr_texel_shift": 227.55555555555554,
+        "light_scale": 10,
+        "source_sun": {
+          "sun_direction": [
+            -0.0,
+            0.1736481934785843,
+            -0.9848078489303589
+          ],
+          "sun_irradiance": [
+            2.139672040939331,
+            1.378801941871643,
+            0.6653726696968079
+          ],
+          "sun_radius": 0.004999999888241291
+        },
+        "sun": {
+          "direction": [
+            0.336824121639405,
+            0.1736481934785843,
+            0.9254166685319019
+          ],
+          "irradiance": [
+            21.39672040939331,
+            13.78801941871643,
+            6.653726696968079
+          ],
+          "radius": 0.004999999888241291
+        },
+        "source_sky": {
+          "width": 512,
+          "height": 256,
+          "minimum": 2.1457672119140625e-06,
+          "maximum": 1.109375
+        },
+        "original_materials": [
+          {
+            "metallic": 0,
+            "bsdf_model": "lambert",
+            "base_color": [
+              0.62,
+              0.5,
+              0.41
+            ]
+          },
+          {
+            "metallic": 0,
+            "bsdf_model": "hair",
+            "base_color": [
+              1,
+              1,
+              1
+            ],
+            "absorption": [
+              0.2,
+              0.45,
+              0.8
+            ],
+            "two_sided": true,
+            "hair_beta_m": 0.3,
+            "hair_beta_n": 0.3,
+            "hair_ior": 1.55,
+            "hair_tilt": 0.03490658503988659
+          }
+        ],
+        "materials": [
+          {
+            "metallic": 0,
+            "bsdf_model": "lambert",
+            "base_color": [
+              0.62,
+              0.5,
+              0.41
+            ]
+          },
+          {
+            "metallic": 0,
+            "bsdf_model": "hair",
+            "base_color": [
+              1,
+              1,
+              1
+            ],
+            "absorption": [
+              0.2,
+              0.45,
+              0.8
+            ],
+            "two_sided": true,
+            "hair_beta_m": 0.12,
+            "hair_beta_n": 0.2,
+            "hair_ior": 1.55,
+            "hair_tilt": 0.03490658503988659
+          }
+        ],
+        "exposure": 0.6,
+        "limits": "Static ribbons; neutral diffuse head; no additional area lights or native curves"
+      },
+      "report": {
+        "absolute_error": 0.0005000000237487257,
+        "acceleration": {
+          "alpha_image_scans": 0,
+          "alpha_pixels_scanned": 0,
+          "blas_builds": 2,
+          "blas_bytes": 56957952,
+          "blas_cache_hits": 0,
+          "blas_nodes": 868482,
+          "blas_scene_reuses": 0,
+          "camera_media_reuses": 0,
+          "emitter_builds": 1,
+          "emitter_bytes_estimate": 0,
+          "emitter_reuses": 0,
+          "geometry_bytes": 386649120,
+          "instance_bounds_reuses": 0,
+          "instance_bytes": 1728,
+          "instanced_triangles": 2478520,
+          "instances": 2,
+          "refit_rebuilds": 0,
+          "thin_normal_reuses": 0,
+          "tlas_build_cost": 2.0,
+          "tlas_builds": 1,
+          "tlas_bytes": 104,
+          "tlas_cost": 2.0,
+          "tlas_nodes": 1,
+          "tlas_refit_age": 0,
+          "tlas_refit_cost": 0.0,
+          "tlas_refits": 0,
+          "tlas_reuses": 0,
+          "transform_reuses": 0,
+          "type": "software BLAS/TLAS",
+          "unique_meshes": 2,
+          "unique_triangles": 2478520
+        },
+        "adaptive": false,
+        "average_spp": 1024.0,
+        "bdpt": false,
+        "biased_indirect": false,
+        "bvh_nodes": 868483,
+        "cache_depth": 2,
+        "cache_hits": 0,
+        "cache_minimum": 64,
+        "caustic_photons": 0,
+        "checkpoint_samples": 256,
+        "converged_pixels": 0,
+        "denoise_auxiliary": false,
+        "denoise_device": "",
+        "denoise_seconds": 0.0,
+        "denoiser": "",
+        "dielectric_meshes": 0,
+        "entry_point": "pt-package-render",
+        "environment": {
+          "height": 256,
+          "type": "linear HDR equirectangular, importance sampled",
+          "width": 512
+        },
+        "execution": "GPU Metal compute BLAS/TLAS",
+        "exposure": 0.6000000238418579,
+        "film_readback_bytes": 125829120,
+        "film_readbacks": 6,
+        "frozen_time_seconds": 0.0,
+        "geometry_bvh_bytes": 443608904,
+        "gpu_batch_samples": 8,
+        "gpu_buffer_bytes": 447425984,
+        "gpu_dispatches": 129,
+        "gpu_preparation": {
+          "allocation_seconds": 0.000339959,
+          "bindings_finalize_seconds": 0.000105,
+          "cache_compare_seconds": 0.0,
+          "gpu_clone_seconds": 0.0,
+          "gpu_cloned_bytes": 0,
+          "immutable_identity_bytes": 0,
+          "immutable_identity_hits": 0,
+          "patch_buffers": 0,
+          "patch_bytes": 0,
+          "patch_ranges": 0,
+          "pipeline_seconds": 0.01015275,
+          "steps": 29,
+          "time_budget": "cooperative; pipeline, allocation, individual copies / staging writes and optional guiding training are indivisible",
+          "transferred_bytes_including_film": 447425984,
+          "upload_seconds": 0.3185274469999995
+        },
+        "grass_meshes": 0,
+        "guide_cell_size": 0.0,
+        "guide_hits": 0,
+        "guiding": false,
+        "height": 512,
+        "integrator": "Surface BSDFs (PBR/diffuse/thin/cloth/hair), environment/sun/emitter NEE, power MIS, Russian roulette",
+        "max_depth": 12,
+        "media": [],
+        "meshes": 2,
+        "minimum_samples": 64,
+        "non_finite_samples": 0,
+        "ocean_interfaces": 0,
+        "opaque_shadow_scene": true,
+        "photon_bytes": 0,
+        "photon_mapping": false,
+        "photon_paths": 0,
+        "photon_radius": 0.07999999821186066,
+        "photon_rays": 0,
+        "photon_seconds": 0.0,
+        "radiance_cache": false,
+        "rays": 814726156,
+        "relative_error": 0.029999999329447746,
+        "render_seconds": 74.655728667,
+        "requested_threads": 0,
+        "sample_budget": 1024,
+        "sampler": "dyadic-permuted padded 2D Sobol",
+        "samples": 1024,
+        "scattering_meshes": 0,
+        "scene": "Yuksel straight benchmark / atmosphere sky / stronger solar reflections",
+        "scene_buffers": {
+          "cache_hits": 0,
+          "cache_retained_bytes": 0,
+          "geometry_export_reused": false,
+          "texture_export_reused": false,
+          "uploaded_bytes": 426452876,
+          "uploads": 14
+        },
+        "scene_package": {
+          "draws": 2,
+          "expanded_triangles": 2478520,
+          "export": {},
+          "file": "build/pt-hair-sunlit/straight/scene.json",
+          "load_timings": {
+            "manifest_parse_seconds": 0.000326542,
+            "texture_decode_seconds": 0.0,
+            "total_seconds": 0.414817917,
+            "unique_geometry_decode_seconds": 0.405698583
+          },
+          "materials": 2,
+          "source": {
+            "attributes": {
+              "default_color": [
+                0.4862745404243469,
+                0.43137258291244507,
+                0.3529411852359772
+              ],
+              "default_thickness": 0.10000000149011612,
+              "default_transparency": 0.3560125231742859,
+              "flags": 2,
+              "optical_material": "explicit sigma_a [0.2,0.45,0.8], eta 1.55, beta_m/beta_n 0.3, tilt 2 degrees",
+              "unused": "Source transparency/color retained in original HAIR, not mapped to opacity or reflectance. Head textures not applied; neutral diffuse head.",
+              "width": "source thickness interpreted as diameter; uniform scale only; no synthetic taper"
+            },
+            "camera_target": [
+              0,
+              5.42,
+              0
+            ],
+            "credit": "Hair geometry: Cem Yuksel; matching woman head: courtesy of Murat Afshar",
+            "hair_triangles": 2400000,
+            "head_sha256": "7d7f3d3af349e0052f59a920c4643e46d53d7927f3cebb2c9659926f46414fbd",
+            "lighting": "Yaw-rotated clear atmosphere + finite sun; both scaled equally",
+            "model_translation": [
+              0,
+              4,
+              0
+            ],
+            "name": "Yuksel straight benchmark / atmosphere sky / stronger solar reflections",
+            "normalization": {
+              "axis_permutation": [
+                1,
+                2,
+                0
+              ],
+              "floor_offset": 0.035,
+              "original_center": [
+                -5.499866485599998,
+                -0.09324073795000132,
+                0.13613128664999863
+              ],
+              "original_low": [
+                -48.4714126587,
+                -48.2492294312,
+                -59.8625679016
+              ],
+              "scale": 0.02166713641442728
+            },
+            "original_hair": "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/samples/assets/pt/hair-benchmarks/wStraight.hair",
+            "original_hair_sha256": "3225a722b7346c15a7be6ab897bee012f19d373940647cb6f085f832a2ddfcb4",
+            "points": 1250000,
+            "reference_camera": [
+              2.4,
+              3.4,
+              6.6
+            ],
+            "representation": "fixed reference-camera ribbons; source HAIR remains authoritative control data",
+            "solar_relight": {
+              "hair_beta_m": 0.12,
+              "hair_beta_n": 0.2,
+              "light_scale": 10,
+              "original_materials": [
+                {
+                  "base_color": [
+                    0.62,
+                    0.5,
+                    0.41
+                  ],
+                  "bsdf_model": "lambert",
+                  "metallic": 0
+                },
+                {
+                  "absorption": [
+                    0.2,
+                    0.45,
+                    0.8
+                  ],
+                  "base_color": [
+                    1,
+                    1,
+                    1
+                  ],
+                  "bsdf_model": "hair",
+                  "hair_beta_m": 0.3,
+                  "hair_beta_n": 0.3,
+                  "hair_ior": 1.55,
+                  "hair_tilt": 0.03490658503988659,
+                  "metallic": 0,
+                  "two_sided": true
+                }
+              ],
+              "yaw_degrees": 160.0
+            },
+            "source_url": "https://www.cemyuksel.com/research/hairmodels/",
+            "strands": 50000
+          },
+          "unique_mesh_ranges": 2,
+          "unique_vertices": 7435560
+        },
+        "seed": 1,
+        "setup_seconds": 0.571095417,
+        "shadow_any_hit": true,
+        "stored_photons": 0,
+        "subsurface_meshes": 0,
+        "sun_irradiance": [
+          21.39672088623047,
+          13.788019180297852,
+          6.653726577758789
+        ],
+        "sun_radius_degrees": 0.2864789068698883,
+        "terrain_meshes": 0,
+        "terrain_ocean": "frozen procedural meshes",
+        "thin_solar_normals": [],
+        "thin_sun_proposal": true,
+        "thin_sun_proposal_fraction": 0.10000000149011612,
+        "timings": {
+          "blas_build_seconds": 1.352775,
+          "camera_media_seconds": 2.5e-07,
+          "checkpoint_io_seconds": 0.0,
+          "cpu_film_update_seconds": 0.024206125,
+          "dispatch_submit_seconds": 74.57607566700001,
+          "domain": "CPU wall time; submit/readback may include GPU waits; no hardware GPU timestamps",
+          "emitter_prepare_seconds": 1.25e-07,
+          "gpu_setup_including_export_seconds": 0.571095417,
+          "readback_including_wait_seconds": 0.041598499,
+          "scene_construct_seconds": 1.480005375,
+          "scene_export_seconds": 0.237921584,
+          "scene_geometry_prepare_seconds": 0.12721770799999987,
+          "tlas_build_seconds": 1.208e-06,
+          "tlas_prepare_seconds": 1.583e-06,
+          "tlas_refit_seconds": 0.0
+        },
+        "total_samples": 268435456,
+        "trace_and_training_seconds": 74.655728667,
+        "trace_photon_training_seconds": 74.655728667,
+        "trace_training_denoise_seconds": 74.655728667,
+        "trained_cells": 0,
+        "training_rays": 0,
+        "training_seconds": 0.0,
+        "training_spp": 0,
+        "triangles": 2478520,
+        "volume_scattering_events": 0,
+        "water_sun_proposal": true,
+        "water_sun_proposal_version": 3,
+        "weather_reference": {
+          "approximation": "camera-centred panorama and projected below-cloud 2.5D solar field",
+          "cloud_sky_panorama": false,
+          "level": "P0",
+          "omitted": [
+            "spatial cloud scattering/parallax",
+            "air fog and precipitation media",
+            "runtime shallow-water/foam history"
+          ],
+          "spatial_cloud_solar_transmission": false
+        },
+        "width": 512
+      },
+      "filter": {
+        "denoise_auxiliary": true,
+        "denoise_device": "CPU",
+        "denoise_seconds": 0.626092833,
+        "denoiser": "Open Image Denoise 2.5.1",
+        "exposure": 0.6000000238418579,
+        "height": 512,
+        "input": "build/pt-hair-sunlit/straight/metal.pfm",
+        "width": 512
+      },
+      "raw_hair_luminance_percentiles": {
+        "p50": 0.6406479134760796,
+        "p90": 1.1004317932832242,
+        "p99": 1.416130843906462
+      }
+    },
+    "wavy": {
+      "imported": {
+        "input_sha256": {
+          "build/pt-hair-sky/wavy/scene.json": "c8a7b7e370a9ae7b74d36bf59cee02af502a93b787924e453af9f82c230ac4f3",
+          "build/pt-hair-sky/wavy/geometry.bin": "ccb96b8e47377a6527ded8d39581d99a4b1156ebe92219134a0e9d90c45e5500",
+          "build/pt-hair-sky/wavy/tangents.bin": "df973634b0f5abed1f675c6c7157becb9cb43e3d2e12e7ed7ef8a8898ce0918b",
+          "build/pt-hair-sunlit/low-sun-environment.hdr": "3b30abb9ba8adb2c163aa846ff44e255974bc67b3bd42a3d84d01097bff5007a",
+          "build/pt-hair-sunlit/low-sun-environment.hdr.json": "2d575c1bf1c1c809de98d4ab314f794f078df554c3d9c626585a0c38b0224c60",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/tools/create_pt_hair_sunlit.py": "ae2d6d8f5133957c80b71ccc020dffbdbffaa3b5d55a85196bd853a86e176d50",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/tools/create_pt_hair_sky.py": "0663aaaab56a7115d50c7b02b6d6e4be10d55312b36d9658ec8a80cff8917733"
+        },
+        "geometry_unchanged": true,
+        "tangents_unchanged": true,
+        "camera_unchanged": true,
+        "yaw_degrees": 160.0,
+        "hdr_texel_shift": 227.55555555555554,
+        "light_scale": 10,
+        "source_sun": {
+          "sun_direction": [
+            -0.0,
+            0.1736481934785843,
+            -0.9848078489303589
+          ],
+          "sun_irradiance": [
+            2.139672040939331,
+            1.378801941871643,
+            0.6653726696968079
+          ],
+          "sun_radius": 0.004999999888241291
+        },
+        "sun": {
+          "direction": [
+            0.336824121639405,
+            0.1736481934785843,
+            0.9254166685319019
+          ],
+          "irradiance": [
+            21.39672040939331,
+            13.78801941871643,
+            6.653726696968079
+          ],
+          "radius": 0.004999999888241291
+        },
+        "source_sky": {
+          "width": 512,
+          "height": 256,
+          "minimum": 2.1457672119140625e-06,
+          "maximum": 1.109375
+        },
+        "original_materials": [
+          {
+            "metallic": 0,
+            "bsdf_model": "lambert",
+            "base_color": [
+              0.62,
+              0.5,
+              0.41
+            ]
+          },
+          {
+            "metallic": 0,
+            "bsdf_model": "hair",
+            "base_color": [
+              1,
+              1,
+              1
+            ],
+            "absorption": [
+              0.2,
+              0.45,
+              0.8
+            ],
+            "two_sided": true,
+            "hair_beta_m": 0.3,
+            "hair_beta_n": 0.3,
+            "hair_ior": 1.55,
+            "hair_tilt": 0.03490658503988659
+          }
+        ],
+        "materials": [
+          {
+            "metallic": 0,
+            "bsdf_model": "lambert",
+            "base_color": [
+              0.62,
+              0.5,
+              0.41
+            ]
+          },
+          {
+            "metallic": 0,
+            "bsdf_model": "hair",
+            "base_color": [
+              1,
+              1,
+              1
+            ],
+            "absorption": [
+              0.2,
+              0.45,
+              0.8
+            ],
+            "two_sided": true,
+            "hair_beta_m": 0.12,
+            "hair_beta_n": 0.2,
+            "hair_ior": 1.55,
+            "hair_tilt": 0.03490658503988659
+          }
+        ],
+        "exposure": 0.6,
+        "limits": "Static ribbons; neutral diffuse head; no additional area lights or native curves"
+      },
+      "report": {
+        "absolute_error": 0.0005000000237487257,
+        "acceleration": {
+          "alpha_image_scans": 0,
+          "alpha_pixels_scanned": 0,
+          "blas_builds": 2,
+          "blas_bytes": 112135168,
+          "blas_cache_hits": 0,
+          "blas_nodes": 1720098,
+          "blas_scene_reuses": 0,
+          "camera_media_reuses": 0,
+          "emitter_builds": 1,
+          "emitter_bytes_estimate": 0,
+          "emitter_reuses": 0,
+          "geometry_bytes": 761049120,
+          "instance_bounds_reuses": 0,
+          "instance_bytes": 1728,
+          "instanced_triangles": 4878520,
+          "instances": 2,
+          "refit_rebuilds": 0,
+          "thin_normal_reuses": 0,
+          "tlas_build_cost": 2.0,
+          "tlas_builds": 1,
+          "tlas_bytes": 104,
+          "tlas_cost": 2.0,
+          "tlas_nodes": 1,
+          "tlas_refit_age": 0,
+          "tlas_refit_cost": 0.0,
+          "tlas_refits": 0,
+          "tlas_reuses": 0,
+          "transform_reuses": 0,
+          "type": "software BLAS/TLAS",
+          "unique_meshes": 2,
+          "unique_triangles": 4878520
+        },
+        "adaptive": false,
+        "average_spp": 1024.0,
+        "bdpt": false,
+        "biased_indirect": false,
+        "bvh_nodes": 1720099,
+        "cache_depth": 2,
+        "cache_hits": 0,
+        "cache_minimum": 64,
+        "caustic_photons": 0,
+        "checkpoint_samples": 256,
+        "converged_pixels": 0,
+        "denoise_auxiliary": false,
+        "denoise_device": "",
+        "denoise_seconds": 0.0,
+        "denoiser": "",
+        "dielectric_meshes": 0,
+        "entry_point": "pt-package-render",
+        "environment": {
+          "height": 256,
+          "type": "linear HDR equirectangular, importance sampled",
+          "width": 512
+        },
+        "execution": "GPU Metal compute BLAS/TLAS",
+        "exposure": 0.6000000238418579,
+        "film_readback_bytes": 125829120,
+        "film_readbacks": 6,
+        "frozen_time_seconds": 0.0,
+        "geometry_bvh_bytes": 873186120,
+        "gpu_batch_samples": 8,
+        "gpu_buffer_bytes": 858677696,
+        "gpu_dispatches": 129,
+        "gpu_preparation": {
+          "allocation_seconds": 0.000203168,
+          "bindings_finalize_seconds": 5.2292e-05,
+          "cache_compare_seconds": 0.0,
+          "gpu_clone_seconds": 0.0,
+          "gpu_cloned_bytes": 0,
+          "immutable_identity_bytes": 0,
+          "immutable_identity_hits": 0,
+          "patch_buffers": 0,
+          "patch_bytes": 0,
+          "patch_ranges": 0,
+          "pipeline_seconds": 0.006980625,
+          "steps": 54,
+          "time_budget": "cooperative; pipeline, allocation, individual copies / staging writes and optional guiding training are indivisible",
+          "transferred_bytes_including_film": 858677696,
+          "upload_seconds": 0.4716127609999998
+        },
+        "grass_meshes": 0,
+        "guide_cell_size": 0.0,
+        "guide_hits": 0,
+        "guiding": false,
+        "height": 512,
+        "integrator": "Surface BSDFs (PBR/diffuse/thin/cloth/hair), environment/sun/emitter NEE, power MIS, Russian roulette",
+        "max_depth": 12,
+        "media": [],
+        "meshes": 2,
+        "minimum_samples": 64,
+        "non_finite_samples": 0,
+        "ocean_interfaces": 0,
+        "opaque_shadow_scene": true,
+        "photon_bytes": 0,
+        "photon_mapping": false,
+        "photon_paths": 0,
+        "photon_radius": 0.07999999821186066,
+        "photon_rays": 0,
+        "photon_seconds": 0.0,
+        "radiance_cache": false,
+        "rays": 851052562,
+        "relative_error": 0.029999999329447746,
+        "render_seconds": 88.044058792,
+        "requested_threads": 0,
+        "sample_budget": 1024,
+        "sampler": "dyadic-permuted padded 2D Sobol",
+        "samples": 1024,
+        "scattering_meshes": 0,
+        "scene": "Yuksel wavy benchmark / atmosphere sky / stronger solar reflections",
+        "scene_buffers": {
+          "cache_hits": 0,
+          "cache_retained_bytes": 0,
+          "geometry_export_reused": false,
+          "texture_export_reused": false,
+          "uploaded_bytes": 837704588,
+          "uploads": 14
+        },
+        "scene_package": {
+          "draws": 2,
+          "expanded_triangles": 4878520,
+          "export": {},
+          "file": "build/pt-hair-sunlit/wavy/scene.json",
+          "load_timings": {
+            "manifest_parse_seconds": 6.9959e-05,
+            "texture_decode_seconds": 0.0,
+            "total_seconds": 0.703296625,
+            "unique_geometry_decode_seconds": 0.695773334
+          },
+          "materials": 2,
+          "source": {
+            "attributes": {
+              "default_color": [
+                0.4862745404243469,
+                0.43137258291244507,
+                0.3529411852359772
+              ],
+              "default_thickness": 0.10000000149011612,
+              "default_transparency": 0.3560125231742859,
+              "flags": 2,
+              "optical_material": "explicit sigma_a [0.2,0.45,0.8], eta 1.55, beta_m/beta_n 0.3, tilt 2 degrees",
+              "unused": "Source transparency/color retained in original HAIR, not mapped to opacity or reflectance. Head textures not applied; neutral diffuse head.",
+              "width": "source thickness interpreted as diameter; uniform scale only; no synthetic taper"
+            },
+            "camera_target": [
+              0,
+              5.42,
+              0
+            ],
+            "credit": "Hair geometry: Cem Yuksel; matching woman head: courtesy of Murat Afshar",
+            "hair_triangles": 4800000,
+            "head_sha256": "7d7f3d3af349e0052f59a920c4643e46d53d7927f3cebb2c9659926f46414fbd",
+            "lighting": "Yaw-rotated clear atmosphere + finite sun; both scaled equally",
+            "model_translation": [
+              0,
+              4,
+              0
+            ],
+            "name": "Yuksel wavy benchmark / atmosphere sky / stronger solar reflections",
+            "normalization": {
+              "axis_permutation": [
+                1,
+                2,
+                0
+              ],
+              "floor_offset": 0.035,
+              "original_center": [
+                -5.499866485599998,
+                -0.09324073795000132,
+                0.13613128664999863
+              ],
+              "original_low": [
+                -48.4714126587,
+                -48.2492294312,
+                -59.8625679016
+              ],
+              "scale": 0.02166713641442728
+            },
+            "original_hair": "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/samples/assets/pt/hair-benchmarks/wWavy.hair",
+            "original_hair_sha256": "ee264968bb3cfb7a0952226f86040851350237d95d5ca3d405070165a3b028ff",
+            "points": 2450000,
+            "reference_camera": [
+              2.4,
+              3.4,
+              6.6
+            ],
+            "representation": "fixed reference-camera ribbons; source HAIR remains authoritative control data",
+            "solar_relight": {
+              "hair_beta_m": 0.12,
+              "hair_beta_n": 0.2,
+              "light_scale": 10,
+              "original_materials": [
+                {
+                  "base_color": [
+                    0.62,
+                    0.5,
+                    0.41
+                  ],
+                  "bsdf_model": "lambert",
+                  "metallic": 0
+                },
+                {
+                  "absorption": [
+                    0.2,
+                    0.45,
+                    0.8
+                  ],
+                  "base_color": [
+                    1,
+                    1,
+                    1
+                  ],
+                  "bsdf_model": "hair",
+                  "hair_beta_m": 0.3,
+                  "hair_beta_n": 0.3,
+                  "hair_ior": 1.55,
+                  "hair_tilt": 0.03490658503988659,
+                  "metallic": 0,
+                  "two_sided": true
+                }
+              ],
+              "yaw_degrees": 160.0
+            },
+            "source_url": "https://www.cemyuksel.com/research/hairmodels/",
+            "strands": 50000
+          },
+          "unique_mesh_ranges": 2,
+          "unique_vertices": 14635560
+        },
+        "seed": 1,
+        "setup_seconds": 0.714649459,
+        "shadow_any_hit": true,
+        "stored_photons": 0,
+        "subsurface_meshes": 0,
+        "sun_irradiance": [
+          21.39672088623047,
+          13.788019180297852,
+          6.653726577758789
+        ],
+        "sun_radius_degrees": 0.2864789068698883,
+        "terrain_meshes": 0,
+        "terrain_ocean": "frozen procedural meshes",
+        "thin_solar_normals": [],
+        "thin_sun_proposal": true,
+        "thin_sun_proposal_fraction": 0.10000000149011612,
+        "timings": {
+          "blas_build_seconds": 1.780395917,
+          "camera_media_seconds": 2.09e-07,
+          "checkpoint_io_seconds": 0.0,
+          "cpu_film_update_seconds": 0.012503790999999998,
+          "dispatch_submit_seconds": 88.00108908099998,
+          "domain": "CPU wall time; submit/readback may include GPU waits; no hardware GPU timestamps",
+          "emitter_prepare_seconds": 2.5e-07,
+          "gpu_setup_including_export_seconds": 0.714649459,
+          "readback_including_wait_seconds": 0.016266624,
+          "scene_construct_seconds": 1.941517958,
+          "scene_export_seconds": 0.233573541,
+          "scene_geometry_prepare_seconds": 0.16111575,
+          "tlas_build_seconds": 2.459e-06,
+          "tlas_prepare_seconds": 2.75e-06,
+          "tlas_refit_seconds": 0.0
+        },
+        "total_samples": 268435456,
+        "trace_and_training_seconds": 88.044058792,
+        "trace_photon_training_seconds": 88.044058792,
+        "trace_training_denoise_seconds": 88.044058792,
+        "trained_cells": 0,
+        "training_rays": 0,
+        "training_seconds": 0.0,
+        "training_spp": 0,
+        "triangles": 4878520,
+        "volume_scattering_events": 0,
+        "water_sun_proposal": true,
+        "water_sun_proposal_version": 3,
+        "weather_reference": {
+          "approximation": "camera-centred panorama and projected below-cloud 2.5D solar field",
+          "cloud_sky_panorama": false,
+          "level": "P0",
+          "omitted": [
+            "spatial cloud scattering/parallax",
+            "air fog and precipitation media",
+            "runtime shallow-water/foam history"
+          ],
+          "spatial_cloud_solar_transmission": false
+        },
+        "width": 512
+      },
+      "filter": {
+        "denoise_auxiliary": true,
+        "denoise_device": "CPU",
+        "denoise_seconds": 0.829718041,
+        "denoiser": "Open Image Denoise 2.5.1",
+        "exposure": 0.6000000238418579,
+        "height": 512,
+        "input": "build/pt-hair-sunlit/wavy/metal.pfm",
+        "width": 512
+      },
+      "raw_hair_luminance_percentiles": {
+        "p50": 0.40881690952852373,
+        "p90": 0.8474114095056058,
+        "p99": 1.1906323472312688
+      }
+    }
+  },
+  "credit": "Hair: Cem Yuksel; matching head courtesy of Murat Afshar",
+  "source_page": "https://www.cemyuksel.com/research/hairmodels/",
+  "runtime": {
+    "executable": "build/pt-hair-sunlit/runtime/pt-package-render",
+    "source_audit": {
+      "snapshot_phase": "Before compilation; source tree changed concurrently. The snapshot is not guaranteed to match compiled sources.",
+      "changed_since_snapshot": [
+        "CMakeLists.txt",
+        "src/PT/GpuPathTracer.cpp",
+        "src/PT/CpuPathTracer.cpp",
+        "src/PT/CpuPathTracingEntry.cpp",
+        "include/renderer/rhi/GpuClouds.h",
+        "include/renderer/rhi/WeatherLighting.h",
+        "include/PT/SceneIdentity.h",
+        "include/PT/CpuPathTracer.h",
+        "src/rhi/shaders/cloud-ground-shadow.comp",
+        "src/rhi/shaders/cloud-panorama.comp",
+        "src/rhi/shaders/cloud-intersection.glsl"
+      ],
+      "render_runtime": "Private executable and compiled shader bytes are frozen independently."
+    },
+    "provenance": "Exact private executable, compiled shaders and scene bytes frozen; live source snapshot not guaranteed to match compilation"
+  },
+  "metal_vulkan_raw_identical": true,
+  "sun_off_control": {
+    "hair_mean_luminance_sun_on": 0.44115855662535897,
+    "hair_mean_luminance_sun_off": 0.0718028843562011,
+    "ratio": 6.1440227726347505,
+    "mask": "First-hit albedo minimum > 0.99",
+    "scope": "Finite sun total illumination, includes R/TT/TRT, not isolated R"
+  },
+  "input_sha256": {
+    "build/pt/Scene-Renderer": "c23ccee25f94c1c7b34bd83fde7fb9f7194e3af8025050cc7a0ac0bea5e0fcef",
+    "build/pt-hair-sunlit/runtime/pt-package/shaders/pt-display.comp.spv": "ffe8899dba728e226789035b2bbe28fc2da29f87e0dd4edecd35da85d62d1761",
+    "build/pt-hair-sunlit/runtime/pt-package/shaders/pt-display.comp.msl.spv": "bcb423ab349a66d84bb34880eed2878715ac1157e6876c9988c30c05fc38a597",
+    "build/pt-hair-sunlit/runtime/pt-package/shaders/path-trace.comp.air": "deca83c861071b2fe7b6c83e33ff7c387e84b21cb39b9ad21bfa2c4060825c80",
+    "build/pt-hair-sunlit/runtime/pt-package/shaders/pt-display.comp.json": "3109a6be26a143a2743bd6649eb0da4a38ec6935e8290db617ab2668a3eea691",
+    "build/pt-hair-sunlit/runtime/pt-package/shaders/path-trace.comp.json": "9ae2577ca89f4725596f26dc4fc4674c66c48dc56478471c5f707154918bf3b0",
+    "build/pt-hair-sunlit/runtime/pt-package/shaders/path-trace.comp.sha256": "88fcce67591c3fead8f6d8be65f06a3eeef9782567a0a4c5c5fead4b2e5662e3",
+    "build/pt-hair-sunlit/low-sun-environment.hdr.json": "2d575c1bf1c1c809de98d4ab314f794f078df554c3d9c626585a0c38b0224c60",
+    "build/pt-hair-sunlit/wavy/environment.bin": "11ce3d4e0ee0d8949c7c85a611dcfcbcd8ff3801813ffc39584ebbb455aa1ca0",
+    "build/pt-hair-sunlit/runtime-source-audit.json": "02c3986f21af8c1b1585f1c51cdbd2af49cf8b8375c5fbc59bbbd150b18d64c6",
+    "tools/create_pt_hair_sky.py": "0663aaaab56a7115d50c7b02b6d6e4be10d55312b36d9658ec8a80cff8917733",
+    "build/pt-hair-sunlit/straight/geometry.bin": "ffaad4aecb609113e72df1a55282ea0a559d7b6dda79cc032ef84e13ad7a2879",
+    "build/pt-hair-sunlit/straight/tangents.bin": "c08e2c72c65e119c1f1a966e21e6b30e4d1afddd1741370a684f9506ea959af1",
+    "build/pt-hair-sunlit/wavy/scene.json": "c6cc60382416a8c64db94decaa281efed086163a94d5be4f724dcd9d8e0f66c5",
+    "build/pt-hair-sunlit/runtime/pt-package/shaders/path-trace.comp.metal": "ffac1c3eae9f845e6b6d720c8e6da5bd293ad4e7517470d672b36f9db13c8ec3",
+    "build/pt-hair-sunlit/runtime/pt-package/shaders/pt-display.comp.glsl": "e44f85d00b996294de34df2b81b56d1c37625e285c0e2553fdc6b2e54e264665",
+    "build/pt-hair-sunlit/runtime/pt-package/shaders/pt-display.comp.sha256": "e18ade4ce8f355ffa0baa43b393b92cb18b610d24ad0e47c8032ca63767e0f6d",
+    "build/pt-hair-sunlit/wavy/sun-off-scene.json": "7cec8e721789834578237a2daca70a6495b39a9c50e38c2d7a3ffb94e2be4e9a",
+    "build/pt-hair-sunlit/wavy/tangents.bin": "df973634b0f5abed1f675c6c7157becb9cb43e3d2e12e7ed7ef8a8898ce0918b",
+    "build/pt-hair-sunlit/runtime/pt-package/shaders/path-trace.comp.metallib": "dfd673a68b98d7545eadbad8ee5af6e12e0212c3c1aa5ccde56d4dd92453d587",
+    "build/pt-hair-sunlit/runtime/pt-package/shaders/complete.stamp": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/pt-hair-sunlit/runtime/pt-package/shaders/pt-display.comp.metal": "dab2d5fc06604f1723588750e286ae952916b6eb8b59e4a5f3f2e2fa4e281add",
+    "build/pt-hair-sunlit/low-sun-environment.hdr": "3b30abb9ba8adb2c163aa846ff44e255974bc67b3bd42a3d84d01097bff5007a",
+    "build/pt-hair-sunlit/runtime/pt-package/shaders/path-trace.comp.spv": "f963108cb67e6c2c58bb4c40126d99d9091f44019e4b43bb97077f2df1b32fd5",
+    "build/pt-hair-sunlit/straight/sunlit-import.json": "57c47d3cc11def66c4adfe1e0419f12b0aa5811cab2b69b874704e88cd968c84",
+    "build/pt-hair-sunlit/straight/environment.bin": "11ce3d4e0ee0d8949c7c85a611dcfcbcd8ff3801813ffc39584ebbb455aa1ca0",
+    "build/pt-hair-sunlit/straight/scene.json": "f117311d2ae887217fb726b6e3ab1487260083abeebbc05480477d0e3d776885",
+    "build/pt-hair-sunlit/runtime/pt-package/shaders/path-trace.comp.msl.spv": "44efe588234efe9af5f30c24ec60e1e570d7133321f0daf53b2fc993a0ade64b",
+    "build/pt-hair-sunlit/runtime/pt-package/shaders/pt-display.comp.metallib": "5a97972062e141176e9ca8b4130310f84d0c7973a20d21bb026c7fa27f371a2f",
+    "build/pt-hair-sunlit/wavy/geometry.bin": "ccb96b8e47377a6527ded8d39581d99a4b1156ebe92219134a0e9d90c45e5500",
+    "tools/create_pt_hair_sunlit.py": "ae2d6d8f5133957c80b71ccc020dffbdbffaa3b5d55a85196bd853a86e176d50",
+    "build/pt-hair-sunlit/wavy/sunlit-import.json": "6c6c1ef0abae580123cef3332773ae1d4adc93b7a955deed3bd274ce8f5959d1",
+    "build/pt-hair-sunlit/runtime/pt-package/shaders/pt-display.comp.air": "12c1e6f53dc4494d8ccc060eaf0414d83727685157ca42a12cc21bea2bd7c73f",
+    "build/pt-hair-sunlit/runtime/pt-package/shaders/path-trace.comp.glsl": "724c52fef285307022aef6edc8d7e58b3671b84369022e1afd30bed535bb4f1a",
+    "build/pt-hair-sunlit/runtime/pt-package-render": "6325c5609e742116a0a39849fc764c8539bb3d68a5b85a1113bae6e5ad8adc35"
+  },
+  "output_sha256": {
+    "img/path-tracing/yuksel-straight-sunlit-raw.png": "7dda89379ad82fd06d7258f25b66f00698872ad7b303d1b9fabf2e29ea5ef96b",
+    "img/path-tracing/yuksel-straight-sunlit.png": "9a0fb953740ef60653e52b67fe2f472a8e369b7f1ceeb7b70e3f2f265263bfb4",
+    "build/pt-hair-sunlit/straight/metal.pfm": "80582da5197f9dffe88718b9bee7d6b38f9bd7bc975429ebcf309a94838fb0c0",
+    "build/pt-hair-sunlit/straight/metal-albedo.pfm": "95f4709db24d540cc904134cc8a1c2e76a2a09de47f4cde6a730229e949d06bb",
+    "build/pt-hair-sunlit/straight/filtered-denoised.pfm": "13cc91422f2d1f1af02f65f9ac67796fcbe91f7814920cfae04bd7077f994a25",
+    "img/path-tracing/yuksel-wavy-sunlit-raw.png": "d4118e530f9a07f8fb2c995176674c1bd0fc86206a8e681b1c5ff3f69a422568",
+    "img/path-tracing/yuksel-wavy-sunlit.png": "4c4045334f76497db6bcc695d452cf72d95afacf4b28420006c86eefe8ebcf56",
+    "build/pt-hair-sunlit/wavy/metal.pfm": "ee6875dd1177bfa446e98642ee93f2aa2d352e1dbefe48ce2e6e80d84b076081",
+    "build/pt-hair-sunlit/wavy/metal-albedo.pfm": "0544fbb2a20596a748c7920876ed1bd05a2f98516465a266d0ac89fe1862e873",
+    "build/pt-hair-sunlit/wavy/filtered-denoised.pfm": "ddadeb34ce962358477b752a6946ba0fa7767e8e5b79b7e78697a98cd4d2dda7",
+    "build/pt-hair-sunlit/wavy/check-metal.pfm": "3ce0d81609e24efbefe0fd72d15896650796101bf9bf628e230f71247b1b2af3",
+    "build/pt-hair-sunlit/wavy/check-vulkan.pfm": "3ce0d81609e24efbefe0fd72d15896650796101bf9bf628e230f71247b1b2af3",
+    "build/pt-hair-sunlit/wavy/check-no-sun.pfm": "5f2b8987dbed07ed0b9edbca57a9719d6420257a0facb9bab340ac0da9685b03"
+  },
+  "validator_sha256": "9912d6ce5e11f47a01cd00b554b3a2e7b5f1f37c95899a11e7721278c6f6d821",
+  "evidence_sha256": {
+    "img/diagnostics/materials/hair-sunlit/sun-off-scene.json": "7cec8e721789834578237a2daca70a6495b39a9c50e38c2d7a3ffb94e2be4e9a",
+    "img/diagnostics/materials/hair-sunlit/straight-metal.txt": "93ccd119c7bd34968e97bb3962ae805ddbd9a022f5ec69765f88330343455f2c",
+    "img/diagnostics/materials/hair-sunlit/check-metal.txt": "f27eacda74228273f762b249aebd4a07a8ade8083d2deeb9177507e9ce24edec",
+    "img/diagnostics/materials/hair-sunlit/wavy-filtered.json": "397eb447a51db23772b144bff900d995db45df00a0aabac8dd4e7a500c90d14b",
+    "img/diagnostics/materials/hair-sunlit/check-vulkan.json": "d36a64ea8cd846a2f4fa897461ba44ccf52710ccf670e229321d770f9f7c15e8",
+    "img/diagnostics/materials/hair-sunlit/straight-metal.json": "d43f817346d442454859a57e50f2da688c7c4b24f9a37332aaf92f03d0fc1355",
+    "img/diagnostics/materials/hair-sunlit/wavy-denoise.txt": "5cfc31c2b0f12ada85fb1d06040dd70b5fd97988c930f50dd67a839259150177",
+    "img/diagnostics/materials/hair-sunlit/runtime-build.txt": "483c097cb4b1f55b988b249ecba10a4d9032efa19a49147ff27ccadd4002971e",
+    "img/diagnostics/materials/hair-sunlit/low-sun-environment.hdr": "3b30abb9ba8adb2c163aa846ff44e255974bc67b3bd42a3d84d01097bff5007a",
+    "img/diagnostics/materials/hair-sunlit/check-metal.json": "922171868db760678e5928c883e41b389c16b7b53c11e7c73a07f47f769282ac",
+    "img/diagnostics/materials/hair-sunlit/runtime-source-audit.json": "02c3986f21af8c1b1585f1c51cdbd2af49cf8b8375c5fbc59bbbd150b18d64c6",
+    "img/diagnostics/materials/hair-sunlit/check-no-sun.txt": "7435c23de3e65178d0b22bfd5db29a8ae8f5221d988b439ee0274726a5fb3edc",
+    "img/diagnostics/materials/hair-sunlit/wavy-metal.txt": "91c3ed211676ab7ed88e861b208ae705ed70968f52d4a3a9c6e6024ff62b432c",
+    "img/diagnostics/materials/hair-sunlit/source-freeze.json": "28d9ae9d43356e793f9dd7ecab262c83bd516f5302d1a1d4fedadd4e0bf16ec3",
+    "img/diagnostics/materials/hair-sunlit/low-sun-environment.hdr.json": "2d575c1bf1c1c809de98d4ab314f794f078df554c3d9c626585a0c38b0224c60",
+    "img/diagnostics/materials/hair-sunlit/check-no-sun.json": "686ccfcf77199cd3d5e76a1316c0d1c9960eb1cbce2fa154b7fda6c590b9a2d3",
+    "img/diagnostics/materials/hair-sunlit/bake.txt": "ba3fc1a4a5686ee2ebbd0bffbcf00a32f20b2d977f47505f222292fc733c5d60",
+    "img/diagnostics/materials/hair-sunlit/low-sun.json": "ca6e0c6f17254b431da0e11535feaac3f6fb427a27af9a7f678133cb7c4ee4d4",
+    "img/diagnostics/materials/hair-sunlit/runtime-configure.txt": "dd3ab89c9290a253a354da1eee39fb00e359f50bb63e381b29403d42291bd132",
+    "img/diagnostics/materials/hair-sunlit/straight-sunlit-import.json": "57c47d3cc11def66c4adfe1e0419f12b0aa5811cab2b69b874704e88cd968c84",
+    "img/diagnostics/materials/hair-sunlit/wavy-metal.json": "b88c1afc2b53cadc6928b93bf8f814b9a4e2fb4c033d53ff0059cd035d74a7c7",
+    "img/diagnostics/materials/hair-sunlit/straight-filtered.json": "0cb67329a1a7a493c185d48774c4e940b53c4c229fed8c57e3ef938e87424901",
+    "img/diagnostics/materials/hair-sunlit/check-vulkan.txt": "971df6fbaa3990078e7627a60e1d9c91ffd28eb68521f03603c2e4a37a870250",
+    "img/diagnostics/materials/hair-sunlit/wavy-sunlit-import.json": "6c6c1ef0abae580123cef3332773ae1d4adc93b7a955deed3bd274ce8f5959d1",
+    "img/diagnostics/materials/hair-sunlit/straight-denoise.txt": "313701ce981c8aace59539b251ed345f6c0e93e5ced2efcd057f450a89ba2b04"
+  },
+  "limits": [
+    "Camera and all 50000-strand ribbon geometry retained; native curves not implemented",
+    "Sun and sky rotated/scaled together; hair roughness changed explicitly",
+    "Neutral diffuse head, not skin appearance verification",
+    "OIDN can smooth fine strands; checks use raw HDR",
+    "Vulkan via MoltenVK; no Khronos validation layer or new PBRT comparison"
+  ]
+}

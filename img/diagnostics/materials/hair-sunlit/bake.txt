@@ -1,0 +1,3 @@
+CPU PT: 0 unique meshes, 0 instances, 0 instanced triangles, 0 BLAS/TLAS nodes; 0 MiB geometry/BVH; build 1.417e-06 s
+GPU Metal compute BLAS/TLAS: 1 spp budget, 1 average spp, 0.0704351 s, 2048 rays
+GPU Metal compute BLAS/TLAS PT output: build/pt-hair-sunlit/low-sun.png / .pfm / .json

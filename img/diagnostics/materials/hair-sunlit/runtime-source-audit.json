@@ -1,0 +1,17 @@
+{
+  "snapshot_phase": "Before compilation; source tree changed concurrently. The snapshot is not guaranteed to match compiled sources.",
+  "changed_since_snapshot": [
+    "CMakeLists.txt",
+    "src/PT/GpuPathTracer.cpp",
+    "src/PT/CpuPathTracer.cpp",
+    "src/PT/CpuPathTracingEntry.cpp",
+    "include/renderer/rhi/GpuClouds.h",
+    "include/renderer/rhi/WeatherLighting.h",
+    "include/PT/SceneIdentity.h",
+    "include/PT/CpuPathTracer.h",
+    "src/rhi/shaders/cloud-ground-shadow.comp",
+    "src/rhi/shaders/cloud-panorama.comp",
+    "src/rhi/shaders/cloud-intersection.glsl"
+  ],
+  "render_runtime": "Private executable and compiled shader bytes are frozen independently."
+}
