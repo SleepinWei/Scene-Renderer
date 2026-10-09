@@ -1,0 +1,13 @@
+Test project /Users/octopusz/Documents/Unreal Projects/SceneRenderer/build
+    Start 19: engine-environment
+1/4 Test #19: engine-environment ...............   Passed    0.03 sec
+    Start 21: engine-render-graph
+2/4 Test #21: engine-render-graph ..............   Passed    0.02 sec
+    Start 23: rhi-contract
+3/4 Test #23: rhi-contract .....................   Passed    0.01 sec
+    Start 24: rhi-graphics-contract
+4/4 Test #24: rhi-graphics-contract ............   Passed    0.01 sec
+
+100% tests passed out of 4
+
+Total Test time (real) =   0.08 sec

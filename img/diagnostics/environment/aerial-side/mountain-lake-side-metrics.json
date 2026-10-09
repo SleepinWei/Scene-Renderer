@@ -1,0 +1,120 @@
+{
+  "mountain-lake-side-combined": {
+    "aerial_distance_scale": 2.0,
+    "aerial_perspective": true,
+    "aerial_range_m": 32000.0,
+    "aerial_shadows": true,
+    "aerial_start_m": 100.0,
+    "cloud_shadow_bakes": 3,
+    "cloud_shadows": true,
+    "coverage": 0.550000011920929,
+    "dry_extinction_per_m": 1.4999999621068127e-05,
+    "fog": true,
+    "fog_height_m": 180.0,
+    "frames": 16,
+    "gpu_ms_samples": [
+      49.41058321855962,
+      48.13562496565282,
+      50.637708278372884,
+      44.9070418253541,
+      44.55825011245906,
+      46.74916644580662,
+      46.97549995034933,
+      46.294541796669364,
+      45.34062510356307,
+      45.636249938979745,
+      45.38445849902928,
+      46.73704179003835
+    ],
+    "ground_shadow_strength": 0.30000001192092896,
+    "rain_extinction_per_m": 4.999999873689376e-05,
+    "rain_mm_per_hour": 50,
+    "scope": "fixed-time main render submission; excludes separately submitted atmosphere/shadow/FFT, presentation and CPU collection",
+    "time_seconds": 8.0
+  },
+  "mountain-lake-side-no-volume-shadow": {
+    "aerial_distance_scale": 2.0,
+    "aerial_perspective": true,
+    "aerial_range_m": 32000.0,
+    "aerial_shadows": false,
+    "aerial_start_m": 100.0,
+    "cloud_shadow_bakes": 1,
+    "cloud_shadows": true,
+    "coverage": 0.550000011920929,
+    "dry_extinction_per_m": 1.4999999621068127e-05,
+    "fog": false,
+    "fog_height_m": 180.0,
+    "frames": 16,
+    "gpu_ms_samples": [
+      52.68695834092796,
+      54.59645832888782,
+      53.151791682466865,
+      52.98695852980018,
+      45.552708208560944,
+      45.52725004032254,
+      45.840749982744455,
+      47.81604162417352,
+      47.34866670332849,
+      51.27529171295464,
+      48.24987519532442,
+      46.01291683502495
+    ],
+    "ground_shadow_strength": 0.30000001192092896,
+    "rain_extinction_per_m": 4.999999873689376e-05,
+    "rain_mm_per_hour": 50,
+    "scope": "fixed-time main render submission; excludes separately submitted atmosphere/shadow/FFT, presentation and CPU collection",
+    "time_seconds": 8.0
+  },
+  "mountain-lake-side-rays": {
+    "aerial_distance_scale": 2.0,
+    "aerial_perspective": true,
+    "aerial_range_m": 32000.0,
+    "aerial_shadows": true,
+    "aerial_start_m": 100.0,
+    "cloud_shadow_bakes": 2,
+    "cloud_shadows": true,
+    "coverage": 0.550000011920929,
+    "dry_extinction_per_m": 1.4999999621068127e-05,
+    "fog": false,
+    "fog_height_m": 180.0,
+    "frames": 16,
+    "gpu_ms_samples": [
+      46.42749996855855,
+      45.70041666738689,
+      47.663000179454684,
+      48.42312494292855,
+      47.01612517237663,
+      44.69462507404387,
+      46.7654166277498,
+      47.11137479171157,
+      44.48787518776953,
+      45.8795833401382,
+      44.66033331118524,
+      47.864291816949844
+    ],
+    "ground_shadow_strength": 0.30000001192092896,
+    "rain_extinction_per_m": 4.999999873689376e-05,
+    "rain_mm_per_hour": 50,
+    "scope": "fixed-time main render submission; excludes separately submitted atmosphere/shadow/FFT, presentation and CPU collection",
+    "time_seconds": 8.0
+  },
+  "view": {
+    "camera_position_m": [
+      -2600.0,
+      800.0,
+      2600.0
+    ],
+    "shadow_distance_m": 8000.0,
+    "towards_sun": [
+      0.6518058776855469,
+      0.34155142307281494,
+      0.6771202087402344
+    ],
+    "view_direction": [
+      0.7061377167701721,
+      0.052335966378450394,
+      -0.7061377167701721
+    ],
+    "view_sun_angle_degrees": 90.0
+  }
+}

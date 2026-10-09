@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-09",
+  "git_head": "7b383f0bd1aad311e49cdc038631c1925e6dbc43",
+  "shared_worktree": true,
+  "scope": "Aerial-side visual tuning, ground shadow strength, CSM/cloud air occlusion, local SkyView solar-loss correction. Existing shared checkout changes are not all attributable to this package.",
+  "sources_sha256": {
+    "include/renderer/rhi/WeatherLighting.h": "2a5e104cc66eb64552f7c39d18a10386560c54171488668b1f83c485e3e3afa9",
+    "include/renderer/rhi/ShadowRenderer.h": "23e7351ee3eb41e1330d92fb1bb741fd4b91ac7f69cc1454f277a4a3db8497c8",
+    "include/renderer/rhi/GpuAirFog.h": "cd003ab543a3744c73942d48ab0e794b3c62b87b7297cb1f614617a1547c5f97",
+    "include/renderer/rhi/OceanSurface.h": "3fd54f108dc6e1af094eaff3810cff452a17bd76746dbf859b9348c73ae6f3be",
+    "include/GUI.h": "9e80ddc47cd36934a5e9bdab864f98493906f52b44b03c77f00c2012185b3f3d",
+    "src/renderer/rhi/WeatherLighting.cpp": "614701b20bfcd9bfd89a5984f035b71a5d383ac4a51b9de05d51635f31a2dc51",
+    "src/renderer/rhi/ShadowRenderer.cpp": "0cfa9c1a4a6a039f290e4cf1945fadeac2862214ae48fd8e05b4523246605604",
+    "src/renderer/rhi/GpuAirFog.cpp": "999a9d63433e3f13904e2fa0277721bbeef5ea03a11bce98b3c7f701ef620dc1",
+    "src/renderer/rhi/OceanSurface.cpp": "fc8c7b4ca7ed5ef95ba59ec862c81d1bd2560c428245fbe04ff6f9989819df22",
+    "src/renderer/rhi/ForwardPbrRenderer.cpp": "37bb07bc1e0fcb79033521e0cd61fb29a4d76ee27441265c67ac79ee8166e591",
+    "src/renderer/rhi/ClassicScenes.cpp": "fa06ab68d49e812acf0ce7a05bab9265f51a56a0a1c7532624795674735093fd",
+    "src/renderer/rhi/FeatureGallery.cpp": "cba5fee405d1301632a153776ded05aabe08c563a6d0e0ff892e53f2b3b3e9ae",
+    "src/renderer/rhi/WeatherLightingValidation.cpp": "1485b7dd4ccef8e5e4ce8047a7260b29a24cb32d396b10788df2368478371988",
+    "src/rhi/shaders/shadow-data.glsl": "e957e5436cf9be9f88c3fa65d28bf36ddb103e3ab813797ca3656010073c2ff2",
+    "src/rhi/shaders/shadow-visibility.glsl": "6404c2c88f8e649fe25b7407e24a637c99b15e7d3a9e1dbe0767098eabb4df96",
+    "src/rhi/shaders/aerial-parameters.glsl": "d23d36ddf9d84ac385866a6ebfbdfbe181ceb9397ed3da2002f5d1e7b0143316",
+    "src/rhi/shaders/aerial-integrate.glsl": "80115f1310aaf9efd697c377994b6406bafd4ea6883523143248f42ddf5f2b2e",
+    "src/rhi/shaders/aerial-shadow.glsl": "a3a09f107ec60ec282ee263c0a547d66f5a59f69f79085e2779272f1f85ffdab",
+    "src/rhi/shaders/aerial-perspective.comp": "22b1b6d873936b8548c629846e60bec5b00e688d0f4d69902924743f81f8d2c7",
+    "src/rhi/shaders/air-fog.frag": "877936286043bb10ac8db6e2be96248c7b84158b9acd8cfaf0c2207c2f81efcc",
+    "src/rhi/shaders/water-air-atmosphere.comp": "11e62446a01128cdfae63cc18c1ee7750af7b3e3d81909ca5a9c3cf9959625f9"
+  },
+  "binary_sha256": "d7f00d1e7cf2e407ff5dc2c8f65a02de49f6e22221dd87497299a6d6c9234809",
+  "commands": [
+    "MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 SCENERENDERER_WEATHER_VALIDATION_DIR=build/environment/aerial-side/metal-final ./build/Scene-Renderer --weather-lighting-self-test --backend Metal",
+    "MTL_DEBUG_LAYER=0 MTL_SHADER_VALIDATION=0 SCENERENDERER_WEATHER_VALIDATION_DIR=build/environment/aerial-side/vulkan-final ./build/Scene-Renderer --weather-lighting-self-test --backend Vulkan",
+    "./build/Scene-Renderer --render-gallery build/environment/aerial-side/gallery-metal-20deg aerial-side-light --backend Metal"
+  ],
+  "verification_notes": [
+    "Metal shader validation passed on the identical final shader set before the last default-only height-fog/sun-preview tuning; final tuned binary passed the actual Metal side-light gallery and full Vulkan fixtures. An additional API-only Metal run was stopped while waiting for existing PT compute-pipeline compilation, before the aerial fixtures; this is not recorded as a pass.",
+    "Vulkan uses MoltenVK on Apple M4; Khronos validation layer unavailable.",
+    "Gallery and validation GPU runs overlapped in earlier iterations. These stage intervals are diagnostic only, with no performance acceptance."
+  ],
+  "artifacts_sha256": {
+    "comparison.png": "c46ceb3cf53c56d4fe3bb9465033c07d0bf18410318a8033fa22f7680fb0d49a",
+    "cpu-validation.log": "5faa104d72a2ff520e081f877f11215ffec72b34204ab677ab5b3c4758c5d9ff",
+    "gallery-metal.log": "bc46baf0b477f38364a435ee4130c189861e4c4e0464175aefb92c85e1f99e22",
+    "metal/validation.json": "003507673f24d3fcefd07993961fe13b817c71f395490eb90b920d47e1af6ea3",
+    "metal-shader-validation.log": "da6bdacd5543807e7787615cf640dfca056410807b714727c4460882f5532bef",
+    "metal-validation.log": "da6bdacd5543807e7787615cf640dfca056410807b714727c4460882f5532bef",
+    "mountain-lake-side-combined.png": "065efd1ecb8e5e61668dbd8f17f58c7b2f1691b272147e318ccb18aa87235608",
+    "mountain-lake-side-metrics.json": "0635809c6138a7d2193cb343cd8d21ae44ea6bdcc676b4ab7d9081e503acade5",
+    "mountain-lake-side-no-volume-shadow.png": "51edd790f32eadc20a1f50305bcd77bd92c297661e19d2ff6d7d763317836261",
+    "mountain-lake-side-rays.png": "86358e48e76c1c24054b6286c0684840566d5cf841d7e1870176a5bf34624517",
+    "solar-shadow-difference-x16.png": "ec489260de1a5aa64a0876cfac3e15121d98d5ab5ef873aa0aabb2d6db069dff",
+    "summary.json": "3081d5ec4b1de7cc29f5b7cbea595138c8b99e518733b25d3d3894a8c0abf910",
+    "verification-note.txt": "152fa07d1f790ac7a46e2b0f767811317452baaae11947d9508ea2cdad7b7e61",
+    "vulkan/validation.json": "7e63a64a487c57d8412f09950c4982d4b1544023fb1952c9ebb6315dcd8768d5",
+    "vulkan-validation.log": "f587d46a075e9350ca133926e5334bfd132fa1ee0036a7a3bb9ba2a931985434"
+  }
+}

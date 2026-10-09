@@ -106,6 +106,19 @@ Mountain Lake demonstrates an 8×8 km landscape with height/material VT paging, 
 | --- | --- |
 | ![Metal lakeside vegetation](img/metal/mountain-lake-ground.png) | ![Metal lakeside beach](img/metal/mountain-lake-beach.png) |
 
+The current development capture strengthens atmospheric aerial perspective while reducing the fixed-colour ground fog and ground cloud shadows. Ground shadow strength is **30%**, aerial optical distance scale is **2**, and mountain shadow coverage is **8 km**. Mountain/cloud solar occlusion modulates scattered sunlight, including a local sky correction. The view below is **90.0° perpendicular to the sun direction**, with the sun at about **20°** elevation; side lighting produces broad air-shadow bands and softer shafts. **Metal, 960×540, fixed simulation time, RSM off.** [Controls, validation, capture provenance and limitations](docs/mountain-lake-side-light.md).
+
+![Mountain Lake: 90-degree sun side lighting and weaker ground fog](img/diagnostics/environment/aerial-side/mountain-lake-side-combined.png)
+
+<details>
+<summary>Aerial sunlight: occlusion off / on / on with weaker ground fog</summary>
+
+![Matched 90-degree views with atmospheric sunlight occlusion off, on, and on with weaker ground fog](img/diagnostics/environment/aerial-side/comparison.png)
+
+The camera, sun and exposure stay fixed across all three views. The centre view adds atmospheric solar occlusion; the right view also adds the weaker height fog. Narrow shafts, off-screen terrain casters and moving views still need further work; this capture is not a 60 fps claim.
+
+</details>
+
 ### Virtual textures and soft shadows
 
 Height/material VT uses physical page caches, page tables, ancestor fallback, and GPU depth feedback. Five-level CSM allocates shadow precision across viewing distances; PCSS estimates penumbra growth with blocker separation.

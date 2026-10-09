@@ -1,0 +1,102 @@
+{
+  "view": {
+    "camera_position_m": [
+      -2600.0,
+      800.0,
+      2600.0
+    ],
+    "shadow_distance_m": 8000.0,
+    "towards_sun": [
+      0.6518058776855469,
+      0.34155142307281494,
+      0.6771202087402344
+    ],
+    "view_direction": [
+      0.7061377167701721,
+      0.052335966378450394,
+      -0.7061377167701721
+    ],
+    "view_sun_angle_degrees": 90.0
+  },
+  "ground_cloud_shadow_strength": 0.3,
+  "aerial_distance_scale": 2,
+  "dry_extinction_per_m": 1.5e-05,
+  "rain_extinction_per_m": 5e-05,
+  "cloud_coverage": 0.55,
+  "exposure": 2.4,
+  "physical_air_steps": 32,
+  "aerial_volume_size": [
+    32,
+    32,
+    32
+  ],
+  "aerial_storage_KiB": 768,
+  "rsm": false,
+  "comparison": {
+    "mean_absolute_rgb_8bit": 1.0009831532921811,
+    "pixels_changed": 339854,
+    "pixels_darkened_by_at_least_2_rgb_levels": 64611,
+    "scope": "Static display-image ablation. A few positive differences can arise from water/terrain/temporal interpolation; not a direct radiometric equality or a performance acceptance."
+  },
+  "limitations": [
+    "Side-on 90-degree view produces broad air-shadow bands rather than strong forward Mie glare.",
+    "CSM coverage and camera-generated terrain caster coverage limit shadowed air.",
+    "Water sky fallback lacks the new local sky occlusion correction.",
+    "No 60 fps acceptance; current LUT and 32 steps target broad shafts."
+  ],
+  "validation": {
+    "metal": {
+      "aerial_geometry_pixels": 36144,
+      "aerial_height_fog_max_absolute_error": 0.00047066807746887207,
+      "aerial_quadrature_relative_l1": 0.00032595466567915046,
+      "aerial_shadow_radiance_reduction_l1": 25.669995427131653,
+      "aerial_shadowed_froxels": 30720,
+      "aerial_shadowed_sky_pixels": 26118,
+      "aerial_sky_unchanged_pixels": 26414,
+      "aerial_sunset_scattering_difference_l1": 236.6790418624878,
+      "aerial_transmission_max_absolute_error": 0.0004631778862759228,
+      "backend": "Metal",
+      "cloud_shadow_max": 1.0,
+      "cloud_shadow_min": 0.3779296875,
+      "darkened_ground_pixels": 7960,
+      "fog_compared_pixels": 50386,
+      "fog_max_absolute_error": 0.0005123913288116455,
+      "ground_cloud_strength_max_error": 5.798041820526123e-05,
+      "panorama_difference_l1": 77.26378158251555,
+      "pt_relative_l1": 1.0055509477229714e-07,
+      "scope": "P1 approximate: fixed cloud panorama and below-cloud solar field; fog/precipitation media excluded from PT",
+      "shadow_beer_max_absolute_error": 0.0004354583524833755,
+      "water_aerial_max_absolute_error": 5.263120314398517e-05,
+      "water_aerial_reference_pixels": 522,
+      "water_air_compared_pixels": 1120,
+      "water_air_max_absolute_error": 0.0001220405101776123
+    },
+    "vulkan": {
+      "aerial_geometry_pixels": 36144,
+      "aerial_height_fog_max_absolute_error": 0.0004844963550567627,
+      "aerial_quadrature_relative_l1": 0.00033296387033348223,
+      "aerial_shadow_radiance_reduction_l1": 25.670172452926636,
+      "aerial_shadowed_froxels": 30720,
+      "aerial_shadowed_sky_pixels": 26118,
+      "aerial_sky_unchanged_pixels": 26414,
+      "aerial_sunset_scattering_difference_l1": 236.67863535881042,
+      "aerial_transmission_max_absolute_error": 0.0004631778862759228,
+      "backend": "Vulkan",
+      "cloud_shadow_max": 1.0,
+      "cloud_shadow_min": 0.3779296875,
+      "darkened_ground_pixels": 7960,
+      "fog_compared_pixels": 50386,
+      "fog_max_absolute_error": 0.0005123913288116455,
+      "ground_cloud_strength_max_error": 5.798041820526123e-05,
+      "panorama_difference_l1": 77.26371358530105,
+      "pt_relative_l1": 1.0055509477229714e-07,
+      "scope": "P1 approximate: fixed cloud panorama and below-cloud solar field; fog/precipitation media excluded from PT",
+      "shadow_beer_max_absolute_error": 0.0004354583524833755,
+      "water_aerial_max_absolute_error": 5.263120314398517e-05,
+      "water_aerial_reference_pixels": 522,
+      "water_air_compared_pixels": 1120,
+      "water_air_max_absolute_error": 0.0001220405101776123
+    },
+    "cpu_contracts_passed": 4
+  }
+}

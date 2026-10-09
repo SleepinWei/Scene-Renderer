@@ -104,6 +104,19 @@ Mountain Lake 展示 8×8 km 山湖地形：高度与材质 VT 分页、LOD、FF
 | --- | --- |
 | ![Metal 湖岸植被](img/metal/mountain-lake-ground.png) | ![Metal 湖岸沙滩](img/metal/mountain-lake-beach.png) |
 
+本次开发版实景加强大气空中透视，并减弱固定颜色的近地雾与地面云影：地面云影强度 **30%**，aerial 光学距离缩放 **2**，山体阴影范围 **8 公里**。山体／云对太阳的遮挡参与空气散射，并修正天空中的局部太阳贡献。下图视线与太阳方向夹角为 **90.0°**，太阳高度约 **20°**；侧光表现为较宽的空气阴影带和柔和光束。**Metal、960×540、固定模拟时间、RSM 关闭。** [控制项、验证、捕获来源与限制](docs/mountain-lake-side-light.md)。
+
+![山湖 90° 太阳侧光与较弱近地雾](img/diagnostics/environment/aerial-side/mountain-lake-side-combined.png)
+
+<details>
+<summary>空气太阳遮蔽：关闭／开启／开启并叠加较弱近地雾</summary>
+
+![相同 90° 视角下的空气太阳遮蔽对照](img/diagnostics/environment/aerial-side/comparison.png)
+
+三组保持相机、太阳和曝光不变。中间加入空气太阳遮蔽，右侧进一步加入减弱后的高度雾。窄光束、视锥外山体遮挡和运动序列仍需后续完善；此图不代表已达到 60 fps。
+
+</details>
+
 ### Virtual Texture 与软阴影
 
 高度／材质 VT 使用物理页缓存、页表、祖先回退与 GPU 深度反馈；五级 CSM 分配近远阴影精度，PCSS 估计随遮挡物距离变化的半影。

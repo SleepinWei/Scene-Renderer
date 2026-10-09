@@ -1,0 +1,7 @@
+Metal shader/API full fixture passed on the identical final shader set before default-only tuning.
+Final executable completed the Metal 90-degree gallery and Vulkan full weather fixtures.
+An extra Metal API-only verification was stopped after >3 minutes in existing PT pipeline compilation.
+Sampled stack: validateWeatherLighting -> pt::renderGpu -> Kernel::prepareStep -> MetalDevice::createComputePipelineImpl -> MTLCompiler XPC wait.
+The stopped run is not counted as passed.
+CPU environment/render-graph/RHI contracts: 4/4 passed.
+No frame-rate acceptance is claimed.
