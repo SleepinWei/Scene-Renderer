@@ -47,6 +47,8 @@
 | [PT 功能与系统优化计划](path-tracing-improvement-plan.md) | 薄玻璃／多通道材质、BLAS/TLAS、原生 RT、外观与体积焦散的完成标准 |
 | [PT 外观与加速计划](path-tracing-appearance-plan.md) | 阶段验收、原生 RT、体积 BDPT／VCM／SMS 与非均匀材质 |
 | [CPU 路径追踪](path-tracing-cpu.md) | 实时场景转换、材质、采样与输出验证 |
+| [日光／夕阳绒毛与针织精修](path-tracing-grooms-sunlight.md) | 72,000 根 Bunny 绒毛、细密针目与三股纱线、实时晴空／夕阳照明、768×768 高采样图与后端检查 |
+| [纱线级针织数据与毛衣材质](path-tracing-knitted-yarn.md) | YarnSim 周期控制点连接、蜂窝针织几何、方向纱线反光、夕阳毛衣与三股纱线近景 |
 | [OIDN 路径追踪降噪](path-tracing-denoising.md) | 现成 HDR denoiser、辅助 AOV、设备选择与离线处理 |
 | [收敛优化与 BDPT 焦散](path-tracing-convergence.md) | GPU Guiding、Radiance Cache、平滑玻璃、CPU BDPT 与误差对照 |
 | [Photon mapping 与池底焦散](path-tracing-photon-mapping.md) | CPU／Metal／Vulkan 共享光子、解析水体对照、混合透明 any-hit 与 GPU batch |

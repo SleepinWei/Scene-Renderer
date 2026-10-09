@@ -1,0 +1,15 @@
+{
+  "identical": true,
+  "sha256": {
+    "build/pt-knit/swatch/groom.json": "07287db0691145f573b16730b05779586e615f3aa73e11d879a7cbe958f7fa78",
+    "build/pt-knit/swatch/scene.json": "1b71f10de7a87930e31e8648caefbeac32b818f818c52e61d0bdccf2e5cac075",
+    "build/pt-knit/swatch/geometry.bin": "08f4c3acdc9252f74f22def51ddf1bbe1f46ae5a80dd2c2511d363e6a1fbc710",
+    "build/pt-knit/swatch/tangents.bin": "30952873d796b45c9e3c7f5a7103667cc08be51b04b80ff26fdef8c3610d4434",
+    "build/pt-knit/swatch/environment.bin": "c971fcbcc5c96a089e362a43963c99eb54f479ce081faabe686044ba57be7f57",
+    "build/pt-knit/sweater/groom.json": "772cea72668a46c6477b71a806dc9887bd91e6bdc9bff2c2f020d8b6c508545f",
+    "build/pt-knit/sweater/scene.json": "34d3ebb9551179cd126b35ccb26e081f275c70291e207580bb058402e61744af",
+    "build/pt-knit/sweater/geometry.bin": "cb8feb80175a55603f21af6e2ed40b4ae194e6d9898a207afbdb52ff664619bb",
+    "build/pt-knit/sweater/tangents.bin": "55a1341c701a886442547027ae752c0b84156d408a47e10c819c66b90f193ccc",
+    "build/pt-knit/sweater/environment.bin": "c971fcbcc5c96a089e362a43963c99eb54f479ce081faabe686044ba57be7f57"
+  }
+}

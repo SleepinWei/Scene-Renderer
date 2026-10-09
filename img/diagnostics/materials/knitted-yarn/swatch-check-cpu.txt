@@ -1,0 +1,4 @@
+CPU PT: 3 unique meshes, 3 instances, 1103874 instanced triangles, 380590 BLAS/TLAS nodes; 185.324 MiB geometry/BVH; build 0.312547 s
+CPU PT 4 spp budget, 4 average spp, 0.0920627 s, 332211 rays, 6 workers
+CPU PT 16 spp budget, 16 average spp, 0.354007 s, 1278068 rays, 6 workers
+CPU PT 64 spp budget, 64 average spp, 1.36742 s, 5064550 rays, 6 workers

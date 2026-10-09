@@ -1,0 +1,7 @@
+CPU PT: 3 unique meshes, 3 instances, 789453 instanced triangles, 268912 BLAS/TLAS nodes; 133.999 MiB geometry/BVH; build 0.229298 s
+GPU Metal compute BLAS/TLAS: 4 spp budget, 4 average spp, 0.517236 s, 9436764 rays
+GPU Metal compute BLAS/TLAS: 16 spp budget, 16 average spp, 1.69013 s, 35973113 rays
+GPU Metal compute BLAS/TLAS: 272 spp budget, 272 average spp, 26.4998 s, 602088087 rays
+GPU Metal compute BLAS/TLAS: 528 spp budget, 528 average spp, 51.5101 s, 1168246068 rays
+GPU Metal compute BLAS/TLAS: 784 spp budget, 784 average spp, 76.6731 s, 1734425212 rays
+GPU Metal compute BLAS/TLAS: 1024 spp budget, 1024 average spp, 100.586 s, 2265197851 rays

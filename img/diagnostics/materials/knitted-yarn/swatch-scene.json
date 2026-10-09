@@ -1,0 +1,212 @@
+{
+  "format": "SceneRenderer.PT.v1",
+  "geometry": "geometry.bin",
+  "tangents": "tangents.bin",
+  "materials": [
+    {
+      "metallic": 0,
+      "bsdf_model": "yarn",
+      "base_color": [
+        0.78,
+        0.67,
+        0.52
+      ],
+      "roughness": 0.65,
+      "sheen_weight": 0.18,
+      "sheen_roughness": 0.8,
+      "sheen_color": [
+        0.95,
+        0.88,
+        0.75
+      ],
+      "cloth_transmission": 0.03,
+      "yarn_specular_weight": 0.25,
+      "two_sided": true
+    },
+    {
+      "metallic": 0,
+      "bsdf_model": "hair",
+      "base_color": [
+        1,
+        1,
+        1
+      ],
+      "absorption": [
+        0.16,
+        0.28,
+        0.48
+      ],
+      "hair_beta_m": 0.4,
+      "hair_beta_n": 0.45,
+      "two_sided": true
+    },
+    {
+      "metallic": 0,
+      "base_color": [
+        0.32,
+        0.3,
+        0.25
+      ],
+      "roughness": 0.85
+    }
+  ],
+  "draws": [
+    {
+      "offset": 8,
+      "vertices": 3119616,
+      "tangents_offset": 8,
+      "material": 0,
+      "model": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "offset": 99827720,
+      "vertices": 192000,
+      "tangents_offset": 49913864,
+      "material": 1,
+      "model": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "offset": 105971720,
+      "vertices": 6,
+      "tangents_offset": 52985864,
+      "material": 2,
+      "model": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1
+      ]
+    }
+  ],
+  "camera": {
+    "world": [
+      0.9503090278020869,
+      0.0,
+      -0.3113081297972354,
+      0,
+      -0.015283561199210522,
+      0.9987941310010391,
+      -0.04665508155548475,
+      0,
+      0.3109327329743884,
+      0.049094642048587614,
+      0.9491630796060277,
+      0,
+      0.95,
+      1.2,
+      2.9,
+      1
+    ],
+    "projection": [
+      3.7320508075688776,
+      0,
+      0,
+      0,
+      0,
+      3.7320508075688776,
+      0,
+      0,
+      0,
+      0,
+      -1.0006001800540163,
+      -1,
+      0,
+      0,
+      -0.060018005401620486,
+      0
+    ],
+    "aspect": 1
+  },
+  "environment": {
+    "file": "environment.bin",
+    "width": 512,
+    "height": 256
+  },
+  "source": {
+    "dataset": "Interactive Design of Periodic Yarn-Level Cloth Patterns (2018)",
+    "url": "https://graphics.stanford.edu/projects/yarnsim/",
+    "member": "dataset/knitpatterns/datafiles/slip_stitch_honeycomb_1.225.txt",
+    "data_sha256": "9e888ddfd8b471561233c6823c246c2e9cefab12323ad45419c5a6833f7d9e12",
+    "control_yarns": 8,
+    "interpolation": "periodic control-chain joins followed by uniform cubic B-spline, 8 subdivisions",
+    "cell_period": [
+      15.0,
+      20.0
+    ],
+    "closure": "Oren-Nayar, bounded sheen, anisotropic dielectric yarn reflection, thin diffuse transmission; hair nap",
+    "dataset_redistributed": false,
+    "name": "YarnSim honeycomb knitted cloth at sunset",
+    "cells": 15,
+    "connected_yarns": 32,
+    "geometric_plies": 3,
+    "fuzz_strands": 16000,
+    "groom": "groom.json",
+    "lighting": {
+      "yaw_degrees": 80,
+      "light_scale": 1.2,
+      "sky_sha256": "af2e7afff3f453b1538ba61aaf329567b693d74456db6ef090304bc51ebd179f",
+      "solar_sha256": "9efa60e6642c71d8c783af291b4abbf551496c90f7c2e4b01f30e57992af4ef0",
+      "source": "Realtime clouds-sunset: 5 degree sun, frozen HDR clouds; projected cloud-shadow field not applied"
+    }
+  },
+  "sun": {
+    "direction": [
+      0.9810602706029936,
+      0.08715573698282242,
+      0.17298739585023173
+    ],
+    "irradiance": [
+      13.06870765686035,
+      6.001653099060058,
+      1.5338873863220215
+    ],
+    "radius": 0.004999999888241291
+  },
+  "exposure": 0.7
+}

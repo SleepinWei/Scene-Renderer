@@ -1,0 +1,13 @@
+Test project /Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/pt-knit/runtime
+    Start 2: pt-cpu
+1/4 Test #2: pt-cpu ...........................   Passed    1.78 sec
+    Start 3: pt-groom
+2/4 Test #3: pt-groom .........................   Passed    1.80 sec
+    Start 4: pt-knit-patterns
+3/4 Test #4: pt-knit-patterns .................   Passed    0.05 sec
+    Start 6: pt-scene-package
+4/4 Test #6: pt-scene-package .................   Passed    0.01 sec
+
+100% tests passed out of 4
+
+Total Test time (real) =   3.64 sec

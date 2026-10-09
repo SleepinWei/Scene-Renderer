@@ -1,0 +1,10 @@
+{
+  "denoise_auxiliary": true,
+  "denoise_device": "CPU",
+  "denoise_seconds": 1.004290416,
+  "denoiser": "Open Image Denoise 2.5.1",
+  "exposure": 0.699999988079071,
+  "height": 768,
+  "input": "build/pt-grooms-sunset/bunny/metal.pfm",
+  "width": 768
+}

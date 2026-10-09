@@ -1,0 +1,10 @@
+{
+  "denoise_auxiliary": true,
+  "denoise_device": "CPU",
+  "denoise_seconds": 0.917113959,
+  "denoiser": "Open Image Denoise 2.5.1",
+  "exposure": 0.8500000238418579,
+  "height": 768,
+  "input": "build/pt-grooms-sunlit/sweater/metal.pfm",
+  "width": 768
+}

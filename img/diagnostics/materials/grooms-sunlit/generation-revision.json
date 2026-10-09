@@ -1,0 +1,45 @@
+{
+  "changed": {
+    "tools/create_pt_groom_fixtures.py": {
+      "initial_sha256": "556083830ec2a240317e0f62faeb6a6f7bb994ea78d8b0460494b0c240434e96",
+      "final_sha256": "40f7f2086be639cd0129627cff3724f472a3cd70c0f1098af4fd013b2ac15242"
+    },
+    "build/pt-grooms-sunlit/sweater/scene.json": {
+      "initial_sha256": "3929e95cec57ae4ca0e9320c885debf119b42dcecbcb2401f5859d38645657d1",
+      "final_sha256": "0e0edc3f6300290130f2e41b0205fa83696a7c9996c1783f963a97e489c5acfc"
+    },
+    "build/pt-grooms-sunlit/sweater/geometry.bin": {
+      "initial_sha256": "1cd8b52523cf8f55ec4551ae7e1cd9fb4d647c5c2b853c565f1e595e1faa3a9e",
+      "final_sha256": "08a2df703d34785625e993dfd8dd072ee97267ab5fe5d986c20cd1ac4f43e5c6"
+    },
+    "build/pt-grooms-sunlit/sweater/tangents.bin": {
+      "initial_sha256": "29876ac774e25505d03c844367ebf2971130e7dd2bc4024a8754198684458336",
+      "final_sha256": "52458aca13332dd47726393c01b51033e56daca62e91e946106745f62113be68"
+    },
+    "build/pt-grooms-sunlit/sweater/groom.json": {
+      "initial_sha256": "10428c13bdce9858e806b533f45477562163662100eba561893462fede975cc7",
+      "final_sha256": "a32166263394222e22eeee72982274cce1df02508884b37aa490301e572d8da9"
+    },
+    "tools/create_pt_groom_sunlit.py": {
+      "initial_sha256": "b2d47f6f6203f2e5cf24c8de2c6b932c82cc5a6a3acd790ba338bf22cddb53b0",
+      "final_sha256": "91160fdc09cb68cbc0680df9580bf663d5b0cc54838651ef0724af7966f80700"
+    },
+    "build/pt-grooms-sunlit/yarn/scene.json": {
+      "initial_sha256": "8c0a6cbffba9a8e9ec7c05169d4400c5c849d24ca648780e2abee17a0a0a15ed",
+      "final_sha256": "a966ed8e29b65dc8b4d909e1ca79146efe748c08b9a7b06d785f01a2df663f51"
+    },
+    "build/pt-grooms-sunlit/yarn/geometry.bin": {
+      "initial_sha256": "787a0d2f4115f57e62a4b21548193a24e516c7e85885e95364f888e827badd4c",
+      "final_sha256": "7222326ccb437e27d6b5e4146943bc498599236315819dc6fe4164b12f18471a"
+    },
+    "build/pt-grooms-sunlit/yarn/tangents.bin": {
+      "initial_sha256": "eda7eca1679434aed23eba301ac0bc8640a7b69ce566c21c1fbe69400377859e",
+      "final_sha256": "14992634200881af457e87765049f67c21f656c27a36bbe4556b8f5cb756b1e3"
+    },
+    "build/pt-grooms-sunlit/yarn/groom.json": {
+      "initial_sha256": null,
+      "final_sha256": "825995732b57017c926e2378449a5534afde3b63285afead9035ff2d91995649"
+    }
+  },
+  "scope": "Sweater regenerated/rerendered for dense loops and yarn-surface nap; yarn regenerated/rerendered for three geometric plies and nap. Bunny scene inputs, private executable and all compiled shaders remain identical to the initial pre-render freeze. Final source-freeze retains final scene inputs and generator revision; earlier generator hashes retained here."
+}

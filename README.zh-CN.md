@@ -151,6 +151,18 @@ PCSS 对照依次为 PCF、默认太阳和放大光源；第三列用于展示�
 
 CPU／Metal／Vulkan 路径追踪支持多次反弹、纹理材质、折射和均匀介质随机游走；CPU BDPT 用于平滑玻璃焦散。程序化地形、植被与 FFT 水面可冻结为离线场景。
 
+绒毛与布料样例采用实时夕阳云天空捕获与 5° 低角度有限太阳照明。Stanford Bunny 使用 **72,000 根更细的短绒毛**；奶油色毛衣包含 **1,280 个真实正面纱线单元与 23,360 根细绒毛**，另有布料纱线近景。**Metal PT，768×768、1024 spp、12 次反弹，OIDN 展示图。** [照明、材质调整、未降噪图与验收](docs/path-tracing-grooms-sunlight.md#夕阳展示)。Bunny 数据来自 [Stanford University Computer Graphics Laboratory](https://graphics.stanford.edu/data/3Dscanrep/)。
+
+| 夕阳下的 Bunny 绒毛 | 夕阳下的针织毛衣 | 布料纱线近景 |
+| --- | --- | --- |
+| ![夕阳 Bunny 绒毛](img/path-tracing/bunny-fur-sunset.png) | ![夕阳针织毛衣](img/path-tracing/knit-sweater-sunset.png) | ![夕阳布料纱线](img/path-tracing/knit-yarn-sunset.png) |
+
+[YarnSim 纱线级针织样例](docs/path-tracing-knitted-yarn.md) 导入公开的松弛纱线控制点，连接周期 spline span，并增加 CPU／Metal／Vulkan 共用的**各向异性介质纱线反光**。毛衣正面包含 **280 个蜂窝周期单元**；独立样片包含**三股几何绕线和真实针目孔隙**。**Metal PT，768×768、1024 spp、12 次反弹、OIDN 展示，夕阳照明。** 袖子与服装接缝仍为程序化原型。数据来自 [Leaf 等，2018](https://graphics.stanford.edu/projects/yarnsim/)，原始资产未重新分发。
+
+| 毛衣正面蜂窝针织 | 三股纱线针织近景 |
+| --- | --- |
+| ![夕阳蜂窝针织毛衣](img/path-tracing/knitted-sweater-sunset.png) | ![夕阳三股纱线蜂窝针织](img/path-tracing/knitted-honeycomb-sunset.png) |
+
 这组头发展示采用圆形纤维散射与实时大气捕获的晴空照明。低角度天空和太阳一起旋转、增强到 10 倍源强度，并采用更窄的发丝高光，呈现暖色太阳反射；每套保留 **50,000 根发丝，Metal PT，512×512、1024 spp、12 次反弹，OIDN 展示图**。头部为中性漫反射材质。毛发来源：[Cem Yuksel](https://www.cemyuksel.com/research/hairmodels/)；头模由 **Murat Afshar** 提供。[照明、材质参数、原始图与验收](docs/path-tracing-hair-sunlight.md)。
 
 | 强日光中的直发 | 强日光中的波浪发 |

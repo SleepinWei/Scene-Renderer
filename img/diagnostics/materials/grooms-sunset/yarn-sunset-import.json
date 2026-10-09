@@ -1,0 +1,28 @@
+{
+  "source": "build/pt-grooms-sunlit/yarn",
+  "source_scene_sha256": "a966ed8e29b65dc8b4d909e1ca79146efe748c08b9a7b06d785f01a2df663f51",
+  "geometry_unchanged": true,
+  "tangents_unchanged": true,
+  "camera_unchanged": true,
+  "materials_unchanged": true,
+  "sun_elevation_degrees": 4.999999668437547,
+  "sun": {
+    "direction": [
+      0.9810602706029936,
+      0.08715573698282242,
+      0.17298739585023173
+    ],
+    "irradiance": [
+      13.06870765686035,
+      6.001653099060058,
+      1.5338873863220215
+    ],
+    "radius": 0.004999999888241291
+  },
+  "sky": {
+    "width": 512,
+    "height": 256,
+    "minimum": 5.245208740234375e-05,
+    "maximum": 9.0625
+  }
+}

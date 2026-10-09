@@ -1,0 +1,1 @@
+Open Image Denoise 2.5.1 (CPU, prefiltered albedo + normal): 0.99203 s

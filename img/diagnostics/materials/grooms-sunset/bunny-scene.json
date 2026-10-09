@@ -1,0 +1,198 @@
+{
+  "format": "SceneRenderer.PT.v1",
+  "geometry": "geometry.bin",
+  "tangents": "tangents.bin",
+  "materials": [
+    {
+      "metallic": 0,
+      "base_color": [
+        0.72,
+        0.69,
+        0.62
+      ],
+      "roughness": 0.9
+    },
+    {
+      "metallic": 0,
+      "bsdf_model": "hair",
+      "base_color": [
+        1,
+        1,
+        1
+      ],
+      "hair_beta_m": 0.32,
+      "hair_beta_n": 0.38,
+      "hair_tilt": 0.035,
+      "two_sided": true,
+      "absorption": [
+        0.08,
+        0.11,
+        0.18
+      ]
+    },
+    {
+      "metallic": 0,
+      "base_color": [
+        0.32,
+        0.3,
+        0.25
+      ],
+      "roughness": 0.85
+    }
+  ],
+  "draws": [
+    {
+      "offset": 8,
+      "vertices": 208353,
+      "tangents_offset": 8,
+      "material": 0,
+      "model": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "offset": 6667304,
+      "vertices": 2160000,
+      "tangents_offset": 3333656,
+      "material": 1,
+      "model": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "offset": 75787304,
+      "vertices": 6,
+      "tangents_offset": 37893656,
+      "material": 2,
+      "model": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1
+      ]
+    }
+  ],
+  "camera": {
+    "world": [
+      0.8768124086713189,
+      0.0,
+      -0.48083261120685233,
+      0,
+      -0.006799320101982993,
+      0.9999000149975004,
+      -0.012398760185968988,
+      0,
+      0.4807845351570189,
+      0.014140721622265243,
+      0.8767247405804462,
+      0,
+      3.4,
+      1.45,
+      6.2,
+      1
+    ],
+    "projection": [
+      3.4874144438409087,
+      0,
+      0,
+      0,
+      0,
+      3.4874144438409087,
+      0,
+      0,
+      0,
+      0,
+      -1.0006001800540163,
+      -1,
+      0,
+      0,
+      -0.060018005401620486,
+      0
+    ],
+    "aspect": 1
+  },
+  "environment": {
+    "file": "environment.bin",
+    "width": 512,
+    "height": 256
+  },
+  "source": {
+    "name": "Stanford Bunny short fur / refined sunset",
+    "strands": 72000,
+    "seed": 7,
+    "input": "samples/assets/bunny/bun_zipper.ply",
+    "input_sha256": "b1acc63bece78444aa2e15bdcc72371a201279b98c6f5d4b74c993d02f0566fe",
+    "source_url": "https://graphics.stanford.edu/data/3Dscanrep/",
+    "root_sampling": "triangle area CDF + sqrt barycentrics; reject underside of feet",
+    "length_range_world": [
+      0.021,
+      0.065
+    ],
+    "refined": true,
+    "description": "Static surface groom, shorter ear fur, tangential comb flow and tapered reference-camera ribbons.",
+    "groom": "groom.json",
+    "solar_relight": {
+      "yaw_degrees": 80,
+      "light_scale": 1.2,
+      "sky_sha256": "af2e7afff3f453b1538ba61aaf329567b693d74456db6ef090304bc51ebd179f",
+      "solar_sha256": "9efa60e6642c71d8c783af291b4abbf551496c90f7c2e4b01f30e57992af4ef0",
+      "source": "Realtime clouds-sunset: 5 degree sun, frozen HDR clouds; projected cloud-shadow field not applied"
+    }
+  },
+  "sun": {
+    "direction": [
+      0.9810602706029936,
+      0.08715573698282242,
+      0.17298739585023173
+    ],
+    "irradiance": [
+      13.06870765686035,
+      6.001653099060058,
+      1.5338873863220215
+    ],
+    "radius": 0.004999999888241291
+  },
+  "exposure": 0.7
+}

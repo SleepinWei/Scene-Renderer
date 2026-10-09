@@ -153,6 +153,18 @@ Open **Post processing** to enable individual effects or **Soft cinematic preset
 
 CPU/Metal/Vulkan path tracing supports multiple bounces, textured materials, refraction, and random walks in homogeneous media. CPU BDPT renders smooth-glass caustics. Procedural terrain, vegetation, and FFT water can be frozen into offline scenes. Unless marked as raw photon mapping, the images below use Open Image Denoise (OIDN).
 
+Refined fur and cloth examples use the captured realtime sunset sky with clouds and a 5° finite sun. Stanford Bunny now has **72,000 finer short fur strands**; the cream knit sweater has **1,280 explicit front yarn loops and 23,360 fine nap strands**, with a separate cloth-yarn near view. **Metal PT, 768×768, 1024 spp, 12 bounces, OIDN display.** [Lighting, material refinements, raw images and validation](docs/path-tracing-grooms-sunlight.md#夕阳展示). Bunny data: [Stanford University Computer Graphics Laboratory](https://graphics.stanford.edu/data/3Dscanrep/).
+
+| Stanford Bunny fur at sunset | Knit sweater at sunset | Cloth yarn near view |
+| --- | --- | --- |
+| ![Bunny fur at sunset](img/path-tracing/bunny-fur-sunset.png) | ![Knit sweater at sunset](img/path-tracing/knit-sweater-sunset.png) | ![Cloth yarn at sunset](img/path-tracing/knit-yarn-sunset.png) |
+
+The [YarnSim knitted-cloth examples](docs/path-tracing-knitted-yarn.md) import public relaxed yarn control points, connect periodic spline spans, and add **anisotropic dielectric yarn reflection** shared by CPU/Metal/Vulkan. The prototype sweater has **280 honeycomb repeats on its front**; the separate swatch has **three geometric plies and open stitch holes**. **Metal PT, 768×768, 1024 spp, 12 bounces, OIDN display, sunset lighting.** Sleeves and garment seams remain procedural. Data: [Leaf et al., 2018](https://graphics.stanford.edu/projects/yarnsim/); original assets are not redistributed.
+
+| Honeycomb sweater front | Three-ply knitted cloth |
+| --- | --- |
+| ![Honeycomb sweater at sunset](img/path-tracing/knitted-sweater-sunset.png) | ![Three-ply honeycomb knit at sunset](img/path-tracing/knitted-honeycomb-sunset.png) |
+
 This hair showcase uses circular-fiber scattering under a clear sky captured from the realtime atmosphere pipeline. The low-angle sky and finite sun are rotated together, their source illumination is scaled by 10, and narrower hair highlights reveal the warm solar reflections. Each asset retains **50,000 strands: Metal PT, 512×512, 1024 spp, 12 bounces, OIDN display**. The head remains neutral diffuse. Hair geometry: [Cem Yuksel](https://www.cemyuksel.com/research/hairmodels/); head courtesy of **Murat Afshar**. See [lighting, material settings, raw images and validation](docs/path-tracing-hair-sunlight.md).
 
 | Straight hair in stronger sunlight | Wavy hair in stronger sunlight |
