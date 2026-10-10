@@ -203,6 +203,50 @@ The pool uses a frozen analytic wave mesh. The fixed-radius photon map is biased
 
 Beach textures are sampled at world scale; underwater solar paths use a BSDF/phase mixture proposal without changing the sun or exposure. [Raw beach](img/path-tracing/pt-mountain-lake-beach-raw.png) · [Raw shallow water](img/path-tracing/pt-ocean-clear-raw.png) · [Fix and validation](docs/path-tracing-procedural.md#水下太阳路径采样).
 
+### Ocean sea states and real-time/PT alignment
+
+Recent development captures cover calibrated JONSWAP/TMA wind waves, independently directed swell, shared water optics, and successive glint/reflection corrections. Raster and PT share the FFT fields and detail band; a camera-focused PT grid extends water coverage to 2 km.
+
+| Update | Result and validation |
+| --- | --- |
+| [Sea state and shared optics](docs/ocean-sea-state-and-pt.md) | Calibrated wave height/period, independent swell, IOR 1.333, exact Fresnel and finite-sun reflection. [Shared-surface comparisons](docs/ocean-physical-surface.md). |
+| [Glint spatial filtering and TAA](docs/ocean-glint-antialiasing.md) | Subpixel solar integration, slope-moment mips and linear HDR water history. Near single-frame error improves against raster SSAA; distant/TAA errors remain. |
+| [Native float FFT normals and reconstruction](docs/ocean-float-normals-and-glints.md) | Independent wind/ripple periods on CPU/GPU PT, tent glint reconstruction and direct frozen-water accumulation. Tent smooths edges at extra cost and increases pixel L1 against raw PT. |
+| [Distant sun and sky reflection integration](docs/ocean-reflection-integration.md) | Exact reflection Jacobian in slope space and pixel integration of Fresnel times sky radiance; additive body/reflection/sun/foam/border diagnostics. Metal/Vulkan water regression passes. |
+
+![Wind waves and independent swell: Metal native RT + OIDN, 512x320, 256 spp](img/path-tracing/ocean-sea-state.png)
+
+| Current real-time TAA | Matched Metal native RT + OIDN, 512 spp |
+| --- | --- |
+| ![Current realtime ocean](img/path-tracing/ocean-reflection-after-raster-taa.png) | ![Matched path-traced ocean](img/path-tracing/ocean-reflection-pt-denoised.png) |
+
+Same snapshot, camera, sea state, time, 640×360 resolution and image exporter. Numerical comparisons use raw PT before OIDN. The latest before/after ablation uses one binary and identical compiled shaders; both raw PT films are bitwise identical. These are development-build results, with capture commands, source/build hashes and validation logs in the linked records.
+
+| Latest TAA comparison against raw 512 spp PT | Previous reflection model | Current reflection model |
+| --- | ---: | ---: |
+| All-water relative RGB L1 | 129.66% | 113.49% |
+| Distant-water relative RGB L1 | 171.88% | 134.01% |
+| Side-water relative RGB L1 | 54.73% | 43.56% |
+
+Near glints are largely unchanged. Water self-reflection, non-Gaussian distant slopes, rough sky reflection and volume transport remain different. One synchronized 20-frame capture measures about 3 ms extra single-frame cost; it is not a stable FPS benchmark. [Full images, component statistics, costs and limits](docs/ocean-reflection-integration.md) · [Latest validation record](img/path-tracing/ocean-reflection-validation.json) · [Raw PT](img/path-tracing/ocean-reflection-pt.png).
+
+<details>
+<summary>Earlier glint reconstruction and latest sky-reflection components</summary>
+
+| Earlier box reconstruction | Earlier tent reconstruction |
+| --- | --- |
+| ![Box glints, historical capture](img/path-tracing/ocean-alignment-box-raster-taa.png) | ![Tent glints, historical capture](img/path-tracing/ocean-alignment-tent-raster-taa.png) |
+
+These historical float-normal captures use the same PT input. Tent lowers the glint ROI neighbour gradient by about 12.5%, but increases raw-PT pixel L1 and costs about 5–8 ms. Gradient reduction alone does not establish alias-free rendering. [Reconstruction ablation](docs/ocean-float-normals-and-glints.md).
+
+| Centre-normal sky reflection | Pixel-integrated sky reflection |
+| --- | --- |
+| ![Previous sky reflection contribution](img/path-tracing/ocean-reflection-before-reflection.png) | ![Current sky reflection contribution](img/path-tracing/ocean-reflection-after-reflection.png) |
+
+The sky-reflection images are weighted additive radiance components, not complete renders. Earlier 8-bit-normal PT references and raster SSAA are kept in their stage records; their errors are not compared across reference changes. [Initial comparison and spectrum-cache benchmark](docs/ocean-realtime-pt-comparison.md).
+
+</details>
+
 ![Path-traced FFT rough ocean: Metal PT + OIDN, 256 spp](img/path-tracing/pt-ocean.png)
 
 ### Blender test scenes

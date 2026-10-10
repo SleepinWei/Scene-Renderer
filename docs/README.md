@@ -24,6 +24,12 @@
 | [环境遮蔽 AO](ambient-occlusion.md) | 原 SSAO 审查、GTAO 式地平线积分、边缘保留滤波、真实对照与优化顺序 |
 | [RSM 实现与验证](rsm.md) | 太阳／天空间接光、算法边界与捕获方法 |
 | [FFT 海洋与透明水体](ocean-fft-and-rendering-review.md) | 频谱、高清波纹、折射与散射 |
+| [远海海况与海洋 PT](ocean-sea-state-and-pt.md) | JONSWAP/TMA 风浪、独立涌浪、相机加密捕获、Metal/Vulkan 验证与后续模拟路线 |
+| [实时/PT 海水对照](ocean-realtime-pt-comparison.md) | 同快照、线性 HDR 分区比较、初始波谱缓存与后续外观/体积优化 |
+| [共享水面参数与太阳反射](ocean-physical-surface.md) | 精确 Fresnel、有限太阳滤波、GGX 粗糙水面、新旧实时/PT 对照与剩余误差 |
+| [海面 glint 抗锯齿](ocean-glint-antialiasing.md) | 子像素太阳积分、斜率矩 mip、线性水面 TAA、超采样消融及未解决的远景偏差 |
+| [海面远景太阳与天空反射积分](ocean-reflection-integration.md) | 分量诊断、准确反射 Jacobian、天空/Fresnel 积分及同构建 Metal/Vulkan 验收 |
+| [海面浮点法线与 glint 重建](ocean-float-normals-and-glints.md) | 独立原始 FFT 法线、CPU/GPU 精度对齐、tent 太阳重建及冻结海面时域累积 |
 | [实时水体升级验收](water-realtime-upgrade.md) | 近景密集网格、水下捕获、路径散射、对比与 GPU 耗时 |
 | [近岸水体功能验收](water-coastal-features.md) | 可开关折射、局部多次散射、浅水波／泡沫／湿沙、动画与双后端验证 |
 | [近岸水体第一轮性能报告](water-coastal-performance.md) | 操作提示、边界修复、CPU／GPU 分阶段计时、提交间隙、前后对比与复测 |

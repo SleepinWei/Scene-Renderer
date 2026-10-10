@@ -201,6 +201,50 @@ CPU／Metal／Vulkan 路径追踪支持多次反弹、纹理材质、折射和�
 
 沙滩保留世界坐标纹理细节；水下太阳路径使用 BSDF／相位混合采样，保持原太阳与曝光。[沙滩原图](img/path-tracing/pt-mountain-lake-beach-raw.png) · [浅水原图](img/path-tracing/pt-ocean-clear-raw.png) · [修复与验证](docs/path-tracing-procedural.md#水下太阳路径采样)。
 
+### 海况与实时／PT 外观对齐
+
+最近几轮开发构建覆盖可标定的 JONSWAP/TMA 风浪、独立涌浪、共享水面光学参数，以及 glint 和反射修正。实时与 PT 共用 FFT 波形和细波配置，相机加密 PT 网格将水面覆盖扩至 2 km。
+
+| 更新 | 结果与验收 |
+| --- | --- |
+| [海况与共享水面参数](docs/ocean-sea-state-and-pt.md) | 可标定浪高／周期、独立涌浪、IOR 1.333、精确 Fresnel 与有限太阳反射。[共享水面对照](docs/ocean-physical-surface.md)。 |
+| [Glint 空间滤波与 TAA](docs/ocean-glint-antialiasing.md) | 子像素太阳积分、斜率矩 mip、线性 HDR 水面历史；近景单帧对光栅 SSAA 的误差下降，远景和 TAA 仍有偏差。 |
+| [原始浮点 FFT 法线与重建](docs/ocean-float-normals-and-glints.md) | CPU／GPU PT 保留独立主波／细波周期；tent glint 重建和冻结水面直接累积。Tent 使边缘更柔和，但增加成本及相对原始 PT 的像素 L1。 |
+| [远景太阳与天空反射积分](docs/ocean-reflection-integration.md) | 准确反射 Jacobian 的斜率空间积分、像素内 Fresnel 与天空辐射乘积积分；水体／反射／太阳／泡沫／边界可加分量。Metal／Vulkan 水体回归通过。 |
+
+![风浪与独立涌浪：Metal 原生 RT＋OIDN，512×320，256 spp](img/path-tracing/ocean-sea-state.png)
+
+| 当前实时 TAA | 同快照 Metal 原生 RT＋OIDN，512 spp |
+| --- | --- |
+| ![当前实时海面](img/path-tracing/ocean-reflection-after-raster-taa.png) | ![同快照路径追踪海面](img/path-tracing/ocean-reflection-pt-denoised.png) |
+
+共用快照、相机、海况、时刻、640×360 分辨率和导出器；数值比较使用 OIDN 前的原始 PT。最新新旧模型消融使用同一二进制与编译 shader，两组原始 PT 图逐位一致。这些是开发构建结果，捕获命令、源码／构建哈希和验收日志保存在阶段记录中。
+
+| 最新 TAA 对原始 512 spp PT 的比较 | 前一反射模型 | 当前反射模型 |
+| --- | ---: | ---: |
+| 全水域相对 RGB L1 | 129.66% | 113.49% |
+| 远景相对 RGB L1 | 171.88% | 134.01% |
+| 两侧海水相对 RGB L1 | 54.73% | 43.56% |
+
+近景 glint 基本未变；海面自身反射、远景非高斯斜率、粗糙天空反射与水体输运仍有差异。一组同步 20 帧捕获中，单帧约增加 3 ms，不能当作稳定 FPS 基准。[完整图像、分量统计、成本与限制](docs/ocean-reflection-integration.md) · [最新验收记录](img/path-tracing/ocean-reflection-validation.json) · [原始 PT](img/path-tracing/ocean-reflection-pt.png)。
+
+<details>
+<summary>此前的 glint 重建及最新天空反射分量</summary>
+
+| 此前的 box 重建 | 此前的 tent 重建 |
+| --- | --- |
+| ![Box glint 历史捕获](img/path-tracing/ocean-alignment-box-raster-taa.png) | ![Tent glint 历史捕获](img/path-tracing/ocean-alignment-tent-raster-taa.png) |
+
+这两组浮点法线历史捕获使用相同 PT 输入。Tent 将 glint 区域的相邻亮度梯度降低约 12.5%，但增加原始 PT 像素 L1，成本约增加 5–8 ms。梯度下降不能独立证明消除了 aliasing。[重建消融](docs/ocean-float-normals-and-glints.md)。
+
+| 中心法线天空反射 | 像素积分天空反射 |
+| --- | --- |
+| ![旧天空反射贡献](img/path-tracing/ocean-reflection-before-reflection.png) | ![新天空反射贡献](img/path-tracing/ocean-reflection-after-reflection.png) |
+
+天空反射图是带实际混合权重的可加辐射分量。此前的 8 位法线 PT 与光栅 SSAA 参考保留在各阶段记录中，不跨参考变化比较误差。[初始对照与波谱缓存基准](docs/ocean-realtime-pt-comparison.md)。
+
+</details>
+
 ![路径追踪 FFT 大浪海洋：Metal PT＋OIDN，256 spp](img/path-tracing/pt-ocean.png)
 
 ### Blender 测试场景
