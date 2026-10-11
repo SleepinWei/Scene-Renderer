@@ -1,0 +1,70 @@
+{
+  "hardware": "Apple M4",
+  "configuration": {
+    "width": 960,
+    "height": 720,
+    "time_seconds": 8,
+    "frames": 16,
+    "warmup": 4
+  },
+  "measurement": "Synchronized collection and completed rendering, excludes feedback and presentation; instance counts are per draw summed across cascades, bark/foliage count separately; no FPS claim.",
+  "Metal": {
+    "on": {
+      "instances": 15729,
+      "triangles": 6077448,
+      "full_detail_triangles": 45505404,
+      "shadow_input_instances": 83060,
+      "shadow_visible_instances": 61387,
+      "shadow_input_triangles": 30387240,
+      "shadow_visible_triangles": 23717164,
+      "median_synchronized_ms": 144.44522899999998
+    },
+    "off": {
+      "instances": 15729,
+      "triangles": 6077448,
+      "full_detail_triangles": 45505404,
+      "shadow_input_instances": 83060,
+      "shadow_visible_instances": 83060,
+      "shadow_input_triangles": 30387240,
+      "shadow_visible_triangles": 30387240,
+      "median_synchronized_ms": 148.77391649999998
+    },
+    "shadow_depth_comparison": {
+      "depth_pixels_changed": 0,
+      "max_depth_error": 0.0,
+      "mean_image_byte_error": 3.038556495949074
+    }
+  },
+  "Vulkan-MoltenVK": {
+    "on": {
+      "instances": 15722,
+      "triangles": 6123408,
+      "full_detail_triangles": 45515948,
+      "shadow_input_instances": 83025,
+      "shadow_visible_instances": 61384,
+      "shadow_input_triangles": 30617040,
+      "shadow_visible_triangles": 23964920,
+      "median_synchronized_ms": 160.955021
+    },
+    "off": {
+      "instances": 15722,
+      "triangles": 6123408,
+      "full_detail_triangles": 45515948,
+      "shadow_input_instances": 83025,
+      "shadow_visible_instances": 83025,
+      "shadow_input_triangles": 30617040,
+      "shadow_visible_triangles": 30617040,
+      "median_synchronized_ms": 156.70656250000002
+    },
+    "shadow_depth_comparison": {
+      "depth_pixels_changed": 0,
+      "max_depth_error": 0.0,
+      "mean_image_byte_error": 3.036952763310185
+    }
+  },
+  "backend_image_mae_rgb_8bit": [
+    0.07536024305555555,
+    0.08312644675925926,
+    0.0760546875
+  ]
+}

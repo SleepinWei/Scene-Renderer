@@ -119,6 +119,14 @@ The camera, sun and exposure stay fixed across all three views. The centre view 
 
 </details>
 
+### Procedural trees and forest: corrected renders
+
+Broadleaf trees, conifers, and shrubs use seeded branching geometry, separate bark and leaf materials, and alpha-tested cascade shadows. These **Metal realtime renders, 960×720, fixed time 8 s, 16 TAA frames** were regenerated after the **2026-10-12** fix for solar-disk artifacts in leaf gaps and the missing foliage material flag. The single-tree canopy's near-white pixel count fell from **854 to 0** in the same camera and exposure; Metal and Vulkan regression checks pass. [Implementation, before/after comparison, validation, and limits](docs/procedural-trees.md).
+
+| Corrected single tree | Corrected forest |
+| --- | --- |
+| ![Corrected Metal single-tree render](img/nature/tree-single.png) | ![Corrected Metal forest render](img/nature/tree-forest.png) |
+
 ### Virtual textures and soft shadows
 
 Height/material VT uses physical page caches, page tables, ancestor fallback, and GPU depth feedback. Five-level CSM allocates shadow precision across viewing distances; PCSS estimates penumbra growth with blocker separation.

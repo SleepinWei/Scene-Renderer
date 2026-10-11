@@ -1,0 +1,55 @@
+{
+  "tree-single": {
+    "before": {
+      "canopy_near_white_pixels": 854,
+      "brightest_geometry_hdr_rgb": [
+        2.490234375,
+        2.09375,
+        1.478515625
+      ]
+    },
+    "after": {
+      "canopy_near_white_pixels": 0,
+      "brightest_geometry_hdr_rgb": [
+        0.37451171875,
+        0.393310546875,
+        0.3212890625
+      ]
+    }
+  },
+  "tree-bare": {
+    "before": {
+      "canopy_near_white_pixels": 367,
+      "brightest_geometry_hdr_rgb": [
+        2.23046875,
+        1.8623046875,
+        1.33203125
+      ]
+    },
+    "after": {
+      "canopy_near_white_pixels": 0,
+      "brightest_geometry_hdr_rgb": [
+        0.315673828125,
+        0.3681640625,
+        0.31884765625
+      ]
+    }
+  },
+  "configuration": {
+    "backend": "Metal",
+    "resolution": [
+      960,
+      720
+    ],
+    "time_seconds": 8,
+    "taa_frames": 16,
+    "roi_xyxy": [
+      300,
+      150,
+      680,
+      400
+    ],
+    "near_white_threshold": "all RGB8 channels >220",
+    "note": "Fixed canopy ROI display metric; geometry HDR selection uses current G-buffer coverage, while TAA resolves a jittered footprint."
+  }
+}

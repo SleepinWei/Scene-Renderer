@@ -117,6 +117,14 @@ Mountain Lake 展示 8×8 km 山湖地形：高度与材质 VT 分页、LOD、FF
 
 </details>
 
+### 程序树木与森林：修复后的渲染
+
+阔叶树、针叶树和灌木采用种子分枝几何，树皮与叶片独立材质，并接入 alpha-tested 级联阴影。下图为 **Metal 实时渲染，960×720、固定时刻 8 s、16 帧 TAA**，已在 **2026-10-12** 修复叶片缝隙中的太阳圆盘伪影与叶片材质标记漏传后重新生成。同机位、同曝光下，单树树冠区域接近纯白的像素从 **854 降至 0**；Metal、Vulkan 回归通过。[实现、修复前后对照、验证与限制](docs/procedural-trees.md)。
+
+| 修复后的单树 | 修复后的森林 |
+| --- | --- |
+| ![修复后的 Metal 单树渲染](img/nature/tree-single.png) | ![修复后的 Metal 森林渲染](img/nature/tree-forest.png) |
+
 ### Virtual Texture 与软阴影
 
 高度／材质 VT 使用物理页缓存、页表、祖先回退与 GPU 深度反馈；五级 CSM 分配近远阴影精度，PCSS 估计随遮挡物距离变化的半影。

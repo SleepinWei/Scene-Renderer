@@ -1,0 +1,225 @@
+{
+  "backend": "Vulkan",
+  "batches": [
+    {
+      "full_detail_triangles": 411600,
+      "instances": 4900,
+      "lod": 0,
+      "triangles": 411600,
+      "type": 0,
+      "variant": 0
+    },
+    {
+      "full_detail_triangles": 834876,
+      "instances": 9939,
+      "lod": 1,
+      "triangles": 178902,
+      "type": 0,
+      "variant": 0
+    },
+    {
+      "full_detail_triangles": 339430,
+      "instances": 7,
+      "lod": 0,
+      "triangles": 339430,
+      "type": 5,
+      "variant": 0
+    },
+    {
+      "full_detail_triangles": 3442790,
+      "instances": 71,
+      "lod": 1,
+      "triangles": 268380,
+      "type": 5,
+      "variant": 0
+    },
+    {
+      "full_detail_triangles": 345646,
+      "instances": 7,
+      "lod": 0,
+      "triangles": 345646,
+      "type": 5,
+      "variant": 1
+    },
+    {
+      "full_detail_triangles": 3456460,
+      "instances": 70,
+      "lod": 1,
+      "triangles": 256200,
+      "type": 5,
+      "variant": 1
+    },
+    {
+      "full_detail_triangles": 392528,
+      "instances": 8,
+      "lod": 0,
+      "triangles": 392528,
+      "type": 5,
+      "variant": 2
+    },
+    {
+      "full_detail_triangles": 2894894,
+      "instances": 59,
+      "lod": 1,
+      "triangles": 217592,
+      "type": 5,
+      "variant": 2
+    },
+    {
+      "full_detail_triangles": 340438,
+      "instances": 7,
+      "lod": 0,
+      "triangles": 340438,
+      "type": 5,
+      "variant": 3
+    },
+    {
+      "full_detail_triangles": 3793452,
+      "instances": 78,
+      "lod": 1,
+      "triangles": 294840,
+      "type": 5,
+      "variant": 3
+    },
+    {
+      "full_detail_triangles": 58302,
+      "instances": 1,
+      "lod": 0,
+      "triangles": 58302,
+      "type": 6,
+      "variant": 0
+    },
+    {
+      "full_detail_triangles": 1107738,
+      "instances": 19,
+      "lod": 1,
+      "triangles": 47500,
+      "type": 6,
+      "variant": 0
+    },
+    {
+      "full_detail_triangles": 0,
+      "instances": 0,
+      "lod": 0,
+      "triangles": 0,
+      "type": 6,
+      "variant": 1
+    },
+    {
+      "full_detail_triangles": 952884,
+      "instances": 17,
+      "lod": 1,
+      "triangles": 43384,
+      "type": 6,
+      "variant": 1
+    },
+    {
+      "full_detail_triangles": 56052,
+      "instances": 1,
+      "lod": 0,
+      "triangles": 56052,
+      "type": 6,
+      "variant": 2
+    },
+    {
+      "full_detail_triangles": 1064988,
+      "instances": 19,
+      "lod": 1,
+      "triangles": 47272,
+      "type": 6,
+      "variant": 2
+    },
+    {
+      "full_detail_triangles": 61002,
+      "instances": 1,
+      "lod": 0,
+      "triangles": 61002,
+      "type": 6,
+      "variant": 3
+    },
+    {
+      "full_detail_triangles": 610020,
+      "instances": 10,
+      "lod": 1,
+      "triangles": 26200,
+      "type": 6,
+      "variant": 3
+    },
+    {
+      "full_detail_triangles": 391760,
+      "instances": 8,
+      "lod": 0,
+      "triangles": 391760,
+      "type": 7,
+      "variant": 0
+    },
+    {
+      "full_detail_triangles": 12781170,
+      "instances": 261,
+      "lod": 1,
+      "triangles": 1022076,
+      "type": 7,
+      "variant": 0
+    },
+    {
+      "full_detail_triangles": 407696,
+      "instances": 8,
+      "lod": 0,
+      "triangles": 407696,
+      "type": 7,
+      "variant": 1
+    },
+    {
+      "full_detail_triangles": 11772222,
+      "instances": 231,
+      "lod": 1,
+      "triangles": 916608,
+      "type": 7,
+      "variant": 1
+    }
+  ],
+  "frames": 16,
+  "full_detail_triangles": 45515948,
+  "gpu_ms_samples": [
+    34.035625,
+    33.224792,
+    33.491083,
+    33.12475,
+    33.880042,
+    32.908958,
+    32.868417,
+    34.642917,
+    33.429958,
+    33.088042,
+    33.84775,
+    33.645334
+  ],
+  "height": 720,
+  "instances": 15722,
+  "measurement": "Synchronized collection plus completed rendering, fixed simulation time, first four frames excluded; excludes depth feedback and presentation. GPU duration is last completed buffer and backend batching may include preparation passes. Triangle reduction is not an FPS claim.",
+  "shadow_input_instances": 83025,
+  "shadow_input_triangles": 30617040,
+  "shadow_instance_culling": true,
+  "shadow_visible_instances": 61384,
+  "shadow_visible_triangles": 23964920,
+  "species_lod": true,
+  "synchronized_frame_ms_samples": [
+    159.665167,
+    160.50625,
+    160.932792,
+    159.745625,
+    162.307125,
+    161.727292,
+    159.122291,
+    161.548875,
+    163.079625,
+    159.7045,
+    160.97725,
+    163.815458
+  ],
+  "time_seconds": 8.0,
+  "triangles": 6123408,
+  "warmup": 4,
+  "wave_particles": 0,
+  "width": 960
+}
