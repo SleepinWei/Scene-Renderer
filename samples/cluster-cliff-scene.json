@@ -1,0 +1,21 @@
+{
+  "source": "https://polyhaven.com/a/coastal_cliff_02",
+  "license": "CC0",
+  "model": "samples/assets/benchmarks/coastal-cliff/coastal_cliff_02_lod0.obj",
+  "textures": "samples/assets/benchmarks/coastal-cliff/",
+  "source_triangles_per_instance": 943284,
+  "height": 12,
+  "camera": {"position": [0, 9, 32], "target": [0, 6, -45], "fov": 58},
+  "instances": [
+    {"position": [-13, 0, 0], "yaw": -90},
+    {"position": [13, 0, 0], "yaw": 90},
+    {"position": [-13, 0, -35], "yaw": -90},
+    {"position": [13, 0, -35], "yaw": 90},
+    {"position": [-13, 0, -70], "yaw": -90},
+    {"position": [13, 0, -70], "yaw": 90},
+    {"position": [-13, 0, -105], "yaw": -90},
+    {"position": [13, 0, -105], "yaw": 90},
+    {"position": [-12, 0, -135], "yaw": 0},
+    {"position": [12, 0, -135], "yaw": 0}
+  ]
+}

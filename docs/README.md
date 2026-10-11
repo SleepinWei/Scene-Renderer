@@ -22,6 +22,8 @@
 | [天空与太阳](sky-and-sun-review.md) | 大气散射、太阳能量与 GPU 回归 |
 | [原生后处理模块](post-processing.md) | Bloom、景深、相机运动模糊、色调／调色、FXAA、锐化、暗角、色差与颗粒，开关对照及双后端验证 |
 | [Cluster 分块与层级构建](cluster-partition-and-hierarchy.md) | 位置拓扑跨属性接缝、Morton 空间补齐、累计法线约束、Sponza／Dragon／Buddha 同构建性能与图像比较 |
+| [Coastal Cliff 高密度峡谷测试](cluster-cliff-nanite-test.md) | 943 万逻辑三角形、共享实例、原始几何基线、Hi-Z 图像验证与 UE Nanite 对照工程 |
+| [Coastal Cliff 父层级 LOD 改进](cluster-parent-lod-optimization.md) | 连通父组、逐顶点误差继承、法线预算消融、36.56% LOD 减量与性能／图像验证 |
 | [环境遮蔽 AO](ambient-occlusion.md) | 原 SSAO 审查、GTAO 式地平线积分、边缘保留滤波、真实对照与优化顺序 |
 | [RSM 实现与验证](rsm.md) | 太阳／天空间接光、算法边界与捕获方法 |
 | [FFT 海洋与透明水体](ocean-fft-and-rendering-review.md) | 频谱、高清波纹、折射与散射 |

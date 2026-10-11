@@ -1,0 +1,16 @@
+{
+  "scene": "Coastal Cliff canyon",
+  "nanite_enabled": true,
+  "source_triangles_per_instance": 943284,
+  "instances": 10,
+  "nanite_triangles": 943284,
+  "fallback_triangles": 943284,
+  "height_cm": 1200.0,
+  "map": "/Game/Cliff/Canyon",
+  "camera_vertical_fov": 58,
+  "camera_horizontal_fov": 89.15957277247843,
+  "yaw_only_transforms_verified": true,
+  "scope": "Original CC0 LOD0; same JSON geometry transforms; UE lighting and tangent basis differ",
+  "ue_two_sided_material": true,
+  "native_geometry_cull_mode": "None"
+}

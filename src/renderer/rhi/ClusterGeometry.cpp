@@ -15,18 +15,22 @@ namespace {
 using Edge=std::pair<uint32_t,uint32_t>;
 Edge edge(uint32_t a,uint32_t b){return std::minmax(a,b);}
 using Face=std::array<uint32_t,3>;
-struct Work {std::vector<Face> faces;uint32_t node=0;float error=0,uvError=0,normalError=0;};
+using VertexBounds=std::map<uint32_t,glm::vec3>; // position, UV, unit-normal displacement radii.
+struct Work {std::vector<Face> faces;uint32_t node=0;float error=0,uvError=0,normalError=0;VertexBounds bounds;};
 struct Quadric {
     glm::dmat4 value{0};
     double cost(glm::vec3 p) const {auto v=glm::dvec4(p,1);return std::max(0.,glm::dot(v,value*v));}
 };
 std::vector<Face> simplify(const MeshPayload& input,std::vector<Face> faces,const std::set<uint32_t>& inputSeams,
-    const ClusterBuildSettings& settings,float childError,float childUv,float childNormal,float& outError,float& outUv,float& outNormal){
+    const ClusterBuildSettings& settings,float childError,float childUv,float childNormal,float& outError,float& outUv,float& outNormal,
+    const VertexBounds& inputBounds,VertexBounds& outputBounds,ClusterHierarchy& stats){
     MeshPayload source;std::map<uint32_t,uint32_t> ids;std::vector<uint32_t> original;std::set<uint32_t> seams;
     for(auto& f:faces)for(auto& v:f){auto found=ids.emplace(v,uint32_t(ids.size()));if(found.second){source.vertices.push_back(input.vertices[v]);original.push_back(v);if(inputSeams.count(v))seams.insert(found.first->second);}v=found.first->second;}
     // Topological endpoint contraction: no new positions on shared boundaries.
     const size_t n=source.vertices.size();std::vector<std::set<uint32_t>> incident(n);
     std::vector<Quadric> quadrics(n);std::vector<float> radii(n,childError),uvRadii(n,childUv),normalRadii(n,childNormal);
+    if(settings.spatialPartition&&settings.localizedErrors)for(size_t i=0;i<n;++i){auto found=inputBounds.find(original[i]);auto bound=found==inputBounds.end()?glm::vec3(0):found->second;
+        radii[i]=bound.x;uvRadii[i]=bound.y;normalRadii[i]=bound.z;}
     std::vector<uint32_t> parent(n),version(n);std::iota(parent.begin(),parent.end(),0);
     std::map<Edge,uint32_t> edgeCounts;
     for(uint32_t t=0;t<faces.size();++t){const auto f=faces[t];auto a=source.vertices[f[0]].position,b=source.vertices[f[1]].position,c=source.vertices[f[2]].position;
@@ -59,7 +63,9 @@ std::vector<Face> simplify(const MeshPayload& input,std::vector<Face> faces,cons
         float uv=std::max(uvRadii[a],uvRadii[b]+glm::distance(source.vertices[a].uv,source.vertices[b].uv));
         auto unit=[](glm::vec3 n){float length=glm::length(n);return length>1e-12f?n/length:glm::vec3(0);};
         float normal=std::max(normalRadii[a],normalRadii[b]+glm::distance(unit(source.vertices[a].normal),unit(source.vertices[b].normal)));
-        if(radius>settings.maxError||uv>settings.maxUvError||(settings.spatialPartition&&normal>settings.maxNormalError))continue;
+        if(radius>settings.maxError){++stats.positionRejected;continue;}
+        if(uv>settings.maxUvError){++stats.uvRejected;continue;}
+        if(settings.spatialPartition&&normal>settings.maxNormalError){++stats.normalRejected;continue;}
         auto neighbors=[&](uint32_t v){std::set<uint32_t> result;for(auto t:incident[v]){auto f=current(t);if(live(f))for(auto w:f)if(w!=v)result.insert(w);}return result;};
         auto na=neighbors(a),nb=neighbors(b);std::set<uint32_t> common,opposites;
         std::set_intersection(na.begin(),na.end(),nb.begin(),nb.end(),std::inserter(common,common.begin()));
@@ -74,7 +80,9 @@ std::vector<Face> simplify(const MeshPayload& input,std::vector<Face> faces,cons
         incident[a]=std::move(affected);incident[b].clear();++version[a];++version[b];active-=2;
         for(auto v:na)enqueue(a,v);for(auto v:nb)enqueue(a,v);
     }
-    std::vector<Face> out;for(uint32_t t=0;t<faces.size();++t){auto f=current(t);if(live(f)){for(auto& v:f)v=original[v];out.push_back(f);}}return out;
+    std::vector<Face> out;for(uint32_t t=0;t<faces.size();++t){auto f=current(t);if(live(f)){for(auto& v:f){
+        if(settings.spatialPartition&&settings.localizedErrors)outputBounds[original[v]]=glm::vec3(radii[v],uvRadii[v],normalRadii[v]);
+        v=original[v];}out.push_back(f);}}return out;
 }
 std::vector<std::vector<Face>> legacyPartition(const std::vector<Face>& faces,uint32_t capacity){
     std::map<Edge,std::vector<uint32_t>> edges;
@@ -152,6 +160,7 @@ std::shared_ptr<const ClusterHierarchy> buildClusterHierarchy(const MeshPayload&
     if(!settings.trianglesPerCluster||settings.trianglesPerCluster>128||!settings.maxLevels||settings.maxLevels>24||
        !std::isfinite(settings.maxError)||settings.maxError<=0||!std::isfinite(settings.maxUvError)||settings.maxUvError<0||!std::isfinite(settings.maxNormalError)||settings.maxNormalError<0||settings.maxNormalError>2||
        !std::isfinite(settings.minParentReduction)||settings.minParentReduction<0||settings.minParentReduction>=1||
+       settings.parentGroupSize<2||settings.parentGroupSize>16||
        mesh.indices.size()%3||mesh.indices.size()>UINT32_MAX||mesh.vertices.size()>UINT32_MAX)throw std::invalid_argument("Invalid cluster build input");
     auto started=std::chrono::steady_clock::now();auto result=std::make_shared<ClusterHierarchy>();
     // Weld only bit-identical attributes; retain original vertex addresses.
@@ -201,21 +210,51 @@ std::shared_ptr<const ClusterHierarchy> buildClusterHierarchy(const MeshPayload&
         std::vector<std::map<uint32_t,uint32_t>> neighbors(layer.size());
         for(const auto& e:shared)if(e.second.size()==2){auto a=e.second[0],b=e.second[1];++neighbors[a][b];++neighbors[b][a];}
         std::vector<bool> used(layer.size());std::vector<Work> next;
-        for(uint32_t a=0;a<layer.size();++a)if(!used[a]){uint32_t b=UINT32_MAX,weight=0;
-            for(auto p:neighbors[a])if(!used[p.first]&&(p.second>weight||(p.second==weight&&p.first<b))){b=p.first;weight=p.second;}
-            // Disconnected components remain separate roots; they are never welded.
-            if(b==UINT32_MAX){next.push_back(std::move(layer[a]));used[a]=true;continue;}
-            auto merged=layer[a].faces;merged.insert(merged.end(),layer[b].faces.begin(),layer[b].faces.end());
-            size_t required=result->indices.size()*4+result->clusters.size()*48+result->nodes.size()*48+merged.size()*(12+48)+48;
+        for(uint32_t a=0;a<layer.size();++a)if(!used[a]){
+            std::vector<uint32_t> members{a};std::map<uint32_t,uint32_t> frontier=neighbors[a];
+            const auto capacity=settings.spatialPartition?settings.parentGroupSize:2u;
+            while(members.size()<capacity){uint32_t best=UINT32_MAX,weight=0;
+                for(auto p:frontier)if(!used[p.first]&&std::find(members.begin(),members.end(),p.first)==members.end()&&
+                    (p.second>weight||(p.second==weight&&p.first<best))){best=p.first;weight=p.second;}
+                if(best==UINT32_MAX)break;
+                members.push_back(best);for(auto p:neighbors[best])frontier[p.first]+=p.second;
+            }
+            // Disconnected components remain separate roots; grouping never welds attributes.
+            if(members.size()==1){next.push_back(std::move(layer[a]));used[a]=true;continue;}
+            std::vector<Face> merged;VertexBounds inherited,outputBounds;
+            float error=0,uvError=0,normalError=0;
+            glm::vec3 coverageLow(INFINITY),coverageHigh(-INFINITY);
+            for(auto i:members){const auto& child=layer[i];merged.insert(merged.end(),child.faces.begin(),child.faces.end());
+                error=std::max(error,child.error);uvError=std::max(uvError,child.uvError);normalError=std::max(normalError,child.normalError);
+                coverageLow=glm::min(coverageLow,glm::vec3(result->nodes[child.node].lowError));coverageHigh=glm::max(coverageHigh,glm::vec3(result->nodes[child.node].high));
+                for(const auto& b:child.bounds)inherited[b.first]=glm::max(inherited[b.first],b.second);
+            }
+            size_t required=result->indices.size()*4+result->clusters.size()*48+result->nodes.size()*48+merged.size()*(12+48)+(members.size()-1)*48;
             if(required>settings.byteBudget||result->indices.size()+merged.size()*3>UINT32_MAX){result->budgetLimited=true;next.push_back(std::move(layer[a]));used[a]=true;continue;}
-            float error=std::max(layer[a].error,layer[b].error),uvError=std::max(layer[a].uvError,layer[b].uvError),normalError=std::max(layer[a].normalError,layer[b].normalError);
-            const size_t mergedSize=merged.size();auto low=simplify(mesh,std::move(merged),seams,settings,error,uvError,normalError,error,uvError,normalError);
+            ++result->parentAttempts;
+            const size_t mergedSize=merged.size();auto low=simplify(mesh,std::move(merged),seams,settings,error,uvError,normalError,error,uvError,normalError,inherited,outputBounds,*result);
             // A parent must save enough triangles to justify its resident copy.
             // Locked seams/normals remain protected instead of forcing a deeper
             // hierarchy with many near-identical index representations.
-            if(settings.spatialPartition&&(low.size()==mergedSize||double(low.size())>double(mergedSize)*(1-settings.minParentReduction))){next.push_back(std::move(layer[a]));used[a]=true;continue;}
+            if(settings.spatialPartition&&(low.size()==mergedSize||double(low.size())>double(mergedSize)*(1-settings.minParentReduction))){++result->reductionRejected;next.push_back(std::move(layer[a]));used[a]=true;continue;}
             result->normalErrorBound=std::max(result->normalErrorBound,normalError);
-            uint32_t node=add(low,error,uvError,layer[a].node,layer[b].node,level);next.push_back({std::move(low),node,error,uvError,normalError});used[a]=used[b]=true;
+            // Fan-in is encoded with binary routing nodes without index copies.
+            // Every router has EXACTLY the drawable parent's error and coverage,
+            // so its projected error is identical in every camera/transform:
+            // either the parent is selected, or all original child cuts remain.
+            auto route=[&](auto&& self,size_t first,size_t last)->uint32_t{
+                if(last-first==1)return layer[members[first]].node;
+                const auto middle=(first+last)/2;auto left=self(self,first,middle),right=self(self,middle,last);
+                ClusterNode node;node.lowError=glm::vec4(coverageLow,error);node.high=glm::vec4(coverageHigh,uvError);
+                node.links={UINT32_MAX,left,right,level};auto id=uint32_t(result->nodes.size());result->nodes.push_back(node);
+                result->nodes[left].links.x=id;result->nodes[right].links.x=id;++result->routingNodes;return id;
+            };
+            const auto middle=members.size()/2;auto left=route(route,0,middle),right=route(route,middle,members.size());
+            uint32_t node=add(low,error,uvError,left,right,level);
+            // Preserve whole source coverage even when routing nodes are absent.
+            result->nodes[node].lowError=glm::vec4(coverageLow,error);result->nodes[node].high=glm::vec4(coverageHigh,uvError);
+            next.push_back({std::move(low),node,error,uvError,normalError,std::move(outputBounds)});
+            for(auto i:members)used[i]=true;++result->parentAccepted;
         }
         if(next.size()==layer.size()){layer=std::move(next);break;}layer=std::move(next);
     }

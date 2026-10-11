@@ -1,5 +1,7 @@
 # Cluster 分块与层级构建：位置拓扑、空间填充与属性保护
 
+本页保留上一轮配对父组、法线上限 0.05 的历史测量。当前默认已改为连通父组和逐顶点累计误差，法线上限为 0.15；新参数、Coastal Cliff 消融、图像取舍与实测结果见 [父层级与 LOD 简化改进](cluster-parent-lod-optimization.md)。下面的旧数据不代表当前默认构建。
+
 本轮改进叶 meshlet 利用率与层级构建，不改变原始材质、顶点、UV、法线或切线缓冲。GPU 绘制和两阶段 Hi-Z 使用前一轮的批处理／融合路径。旧构建器保留为 `ClusterBuildSettings::spatialPartition=false`，新构建器默认开启；整体 cluster 与遮挡功能仍由运行时开关控制。
 
 ## 构建方法
@@ -15,7 +17,7 @@
 
 父组配对也使用位置拓扑的共享边计数，因此属性接缝不再直接阻断 group 邻接。简化继续使用 endpoint QEM、manifold link condition、面翻转检查，以及组外边界和全部属性接缝锁定。父表示至少要比两个子表示合计减少 **12.5%** 三角形才进入常驻层级（`minParentReduction`），避免重复存储只减少少量面的近似副本。未达到门槛时保留更详细的子根，不通过放松接缝／法线约束强行合并。
 
-加入**累计法线偏差界**：每个 endpoint 保存其被合并样本到当前单位法线的最大偏差，合并时取 `max(keepRadius, dropRadius + length(normalKeep - normalDrop))`，再将 child 最大界带到父层。默认上限 0.05，约对应 2.9° 的单位法线夹角。位置和 UV 误差界继续累积，源覆盖 AABB 包含子树，相机屏幕误差仍控制运行时 cut。这个约束降低高光材质的着色变化，但不是对最终光照误差的保证；纹理、遮挡和高光对形状都可能敏感。
+加入**累计法线偏差界**：每个 endpoint 保存其被合并样本到当前单位法线的最大偏差，合并时取 `max(keepRadius, dropRadius + length(normalKeep - normalDrop))`，再将 child 最大界带到父层。该轮上限为 0.05，约对应 2.9° 的单位法线夹角。位置和 UV 误差界继续累积，源覆盖 AABB 包含子树，相机屏幕误差仍控制运行时 cut。这个约束降低高光材质的着色变化，但不是对最终光照误差的保证；纹理、遮挡和高光对形状都可能敏感。
 
 ```mermaid
 flowchart LR

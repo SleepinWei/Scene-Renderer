@@ -2,6 +2,9 @@
 #include "renderer/rhi/GpuClusterCuller.h"
 #include "renderer/rhi/GpuHiZCuller.h"
 #include "renderer/rhi/SceneSnapshot.h"
+#include "renderer/rhi/FeatureScenes.h"
+#include "renderer/RenderScene.h"
+#include "utils/Camera.h"
 #include "rhi/ShaderAssets.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <json/json.hpp>
@@ -45,8 +48,16 @@ void validateClusterHierarchy(){
     require(h->normalErrorBound<=ClusterBuildSettings{}.maxNormalError,"accumulated normal error exceeded construction ceiling");
     for(const auto& c:h->clusters)require(c.range.y<=128*3&&c.range.y>0,"meshlet triangle capacity");
     std::vector<uint64_t> groupIndices(h->nodes.size());for(const auto& c:h->clusters)groupIndices[c.range.z]+=c.range.y;
+    auto coverageIndices=groupIndices;
+    uint32_t routers=0;
     for(size_t i=0;i<h->nodes.size();++i)if(h->nodes[i].links.y!=UINT32_MAX){const auto& n=h->nodes[i];
-        require(double(groupIndices[i])<=double(groupIndices[n.links.y]+groupIndices[n.links.z])*(1-ClusterBuildSettings{}.minParentReduction),"parent copy has insufficient triangle reduction");}
+        auto children=coverageIndices[n.links.y]+coverageIndices[n.links.z];
+        if(groupIndices[i])require(double(groupIndices[i])<=double(children)*(1-ClusterBuildSettings{}.minParentReduction),"parent copy has insufficient triangle reduction");
+        else {++routers;coverageIndices[i]=children;require(n.links.x!=UINT32_MAX,"routing node became a root");const auto& parent=h->nodes[n.links.x];
+            require(n.lowError==parent.lowError&&n.high==parent.high,"routing node projected error differs from drawable ancestor");}
+    }
+    require(routers==h->routingNodes,"routing-node accounting differs");
+    require(routers>0&&h->parentAccepted>0,"connected fan-in parent path was not exercised");
     for(const auto& n:h->nodes)if(n.links.x!=UINT32_MAX){const auto& parent=h->nodes[n.links.x];require(parent.lowError.w>=n.lowError.w,"error not monotone");
         for(int k=0;k<3;++k)require(parent.lowError[k]<=n.lowError[k]&&parent.high[k]>=n.high[k],"coverage bounds not nested");}
     auto vm=glm::lookAt(glm::vec3(2,6,10),glm::vec3(0),glm::vec3(0,1,0));size_t previous=source.indices.size(),smallest=previous;bool mixed=false;
@@ -85,6 +96,26 @@ void validateClusterHierarchy(){
     require(cutIndices(*normalLocked,selectClusterNodes(*normalLocked,vm,500,1,.1f,999)).size()==varyingNormals.indices.size(),"zero normal error ceiling allowed distinct endpoint normals to collapse");
     std::cout<<"Attribute seam packing: "<<oldSplit->leafClusters<<" -> "<<newSplit->leafClusters<<" leaf meshlets; original corners and chart boundaries preserved\n";
     std::cout<<"Cluster hierarchy: "<<h->leafClusters<<" leaf meshlets, "<<h->nodes.size()<<" groups, "<<source.indices.size()/3<<" -> "<<smallest/3<<" triangles; mixed cuts preserve exact boundary edges\n";
+}
+void inspectClusterParents(const std::string& name,const std::string& output){
+    auto scene=makeClassicScene(name);scene->mainCamera()->setAspect(16.f/9);SceneSnapshotBuilder builder;auto snapshot=builder.capture(scene,8,960,540);
+    auto largest=std::max_element(snapshot->draws.begin(),snapshot->draws.end(),[](const auto& a,const auto& b){return a.mesh->indices.size()<b.mesh->indices.size();});
+    if(largest==snapshot->draws.end())throw std::runtime_error("Parent inspection requires a mesh");const auto& mesh=*largest->mesh;
+    glm::vec3 low(INFINITY),high(-INFINITY);for(const auto& v:mesh.vertices){low=glm::min(low,v.position);high=glm::max(high,v.position);}
+    auto projection=snapshot->frame.viewProjection*glm::inverse(snapshot->frame.view);float focal=.5f*std::max(std::abs(projection[0][0])*960,std::abs(projection[1][1])*540);
+    nlohmann::json report={{"scene",name},{"scope","CPU hierarchy ablations; largest unique source mesh; source camera and model, no frustum/occlusion"},{"variants",nlohmann::json::object()}};
+    std::vector<ClusterBuildSettings> variants;
+    if(std::getenv("SCENERENDERER_CLUSTER_NORMAL_SWEEP"))for(float ceiling:{.1f,.15f,.2f}){ClusterBuildSettings s;s.maxNormalError=ceiling;variants.push_back(s);}
+    else for(auto variant:std::array<std::pair<uint32_t,bool>,5>{{{2,false},{2,true},{4,true},{8,false},{8,true}}}){ClusterBuildSettings s;s.parentGroupSize=variant.first;s.localizedErrors=variant.second;s.maxNormalError=.05f;variants.push_back(s);}
+    for(auto settings:variants){
+        settings.maxError=glm::length(high-low)*.02f;
+        auto h=buildClusterHierarchy(mesh,settings);auto key=std::to_string(settings.parentGroupSize)+(settings.localizedErrors?"_local":"_global")+"_normal_"+std::to_string(settings.maxNormalError);
+        nlohmann::json levels=nlohmann::json::object();for(const auto& c:h->clusters)levels[std::to_string(h->nodes[c.range.z].links.w)]=levels.value(std::to_string(h->nodes[c.range.z].links.w),uint64_t(0))+c.range.y/3;
+        auto& r=report["variants"][key];r={{"source_triangles",h->sourceIndices/3},{"leaf_clusters",h->leafClusters},{"roots",h->roots.size()},{"all_clusters",h->clusters.size()},{"routing_nodes",h->routingNodes},{"parent_attempts",h->parentAttempts},{"parent_accepted",h->parentAccepted},{"reduction_rejected",h->reductionRejected},{"normal_rejected_candidates",h->normalRejected},{"uv_rejected_candidates",h->uvRejected},{"position_rejected_candidates",h->positionRejected},{"normal_error_ceiling",settings.maxNormalError},{"normal_error_bound",h->normalErrorBound},{"resident_bytes",h->indices.size()*4+h->clusters.size()*48+h->nodes.size()*48},{"budget_limited",h->budgetLimited},{"build_seconds",h->buildSeconds},{"triangles_by_build_level",levels}};
+        for(float budget:{0.f,1.f,4.f,16.f,64.f}){auto selected=selectClusterNodes(*h,snapshot->frame.view*largest->model,focal,1,.1f,budget);validateCut(*h,selected);r["cuts"][std::to_string(int(budget))]=cutIndices(*h,selected).size()/3;}
+        std::cout<<key<<": "<<r.dump()<<std::endl;
+    }
+    std::filesystem::create_directories(std::filesystem::path(output).parent_path());std::ofstream out(output);out<<report.dump(2)<<'\n';scene->destroy();
 }
 void validateClusterRendering(std::shared_ptr<rhi::GraphicsDevice> device,const std::string& directory){
     size_t checkedMipTexels=0;

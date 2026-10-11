@@ -458,6 +458,25 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
             addMeshes(target, "Stanford Bunny " + std::to_string(i), imported("samples/assets/bunny/bun_zipper.ply", 3, true),
                       pbr(colors[i], i==1?.23f:.55f, i==1?1.f:0.f), {float(i-1)*3.1f,0,0}, glm::vec3(1), {0,15,0});
         floor(target); atmosphere(target); sun(target, {2.5f,2.4f,2.3f}, {-.5f,-1,-.4f}); point(target, {32,40,50}, {5,6,5});
+    } else if (name == "cluster-cliff") {
+        std::ifstream input("samples/cluster-cliff-scene.json");
+        if(!input)throw std::runtime_error("Missing cliff layout manifest");
+        nlohmann::json layout;input>>layout;
+        auto meshes=importOBJScene(layout.at("model").get<std::string>(),layout.at("height").get<float>()).meshes;
+        size_t triangles=0;for(const auto& mesh:meshes)triangles+=mesh->getIndices().size()/3;
+        if(triangles!=layout.at("source_triangles_per_instance").get<size_t>())throw std::runtime_error("Cliff benchmark requires original LOD0; run python3 tools/prepare_cluster_cliff.py");
+        auto material=pbr(glm::vec3(1),.8f);const auto folder=layout.at("textures").get<std::string>();
+        for(const auto& map:std::array<std::pair<const char*,const char*>,3>{{{"material.albedo","coastal_cliff_02_diff_2k.jpg"},{"material.normal","coastal_cliff_02_nor_gl_2k.jpg"},{"material.roughness","coastal_cliff_02_rough_2k.jpg"}}})
+            material->addTexture(Texture::loadFromFileAsync(folder+map.second,4),map.first);
+        auto vector=[](const auto& value){return glm::vec3(value.at(0).template get<float>(),value.at(1).template get<float>(),value.at(2).template get<float>());};
+        size_t instance=0;for(const auto& item:layout.at("instances"))addMeshes(target,"Cliff LOD0 instance "+std::to_string(instance++),meshes,material,vector(item.at("position")),glm::vec3(1),{0,item.at("yaw").get<float>(),0});
+        addMeshes(target,"Canyon floor",{quad({glm::vec3(-80,-.04f,60),{80,-.04f,60},{80,-.04f,-180},{-80,-.04f,-180}},{0,1,0})},pbr({.24f,.22f,.17f},.95f));
+        const auto eye=vector(layout.at("camera").at("position")),direction=glm::normalize(vector(layout.at("camera").at("target"))-eye);
+        target->setCamera(std::make_shared<Camera>(eye,glm::vec3(0,1,0),glm::degrees(std::atan2(direction.z,direction.x)),glm::degrees(std::asin(direction.y))));
+        target->mainCamera()->setZoom(layout.at("camera").at("fov").get<float>());target->mainCamera()->setExposure(1.2f);
+        atmosphere(target);sun(target,{3,2.9f,2.7f},{-.5f,-1,-.3f});
+        manager->setting.clusters.enabled=true;manager->setting.clusters.pixelError=4;manager->setting.clusters.occlusion=false;
+        std::cout<<"Cliff canyon: "<<instance<<" shared instances, "<<triangles<<" source triangles each, "<<instance*triangles<<" logical triangles\n";
     } else if (name == "dragon" || name == "buddha" || name == "armadillo") {
         std::ifstream input("samples/benchmark-assets.json");
         if(!input)throw std::runtime_error("Missing benchmark manifest; see samples/README.md");

@@ -1,0 +1,757 @@
+{
+  "group_ablation": {
+    "scene": "cluster-cliff",
+    "scope": "CPU hierarchy ablations; largest unique source mesh; source camera and model, no frustum/occlusion",
+    "variants": {
+      "2_global": {
+        "all_clusters": 9307,
+        "budget_limited": false,
+        "build_seconds": 2.911383625,
+        "cuts": {
+          "0": 943284,
+          "1": 942100,
+          "16": 912482,
+          "4": 918928,
+          "64": 912012
+        },
+        "leaf_clusters": 7885,
+        "normal_error_bound": 0.04999813809990883,
+        "normal_rejected_candidates": 2633890,
+        "parent_accepted": 707,
+        "parent_attempts": 13182,
+        "position_rejected_candidates": 56,
+        "reduction_rejected": 12475,
+        "resident_bytes": 13965948,
+        "roots": 7178,
+        "routing_nodes": 0,
+        "source_triangles": 943284,
+        "triangles_by_build_level": {
+          "0": 943284,
+          "1": 148949
+        },
+        "uv_rejected_candidates": 0
+      },
+      "2_local": {
+        "all_clusters": 9314,
+        "budget_limited": false,
+        "build_seconds": 4.737408959,
+        "cuts": {
+          "0": 943284,
+          "1": 942100,
+          "16": 912396,
+          "4": 918884,
+          "64": 911926
+        },
+        "leaf_clusters": 7885,
+        "normal_error_bound": 0.04999813809990883,
+        "normal_rejected_candidates": 4022570,
+        "parent_accepted": 709,
+        "parent_attempts": 19772,
+        "position_rejected_candidates": 55,
+        "reduction_rejected": 19063,
+        "resident_bytes": 13973436,
+        "roots": 7176,
+        "routing_nodes": 0,
+        "source_triangles": 943284,
+        "triangles_by_build_level": {
+          "0": 943284,
+          "1": 148949,
+          "2": 588
+        },
+        "uv_rejected_candidates": 0
+      },
+      "4_local": {
+        "all_clusters": 9637,
+        "budget_limited": false,
+        "build_seconds": 5.435241792,
+        "cuts": {
+          "0": 943284,
+          "1": 942980,
+          "16": 906362,
+          "4": 915324,
+          "64": 905452
+        },
+        "leaf_clusters": 7885,
+        "normal_error_bound": 0.04999813809990883,
+        "normal_rejected_candidates": 5911718,
+        "parent_accepted": 435,
+        "parent_attempts": 11978,
+        "position_rejected_candidates": 42,
+        "reduction_rejected": 11543,
+        "resident_bytes": 14408088,
+        "roots": 6589,
+        "routing_nodes": 861,
+        "source_triangles": 943284,
+        "triangles_by_build_level": {
+          "0": 943284,
+          "1": 182118
+        },
+        "uv_rejected_candidates": 0
+      },
+      "8_global": {
+        "all_clusters": 9832,
+        "budget_limited": false,
+        "build_seconds": 8.456389791,
+        "cuts": {
+          "0": 943284,
+          "1": 942942,
+          "16": 899098,
+          "4": 911830,
+          "64": 897370
+        },
+        "leaf_clusters": 7885,
+        "normal_error_bound": 0.049999676644802094,
+        "normal_rejected_candidates": 12998712,
+        "parent_accepted": 275,
+        "parent_attempts": 10833,
+        "position_rejected_candidates": 2166,
+        "reduction_rejected": 10558,
+        "resident_bytes": 14979588,
+        "roots": 6008,
+        "routing_nodes": 1602,
+        "source_triangles": 943284,
+        "triangles_by_build_level": {
+          "0": 943284,
+          "1": 226639
+        },
+        "uv_rejected_candidates": 0
+      },
+      "8_local": {
+        "all_clusters": 9832,
+        "budget_limited": false,
+        "build_seconds": 10.50304125,
+        "cuts": {
+          "0": 943284,
+          "1": 942942,
+          "16": 899098,
+          "4": 911830,
+          "64": 897370
+        },
+        "leaf_clusters": 7885,
+        "normal_error_bound": 0.049999676644802094,
+        "normal_rejected_candidates": 13156140,
+        "parent_accepted": 275,
+        "parent_attempts": 10833,
+        "position_rejected_candidates": 135,
+        "reduction_rejected": 10558,
+        "resident_bytes": 14979588,
+        "roots": 6008,
+        "routing_nodes": 1602,
+        "source_triangles": 943284,
+        "triangles_by_build_level": {
+          "0": 943284,
+          "1": 226639
+        },
+        "uv_rejected_candidates": 0
+      }
+    }
+  },
+  "normal_ablation": {
+    "scene": "cluster-cliff",
+    "scope": "CPU hierarchy ablations; largest unique source mesh; source camera and model, no frustum/occlusion",
+    "variants": {
+      "8_local_normal_0.100000": {
+        "all_clusters": 14085,
+        "budget_limited": false,
+        "build_seconds": 9.977892958,
+        "cuts": {
+          "0": 943284,
+          "1": 941892,
+          "16": 712186,
+          "4": 783356,
+          "64": 706096
+        },
+        "leaf_clusters": 7885,
+        "normal_error_bound": 0.09999994933605194,
+        "normal_error_ceiling": 0.10000000149011612,
+        "normal_rejected_candidates": 10417247,
+        "parent_accepted": 973,
+        "parent_attempts": 2871,
+        "position_rejected_candidates": 384,
+        "reduction_rejected": 1898,
+        "resident_bytes": 21079824,
+        "roots": 1498,
+        "routing_nodes": 5414,
+        "source_triangles": 943284,
+        "triangles_by_build_level": {
+          "0": 943284,
+          "1": 687538,
+          "2": 12402
+        },
+        "uv_rejected_candidates": 0
+      },
+      "8_local_normal_0.150000": {
+        "all_clusters": 14025,
+        "budget_limited": false,
+        "build_seconds": 8.292752583,
+        "cuts": {
+          "0": 943284,
+          "1": 942606,
+          "16": 581612,
+          "4": 731400,
+          "64": 571166
+        },
+        "leaf_clusters": 7885,
+        "normal_error_bound": 0.1499999612569809,
+        "normal_error_ceiling": 0.15000000596046448,
+        "normal_rejected_candidates": 7032454,
+        "parent_accepted": 1027,
+        "parent_attempts": 2387,
+        "position_rejected_candidates": 937,
+        "reduction_rejected": 1360,
+        "resident_bytes": 20924292,
+        "roots": 1244,
+        "routing_nodes": 5614,
+        "source_triangles": 943284,
+        "triangles_by_build_level": {
+          "0": 943284,
+          "1": 579705,
+          "2": 106498
+        },
+        "uv_rejected_candidates": 0
+      },
+      "8_local_normal_0.200000": {
+        "all_clusters": 14950,
+        "budget_limited": false,
+        "build_seconds": 6.340151334,
+        "cuts": {
+          "0": 943284,
+          "1": 942988,
+          "16": 466274,
+          "4": 656210,
+          "64": 454358
+        },
+        "leaf_clusters": 7885,
+        "normal_error_bound": 0.19999980926513672,
+        "normal_error_ceiling": 0.20000000298023224,
+        "normal_rejected_candidates": 4148043,
+        "parent_accepted": 1090,
+        "parent_attempts": 1663,
+        "position_rejected_candidates": 1354,
+        "reduction_rejected": 573,
+        "resident_bytes": 22353816,
+        "roots": 834,
+        "routing_nodes": 5961,
+        "source_triangles": 943284,
+        "triangles_by_build_level": {
+          "0": 943284,
+          "1": 507157,
+          "2": 292833
+        },
+        "uv_rejected_candidates": 5
+      }
+    }
+  },
+  "quality_sweep": {
+    "0.05": {
+      "settings": {
+        "localized_error_bounds": false,
+        "min_parent_reduction": 0.125,
+        "normal_error": 0.05,
+        "parent_group_size": 2,
+        "spatial_partition": true,
+        "uv_error": 0.03
+      },
+      "quality": {
+        "changed_display_pixels": 9106,
+        "clusters": 76523,
+        "cpu_cut_depth_max_error": 0.0,
+        "cpu_cut_display_exact": true,
+        "cpu_cut_gbuffer_max_errors": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cpu_cut_hdr_max_error": 0.0,
+        "display_max_error_255": 103,
+        "display_rmse_255": 0.34353318077923173,
+        "hdr_max_error": 0.255859375,
+        "hdr_relative_rmse": 0.005784752585767978,
+        "hiz_depth_display_exact": true,
+        "hiz_gbuffer_max_errors": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "hiz_hdr_max_error": 0.0,
+        "source_depth_max_error": 0.0007575750350952148,
+        "source_gbuffer_max_errors": [
+          84.84259796142578,
+          1.369873046875,
+          0.29656982421875,
+          1.0,
+          0.5,
+          1.53271484375
+        ],
+        "triangles": 8849578
+      },
+      "quality_by_budget": {
+        "legacy_0px": {
+          "changed_display_pixels": 15,
+          "clusters": 76444,
+          "cpu_cut_depth_max_error": 0.0,
+          "cpu_cut_display_exact": true,
+          "cpu_cut_gbuffer_max_errors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cpu_cut_hdr_max_error": 0.0,
+          "display_max_error_255": 17,
+          "display_rmse_255": 0.025634941110939124,
+          "hdr_max_error": 0.0732421875,
+          "hdr_relative_rmse": 0.0007862385795467477,
+          "hiz_depth_display_exact": true,
+          "hiz_gbuffer_max_errors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "hiz_hdr_max_error": 0.0,
+          "source_depth_max_error": 0.0,
+          "source_gbuffer_max_errors": [
+            0.01149749755859375,
+            0.23801422119140625,
+            0.111572265625,
+            0.0,
+            0.0,
+            1.53271484375
+          ],
+          "triangles": 9145579
+        },
+        "legacy_16px": {
+          "changed_display_pixels": 13544,
+          "clusters": 76525,
+          "cpu_cut_depth_max_error": 0.0,
+          "cpu_cut_display_exact": true,
+          "cpu_cut_gbuffer_max_errors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cpu_cut_hdr_max_error": 0.0,
+          "display_max_error_255": 103,
+          "display_rmse_255": 0.41565618211256655,
+          "hdr_max_error": 0.255859375,
+          "hdr_relative_rmse": 0.0076134462949782634,
+          "hiz_depth_display_exact": true,
+          "hiz_gbuffer_max_errors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "hiz_hdr_max_error": 0.0,
+          "source_depth_max_error": 0.009860455989837646,
+          "source_gbuffer_max_errors": [
+            84.84259796142578,
+            1.369873046875,
+            0.29656982421875,
+            1.0,
+            0.5,
+            1.53271484375
+          ],
+          "triangles": 8841556
+        },
+        "legacy_4px": {
+          "changed_display_pixels": 9106,
+          "clusters": 76523,
+          "cpu_cut_depth_max_error": 0.0,
+          "cpu_cut_display_exact": true,
+          "cpu_cut_gbuffer_max_errors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cpu_cut_hdr_max_error": 0.0,
+          "display_max_error_255": 103,
+          "display_rmse_255": 0.34353318077923173,
+          "hdr_max_error": 0.255859375,
+          "hdr_relative_rmse": 0.005784752585767978,
+          "hiz_depth_display_exact": true,
+          "hiz_gbuffer_max_errors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "hiz_hdr_max_error": 0.0,
+          "source_depth_max_error": 0.0007575750350952148,
+          "source_gbuffer_max_errors": [
+            84.84259796142578,
+            1.369873046875,
+            0.29656982421875,
+            1.0,
+            0.5,
+            1.53271484375
+          ],
+          "triangles": 8849578
+        }
+      }
+    },
+    "0.15000000596046448": {
+      "settings": {
+        "byte_budget_per_mesh": 67108864,
+        "localized_error_bounds": true,
+        "max_levels": 12,
+        "min_parent_reduction": 0.125,
+        "normal_error": 0.15000000596046448,
+        "parent_group_size": 8,
+        "position_error": "2% of each mesh bounds diagonal",
+        "triangles_per_cluster": 128,
+        "uv_error": 0.03
+      },
+      "quality": {
+        "changed_display_pixels": 39064,
+        "clusters": 54884,
+        "cpu_cut_depth_max_error": 0.0,
+        "cpu_cut_display_exact": true,
+        "cpu_cut_gbuffer_max_errors": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cpu_cut_hdr_max_error": 0.0,
+        "display_max_error_255": 99,
+        "display_rmse_255": 0.8750551129027725,
+        "hdr_max_error": 0.2582550048828125,
+        "hdr_relative_rmse": 0.011805790266104914,
+        "hiz_depth_display_exact": true,
+        "hiz_gbuffer_max_errors": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "hiz_hdr_max_error": 0.0,
+        "source_depth_max_error": 0.0027741193771362305,
+        "source_gbuffer_max_errors": [
+          54.28709030151367,
+          1.7470703125,
+          0.121551513671875,
+          1.0,
+          0.5,
+          1.94580078125
+        ],
+        "triangles": 5802217
+      },
+      "quality_by_budget": {
+        "optimized_0px": {
+          "changed_display_pixels": 15,
+          "clusters": 76444,
+          "cpu_cut_depth_max_error": 0.0,
+          "cpu_cut_display_exact": true,
+          "cpu_cut_gbuffer_max_errors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cpu_cut_hdr_max_error": 0.0,
+          "display_max_error_255": 17,
+          "display_rmse_255": 0.025634941110939124,
+          "hdr_max_error": 0.0732421875,
+          "hdr_relative_rmse": 0.0007862385795467477,
+          "hiz_depth_display_exact": true,
+          "hiz_gbuffer_max_errors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "hiz_hdr_max_error": 0.0,
+          "source_depth_max_error": 0.0,
+          "source_gbuffer_max_errors": [
+            0.01149749755859375,
+            0.23801422119140625,
+            0.111572265625,
+            0.0,
+            0.0,
+            1.53271484375
+          ],
+          "triangles": 9145579
+        },
+        "optimized_16px": {
+          "changed_display_pixels": 104362,
+          "clusters": 52969,
+          "cpu_cut_depth_max_error": 0.0,
+          "cpu_cut_display_exact": true,
+          "cpu_cut_gbuffer_max_errors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cpu_cut_hdr_max_error": 0.0,
+          "display_max_error_255": 99,
+          "display_rmse_255": 1.4038481431598997,
+          "hdr_max_error": 0.2582550048828125,
+          "hdr_relative_rmse": 0.01846054491783709,
+          "hiz_depth_display_exact": true,
+          "hiz_gbuffer_max_errors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "hiz_hdr_max_error": 0.0,
+          "source_depth_max_error": 0.0071457624435424805,
+          "source_gbuffer_max_errors": [
+            54.28709030151367,
+            1.7470703125,
+            0.44921875,
+            1.0,
+            0.5,
+            1.98583984375
+          ],
+          "triangles": 5543409
+        },
+        "optimized_4px": {
+          "changed_display_pixels": 39064,
+          "clusters": 54884,
+          "cpu_cut_depth_max_error": 0.0,
+          "cpu_cut_display_exact": true,
+          "cpu_cut_gbuffer_max_errors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cpu_cut_hdr_max_error": 0.0,
+          "display_max_error_255": 99,
+          "display_rmse_255": 0.8750551129027725,
+          "hdr_max_error": 0.2582550048828125,
+          "hdr_relative_rmse": 0.011805790266104914,
+          "hiz_depth_display_exact": true,
+          "hiz_gbuffer_max_errors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "hiz_hdr_max_error": 0.0,
+          "source_depth_max_error": 0.0027741193771362305,
+          "source_gbuffer_max_errors": [
+            54.28709030151367,
+            1.7470703125,
+            0.121551513671875,
+            1.0,
+            0.5,
+            1.94580078125
+          ],
+          "triangles": 5802217
+        }
+      }
+    },
+    "0.20000000298023224": {
+      "settings": {
+        "byte_budget_per_mesh": 67108864,
+        "localized_error_bounds": true,
+        "max_levels": 12,
+        "min_parent_reduction": 0.125,
+        "normal_error": 0.20000000298023224,
+        "parent_group_size": 8,
+        "position_error": "2% of each mesh bounds diagonal",
+        "triangles_per_cluster": 128,
+        "uv_error": 0.03
+      },
+      "quality": {
+        "changed_display_pixels": 46495,
+        "clusters": 44926,
+        "cpu_cut_depth_max_error": 0.0,
+        "cpu_cut_display_exact": true,
+        "cpu_cut_gbuffer_max_errors": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cpu_cut_hdr_max_error": 0.0,
+        "display_max_error_255": 99,
+        "display_rmse_255": 0.9715794833089217,
+        "hdr_max_error": 0.2582550048828125,
+        "hdr_relative_rmse": 0.011989220854101448,
+        "hiz_depth_display_exact": true,
+        "hiz_gbuffer_max_errors": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "hiz_hdr_max_error": 0.0,
+        "source_depth_max_error": 0.0016084909439086914,
+        "source_gbuffer_max_errors": [
+          76.09358215332031,
+          1.787109375,
+          0.1328125,
+          1.0,
+          0.5,
+          1.75439453125
+        ],
+        "triangles": 4751428
+      },
+      "quality_by_budget": {
+        "optimized_0px": {
+          "changed_display_pixels": 15,
+          "clusters": 76444,
+          "cpu_cut_depth_max_error": 0.0,
+          "cpu_cut_display_exact": true,
+          "cpu_cut_gbuffer_max_errors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cpu_cut_hdr_max_error": 0.0,
+          "display_max_error_255": 17,
+          "display_rmse_255": 0.025634941110939124,
+          "hdr_max_error": 0.0732421875,
+          "hdr_relative_rmse": 0.0007862385795467477,
+          "hiz_depth_display_exact": true,
+          "hiz_gbuffer_max_errors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "hiz_hdr_max_error": 0.0,
+          "source_depth_max_error": 0.0,
+          "source_gbuffer_max_errors": [
+            0.01149749755859375,
+            0.23801422119140625,
+            0.111572265625,
+            0.0,
+            0.0,
+            1.53271484375
+          ],
+          "triangles": 9145579
+        },
+        "optimized_16px": {
+          "changed_display_pixels": 123150,
+          "clusters": 42176,
+          "cpu_cut_depth_max_error": 0.0,
+          "cpu_cut_display_exact": true,
+          "cpu_cut_gbuffer_max_errors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cpu_cut_hdr_max_error": 0.0,
+          "display_max_error_255": 99,
+          "display_rmse_255": 1.6312664076086998,
+          "hdr_max_error": 0.2582550048828125,
+          "hdr_relative_rmse": 0.020919759928634773,
+          "hiz_depth_display_exact": true,
+          "hiz_gbuffer_max_errors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "hiz_hdr_max_error": 0.0,
+          "source_depth_max_error": 0.009900927543640137,
+          "source_gbuffer_max_errors": [
+            76.09358215332031,
+            1.7529296875,
+            0.44921875,
+            1.0,
+            0.5,
+            1.93994140625
+          ],
+          "triangles": 4415955
+        },
+        "optimized_4px": {
+          "changed_display_pixels": 46495,
+          "clusters": 44926,
+          "cpu_cut_depth_max_error": 0.0,
+          "cpu_cut_display_exact": true,
+          "cpu_cut_gbuffer_max_errors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "cpu_cut_hdr_max_error": 0.0,
+          "display_max_error_255": 99,
+          "display_rmse_255": 0.9715794833089217,
+          "hdr_max_error": 0.2582550048828125,
+          "hdr_relative_rmse": 0.011989220854101448,
+          "hiz_depth_display_exact": true,
+          "hiz_gbuffer_max_errors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "hiz_hdr_max_error": 0.0,
+          "source_depth_max_error": 0.0016084909439086914,
+          "source_gbuffer_max_errors": [
+            76.09358215332031,
+            1.787109375,
+            0.1328125,
+            1.0,
+            0.5,
+            1.75439453125
+          ],
+          "triangles": 4751428
+        }
+      }
+    }
+  }
+}

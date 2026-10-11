@@ -16,24 +16,28 @@ def main():
     root = args.capture
     data = json.loads((root / 'comparison.json').read_text())
     before, after = (data['hierarchy'][k] for k in ('legacy', 'optimized'))
+    names = data.get('builder_names', {'legacy': 'Attribute BFS', 'optimized': 'Position topology / spatial fill'})
     summary = {'scene': data['scene'], 'hierarchy': {k: {x: v for x, v in h.items() if x != 'meshes'} for k, h in data['hierarchy'].items()},
-               'quality': data['quality'], 'benchmark': {}, 'paired': {}}
+               'quality': data['quality'], 'temporal_quality': data.get('temporal_quality', {}),
+               'builder_names': names, 'benchmark': {}, 'paired': {}}
     for name, record in data['benchmark'].items():
         windows = windows_by_frame(record)
         summary['benchmark'][name] = {k: v for k, v in record.items() if k != 'raw'}
         summary['benchmark'][name]['round_medians_ms'] = round_medians(windows)
     pairs = [('optimized_0px', 'legacy_0px'), ('optimized_4px', 'legacy_4px'),
              ('optimized_4px_hiz', 'legacy_4px_hiz'), ('optimized_4px_hiz', 'optimized_4px')]
+    if 'source' in data['benchmark']:
+        pairs += [('optimized_0px', 'source'), ('optimized_4px', 'source'), ('optimized_4px_hiz', 'source')]
     for optimized, baseline in pairs:
         if optimized in data['benchmark']:
             summary['paired'][f'{optimized}_vs_{baseline}'] = paired_windows(windows_by_frame(data['benchmark'][optimized]), windows_by_frame(data['benchmark'][baseline]))
     summary['changes_percent'] = {key: 100*(after[key]/before[key]-1) for key in ('leaf_clusters', 'all_clusters', 'roots', 'resident_bytes', 'build_seconds_sum')}
     (root / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
     panels = []
-    for version, title in [('legacy', 'Attribute BFS'), ('optimized', 'Position topology / spatial fill')]:
+    for version, title in names.items():
         h = data['hierarchy'][version]
         panels.append(panel(Image.open(root / version / 'flow/0-clusters.png'), title + ': leaf partition',
-                            f"{h['leaf_clusters']:,} leaves / {h['leaf_utilization_percent']:.1f}% utilization", width=660, height=430))
+                            f"{h['leaf_clusters']:,} instanced leaves / {h['leaf_utilization_percent']:.1f}% utilization", width=660, height=430))
     for version, title in [('legacy', 'Before'), ('optimized', 'After')]:
         q = data['quality'][version + '_4px']
         panels.append(panel(Image.open(root / version / 'flow/1-levels.png'), title + ': GPU group LOD / 4 px',

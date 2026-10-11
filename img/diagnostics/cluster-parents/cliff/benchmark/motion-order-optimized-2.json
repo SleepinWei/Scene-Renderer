@@ -1,0 +1,34 @@
+{
+  "builder": "optimized",
+  "depth_max_error": 0.0,
+  "gbuffer_max_errors": [
+    0.000415802001953125,
+    0.8052978515625,
+    0.04888916015625,
+    0.0,
+    0.0,
+    1.5078125
+  ],
+  "hdr_max_error": 0.0354156494140625,
+  "ordered_cpu_replay": {
+    "depth_max_error": 0.0,
+    "display_exact": true,
+    "gbuffer_max_errors": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "hdr_max_error": 0.0
+  },
+  "pose": 2,
+  "quality": {
+    "changed_display_pixels": 2,
+    "display_max_error_255": 29,
+    "display_rmse_255": 0.03176276840563687,
+    "hdr_max_error": 0.0354156494140625,
+    "hdr_relative_rmse": 0.0004444185644818468
+  }
+}

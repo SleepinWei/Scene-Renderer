@@ -287,6 +287,8 @@ Enable **Hierarchical cluster geometry** in realtime settings; adjust **Cluster 
 
 Cluster construction now separates exact position topology from original attribute addresses, combines Morton ordering with bounded spatial fill, and retains parents only when they remove at least 12.5% of their children's triangles. UV / tangent seams remain protected, with a cumulative normal error limit. [Construction methods, native comparisons, raw timings and limitations](docs/cluster-partition-and-hierarchy.md).
 
+The Sponza / Stanford measurements below use the previous pair-parent builder and 0.05 normal ceiling; current Coastal Cliff parent settings and results follow separately.
+
 | Scene | Leaf utilization: before → after | Hierarchy memory: before → after |
 | --- | ---: | ---: |
 | Sponza | 22.9% → 91.0% | 16.66 → 3.39 MiB |
@@ -298,6 +300,20 @@ At 4 px, paired cluster / geometry GPU windows improve by **3.4%, 2.6% and 3.4%*
 ![Sponza: meshlet construction before and after, GPU LOD and source-image comparison](img/diagnostics/cluster-partition/sponza/comparison.png)
 
 ![Dragon: native meshlet and PBR details before and after](img/diagnostics/cluster-partition/dragon/detail.png)
+
+### Coastal Cliff parent LOD and UE Nanite
+
+The CC0 **Coastal Cliff canyon** uses ten shared original LOD0 instances (**9.43 million logical triangles**). Connected parent groups and conservative endpoint error bounds improve same-view 4 px LOD reduction from **3.24% to 36.56%**: **8.85M → 5.80M submitted triangles**. On Apple M4 / Metal at 960×540, the geometry GPU window falls **8.31 → 6.22 ms**, or **6.86 → 5.31 ms** with two-stage Hi-Z (paired improvements **24.58% / 22.21%**).
+
+The normal ceiling changes from 0.05 to 0.15: source-image HDR relative RMSE rises **0.578% → 1.181%**. Static CPU-cut / Hi-Z outputs match exactly; the moving reverse view has two depth-tie pixels, verified by an independent draw-order replay. Unique hierarchy memory grows **13.32 → 19.95 MiB**, construction **2.88 → 8.19 s**, and 0 px scans are 3.76% slower. These timings exclude shadows, lighting and postprocessing. [Ablations, native image checks, raw timings and limitations](docs/cluster-parent-lod-optimization.md).
+
+![Coastal Cliff: parent construction, actual GPU LOD and source-image comparison](img/diagnostics/cluster-parents/cliff/benchmark/comparison.png)
+
+![Coastal Cliff: camera distance and actual GPU-selected LOD](img/diagnostics/cluster-parents/cliff/benchmark/optimized/flow/dynamic-lod.gif)
+
+The same layout runs in **UE 5.8 Nanite** on Metal, with verified runtime cluster / triangle views and a full 943,284-triangle fallback per instance. UE images are a geometry reference; lighting and GPU timings are not compared across engines. [Asset preparation and UE verification](docs/cluster-cliff-nanite-test.md).
+
+![UE Nanite runtime clusters in the Coastal Cliff canyon](img/diagnostics/cluster-cliff/unreal/nanite-clusters.png)
 
 ## System overview
 

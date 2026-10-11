@@ -1,0 +1,30 @@
+{
+  "captures": [
+    {
+      "name": "nanite-beauty",
+      "file": "nanite-beauty.png",
+      "bytes": 567627
+    },
+    {
+      "name": "nanite-clusters",
+      "file": "nanite-clusters.png",
+      "bytes": 470181
+    },
+    {
+      "name": "nanite-triangles",
+      "file": "nanite-triangles.png",
+      "bytes": 570056
+    },
+    {
+      "name": "nanite-mask",
+      "file": "nanite-mask.png",
+      "bytes": 568164
+    },
+    {
+      "name": "full-source-fallback",
+      "file": "full-source-fallback.png",
+      "bytes": 573214
+    }
+  ],
+  "scope": "UE 5.8 Metal viewport screenshots, 960x540, same layout/camera; not an engine timing comparison"
+}

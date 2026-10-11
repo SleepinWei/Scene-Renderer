@@ -317,6 +317,7 @@ void RealTimeRun(GLFWwindow* window, shared_ptr<RenderScene>& scene) {
 }
 
 int main(int argc, char** argv) {
+    if(argc>1&&std::string(argv[1])=="--cluster-parent-sweep"){try{if(argc!=4)throw std::invalid_argument("Usage: --cluster-parent-sweep SCENE OUTPUT.json");render::inspectClusterParents(argv[2],argv[3]);return 0;}catch(const std::exception &e){std::cerr<<e.what()<<"\n";return 1;}}
     if(argc>1&&std::string(argv[1])=="--cluster-hierarchy-self-test"){try{render::validateClusterHierarchy();std::cout<<"Cluster hierarchy validation passed\n";return 0;}catch(const std::exception &e){std::cerr<<e.what()<<"\n";return 1;}}
     if(argc>1&&std::string(argv[1])=="--pt-world-lod-self-test"){try{pt::validateWorldLod();std::cout<<"PT clustering LOD validation passed\n";return 0;}catch(const std::exception &e){std::cerr<<e.what()<<"\n";return 1;}}
     try {

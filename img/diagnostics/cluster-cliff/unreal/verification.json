@@ -1,0 +1,79 @@
+{
+  "setup": {
+    "scene": "Coastal Cliff canyon",
+    "nanite_enabled": true,
+    "source_triangles_per_instance": 943284,
+    "instances": 10,
+    "nanite_triangles": 943284,
+    "fallback_triangles": 943284,
+    "height_cm": 1200.0,
+    "map": "/Game/Cliff/Canyon",
+    "camera_vertical_fov": 58,
+    "camera_horizontal_fov": 89.15957277247843,
+    "yaw_only_transforms_verified": true,
+    "scope": "Original CC0 LOD0; same JSON geometry transforms; UE lighting and tangent basis differ",
+    "ue_two_sided_material": true,
+    "native_geometry_cull_mode": "None"
+  },
+  "captures": {
+    "nanite-beauty": {
+      "file": "nanite-beauty.png",
+      "sha256": "f58d60fa93f4b26699fc96d2bae232dd17cd6e9bdf92485e1e4d7bd73a9d9260",
+      "bytes": 567627,
+      "resolution": [
+        960,
+        540
+      ],
+      "mtime_ns": 1791747874826652311
+    },
+    "nanite-clusters": {
+      "file": "nanite-clusters.png",
+      "sha256": "796a7b9da34863183cd92db00e9349daab99bed01be6a24b8877f3b2ae0b434e",
+      "bytes": 470181,
+      "resolution": [
+        960,
+        540
+      ],
+      "mtime_ns": 1791747876918051482
+    },
+    "nanite-triangles": {
+      "file": "nanite-triangles.png",
+      "sha256": "838dcd499a636c4cf2b0dd0e360f94a710e5ebf51666a86d6f5b7078ef5fed0f",
+      "bytes": 570056,
+      "resolution": [
+        960,
+        540
+      ],
+      "mtime_ns": 1791747879017087945
+    },
+    "nanite-mask": {
+      "file": "nanite-mask.png",
+      "sha256": "bef9f2f33ae8b82bcaffc92f8ea5f198cbd5db729683d6dfc3cce3609cfa8498",
+      "bytes": 568164,
+      "resolution": [
+        960,
+        540
+      ],
+      "mtime_ns": 1791747881121143880
+    },
+    "full-source-fallback": {
+      "file": "full-source-fallback.png",
+      "sha256": "e431821b54e767fa7d43b34f7e860db2f40450c27019ce3bbe44c46c2abc9bd4",
+      "bytes": 573214,
+      "resolution": [
+        960,
+        540
+      ],
+      "mtime_ns": 1791747883334048285
+    }
+  },
+  "scope": "Native UE runtime screenshots inspected; LDR differences describe UE Nanite vs its full-source fallback only, not SceneRenderer shading GT.",
+  "nanite_mask_green_pixels": 164747,
+  "non_nanite_red_pixels": 134163,
+  "ldr_nanite_vs_full_source": {
+    "rmse_in_8bit_values": 3.8722464662613163,
+    "rmse_percent_of_255": 1.51852802598483,
+    "changed_pixels": 213220,
+    "max_channel_difference": 126
+  }
+}

@@ -285,6 +285,8 @@ Blender Cycles 原场景 GT：1024 spp、原材质与完整植被，无降噪、
 
 Cluster 构建现在将精确位置拓扑与原始属性地址分离，用 Morton 顺序和有界空间补齐提高利用率；父表示至少减少 12.5% 的子三角形才保留。UV／切线接缝继续保护，并限制累计法线偏差。[构建方法、原生对照、逐帧计时及限制](docs/cluster-partition-and-hierarchy.md)。
 
+下面的 Sponza／Stanford 数据使用上一版配对父组与 0.05 法线上限；当前 Coastal Cliff 父构建参数与结果单独列在后面。
+
 | 场景 | 叶块利用率：优化前→后 | 层级内存：优化前→后 |
 | --- | ---: | ---: |
 | Sponza | 22.9%→91.0% | 16.66→3.39 MiB |
@@ -296,6 +298,20 @@ Cluster 构建现在将精确位置拓扑与原始属性地址分离，用 Morto
 ![Sponza：分块优化前后、实际 GPU LOD 与源画面对照](img/diagnostics/cluster-partition/sponza/comparison.png)
 
 ![Dragon：实际分块与 PBR 细节优化前后](img/diagnostics/cluster-partition/dragon/detail.png)
+
+### Coastal Cliff 父层级 LOD 与 UE Nanite
+
+CC0 **Coastal Cliff 峡谷**使用十个共享原始 LOD0 实例（**943 万逻辑三角形**）。连通父组和逐顶点保守误差继承将同视角 4 px 的 LOD 减量从 **3.24% 提升到 36.56%**，提交三角形 **885 万 → 580 万**。Apple M4／Metal、960×540 下，几何 GPU 窗口 **8.31 → 6.22 ms**，两阶段 Hi-Z **6.86 → 5.31 ms**，配对加速分别为 **24.58%／22.21%**。
+
+法线上限由 0.05 调至 0.15，源图 HDR 相对 RMSE **0.578% → 1.181%**。静态 CPU cut／Hi-Z 输出完全一致；移动反向视角有两个深度竞争像素，由独立绘制顺序重放核验。唯一层级内存 **13.32 → 19.95 MiB**，构建 **2.88 → 8.19 秒**，0 px 扫描慢 3.76%。计时不包含阴影、光照和后处理。[消融、原生图像检查、原始计时与限制](docs/cluster-parent-lod-optimization.md)。
+
+![Coastal Cliff：父构建前后、实际 GPU LOD 与源图比较](img/diagnostics/cluster-parents/cliff/benchmark/comparison.png)
+
+![Coastal Cliff：相机远近变化与实际 GPU LOD](img/diagnostics/cluster-parents/cliff/benchmark/optimized/flow/dynamic-lod.gif)
+
+同一布局已在 Metal 上运行 **UE 5.8 Nanite**，验证了实际分块／三角形视图，以及每实例完整 943,284 三角形的 fallback。UE 图像用于几何对照，未做跨引擎光照和 GPU 性能比较。[素材准备与 UE 验证](docs/cluster-cliff-nanite-test.md)。
+
+![UE Nanite 在 Coastal Cliff 峡谷中的实际分块](img/diagnostics/cluster-cliff/unreal/nanite-clusters.png)
 
 ## 系统概览
 

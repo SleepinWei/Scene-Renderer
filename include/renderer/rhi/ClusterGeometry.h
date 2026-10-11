@@ -8,8 +8,10 @@ struct ClusterBuildSettings {
     float maxError=.25f,maxUvError=.03f;
     size_t byteBudget=64*1024*1024;
     bool spatialPartition=true; // False retains the original attribute-adjacency BFS for same-build A/B.
-    float maxNormalError=.05f; // Accumulated endpoint deviation between unit normals; about 2.9 degrees.
+    float maxNormalError=.15f; // Accumulated endpoint deviation between unit normals; about 8.6 degrees.
     float minParentReduction=.125f; // Skip expensive parent copies with less than 12.5% fewer triangles.
+    uint32_t parentGroupSize=8; // Connected groups; binary routing nodes retain the GPU ABI.
+    bool localizedErrors=true; // Carry conservative endpoint bounds instead of a group-wide maximum.
 };
 struct ClusterSettings {
     bool enabled=false,wireframe=false;
@@ -37,6 +39,8 @@ struct ClusterHierarchy {
     uint32_t positionVertices=0,attributeVertices=0,seamVertices=0;
     bool spatialPartition=false;
     float normalErrorBound=0;
+    uint32_t routingNodes=0,parentAttempts=0,parentAccepted=0,reductionRejected=0;
+    uint64_t normalRejected=0,uvRejected=0,positionRejected=0;
 };
 // Pure CPU, immutable source; endpoint QEM contractions lock group borders and
 // attribute seams. All indices still address the ORIGINAL vertex/tangent data.
@@ -56,5 +60,6 @@ struct ClusterCullStats {size_t packets=0,dispatches=0,bufferBytes=0;uint64_t so
 struct ClusterVisibility {size_t packet=0;uint32_t cluster=0,indexCount=0;bool selected=false,early=false,late=false;};
 void captureClusterScene(std::shared_ptr<rhi::GraphicsDevice>,const std::string&);
 void validateClusterHierarchy();
+void inspectClusterParents(const std::string& scene,const std::string& output);
 void validateClusterRendering(std::shared_ptr<rhi::GraphicsDevice>,const std::string&);
 }

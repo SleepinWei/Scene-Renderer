@@ -1,0 +1,461 @@
+{
+  "scene": "cluster-cliff",
+  "hierarchy": {
+    "legacy": {
+      "all_clusters": 665710,
+      "attribute_vertices": 4829220,
+      "budget_limited_meshes": 0,
+      "build_seconds_sum": 5.397260958,
+      "instance_build_seconds_sum": 53.97260958000001,
+      "instance_resident_bytes_sum": 470604720,
+      "leaf_clusters": 117340,
+      "leaf_utilization_percent": 62.80387122890745,
+      "nodes": 198590,
+      "position_vertices": 4727710,
+      "resident_bytes": 47060472,
+      "roots": 36090,
+      "seam_vertices": 201510,
+      "source_triangles": 9432840,
+      "unique_hierarchies": 1,
+      "unique_source_triangles": 943284
+    },
+    "optimized": {
+      "all_clusters": 93070,
+      "attribute_vertices": 4829220,
+      "budget_limited_meshes": 0,
+      "build_seconds_sum": 2.844163041,
+      "instance_build_seconds_sum": 28.441630410000002,
+      "instance_resident_bytes_sum": 139659480,
+      "leaf_clusters": 78850,
+      "leaf_utilization_percent": 93.46108116677236,
+      "nodes": 85920,
+      "position_vertices": 4727710,
+      "resident_bytes": 13965948,
+      "roots": 71780,
+      "seam_vertices": 201510,
+      "source_triangles": 9432840,
+      "unique_hierarchies": 1,
+      "unique_source_triangles": 943284
+    }
+  },
+  "quality": {
+    "legacy_0px": {
+      "changed_display_pixels": 12,
+      "clusters": 113732,
+      "cpu_cut_depth_max_error": 0.0,
+      "cpu_cut_display_exact": true,
+      "cpu_cut_gbuffer_max_errors": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "cpu_cut_hdr_max_error": 0.0,
+      "display_max_error_255": 4,
+      "display_rmse_255": 0.008058747771078338,
+      "hdr_max_error": 0.007293701171875,
+      "hdr_relative_rmse": 0.0001285393303088322,
+      "hiz_depth_display_exact": true,
+      "hiz_gbuffer_max_errors": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "hiz_hdr_max_error": 0.0,
+      "source_depth_max_error": 0.0,
+      "source_gbuffer_max_errors": [
+        0.00313568115234375,
+        0.23801422119140625,
+        0.01416015625,
+        0.0,
+        0.0,
+        0.7724761962890625
+      ],
+      "triangles": 9145159
+    },
+    "legacy_16px": {
+      "changed_display_pixels": 134895,
+      "clusters": 76950,
+      "cpu_cut_depth_max_error": 0.0,
+      "cpu_cut_display_exact": true,
+      "cpu_cut_gbuffer_max_errors": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "cpu_cut_hdr_max_error": 0.0,
+      "display_max_error_255": 104,
+      "display_rmse_255": 2.518072919798763,
+      "hdr_max_error": 0.26519012451171875,
+      "hdr_relative_rmse": 0.03391233651928005,
+      "hiz_depth_display_exact": true,
+      "hiz_gbuffer_max_errors": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "hiz_hdr_max_error": 0.0,
+      "source_depth_max_error": 0.006342709064483643,
+      "source_gbuffer_max_errors": [
+        90.98015594482422,
+        1.8154296875,
+        0.31103515625,
+        1.0,
+        0.5,
+        1.94140625
+      ],
+      "triangles": 2285017
+    },
+    "legacy_4px": {
+      "changed_display_pixels": 87651,
+      "clusters": 84147,
+      "cpu_cut_depth_max_error": 0.0,
+      "cpu_cut_display_exact": true,
+      "cpu_cut_gbuffer_max_errors": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "cpu_cut_hdr_max_error": 0.0,
+      "display_max_error_255": 104,
+      "display_rmse_255": 1.5107151152566856,
+      "hdr_max_error": 0.26320648193359375,
+      "hdr_relative_rmse": 0.01853232163644175,
+      "hiz_depth_display_exact": true,
+      "hiz_gbuffer_max_errors": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "hiz_hdr_max_error": 0.0,
+      "source_depth_max_error": 0.004365265369415283,
+      "source_gbuffer_max_errors": [
+        91.98887634277344,
+        1.65869140625,
+        0.229278564453125,
+        1.0,
+        0.5,
+        1.93701171875
+      ],
+      "triangles": 3175032
+    },
+    "optimized_0px": {
+      "changed_display_pixels": 15,
+      "clusters": 76444,
+      "cpu_cut_depth_max_error": 0.0,
+      "cpu_cut_display_exact": true,
+      "cpu_cut_gbuffer_max_errors": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "cpu_cut_hdr_max_error": 0.0,
+      "display_max_error_255": 17,
+      "display_rmse_255": 0.025634941110939124,
+      "hdr_max_error": 0.0732421875,
+      "hdr_relative_rmse": 0.0007862385795467477,
+      "hiz_depth_display_exact": true,
+      "hiz_gbuffer_max_errors": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "hiz_hdr_max_error": 0.0,
+      "source_depth_max_error": 0.0,
+      "source_gbuffer_max_errors": [
+        0.01149749755859375,
+        0.23801422119140625,
+        0.111572265625,
+        0.0,
+        0.0,
+        1.53271484375
+      ],
+      "triangles": 9145579
+    },
+    "optimized_16px": {
+      "changed_display_pixels": 13544,
+      "clusters": 76525,
+      "cpu_cut_depth_max_error": 0.0,
+      "cpu_cut_display_exact": true,
+      "cpu_cut_gbuffer_max_errors": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "cpu_cut_hdr_max_error": 0.0,
+      "display_max_error_255": 103,
+      "display_rmse_255": 0.41565618211256655,
+      "hdr_max_error": 0.255859375,
+      "hdr_relative_rmse": 0.0076134462949782634,
+      "hiz_depth_display_exact": true,
+      "hiz_gbuffer_max_errors": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "hiz_hdr_max_error": 0.0,
+      "source_depth_max_error": 0.009860455989837646,
+      "source_gbuffer_max_errors": [
+        84.84259796142578,
+        1.369873046875,
+        0.29656982421875,
+        1.0,
+        0.5,
+        1.53271484375
+      ],
+      "triangles": 8841556
+    },
+    "optimized_4px": {
+      "changed_display_pixels": 9106,
+      "clusters": 76523,
+      "cpu_cut_depth_max_error": 0.0,
+      "cpu_cut_display_exact": true,
+      "cpu_cut_gbuffer_max_errors": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "cpu_cut_hdr_max_error": 0.0,
+      "display_max_error_255": 103,
+      "display_rmse_255": 0.34353318077923173,
+      "hdr_max_error": 0.255859375,
+      "hdr_relative_rmse": 0.005784752585767978,
+      "hiz_depth_display_exact": true,
+      "hiz_gbuffer_max_errors": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "hiz_hdr_max_error": 0.0,
+      "source_depth_max_error": 0.0007575750350952148,
+      "source_gbuffer_max_errors": [
+        84.84259796142578,
+        1.369873046875,
+        0.29656982421875,
+        1.0,
+        0.5,
+        1.53271484375
+      ],
+      "triangles": 8849578
+    }
+  },
+  "benchmark": {
+    "legacy_0px": {
+      "buffer_bytes": 199782264,
+      "cpu_render_median_ms": 29.805083500000002,
+      "gpu_pass_sum_median_ms": 10.092249996960163,
+      "gpu_window_median_ms": 10.09239599853754,
+      "samples": 72,
+      "triangles": 9145159,
+      "round_medians_ms": {
+        "0": 10.071062006056309,
+        "1": 10.089874997735023,
+        "2": 10.121541999280453
+      }
+    },
+    "legacy_4px": {
+      "buffer_bytes": 199782264,
+      "cpu_render_median_ms": 24.893812500000003,
+      "gpu_pass_sum_median_ms": 5.193874999880791,
+      "gpu_window_median_ms": 5.19404149800539,
+      "samples": 72,
+      "triangles": 3175032,
+      "round_medians_ms": {
+        "0": 5.19404149800539,
+        "1": 5.188812501728535,
+        "2": 5.199979491531849
+      }
+    },
+    "legacy_4px_hiz": {
+      "buffer_bytes": 199782264,
+      "cpu_render_median_ms": 25.187208,
+      "gpu_pass_sum_median_ms": 5.349812000989914,
+      "gpu_window_median_ms": 5.350354000926018,
+      "samples": 72,
+      "triangles": 2597622,
+      "visibility": {
+        "early_triangles": 2597622,
+        "history_used": true,
+        "late_triangles": 0,
+        "rejected_selected_triangles": 577410
+      },
+      "round_medians_ms": {
+        "0": 5.353145502507687,
+        "1": 5.348708502948284,
+        "2": 5.346354007720947
+      }
+    },
+    "optimized_0px": {
+      "buffer_bytes": 132705612,
+      "cpu_render_median_ms": 28.142333999999998,
+      "gpu_pass_sum_median_ms": 8.515999503433704,
+      "gpu_window_median_ms": 8.516124501824379,
+      "samples": 72,
+      "triangles": 9145579,
+      "round_medians_ms": {
+        "0": 8.581291496753693,
+        "1": 8.474791496992111,
+        "2": 8.517791494727135
+      }
+    },
+    "optimized_4px": {
+      "buffer_bytes": 132705612,
+      "cpu_render_median_ms": 27.941541,
+      "gpu_pass_sum_median_ms": 8.31920799612999,
+      "gpu_window_median_ms": 8.31937500089407,
+      "samples": 72,
+      "triangles": 8849578,
+      "round_medians_ms": {
+        "0": 8.323167003691196,
+        "1": 8.321270495653152,
+        "2": 8.28939600288868
+      }
+    },
+    "optimized_4px_hiz": {
+      "buffer_bytes": 132705612,
+      "cpu_render_median_ms": 26.58025,
+      "gpu_pass_sum_median_ms": 6.830041483044624,
+      "gpu_window_median_ms": 6.830624990165234,
+      "samples": 72,
+      "triangles": 6699513,
+      "visibility": {
+        "early_triangles": 6699513,
+        "history_used": true,
+        "late_triangles": 0,
+        "rejected_selected_triangles": 2150065
+      },
+      "round_medians_ms": {
+        "0": 6.83704149723053,
+        "1": 6.828853994607925,
+        "2": 6.822916999459267
+      }
+    },
+    "source": {
+      "buffer_bytes": 0,
+      "cpu_render_median_ms": 29.0558955,
+      "gpu_pass_sum_median_ms": 9.454249992966652,
+      "gpu_window_median_ms": 9.454249992966652,
+      "samples": 72,
+      "triangles": 9432842,
+      "round_medians_ms": {
+        "0": 9.47537500411272,
+        "1": 9.41185399889946,
+        "2": 9.469083487987518
+      }
+    }
+  },
+  "paired": {
+    "optimized_0px_vs_legacy_0px": {
+      "pairs": 72,
+      "median_change_percent": -15.949886651617629,
+      "p10_p90_change_percent": [
+        -18.39006048831766,
+        -13.19057036407292
+      ],
+      "optimized_faster_pairs": 72,
+      "scope": "Adjacent rotated-mode frames at identical round/sample; descriptive, not a confidence interval."
+    },
+    "optimized_4px_vs_legacy_4px": {
+      "pairs": 72,
+      "median_change_percent": 60.19690632022807,
+      "p10_p90_change_percent": [
+        52.1511367748352,
+        67.4608966132091
+      ],
+      "optimized_faster_pairs": 0,
+      "scope": "Adjacent rotated-mode frames at identical round/sample; descriptive, not a confidence interval."
+    },
+    "optimized_4px_hiz_vs_legacy_4px_hiz": {
+      "pairs": 72,
+      "median_change_percent": 27.71507014488862,
+      "p10_p90_change_percent": [
+        22.391600791523352,
+        30.374366105487915
+      ],
+      "optimized_faster_pairs": 0,
+      "scope": "Adjacent rotated-mode frames at identical round/sample; descriptive, not a confidence interval."
+    },
+    "optimized_4px_hiz_vs_optimized_4px": {
+      "pairs": 72,
+      "median_change_percent": -17.858580743953326,
+      "p10_p90_change_percent": [
+        -20.585939045001165,
+        -15.679409496617742
+      ],
+      "optimized_faster_pairs": 72,
+      "scope": "Adjacent rotated-mode frames at identical round/sample; descriptive, not a confidence interval."
+    },
+    "optimized_0px_vs_source": {
+      "pairs": 72,
+      "median_change_percent": -10.14614832734393,
+      "p10_p90_change_percent": [
+        -12.676846886050896,
+        -6.855195378301374
+      ],
+      "optimized_faster_pairs": 72,
+      "scope": "Adjacent rotated-mode frames at identical round/sample; descriptive, not a confidence interval."
+    },
+    "optimized_4px_vs_source": {
+      "pairs": 72,
+      "median_change_percent": -12.039082819310487,
+      "p10_p90_change_percent": [
+        -15.656817459060317,
+        -8.320061113025195
+      ],
+      "optimized_faster_pairs": 72,
+      "scope": "Adjacent rotated-mode frames at identical round/sample; descriptive, not a confidence interval."
+    },
+    "optimized_4px_hiz_vs_source": {
+      "pairs": 72,
+      "median_change_percent": -27.828195119602995,
+      "p10_p90_change_percent": [
+        -31.702123828374837,
+        -25.626256132431244
+      ],
+      "optimized_faster_pairs": 72,
+      "scope": "Adjacent rotated-mode frames at identical round/sample; descriptive, not a confidence interval."
+    }
+  },
+  "changes_percent": {
+    "leaf_clusters": -32.80211351627749,
+    "all_clusters": -86.01943789337699,
+    "roots": 98.89165973954005,
+    "resident_bytes": -70.3234000712955,
+    "build_seconds_sum": -47.30358485290051
+  }
+}

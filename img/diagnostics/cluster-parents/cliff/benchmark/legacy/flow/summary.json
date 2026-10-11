@@ -1,0 +1,99 @@
+{
+  "scene": "Coastal Cliff",
+  "mesh_count": 10,
+  "source_triangles": 9432840,
+  "protected_leaf_triangles": 0,
+  "resident_bytes": 139659480,
+  "budget_limited_meshes": 0,
+  "frames": [
+    {
+      "camera_distance": 34.66987228393555,
+      "clusters": 76444,
+      "cpu_cut_indices_exact": null,
+      "distance_scale": 1.0,
+      "lod_reduction_percent": 0.0,
+      "name": "0",
+      "pixel_error": 0.0,
+      "same_view_zero_error_triangles": 9145579,
+      "triangles": 9145579,
+      "triangles_by_level": {
+        "0": 9145579
+      }
+    },
+    {
+      "camera_distance": 34.66987228393555,
+      "clusters": 76523,
+      "cpu_cut_indices_exact": null,
+      "distance_scale": 1.0,
+      "lod_reduction_percent": 3.2365474072226563,
+      "name": "1",
+      "pixel_error": 4.0,
+      "same_view_zero_error_triangles": 9145579,
+      "triangles": 8849578,
+      "triangles_by_level": {
+        "0": 7428191,
+        "1": 1421387
+      }
+    },
+    {
+      "camera_distance": 15.601442337036133,
+      "clusters": 64924,
+      "cpu_cut_indices_exact": null,
+      "distance_scale": 0.44999998807907104,
+      "lod_reduction_percent": 3.165804537710737,
+      "name": "2",
+      "pixel_error": 4.0,
+      "same_view_zero_error_triangles": 7759860,
+      "triangles": 7514198,
+      "triangles_by_level": {
+        "0": 6331261,
+        "1": 1182937
+      }
+    },
+    {
+      "camera_distance": 34.66987228393555,
+      "clusters": 74989,
+      "cpu_cut_indices_exact": null,
+      "distance_scale": 1.0,
+      "lod_reduction_percent": 3.2199359886328938,
+      "name": "3",
+      "pixel_error": 4.0,
+      "same_view_zero_error_triangles": 8963408,
+      "triangles": 8674792,
+      "triangles_by_level": {
+        "0": 7287641,
+        "1": 1387151
+      }
+    },
+    {
+      "camera_distance": 69.3397445678711,
+      "clusters": 78930,
+      "cpu_cut_indices_exact": null,
+      "distance_scale": 2.0,
+      "lod_reduction_percent": 3.3008510692431936,
+      "name": "4",
+      "pixel_error": 4.0,
+      "same_view_zero_error_triangles": 9432840,
+      "triangles": 9121476,
+      "triangles_by_level": {
+        "0": 7636006,
+        "1": 1485470
+      }
+    },
+    {
+      "camera_distance": 138.6794891357422,
+      "clusters": 78930,
+      "cpu_cut_indices_exact": null,
+      "distance_scale": 4.0,
+      "lod_reduction_percent": 3.315226379330083,
+      "name": "5",
+      "pixel_error": 4.0,
+      "same_view_zero_error_triangles": 9432840,
+      "triangles": 9120120,
+      "triangles_by_level": {
+        "0": 7630630,
+        "1": 1489490
+      }
+    }
+  ]
+}
