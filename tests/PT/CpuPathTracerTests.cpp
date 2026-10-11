@@ -1,9 +1,15 @@
 #include "PT/CpuPathTracer.h"
 #include "PT/ValidationScenes.h"
+#include "PT/SceneIdentity.h"
+#include "../../src/PT/FiberScattering.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <cmath>
+#include <cstring>
+#include <future>
 #include <filesystem>
 #include <iostream>
+#include <numeric>
+#include <chrono>
 #include <stdexcept>
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb/stb_image_write.h>
@@ -50,6 +56,144 @@ void samplers() {
         check(std::abs(double(both)/count-.125)<.012,"Solar proposal selector is correlated with late alpha coverage");
     }
 }
+void sceneReuse() {
+    auto world=snapshot();world.draws={triangle({-1,-1,0},{1,-1,0},{0,1,0})};
+    auto cache=std::make_shared<pt::GeometryCache>();pt::CpuScene original(world,{},cache);
+    check(original.accelerationStats().blasBuilds==1&&cache->retainedBytes()>0,"Cold BLAS cache did not retain geometry");
+    auto changed=world;changed.draws[0].model=glm::translate(glm::mat4(1),glm::vec3(.2f,0,0));changed.draws[0].parameters.albedoAlpha={.1f,.8f,.2f,1};
+    changed.frame.lights.push_back({{0,0,2,1},{20,20,20,0},{0,0,-1,0}});
+    pt::CpuScene reused(changed,{},cache),fresh(changed);
+    check(reused.accelerationStats().blasBuilds==0&&reused.accelerationStats().blasCacheHits==1,"Transform/material/light edit rebuilt mesh BLAS");
+    pt::Options opts;opts.width=8;opts.height=8;opts.samples=4;opts.maxDepth=3;opts.adaptive=false;opts.threads=1;
+    check(pt::render(reused,opts).radiance==pt::render(fresh,opts).radiance,"Cached BLAS changed edited-scene transport");
+    auto replacement=std::make_shared<render::MeshPayload>(*world.draws[0].mesh);replacement->revision=1;replacement->vertices[2].position.y=2;changed.draws[0].mesh=replacement;
+    pt::CpuScene rebuilt(changed,{},cache);check(rebuilt.accelerationStats().blasBuilds==1,"New geometry reused a stale BLAS");
+    auto tiny=std::make_shared<pt::GeometryCache>(1);pt::CpuScene uncached(world,{},tiny);check(tiny->retainedBytes()==0,"Oversized geometry exceeded cache budget");
+    auto bounded=std::make_shared<pt::GeometryCache>(cache->retainedBytes()/2);pt::CpuScene lease(world,{},bounded);pt::CpuScene eviction(changed,{},bounded);
+    check(bounded->retainedBytes()<=cache->retainedBytes()/2,"BLAS retention exceeded budget");pt::Surface hit;check(lease.intersect({0,0,2},{0,0,-1},0,10,hit),"Cache eviction invalidated a live CPU scene");
+    auto water=pt::makeWaterSolarValidationScene(8,8).snapshot;pt::CpuScene moving(water,{},cache);
+    water.frame.cameraPosition.y=-1;glm::mat4 depth(1);depth[2][2]=.5f;depth[3][2]=.5f;
+    water.frame.viewProjection=depth*glm::perspective(glm::radians(60.f),1.f,.1f,100.f)*glm::lookAt(water.frame.cameraPosition,water.frame.cameraPosition+glm::vec3(0,0,-1),glm::vec3(0,1,0));
+    moving.updateCamera(water.frame);pt::CpuScene cameraReference(water);
+    check(moving.cameraData().media==cameraReference.cameraData().media&&moving.cameraData().winding==cameraReference.cameraData().winding&&moving.cameraData().media[0].x!=0,"Camera update lost underwater medium state");
+    for(auto uv:{glm::vec2(.5f),glm::vec2(.1f,.8f)}){glm::vec3 oa,da,ob,db;moving.cameraRay(uv.x,uv.y,oa,da);cameraReference.cameraRay(uv.x,uv.y,ob,db);check(near(oa,ob)&&near(da,db)&&std::abs(moving.cameraPdf(da)-cameraReference.cameraPdf(db))<1e-6f,"Updated camera rays/PDF differ from a fresh camera");glm::vec2 pa,pb;float fa,fb;check(moving.project(oa+da*2.f,pa,fa)==cameraReference.project(ob+db*2.f,pb,fb)&&glm::length(pa-pb)<1e-6f&&fa==fb,"Updated camera projection differs");}
+    auto bad=water.frame;bad.viewProjection=glm::mat4(0);bool rejected=false;try{moving.updateCamera(bad);}catch(const std::invalid_argument&){rejected=true;}check(rejected&&moving.cameraData().inverseProjection==cameraReference.cameraData().inverseProjection,"Invalid camera damaged retained scene");
+    auto identity=pt::sceneIdentity(world);auto cameraOnly=world;cameraOnly.frame.viewProjection=water.frame.viewProjection;cameraOnly.frame.cameraPosition=water.frame.cameraPosition;cameraOnly.sequence=100;cameraOnly.exposure=2;cameraOnly.frame.ssao=true;
+    check(identity==pt::sceneIdentity(cameraOnly),"Display/camera-only edits invalidated transport identity");
+    check(!(identity==pt::sceneIdentity(changed)),"Transport identity omitted geometry/material/transform changes");
+    cameraOnly=world;cameraOnly.draws[0].pathTracingIor=1.5f;check(!(identity==pt::sceneIdentity(cameraOnly)),"Optical edit did not invalidate PT");
+    cameraOnly=world;cameraOnly.frame.oceans.emplace_back();auto oceanId=pt::sceneIdentity(cameraOnly);cameraOnly.frame.oceans[0].spectrum.windSpeed+=1;check(!(oceanId==pt::sceneIdentity(cameraOnly)),"FFT edit omitted from capture identity");
+    cameraOnly.frame.oceans[0].spectrum.seaState.enabled=true;auto seaId=pt::sceneIdentity(cameraOnly);
+    cameraOnly.frame.oceans[0].spectrum.seaState.swellPeriod+=1;check(!(seaId==pt::sceneIdentity(cameraOnly)),"Swell period omitted from PT capture identity");
+    seaId=pt::sceneIdentity(cameraOnly);cameraOnly.frame.oceans[0].spectrum.seaState.depth=8;check(!(seaId==pt::sceneIdentity(cameraOnly)),"Wave depth omitted from PT capture identity");
+    seaId=pt::sceneIdentity(cameraOnly);cameraOnly.frame.oceans[0].shortWaveRipples=true;check(!(seaId==pt::sceneIdentity(cameraOnly)),"Ripple mode omitted from PT capture identity");
+    seaId=pt::sceneIdentity(cameraOnly);cameraOnly.frame.oceans[0].surfaceModel.physical=true;check(!(seaId==pt::sceneIdentity(cameraOnly)),"Physical water model omitted from capture identity");
+    seaId=pt::sceneIdentity(cameraOnly);cameraOnly.frame.oceans[0].surfaceModel.roughness=.12f;check(!(seaId==pt::sceneIdentity(cameraOnly)),"Shared water roughness omitted from capture identity");
+    seaId=pt::sceneIdentity(cameraOnly);cameraOnly.frame.cameraPosition.x+=1;check(!(seaId==pt::sceneIdentity(cameraOnly)),"Focused ocean camera position omitted from capture identity");
+    cameraOnly=world;cameraOnly.frame.sky=true;auto skyId=pt::sceneIdentity(cameraOnly);cameraOnly.frame.cameraPosition.y=10;check(!(skyId==pt::sceneIdentity(cameraOnly)),"Sky observer altitude did not invalidate baked lighting");
+    cameraOnly=world;cameraOnly.frame.clouds.enabled=true;auto cloudId=pt::sceneIdentity(cameraOnly);cameraOnly.frame.clouds.coverage+=.1f;check(!(cloudId==pt::sceneIdentity(cameraOnly)),"Cloud coverage did not invalidate P1 sky/solar capture");
+    auto field=std::make_shared<render::CloudShadowField>();field->width=2;field->patch={-1,-1,2,2};field->projection={0,0,0,100};field->transmission={1,.5f,.25f,0};
+    auto frozen=render::deserializeCloudShadow(render::serializeCloudShadow(*field));check(frozen->transmission==field->transmission&&std::abs(frozen->sample({0,0,0})-.4375f)<1e-6,"Cloud solar field round trip or bilinear interpolation differs");
+    check(frozen->sample({2,0,0})==1&&frozen->sample({0,100,0})==1,"Cloud solar field extended beyond its receiver domain");
+    field->transmission[0]=-1;bool invalidField=false;try{render::serializeCloudShadow(*field);}catch(const std::invalid_argument&){invalidField=true;}check(invalidField,"Invalid cloud transmission was serialized");
+    auto options=opts;options.exposure=3;check(pt::sameRenderOptions(opts,options),"Exposure invalidated raw GPU film");options.maxDepth++;check(!pt::sameRenderOptions(opts,options),"Depth edit did not invalidate raw film");
+    options=opts;options.gpuTraversal=pt::GpuTraversal::Software;check(!pt::sameRenderOptions(opts,options),"Traversal change reused a film from another intersection path");
+}
+void packedExportSharing() {
+    auto world=snapshot();auto draw=triangle({-.4f,-.4f,0},{.4f,-.4f,0},{0,.4f,0});
+    auto image=std::make_shared<render::ImageRGBA8>(render::ImageRGBA8{2,2,std::vector<uint8_t>(16,255)});
+    auto material=std::make_shared<render::MaterialPayload>();material->images[0]=image;draw.material=material;
+    for(int i=0;i<128;++i){auto instance=draw;instance.objectId=i+1;instance.model=glm::translate(glm::mat4(1),glm::vec3((i%16-7.5f)*.7f,(i/16-3.5f)*.7f,0));world.draws.push_back(instance);}
+    auto cache=std::make_shared<pt::GeometryCache>(0);
+    auto cold=std::make_unique<pt::CpuScene>(world,std::vector<pt::DielectricMaterial>{},cache);
+    auto original=cold->exportData();
+    check(!original.geometryReused&&!original.texturesReused&&cold->accelerationStats().alphaImageScans==1&&cold->accelerationStats().alphaPixelsScanned==4,"Shared alpha image was scanned per instance / cold export reused unbuilt data");
+    auto changed=world;changed.draws[0].parameters.albedoAlpha.x=.1f;
+    pt::CpuScene hot(changed,{},cache,cold.get());auto hotData=hot.exportData();
+    check(hotData.geometry==original.geometry&&hotData.textures==original.textures&&hotData.geometryReused&&hotData.texturesReused,"Scalar material edit repacked immutable geometry / textures");
+    changed.draws[0].model[3].x+=.05f;pt::CpuScene moved(changed,{},cache,&hot);auto movedData=moved.exportData();
+    check(movedData.geometry==original.geometry&&movedData.textures==original.textures,"Transform edit copied static packed arrays");
+    auto added=changed;added.draws.push_back(draw);pt::CpuScene topology(added,{},cache,&moved);auto topologyData=topology.exportData();
+    check(topologyData.geometry==original.geometry&&topologyData.instances.size()==129,"Adding an instance of existing geometry repacked BLAS");
+    auto transparent=std::make_shared<render::ImageRGBA8>(*image);transparent->pixels.back()=0;
+    auto replacement=std::make_shared<render::MaterialPayload>(*material);replacement->images[0]=transparent;changed.draws[0].material=replacement;
+    pt::CpuScene textured(changed,{},cache,&moved);auto textureData=textured.exportData();
+    check(textureData.geometry==original.geometry&&textureData.textures!=original.textures&&!textureData.texturesReused&&textured.accelerationStats().alphaImageScans==2&&!textured.opaqueShadows(),"New alpha image reused stale texels / opaque summary");
+    check(textureData.textures->texels[3]==0x00ffffffu&&original.textures->texels[3]==0xffffffffu,"Packed texture replacement modified an old export");
+    auto altered=std::make_shared<render::MeshPayload>(*draw.mesh);altered->vertices[2].position.y+=.1f;
+    changed.draws[0].mesh=altered;pt::CpuScene geometry(changed,{},cache,&textured);auto geometryData=geometry.exportData();
+    check(geometryData.geometry!=textureData.geometry&&!geometryData.geometryReused&&geometryData.textures==textureData.textures,"New geometry reused stale packed BLAS / invalidated unchanged texels");
+    auto reordered=changed;std::swap(reordered.draws[0],reordered.draws[1]);pt::CpuScene reorderedScene(reordered,{},cache,&geometry);auto reorderedData=reorderedScene.exportData();
+    check(reorderedData.geometry!=geometryData.geometry&&reorderedData.textures!=geometryData.textures,"Changed geometry / image order reused old root or texture indices");
+    pt::CpuScene fresh(changed);geometry.environment=fresh.environment=std::make_shared<pt::Environment>(2,1,std::vector<glm::vec3>(2,glm::vec3(.5f)));auto freshData=fresh.exportData();
+    check(freshData.geometry->vertices.size()==geometryData.geometry->vertices.size()&&freshData.textures->texels==geometryData.textures->texels&&freshData.textures->images==geometryData.textures->images,"Shared export differs from fresh packing");
+    pt::Options opts;opts.width=16;opts.height=12;opts.samples=4;opts.adaptive=false;opts.threads=1;
+    check(pt::render(geometry,opts).radiance==pt::render(fresh,opts).radiance,"Alpha scan dedup / packed reuse changed CPU transport");
+    pt::CpuScene concurrent(world);auto first=std::async(std::launch::async,[&]{return concurrent.exportData();});auto second=std::async(std::launch::async,[&]{return concurrent.exportData();});auto a=first.get(),b=second.get();
+    check(a.geometry==b.geometry&&a.textures==b.textures&&a.geometryReused!=b.geometryReused&&a.texturesReused!=b.texturesReused,"Concurrent exports raced lazy publication");
+    cold.reset();image.reset();material.reset();
+    check(original.geometry->vertices.size()==3&&original.textures->texels[3]==0xffffffffu&&cache->retainedBytes()==0,"Packed export lifetime depends on evicted CPU geometry / destroyed scene");
+    std::cout<<"Packed exports: immutable leases, alpha dedup, image/geometry/order invalidation, concurrent publication and old-export lifetime passed\n";
+}
+void incrementalTlas() {
+    auto world=snapshot();auto source=triangle({-.6f,-.6f,0},{.6f,-.6f,0},{0,.6f,0});
+    for(int i=0;i<64;++i){auto draw=source;draw.objectId=i+1;draw.model=glm::translate(glm::mat4(1),glm::vec3((i%8-3.5f)*2,(i/8-3.5f)*2,0));world.draws.push_back(draw);}
+    auto emitter=triangle({-6,8,3},{6,8,3},{0,-6,3});emitter.objectId=1000;emitter.parameters.emissiveNormal={2,3,4,1};world.draws.push_back(emitter);
+    auto cache=std::make_shared<pt::GeometryCache>();auto old=std::make_shared<pt::CpuScene>(world,std::vector<pt::DielectricMaterial>{},cache);
+    check(old->accelerationStats().tlasBuilds==1&&old->accelerationStats().emitterBuilds==1,"Cold scene did not build TLAS/emitter distribution");
+    auto material=world;material.draws[0].parameters.albedoAlpha={.2f,.8f,.4f,1};
+    pt::CpuScene hot(material,{},cache,old.get());auto a=hot.accelerationStats();
+    check(a.tlasReuses==1&&a.tlasBuilds==0&&a.tlasRefits==0&&a.emitterReuses==1&&a.thinNormalReuses==1&&a.cameraMediaReuses==1&&a.transformReuses==65&&a.instanceBoundsReuses==65,"Material-only scene recomputed unchanged acceleration/derived data");
+    auto noRetention=std::make_shared<pt::GeometryCache>(0);pt::CpuScene active(world,{},noRetention),leased(material,{},noRetention,&active);
+    check(noRetention->retainedBytes()==0&&leased.accelerationStats().blasBuilds==0&&leased.accelerationStats().blasSceneReuses==2&&leased.accelerationStats().tlasReuses==1,"Evicted/oversized BLAS was rebuilt despite a valid previous-scene lease");
+    auto light=world;light.frame.lights.push_back({{0,0,2,1},{10,10,10,0},{0,0,-1,0}});pt::CpuScene relit(light,{},cache,old.get());check(relit.accelerationStats().tlasReuses==1&&relit.accelerationStats().emitterReuses==1,"Analytic light edit rebuilt acceleration/emitter geometry");
+    auto emission=world;emission.draws.back().parameters.emissiveNormal.x*=2;pt::CpuScene changedEmitter(emission,{},cache,old.get());
+    check(changedEmitter.accelerationStats().tlasReuses==1&&changedEmitter.accelerationStats().emitterBuilds==1,"Emitter RGB edit reused stale sampling weights");
+    auto moved=material;moved.draws[0].model=glm::translate(glm::mat4(1),glm::vec3(-6.8f,-7,0));
+    pt::CpuScene refitted(moved,{},cache,old.get()),fresh(moved);a=refitted.accelerationStats();
+    const auto before=old->exportData(),after=refitted.exportData();
+    check(before.geometry->blasNodes.size()==a.blasNodes&&after.tlasNodes.size()==a.tlasNodes&&before.instances[0].info.x==0,"GPU export does not use independent BLAS/TLAS address spaces");
+    check(before.geometry->blasNodes.size()==after.geometry->blasNodes.size()&&std::memcmp(before.geometry->blasNodes.data(),after.geometry->blasNodes.data(),before.geometry->blasNodes.size()*sizeof(pt::PackedNode))==0,"Instance motion changed immutable GPU BLAS");
+    for(const auto &instance:after.instances)check(instance.info.x<after.geometry->blasNodes.size(),"Exported instance BLAS root is outside the BLAS buffer");
+    check(a.tlasRefits==1&&a.tlasBuilds==0&&a.emitterBuilds==1&&a.cameraMediaReuses==0&&a.tlasRefitAge==1&&a.transformReuses==64&&a.instanceBoundsReuses==64,"Small transform change did not refit TLAS / invalidate world-space derived data");
+    auto compareHits=[&](const pt::CpuScene &candidate,const pt::CpuScene &reference,const render::RenderWorldSnapshot &input){
+        for(const auto &draw:input.draws){const auto target=glm::vec3(draw.model*glm::vec4(0,0,0,1)),origin=target+glm::vec3(0,0,2);pt::Surface x,y,z;
+            bool hx=candidate.intersect(origin,{0,0,-1},0,20,x),hy=reference.intersect(origin,{0,0,-1},0,20,y),hz=candidate.intersect(origin,{0,0,-1},0,20,z,true);
+            check(hx==hy&&hx==hz,"Refit hit/miss differs from SAH rebuild / brute force");if(hx)check(x.primitive==y.primitive&&x.primitive==z.primitive&&x.distance==y.distance&&near(x.albedo,y.albedo),"Refit primitive/distance/material differs from SAH rebuild / brute force");
+        }
+    };compareHits(refitted,fresh,moved);
+    pt::Options opts;opts.width=16;opts.height=12;opts.samples=8;opts.maxDepth=4;opts.threads=1;opts.adaptive=false;
+    check(pt::render(refitted,opts).radiance==pt::render(fresh,opts).radiance,"Refit changed raw CPU path transport");
+    auto scrambled=world;std::vector<uint32_t> permutation(64);std::iota(permutation.begin(),permutation.end(),0u);pt::Random shuffle(71);
+    for(int i=63;i>0;--i)std::swap(permutation[i],permutation[uint32_t(shuffle.uniform()*(i+1))]);
+    for(int i=0;i<64;++i)scrambled.draws[i].model=world.draws[permutation[i]].model;
+    pt::CpuScene degraded(scrambled,{},cache,old.get()),scrambledFresh(scrambled);a=degraded.accelerationStats();
+    std::cout<<"TLAS quality fallback: builds "<<a.tlasBuilds<<", refit rebuilds "<<a.refitRebuilds<<", cost "<<a.tlasCost<<" / "<<a.tlasBuildCost<<'\n';
+    check(a.refitRebuilds==1&&a.tlasBuilds==1&&a.tlasRefits==0&&a.tlasRefitAge==0,"Poor TLAS refit did not fall back to SAH");compareHits(degraded,scrambledFresh,scrambled);
+    auto overlap=moved;overlap.draws[0].model=overlap.draws[1].model;pt::CpuScene overlapping(overlap,{},cache,old.get()),overlapFresh(overlap);compareHits(overlapping,overlapFresh,overlap);
+    auto added=world;auto extra=source;extra.objectId=999;added.draws.push_back(extra);pt::CpuScene topology(added,{},cache,old.get());check(topology.accelerationStats().tlasBuilds==1&&topology.accelerationStats().tlasRefits==0,"Topology addition incorrectly refitted TLAS");
+    auto reordered=world;std::swap(reordered.draws[0],reordered.draws[1]);pt::CpuScene orderChange(reordered,{},cache,old.get());check(orderChange.accelerationStats().tlasBuilds==1,"Changed instance order incorrectly reused TLAS identities");
+    auto changed=world;auto mesh=std::make_shared<render::MeshPayload>(*source.mesh);mesh->vertices[2].position.y+=.2f;changed.draws[0].mesh=mesh;pt::CpuScene geometry(changed,{},cache,old.get());check(geometry.accelerationStats().tlasBuilds==1,"Changed source geometry incorrectly reused TLAS");
+    auto aging=world;for(uint32_t i=1;i<=33;++i){aging.draws[0].model=glm::translate(glm::mat4(1),glm::vec3(-7+i*.001f,-7,0));auto next=std::make_shared<pt::CpuScene>(aging,std::vector<pt::DielectricMaterial>{},cache,old.get());a=next->accelerationStats();if(i<=32)check(a.tlasRefits==1&&a.tlasRefitAge==i,"Refit age was not retained across updates");else check(a.refitRebuilds==1&&a.tlasBuilds==1&&a.tlasRefitAge==0,"Refit age limit did not force SAH rebuild");old=std::move(next);}
+    auto media=pt::makeMediumValidationScene(8,8,true).snapshot;media.frame.cameraPosition.z=0;media.frame.viewProjection=media.frame.viewProjection*glm::translate(glm::mat4(1),glm::vec3(0,0,4));const auto originalBoundary=media;pt::CpuScene volume(media,{},cache);check(volume.cameraData().media[0].x!=0,"Optical invalidation fixture must start inside its volume");media.draws[0].pathTracingIor=0;media.draws[0].pathTracingAbsorption=glm::vec3(0);media.draws[0].pathTracingScattering=glm::vec3(0);media.draws[0].pathTracingKind=0;pt::CpuScene noBoundary(media,{},cache,&volume),freshBoundary(media);
+    check(noBoundary.accelerationStats().cameraMediaReuses==0&&noBoundary.cameraData().media==freshBoundary.cameraData().media,"Optical boundary edit reused stale camera media");
+    auto cutout=originalBoundary;auto alpha=std::make_shared<render::MaterialPayload>();alpha->images[0]=std::make_shared<render::ImageRGBA8>(render::ImageRGBA8{1,1,{255,255,255,0}});cutout.draws[0].material=alpha;cutout.draws[0].parameters.factors.w=.5f;
+    pt::CpuScene invisibleBoundary(cutout,{},cache,&volume),freshInvisible(cutout);
+    check(invisibleBoundary.accelerationStats().tlasReuses==1&&invisibleBoundary.accelerationStats().cameraMediaReuses==0&&invisibleBoundary.cameraData().media==freshInvisible.cameraData().media&&invisibleBoundary.cameraData().media[0].x==0,"Alpha-cutout edit reused stale camera boundary membership");
+    auto empty=world;empty.draws.clear();pt::CpuScene removed(empty,{},cache,old.get());check(removed.accelerationStats().tlasBuilds==1&&removed.accelerationStats().tlasNodes==0&&removed.accelerationStats().tlasCost==0,"Removing all instances retained stale TLAS nodes");
+    std::cout<<"CPU incremental TLAS: reuse/refit/topology/quality/age fallback, derived data and raw-film parity passed\n";
+}
+void largeInstanceUpdates() {
+    auto world=snapshot();auto draw=triangle({-.4f,-.4f,0},{.4f,-.4f,0},{0,.4f,0});
+    for(uint32_t i=0;i<20000;++i){auto instance=draw;instance.objectId=i+1;instance.model=glm::translate(glm::mat4(1),glm::vec3(float(i%200)-100,float(i/200)-50,0));world.draws.push_back(instance);}
+    auto cache=std::make_shared<pt::GeometryCache>();pt::CpuScene cold(world,{},cache);
+    world.draws[100].parameters.albedoAlpha={.1f,.7f,.3f,1};pt::CpuScene material(world,{},cache,&cold);auto a=material.accelerationStats();
+    check(a.tlasReuses==1&&a.tlasBuilds==0&&a.blasBuilds==0&&a.transformReuses==20000&&a.instanceBoundsReuses==20000,"Large material update repeated per-instance transform/bounds preparation");
+    world.draws[100].model[3].x+=.01f;pt::CpuScene moved(world,{},cache,&material),fresh(world);a=moved.accelerationStats();
+    check(a.tlasRefits==1&&a.blasBuilds==0&&a.transformReuses==19999&&a.instanceBoundsReuses==19999,"Large sparse transform update did not retain unchanged instances");
+    for(uint32_t i:{0u,100u,7000u,19999u}){auto origin=glm::vec3(world.draws[i].model[3])+glm::vec3(0,0,2);pt::Surface x,y;check(moved.intersect(origin,{0,0,-1},0,10,x)&&fresh.intersect(origin,{0,0,-1},0,10,y)&&x.primitive==y.primitive&&x.distance==y.distance&&near(x.albedo,y.albedo),"Large refit changed sampled instance identity/material");}
+    std::cout<<"20k instance update stage times (single CPU wall-clock observation; not a benchmark): TLAS build "<<cold.accelerationStats().tlasSeconds<<", reuse "<<material.accelerationStats().tlasSeconds<<", refit "<<a.tlasSeconds<<" s; retained transforms "<<a.transformReuses<<'\n';
+}
 void instances() {
     auto world=snapshot(),expanded=snapshot();auto source=triangle({-1,-1,0},{1,-1,0},{0,1,0});
     auto uvMesh=std::make_shared<render::MeshPayload>(*source.mesh);uvMesh->vertices[0].uv={0,0};uvMesh->vertices[1].uv={1,0};uvMesh->vertices[2].uv={.5f,1};source.mesh=uvMesh;
@@ -59,7 +203,7 @@ void instances() {
         world.draws.push_back(draw);targets.push_back(glm::vec3(draw.model*glm::vec4(0,0,0,1)));
         auto flat=draw;auto mesh=std::make_shared<render::MeshPayload>(*draw.mesh);auto normal=glm::transpose(glm::inverse(glm::mat3(draw.model)));for(auto &v:mesh->vertices){v.position=glm::vec3(draw.model*glm::vec4(v.position,1));v.normal=glm::normalize(normal*v.normal);}if(glm::determinant(glm::mat3(draw.model))<0)std::swap(mesh->indices[1],mesh->indices[2]);flat.mesh=mesh;flat.model=glm::mat4(1);expanded.draws.push_back(flat);
     }
-    pt::CpuScene shared(world),flat(expanded);auto stats=shared.accelerationStats();check(stats.uniqueMeshes==1&&stats.instances==64&&stats.uniqueTriangles==1&&stats.expandedTriangles==64,"BLAS geometry duplicated across instances");auto packed=shared.exportData();check(packed.vertices.size()==3&&packed.triangles.size()==1&&packed.instances.size()==64,"GPU export expanded shared geometry");check(shared.memoryBytes()<flat.memoryBytes(),"Instance sharing did not reduce CPU acceleration memory");
+    pt::CpuScene shared(world),flat(expanded);auto stats=shared.accelerationStats();check(stats.uniqueMeshes==1&&stats.instances==64&&stats.uniqueTriangles==1&&stats.expandedTriangles==64,"BLAS geometry duplicated across instances");auto packed=shared.exportData();check(packed.geometry->vertices.size()==3&&packed.geometry->triangles.size()==1&&packed.instances.size()==64,"GPU export expanded shared geometry");check(shared.memoryBytes()<flat.memoryBytes(),"Instance sharing did not reduce CPU acceleration memory");
     pt::Random random(497);int hits=0;
     for(int i=0;i<4096;++i){auto target=targets[i%targets.size()]+glm::vec3(random.uniform()*2-1,random.uniform()*2-1,0);auto origin=target+glm::vec3(.4f,-.2f,3);auto direction=glm::normalize(target-origin)*(i%2?2.f:1.f);pt::Surface a,b,c;bool x=shared.intersect(origin,direction,.0001f,100,a),y=flat.intersect(origin,direction,.0001f,100,b),z=shared.intersect(origin,direction,.0001f,100,c,true);check(x==y&&x==z,"Instanced TLAS hit/miss differs from flattened/world brute force");check(shared.intersectsAny(origin,direction,.0001f,100)==z,"Any-hit differs for mirrored/cutout/nonuniform instances");if(!x)continue;++hits;
         check(std::abs(a.distance-b.distance)<2e-5f&&std::abs(a.distance-c.distance)<2e-5f,"Non-normalized local ray lost world t");check(near(a.albedo,b.albedo,.0001f)&&near(a.normal,b.normal,.0001f)&&a.frontFace==b.frontFace&&a.bsdfModel==b.bsdfModel,"Mirrored/nonuniform instance changed UV, normal, winding or material");}
@@ -255,6 +399,40 @@ void bsdf() {
     check(near(estimate/150000.f,integral/150000.f,.015f),"Grazing VNDF estimator loses energy");
     check(near(pt::evaluateBsdf(s,{0,0,1},{0,0,-1}),{0,0,0}),"BSDF leaks below the geometric surface");
 }
+void anisotropicBsdf(){
+    pt::Surface s;s.normal=s.geometricNormal={0,0,1};s.specularTangent={1,0,0,1};s.albedo={.8f,.6f,.3f};s.roughness=.55f;
+    pt::Random rng(89173);
+    for(uint32_t model:{0u,2u})for(float metallic:{0.f,1.f})for(float anisotropy:{-.8f,.8f})for(auto view:std::vector<glm::vec3>{{0,0,1},glm::normalize(glm::vec3(1,.2f,.15f))}){
+        s.bsdfModel=model;s.metallic=metallic;s.specularAnisotropy=anisotropy;s.specularRotation=.37f;
+        glm::vec3 estimate(0),integral(0);double pdfIntegral=0;int accepted=0;constexpr int samples=65536;
+        for(int i=0;i<samples;++i){auto sample=pt::sampleBsdf(s,view,rng);if(sample.pdf>0){++accepted;check(std::isfinite(sample.pdf)&&near(sample.value,pt::evaluateBsdf(s,view,sample.direction),1e-5f),"Anisotropic sample evaluation is inconsistent");check(std::abs(sample.pdf-pt::bsdfPdf(s,view,sample.direction))<1e-5f,"Anisotropic VNDF PDF mismatch");estimate+=sample.value*(sample.direction.z/sample.pdf);}
+            const float z=rng.uniform(),phi=2*pi*rng.uniform(),r=std::sqrt(1-z*z);glm::vec3 l{r*std::cos(phi),r*std::sin(phi),z};integral+=pt::evaluateBsdf(s,view,l)*(z*2*pi);pdfIntegral+=pt::bsdfPdf(s,view,l)*2*pi;
+        }
+        check(near(estimate/float(samples),integral/float(samples),.03f),"Anisotropic sampling disagrees with independent hemispherical integration");
+        check(std::abs(pdfIntegral/samples-double(accepted)/samples)<.02,"Anisotropic PDF mass disagrees with accepted sampling frequency");
+        check(glm::all(glm::lessThanEqual(estimate/float(samples),glm::vec3(1.015f))),"Anisotropic white furnace gains energy");
+        const auto l=glm::normalize(glm::vec3(.3f,.4f,1));check(near(pt::evaluateBsdf(s,view,l),pt::evaluateBsdf(s,l,view),1e-5f),"Anisotropic reflection violates reciprocity");
+    }
+    s.bsdfModel=0;s.metallic=1;s.specularRotation=0;s.specularAnisotropy=.8f;const glm::vec3 view{0,0,1},l=glm::normalize(glm::vec3(.4f,.2f,1));auto positive=pt::evaluateBsdf(s,view,l);s.specularAnisotropy=-.8f;s.specularRotation=pi/2;
+    check(near(positive,pt::evaluateBsdf(s,view,l),1e-5f),"Signed anisotropy axis swap differs from 90 degree rotation");
+    s.specularAnisotropy=0;s.specularRotation=0;auto isotropic=pt::evaluateBsdf(s,view,l);s.specularRotation=1.23f;s.specularTangent={0,1,0,-1};check(isotropic==pt::evaluateBsdf(s,view,l),"Zero anisotropy depends on tangent or rotation");
+    auto world=snapshot();auto draw=triangle({-2,-2,0},{2,-2,0},{0,2,0});auto oriented=std::make_shared<render::MeshPayload>(*draw.mesh);oriented->vertices[0].uv={0,0};oriented->vertices[1].uv={1,0};oriented->vertices[2].uv={.5f,1};draw.mesh=oriented;draw.pathTracingSpecularAnisotropy=.8f;draw.pathTracingSpecularRotation=.3f;draw.model=glm::scale(glm::mat4(1),glm::vec3(-2,1,.5f));world.draws.push_back(draw);pt::CpuScene scene(world);pt::Surface hit;
+    check(scene.intersect({0,0,2},{0,0,-1},0,10,hit)&&std::abs(hit.specularTangent.x+1)<1e-6f&&hit.specularTangent.w==-1,"Mirrored UV anisotropic frame was not preserved");
+    auto packed=scene.exportData();check(packed.materials[0].specularShape==glm::vec4(.8f,.3f,0,0),"Packed specular parameters were lost");
+    auto common=world;common.draws[0].extension.specularShape={-.6f,.7f,2,0};
+    pt::CpuScene commonScene(common);const auto commonPacked=commonScene.exportData();
+    check(commonPacked.materials[0].specularShape==glm::vec4(-.6f,.7f,0,0),"Common GGX parameters did not reach PT");
+    check(!(pt::sceneIdentity(common)==pt::sceneIdentity(world)),"Common GGX parameters did not invalidate PT accumulation");
+    const auto identity=pt::sceneIdentity(world);auto changed=world;changed.draws[0].pathTracingSpecularRotation+=.1f;check(!(identity==pt::sceneIdentity(changed)),"Specular rotation did not invalidate transport identity");changed=world;changed.draws[0].pathTracingSpecularAnisotropy=-.8f;check(!(identity==pt::sceneIdentity(changed)),"Specular axes did not invalidate transport identity");
+
+    world.draws[0].pathTracingSpecularAnisotropy=1;bool rejected=false;try{pt::CpuScene invalid(world);}catch(const std::invalid_argument&){rejected=true;}check(rejected,"Unsupported anisotropy magnitude accepted");
+    world.draws[0].pathTracingSpecularAnisotropy=.8f;rejected=false;try{pt::CpuScene invalid(world,{{draw.objectId,1.5f}});}catch(const std::invalid_argument&){rejected=true;}check(rejected,"Legacy dielectric annotation silently ignored specular anisotropy");
+    auto room=snapshot();auto receiver=triangle({-20,-20,0},{20,-20,0},{0,20,0},{.7f,.6f,.4f});receiver.parameters.factors={.6f,.5f,1,0};receiver.pathTracingSpecularAnisotropy=.8f;receiver.pathTracingSpecularRotation=.4f;room.draws.push_back(receiver);
+    auto emitter=triangle({-.3f,-.3f,1},{0,.3f,1},{.3f,-.3f,1});emitter.parameters.albedoAlpha={0,0,0,1};emitter.parameters.emissiveNormal={6,6,6,0};room.draws.push_back(emitter);pt::CpuScene lit(room);pt::Options options;options.width=options.height=8;options.samples=2048;options.maxDepth=2;options.threads=2;options.adaptive=false;
+    auto reference=pt::render(lit,options);options.bdpt=true;auto bidirectional=pt::render(lit,options);double a=0,b=0;for(size_t i=0;i<reference.radiance.size();++i){a+=reference.radiance[i].x;b+=bidirectional.radiance[i].x;}
+    check(a>0&&std::abs(b/a-1)<.05,"Anisotropic BDPT reverse-density / connection energy differs from PT");
+
+}
 void transport() {
     auto s=snapshot();s.draws.push_back(triangle({-20,-20,0},{20,-20,0},{0,20,0},{.7f,.25f,.1f}));pt::CpuScene scene(s);
     scene.environment=std::make_shared<pt::Environment>(16,8,std::vector<glm::vec3>(128,glm::vec3(1)));
@@ -285,6 +463,77 @@ void rendering() {
     s.frame.lights.clear();auto emitter=triangle({-.5f,-.5f,1},{0,.5f,1},{.5f,-.5f,1});emitter.parameters.emissiveNormal={10,10,10,0};s.draws.push_back(emitter);pt::CpuScene area(s);pt::Random r(33);glm::vec3 energy(0);uint64_t rays=0;
     for(int i=0;i<1000;++i)energy+=area.trace({.8f,0,.5f},{0,0,-1},r,1,rays);check(energy.r/1000>.02f,"Emissive triangle NEE produced no illumination");
 }
+void fiberMaterials(){
+    pt::Surface hair;hair.bsdfModel=5;hair.normal=hair.geometricNormal={0,0,1};hair.specularTangent={1,0,0,1};hair.albedo=glm::vec3(1);hair.fiber.w=0;
+    pt::Random rng(918);auto view=glm::normalize(glm::vec3(.3f,.2f,1));glm::vec3 energy(0);
+    for(int i=0;i<20000;++i){auto sample=pt::sampleBsdf(hair,view,rng);check(sample.pdf>0&&std::isfinite(sample.pdf),"Hair sample PDF invalid");
+        check(glm::length(sample.direction)> .999f&&glm::length(sample.direction)<1.001f,"Hair direction not unit");
+        check(near(sample.value,pt::evaluateBsdf(hair,view,sample.direction),1e-5f)&&std::abs(sample.pdf-pt::bsdfPdf(hair,view,sample.direction))<1e-5f,"Hair sampling/evaluation mismatch");
+        energy+=sample.value*(pt::surfaceCosine(hair,sample.direction)/sample.pdf);}
+    check(near(energy/20000.f,glm::vec3(1),.002f),"Unabsorbing hair furnace loses/gains energy");
+    double integratedPdf=0;glm::vec3 integral(0);const int longitudinal=160,azimuth=320;
+    for(int i=0;i<longitudinal;++i)for(int j=0;j<azimuth;++j){float si=2*(i+.5f)/longitudinal-1,phi=2*pi*(j+.5f)/azimuth,ci=std::sqrt(1-si*si);glm::vec3 l{si,ci*std::cos(phi),ci*std::sin(phi)};
+        integratedPdf+=pt::bsdfPdf(hair,view,l)*4*pi/(longitudinal*azimuth);integral+=pt::evaluateBsdf(hair,view,l)*(pt::surfaceCosine(hair,l)*4*pi/(longitudinal*azimuth));}
+    check(std::abs(integratedPdf-1)<.01&&near(integral,glm::vec3(1),.015f),"Independent hair sphere quadrature not normalized");
+    // Narrow/broad lobes, ribbon edges and tilted near-longitudinal views must
+    // remain finite, including the limits used by imported thin geometry.
+    for(float beta:{.1f,.8f})for(float offset:{-.999f,.999f})for(float tilt:{-.2f,.2f})for(float x:{-.999f,0.f,.999f}){
+        auto edge=hair;edge.fiber={beta,beta,1.55f,tilt};edge.hairOffset=offset;
+        auto v=glm::vec3(x,0,std::sqrt(1-x*x));glm::vec3 sum(0);
+        for(int i=0;i<1000;++i){auto sample=pt::sampleBsdf(edge,v,rng);auto value=sample.value*(pt::surfaceCosine(edge,sample.direction)/sample.pdf);
+            check(sample.pdf>0&&std::isfinite(sample.pdf)&&std::isfinite(value.x)&&std::isfinite(value.y)&&std::isfinite(value.z),"Hair edge/grazing sample nonfinite");sum+=value;}
+        check(near(sum/1000.f,glm::vec3(1),.003f),"Hair edge/grazing white furnace changed energy");
+    }
+    hair.albedo={.6f,.2f,.04f};energy=glm::vec3(0);
+    for(int i=0;i<10000;++i){auto sample=pt::sampleBsdf(hair,view,rng);energy+=sample.value*(pt::surfaceCosine(hair,sample.direction)/sample.pdf);}
+    energy/=10000.f;check(energy.x>energy.y&&energy.y>energy.z&&energy.x<1,"Hair absorption does not tint/bound scattering");
+    for(float nv:{.01f,.2f,1.f})for(float w:{0.f,.8f}){
+        pt::Surface cloth;cloth.bsdfModel=4;cloth.normal=cloth.geometricNormal={0,0,1};cloth.albedo=glm::vec3(1);cloth.sheen={w,.5f,.3f,0};cloth.roughness=.8f;
+        auto v=glm::normalize(glm::vec3(std::sqrt(1-nv*nv),0,nv));glm::vec3 sum(0);double pdf=0;
+        for(int i=0;i<80;++i)for(int j=0;j<160;++j){float z=2*(i+.5f)/80-1,phi=2*pi*(j+.5f)/160,r=std::sqrt(1-z*z);glm::vec3 l{r*std::cos(phi),r*std::sin(phi),z};
+            sum+=pt::evaluateBsdf(cloth,v,l)*(pt::surfaceCosine(cloth,l)*4*pi/(80*160));pdf+=pt::bsdfPdf(cloth,v,l)*4*pi/(80*160);
+            if(z>0)check(near(pt::evaluateBsdf(cloth,v,l),pt::evaluateBsdf(cloth,l,v),1e-5f),"Cloth violates reciprocity");}
+        check(glm::all(glm::lessThanEqual(sum,glm::vec3(1.01f)))&&std::abs(pdf-1)<.002,"Cloth mixture furnace/PDF invalid");
+    }
+    for(int i=0;i<400;++i){glm::vec2 uv{float(i)*.0137f,float(i)*.0191f};auto pattern=pt::fiber::fiberKnit(uv,{1,24,32,.12f});auto repeat=pt::fiber::fiberKnit(uv+glm::vec2(1.f/24,1.f/32),{1,24,32,.12f});
+        check(pattern.x>=.32f&&pattern.x<=1&&std::abs(glm::length(glm::vec2(pattern.y,pattern.z))-1)<1e-5f&&glm::length(pattern-repeat)<.001f,"Knit yarn pattern is unbounded/nonperiodic");}
+    pt::Surface knit;knit.bsdfModel=4;knit.normal=knit.geometricNormal={0,0,1};knit.albedo=glm::vec3(1);knit.sheen={.8f,.5f,.1f,0};knit.knitSurface=pt::fiber::fiberKnit({.015f,.02f},{1,24,32,.12f});
+    auto grazing=glm::normalize(glm::vec3(1,0,.02f));energy=glm::vec3(0);
+    for(int i=0;i<10000;++i){auto sample=pt::sampleBsdf(knit,grazing,rng);energy+=sample.value*(pt::surfaceCosine(knit,sample.direction)/sample.pdf);if(sample.direction.z>0)check(near(sample.value,pt::evaluateBsdf(knit,sample.direction,grazing),1e-5f),"Directional knit sheen not reciprocal");}
+    check(glm::all(glm::lessThanEqual(energy/10000.f,glm::vec3(1.01f))),"Knit white furnace gained energy");
+    // Integrate reflection + transmission independently of the sampler. The
+    // new yarn lobe must remain reciprocal and passive, including grazing views.
+    for(float rough:{.3f,.65f,1.f})for(float nv:{.05f,.4f,1.f})for(float weight:{.25f,1.f}){
+        auto yarn=knit;yarn.sheen={.2f,.7f,.15f,weight};yarn.roughness=rough;yarn.knitSurface={1,1,0,1};
+        auto v=glm::vec3(std::sqrt(1-nv*nv),0,nv);glm::vec3 sum(0);
+        for(int i=0;i<180;++i)for(int j=0;j<360;++j){float z=2*(i+.5f)/180-1,phi=2*pi*(j+.5f)/360,r=std::sqrt(1-z*z);glm::vec3 l{r*std::cos(phi),r*std::sin(phi),z};
+            auto f=pt::evaluateBsdf(yarn,v,l);check(glm::all(glm::greaterThanEqual(f,glm::vec3(0)))&&std::isfinite(f.x),"Yarn reflection became nonfinite/negative");
+            sum+=f*(std::abs(z)*4*pi/(180*360));
+            if(z>0)check(near(f,pt::evaluateBsdf(yarn,l,v),.0003f),"Yarn reflection violated reciprocity");}
+        check(glm::all(glm::lessThanEqual(sum,glm::vec3(1.01f))),"Yarn reflection furnace gained energy");
+    }
+    auto yarn=knit;yarn.sheen={0,.5f,0,1};yarn.roughness=.6f;yarn.knitSurface={1,1,0,1};
+    auto v=glm::normalize(glm::vec3(.4f,.2f,1)),l=glm::normalize(glm::vec3(-.1f,.3f,1));auto f=pt::evaluateBsdf(yarn,v,l);
+    yarn.knitSurface={1,0,1,1};auto rotate=[](glm::vec3 d){return glm::vec3(-d.y,d.x,d.z);};
+    check(near(f,pt::evaluateBsdf(yarn,rotate(v),rotate(l)),1e-5f),"Yarn tangent rotation did not rotate reflection");
+    check(glm::length(f-pt::evaluateBsdf(yarn,v,l))>.001f,"Yarn reflection ignored its tangent");
+    yarn.sheen={0,.5f,1,1};
+    for(int i=0;i<1000;++i){auto sample=pt::sampleBsdf(yarn,{0,0,1},rng);
+        check(sample.direction.z>0&&sample.pdf>0&&near(sample.value,pt::evaluateBsdf(yarn,{0,0,1},sample.direction)),"Fully specular yarn used a transmission-only proposal");}
+    auto world=snapshot();auto draw=triangle({-1,-1,0},{1,-1,0},{0,1,0});draw.pathTracingBsdfModel=5;draw.pathTracingFiber={.4f,.2f,1.6f,.02f};world.draws={draw};pt::CpuScene scene(world);pt::Surface hit;
+    check(scene.intersect({0,0,1},{0,0,-1},0,2,hit)&&hit.bsdfModel==5&&hit.fiber==draw.pathTracingFiber&&hit.mediumId==0,"Hair geometry attributes entered a medium or disappeared");
+    check(scene.exportData().materials[0].fiber==draw.pathTracingFiber&&sizeof(pt::PackedMaterial)==288,"Fiber packed ABI lost parameters");
+    auto identity=pt::sceneIdentity(world);world.draws[0].pathTracingFiber.x+=.01f;check(!(pt::sceneIdentity(world)==identity),"Fiber edit did not invalidate PT identity");
+    bool rejected=false;world.draws[0].pathTracingFiber.x=0;try{pt::CpuScene invalid(world);}catch(const std::invalid_argument&){rejected=true;}check(rejected,"Invalid fiber roughness accepted");
+    pt::Options options;options.width=8;options.height=8;options.samples=1;options.bdpt=true;options.adaptive=false;rejected=false;
+    try{pt::render(scene,options);}catch(const std::invalid_argument&){rejected=true;}check(rejected,"Unvalidated hair BDPT reverse scattering silently enabled");
+    rejected=false;try{scene.validatePhotonMapping();}catch(const std::invalid_argument&){rejected=true;}check(rejected,"Unvalidated fiber photon adjoint silently enabled");
+    world.draws[0]=draw;world.draws[0].pathTracingBsdfModel=4;world.draws[0].pathTracingKnit={1,24,32,.12f};pt::CpuScene knitted(world);
+    check(knitted.intersect({0,0,1},{0,0,-1},0,2,hit)&&hit.knitSurface.w==1&&knitted.exportData().materials[0].knit==world.draws[0].pathTracingKnit,"Knit evaluation/ABI lost parameters");
+    identity=pt::sceneIdentity(world);world.draws[0].pathTracingKnit.y+=1;check(!(pt::sceneIdentity(world)==identity),"Knit stitch edit did not invalidate PT identity");
+    identity=pt::sceneIdentity(world);world.draws[0].pathTracingSheen.w=.5f;check(!(pt::sceneIdentity(world)==identity),"Yarn reflection edit did not invalidate PT identity");
+    std::cout<<"Hair/cloth: sphere PDF quadrature, sample consistency, furnace, absorption, cloth reciprocity, ABI and parameter identity passed\n";
+}
 void dielectricAndBdpt() {
     check(std::abs(pt::dielectricFresnel(1,1,1.5f)-.04f)<1e-6f,"Glass normal-incidence Fresnel is not 4%");
     check(pt::dielectricFresnel(.3f,1.5f,1)==1,"Glass total internal reflection failed");
@@ -304,4 +553,4 @@ void dielectricAndBdpt() {
 
 
 }
-int main(){try{samplers();instances();comparisonClosures();cornerTangentsAndLeaves();grazingClosures();waterSolarReflection();thinSolarReflection();roughDielectric();thinDielectric();geometry();environment();bsdf();transport();rendering();dielectricAndBdpt();std::cout<<"CPU path tracing geometry, HDR PDF, GGX, MIS/render scheduling and output tests passed\n";return 0;}catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}}
+int main(){try{samplers();sceneReuse();packedExportSharing();incrementalTlas();largeInstanceUpdates();instances();comparisonClosures();cornerTangentsAndLeaves();grazingClosures();waterSolarReflection();thinSolarReflection();roughDielectric();thinDielectric();geometry();environment();bsdf();anisotropicBsdf();transport();rendering();fiberMaterials();dielectricAndBdpt();std::cout<<"CPU path tracing geometry, HDR PDF, GGX, MIS/render scheduling and output tests passed\n";return 0;}catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}}

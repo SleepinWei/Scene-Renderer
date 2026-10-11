@@ -1,0 +1,53 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+layout(local_size_x=256) in;
+#include "ddgi-parameters.glsl"
+layout(set=0,binding=1) uniform sampler2D probeCapture;
+layout(set=0,binding=2) uniform sampler2D probeSky;
+layout(set=0,binding=3,std430) readonly buffer DdgiField {vec4 ddgiField[];};
+layout(set=0,binding=4,std430) buffer DdgiNext {vec4 ddgiNext[];};
+struct ProbePixel {vec4 mean,m2;uvec4 stats;vec4 albedo,normal;};
+layout(set=0,binding=5,std430) readonly buffer ProbePixels {ProbePixel probePixels[];};
+#include "ddgi-query.glsl"
+#include "sky-mapping.glsl"
+vec3 cubeDirection(int face,vec2 p){
+    // RH lookAt face bases, texture row zero at top.
+    if(face==0)return normalize(vec3(1,p.y,-p.x));
+    if(face==1)return normalize(vec3(-1,p.y,p.x));
+    if(face==2)return normalize(vec3(p.x,1,-p.y));
+    if(face==3)return normalize(vec3(p.x,-1,p.y));
+    if(face==4)return normalize(vec3(p.x,p.y,1));
+    return normalize(vec3(-p.x,p.y,-1));
+}
+void main(){
+    int lane=int(gl_LocalInvocationID.x),index=int(ddgiProbe.w),resolution=int(ddgiCapture.x),at=index*DDGI_STRIDE;
+    vec3 N=ddgiOctDecode((vec2(lane%16,lane/16)+.5)/16.*2.-1.);
+    vec3 irradianceN=ddgiOctDecode((vec2(lane%8,lane/8)+.5)/8.*2.-1.);
+    vec3 irradiance=vec3(0);vec2 moments=vec2(0);float angular=0.,distanceWeight=0.,backWeight=0.;
+    for(int face=0;face<6;face++)for(int y=0;y<resolution;y++)for(int x=0;x<resolution;x++){
+        vec2 p=(vec2(x,y)+.5)/float(resolution)*2.-1.;vec3 direction=cubeDirection(face,p);
+        float solid=4./float(resolution*resolution)/pow(1.+dot(p,p),1.5);
+        bool pathCapture=ddgiCapture.z>1.5;
+        vec4 hit=pathCapture?probePixels[y*6*resolution+face*resolution+x].mean:texelFetch(probeCapture,ivec2(face*resolution+x,y),0);
+        bool miss=hit.w==0.;float distance=miss?ddgiCapture.y:abs(hit.w);
+        float cosine=max(dot(N,direction),0.);
+        vec3 radiance=pathCapture?hit.rgb:miss?(ddgiCapture.z>0.?sampleSkyLut(probeSky,direction):vec3(ddgiCapture.w)):hit.rgb;
+        if(hit.w<0.)radiance=vec3(0);
+        if(lane<64)irradiance+=radiance*max(dot(irradianceN,direction),0.)*solid/3.14159265;
+        // Sharper distance lobes than irradiance reduce occluder dilation.
+        float w=pow(cosine,128.)*solid;
+        moments+=vec2(distance,distance*distance)*w;distanceWeight+=w;
+        angular+=solid;if(hit.w<0.)backWeight+=solid;
+    }
+    moments/=max(distanceWeight,1e-30);
+    vec4 old=ddgiField[at];float h=old.y>0. && old.x>.5?ddgiTemporal.x:0.;
+    vec3 previous=lane<64?ddgiField[at+1+lane].rgb:vec3(0);
+    float change=length(irradiance-previous)/max(length(previous),.05);
+    if(change>.5)h=min(h,.25); // faster response to light switches
+    bool usable=backWeight/max(angular,1e-8)<ddgiTemporal.z;
+    if(!usable)h=0.;
+    if(lane<64)ddgiNext[at+1+lane]=vec4(mix(irradiance,previous,h),1);
+    // Fresh visibility prevents stale light crossing newly moved occluders.
+    ddgiNext[at+65+lane]=vec4(moments,0,0);
+    if(lane==0)ddgiNext[at]=vec4(usable?1.:0.,old.y+1.,backWeight/max(angular,1e-8),0);
+}

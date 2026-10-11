@@ -1,0 +1,50 @@
+{
+  "source_page": "https://www.cemyuksel.com/research/hairmodels/",
+  "credit": "Hair geometry: Cem Yuksel; matching woman head: courtesy of Murat Afshar",
+  "hash_provenance": "SHA256 of archives obtained over HTTPS from the author page on 2026-10-09; pins for reproducibility, not author-published checksums",
+  "assets": {
+    "straight": {
+      "url": "https://www.cemyuksel.com/research/hairmodels/wStraight.zip",
+      "archive": "wStraight.zip",
+      "sha256": "bb023ab65ec60e546926b93b9a6119e84c2cd6f518d076bb215e4f7ae8b49682",
+      "members": [
+        "wStraight.hair"
+      ],
+      "strands": 50000,
+      "points": 1250000,
+      "member_sha256": {
+        "wStraight.hair": "3225a722b7346c15a7be6ab897bee012f19d373940647cb6f085f832a2ddfcb4"
+      }
+    },
+    "wavy": {
+      "url": "https://www.cemyuksel.com/research/hairmodels/wWavy.zip",
+      "archive": "wWavy.zip",
+      "sha256": "0c342c822195954278834070d5a36ae31ac7c675e14eb50501330685729ff33e",
+      "members": [
+        "wWavy.hair"
+      ],
+      "strands": 50000,
+      "points": 2450000,
+      "member_sha256": {
+        "wWavy.hair": "ee264968bb3cfb7a0952226f86040851350237d95d5ca3d405070165a3b028ff"
+      }
+    },
+    "head": {
+      "url": "https://www.cemyuksel.com/research/hairmodels/woman.zip",
+      "archive": "woman.zip",
+      "sha256": "b6cc0f1981743a889d17c338d266c56cbfeebb6648546c214c1a8dd990d2fa7f",
+      "members": [
+        "woman.obj",
+        "woman.mtl",
+        "head.tga",
+        "eye.tga"
+      ],
+      "member_sha256": {
+        "woman.obj": "7d7f3d3af349e0052f59a920c4643e46d53d7927f3cebb2c9659926f46414fbd",
+        "woman.mtl": "f673ea8584037c108e9caf27efd47420765c916bff553190736c2dcedcfc7e0a",
+        "head.tga": "6aef1d102f0fcf660021afc4e3ad80d809cc01a4a62a5bb4b287a06cb701b0eb",
+        "eye.tga": "9abde7e4023c88e867b98c2fe857840c76d23fca4277939516016acc2a775da9"
+      }
+    }
+  }
+}

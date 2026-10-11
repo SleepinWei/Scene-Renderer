@@ -15,5 +15,6 @@ private:
     Resources resources_;struct Targets;std::unique_ptr<Targets> targets_;
     rhi::ComputePipelineHandle pipeline_;rhi::SamplerHandle sampler_;std::vector<rhi::BindingLayout> layouts_;
     glm::mat4 previousVP_{1},previousView_{1};uint32_t index_=0,samples_=0;bool valid_=false;
+    glm::vec2 previousJitter_{0};float previousTime_=0;
 };
 }

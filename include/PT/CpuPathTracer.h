@@ -2,6 +2,7 @@
 #include "renderer/rhi/SceneSnapshot.h"
 #include "PT/Sampler.h"
 #include "PT/SceneData.h"
+#include "PT/WorldLod.h"
 #include "PT/Medium.h"
 #include <functional>
 #include <memory>
@@ -9,6 +10,20 @@
 
 namespace pt {
 class PhotonMap;
+// Thread-safe bounded retention of immutable mesh BLAS. Live scenes retain
+// their own leases; eviction never invalidates a scene already being rendered.
+class GeometryCache {
+  public:
+    explicit GeometryCache(size_t byteBudget=128*1024*1024);
+    ~GeometryCache();
+    GeometryCache(const GeometryCache &)=delete;
+    GeometryCache &operator=(const GeometryCache &)=delete;
+    size_t retainedBytes() const;
+  private:
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+    friend class CpuScene;
+};
 struct EnvironmentSample { glm::vec3 direction, radiance; float pdf = 0; };
 class Environment {
   public:
@@ -35,6 +50,11 @@ struct Surface {
     glm::vec3 diffuseNormal{0}, smoothNormal{0}; // Zero uses normal / disables bump shadowing for synthetic surfaces.
     glm::vec2 uv{0};
     float metallic = 0, roughness = .5f, opacity = 1, distance = 0, ior = 0;
+    float specularAnisotropy=0, specularRotation=0;
+    glm::vec4 specularTangent{0}; // World U tangent + handedness; zero uses deterministic frame.
+    glm::vec4 fiber{.3f,.3f,1.55f,.034906585f},sheen{.5f,.5f,0,0};
+    glm::vec3 sheenColor{1};float hairOffset=0;
+    glm::vec4 knitSurface{1,1,0,0}; // Evaluated yarn shade, local tangent XY, pattern weight.
     uint32_t bsdfModel = 0;
     bool twoSided = false;
     bool water = false;
@@ -52,6 +72,14 @@ struct DielectricMaterial {uint64_t objectId;float ior=1.5f;};
 struct MediumInfo {uint32_t id=0,kind=0;float ior=1;Medium volume;float roughness=0;};
 struct EmitterSample {Surface surface;float pdfArea=0;};
 struct BsdfSample { glm::vec3 direction{0}, value{0}; float pdf = 0; bool delta=false, transmission=false; };
+// One stochastic camera endpoint per SPPM iteration. Direct illumination and
+// emission stay in trace(); only its indirect continuation is replaced.
+struct VisiblePoint {
+    Surface surface;
+    glm::vec3 view{0}, beta{0};
+    uint32_t remainingDepth=0;
+    bool valid=false;
+};
 float dielectricFresnel(float cosine,float etaI,float etaT);
 float thinDielectricReflectance(float cosine,float exteriorIor,float sheetIor);
 glm::vec3 correctedReflectionNormal(glm::vec3 geometric,glm::vec3 view,glm::vec3 shading);
@@ -61,7 +89,9 @@ float surfaceCosine(const Surface &, glm::vec3 light);
 glm::vec3 evaluateBsdf(const Surface &, glm::vec3 view, glm::vec3 light,TransportMode = TransportMode::Radiance);
 float bsdfPdf(const Surface &, glm::vec3 view, glm::vec3 light);
 BsdfSample sampleBsdf(const Surface &, glm::vec3 view, Random &,TransportMode = TransportMode::Radiance);
+enum class GpuTraversal { Auto, Software, Native };
 struct Options {
+    WorldLodSettings worldLod;
     uint32_t width = 640, height = 480, samples = 64, maxDepth = 8, threads = 0;
     uint64_t seed = 1;
     float exposure = 1;
@@ -70,19 +100,36 @@ struct Options {
     float relativeError = .03f, absoluteError = .0005f;
     bool guiding = false, radianceCache = false, bdpt = false;
     bool photonMapping = false;
+    bool sppm = false;
+    float sppmAlpha = 2.f/3.f;
     uint32_t photonPaths = 200000, gpuBatchSamples = 8;
     bool shadowAnyHit = true;
+    GpuTraversal gpuTraversal=GpuTraversal::Auto;
     float photonRadius = .08f;
     uint32_t trainingSamples = 64, cacheMinimum = 64, cacheDepth = 2;
     float guideCellSize = 0;
     uint32_t checkpointSamples = 256; // Fixed-spp film readback/save interval; adaptive checks stay at 32 spp.
 };
 struct AccelerationStats {
+    uint64_t blasBuilds=0,blasCacheHits=0,blasSceneReuses=0;
+    uint64_t tlasBuilds=0,tlasRefits=0,tlasReuses=0,refitRebuilds=0;
+    uint64_t transformReuses=0,instanceBoundsReuses=0;
+    uint64_t alphaImageScans=0,alphaPixelsScanned=0;
+    uint64_t emitterBuilds=0,emitterReuses=0,thinNormalReuses=0,cameraMediaReuses=0;
+    double tlasBuildSeconds=0,tlasRefitSeconds=0,tlasCost=0,tlasBuildCost=0,tlasRefitCost=0;
+    uint32_t tlasRefitAge=0;
     uint64_t uniqueMeshes=0,uniqueTriangles=0,instances=0,expandedTriangles=0,blasNodes=0,tlasNodes=0;
     uint64_t geometryBytes=0,blasBytes=0,tlasBytes=0,instanceBytes=0,emitterBytes=0;
     double geometrySeconds=0,blasSeconds=0,tlasSeconds=0,emitterSeconds=0,cameraMediaSeconds=0,totalSeconds=0;
 };
 struct Image {
+    bool nativeRayTracing=false;
+    bool nativeAccelerationCacheHit=false;
+    uint64_t nativeBlasBuilds=0;
+    uint64_t nativeAccelerationBytes=0,nativeBlasCount=0,nativeInstanceCount=0;
+    double nativeAccelerationBuildSeconds=0;
+    uint64_t sceneBufferUploads=0,sceneBufferCacheHits=0,sceneUploadBytes=0,sceneCacheBytes=0;
+    bool sceneGeometryExportReused=false,sceneTextureExportReused=false;
     uint32_t width = 0, height = 0, samples = 0;
     std::vector<glm::vec3> radiance, albedo, normal, caustics;
     std::vector<uint32_t> sampleCounts;
@@ -94,6 +141,10 @@ struct Image {
     double trainingSeconds = 0;
     double photonSeconds = 0;
     uint64_t photonRays = 0, storedPhotons = 0, causticPhotons = 0, photonBytes = 0;
+    uint64_t emittedPhotonPaths=0, photonMerges=0;
+    uint32_t progressiveIterations=0;
+    float progressiveRadiusMin=0, progressiveRadiusMean=0, progressiveRadiusMax=0;
+    uint64_t progressiveStateBytes=0;
     uint64_t trainingRays = 0, guideHits = 0, cacheHits = 0;
     uint32_t trainedCells = 0;
     float guideCellSize = 0;
@@ -102,11 +153,20 @@ struct Image {
     double denoiseSeconds = 0;
     bool denoiseAuxiliary = false;
     double sceneExportSeconds=0,dispatchSeconds=0,readbackSeconds=0,filmUpdateSeconds=0,checkpointSeconds=0;
+    double gpuPipelineSeconds=0,gpuAllocationSeconds=0,gpuUploadSeconds=0,gpuCacheCompareSeconds=0,gpuFinalizeSeconds=0;
+    uint64_t gpuPreparationBytes=0,gpuPreparationSteps=0;
+    uint64_t gpuIdentityCacheHits=0,gpuIdentityCacheBytes=0;
+    uint64_t gpuCloneBytes=0,gpuPatchBytes=0,gpuPatchBuffers=0,gpuPatchRanges=0;
+    double gpuCloneSeconds=0;
+    double denoisedUploadSeconds=0;
+    uint64_t denoisedUploadBytes=0;
     uint64_t dispatches=0,readbacks=0,readbackBytes=0;
 };
 class CpuScene {
   public:
-    explicit CpuScene(const render::RenderWorldSnapshot &,const std::vector<DielectricMaterial> & = {});
+    // Optional previous scene must remain immutable for the whole construction.
+    // Compatible instances reuse/refit TLAS; changed topology falls back to SAH.
+    explicit CpuScene(const render::RenderWorldSnapshot &,const std::vector<DielectricMaterial> & = {},std::shared_ptr<GeometryCache> = {},const CpuScene *previous=nullptr);
     ~CpuScene();
     CpuScene(const CpuScene &) = delete;
     CpuScene &operator=(const CpuScene &) = delete;
@@ -114,13 +174,22 @@ class CpuScene {
     std::shared_ptr<const Environment> environment;
     glm::vec3 sunDirection{0,1,0}, sunIrradiance{0};
     float sunRadius = 0;
+    std::shared_ptr<const render::CloudShadowField> cloudShadow;
+    uint64_t weatherEpoch=0,weatherTick=0;
     bool intersect(glm::vec3 origin, glm::vec3 direction, float minimum, float maximum,
                    Surface &, bool bruteForce = false) const;
     glm::vec3 trace(glm::vec3 origin, glm::vec3 direction, Random &, uint32_t maxDepth,
                     uint64_t &rays,uint64_t *volumeEvents=nullptr,bool waterSunProposal=true,bool thinSunProposal=true,
-                    const PhotonMap *photons=nullptr,bool shadowAnyHit=true,glm::vec3 *caustics=nullptr) const;
+                    const PhotonMap *photons=nullptr,bool shadowAnyHit=true,glm::vec3 *caustics=nullptr,
+                    VisiblePoint *visiblePoint=nullptr) const;
+    bool hasHair() const; // Ribbon hair has not passed reverse-transport validation.
     void cameraRay(float u, float v, glm::vec3 &origin, glm::vec3 &direction) const;
+    // Concurrent exports are safe for an otherwise immutable scene. Adjacent
+    // snapshots reuse immutable packed geometry/images; per-instance fields
+    // remain independent. Packed leases survive CpuScene/cache destruction.
     SceneData exportData() const;
+    SceneCamera cameraData() const;
+    void updateCamera(const render::FrameData &); // Exclusive CPU ownership; preserve scene/BLAS/TLAS.
     EmitterSample sampleEmitter(Random &) const;
     float emitterPdfArea(uint32_t primitive) const;
     float cameraPdf(glm::vec3 direction) const;
@@ -148,9 +217,11 @@ class CpuScene {
   private:
     struct State;
     std::unique_ptr<State> state_;
+    friend class GeometryCache;
 };
 void validateOptions(const Options &);
 Image renderBdpt(const CpuScene &,const Options &,const std::function<void(const Image &)> &progress = {});
+Image renderSppm(const CpuScene &,const Options &,const std::function<void(const Image &)> &progress = {});
 Image render(const CpuScene &, const Options &, const std::function<void(const Image &)> &progress = {});
 void writeImage(const Image &, float exposure, const std::string &prefix);
 void writeReport(const Image &, const CpuScene &, const Options &, const std::string &prefix,

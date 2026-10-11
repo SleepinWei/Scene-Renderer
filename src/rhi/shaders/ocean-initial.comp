@@ -1,0 +1,66 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#include "ocean-parameters.glsl"
+layout(local_size_x=8,local_size_y=8) in;
+layout(rgba32f,set=1,binding=1) readonly uniform image2D GaussianRandomRT;
+layout(rgba32f,set=1,binding=2) writeonly uniform image2D InitialSpectrumRT;
+
+
+
+const float PI=3.14159265359, G=9.81;
+vec2 multiply(vec2 a,vec2 b){return vec2(a.x*b.x-a.y*b.y,a.x*b.y+a.y*b.x);}
+float omega(float k){return sqrt(G*k*(seaStateData.x>.5&&seaStateData.y>0.?tanh(k*seaStateData.y):1.));}
+float seaShape(vec2 k,vec2 direction,float period,float gamma,float spread){
+    float magnitude=length(k),dirLength=length(direction);
+    if(magnitude<1e-6||dirLength<1e-6)return 0.;
+    float depth=seaStateData.y,w=omega(magnitude),peak=2.*PI/period,sigma=w<=peak?.07:.09;
+    float ratio=peak/w,r=exp(-.5*pow((w-peak)/(sigma*peak),2.));
+    float frequency=G*G/pow(w,5.)*exp(-1.25*pow(ratio,4.))*pow(gamma,r);
+    float angular=spread<=0.?1.:pow(max(0.,(1.-dot(k/magnitude,direction/dirLength))*.5),spread);
+    float t=depth>0.?tanh(magnitude*depth):1.;
+    float derivative=G*(t+(depth>0.?magnitude*depth*(1.-t*t):0.))/(2.*w);
+    float phi=1.;
+    if(depth>0.&&magnitude*depth<=20.){float kh=magnitude*depth;phi=t*t/(1.+2.*kh/sinh(2.*kh));}
+    float band=1.;
+    if(WindAndSeed.z>0.){float low=2.*PI/WindAndSeed.w,high=2.*PI/WindAndSeed.z;band=smoothstep(low,low*1.25,magnitude)*(1.-smoothstep(high*.8,high,magnitude));}
+    return frequency*angular*derivative/magnitude*phi*band;
+}
+float spectrum(vec2 k,vec2 wind,float amplitude) {
+    if(seaStateData.x>.5)return amplitude*seaShape(k,wind,seaStateData.z,seaStateData.w,spreadingData.x);
+    float k2=dot(k,k),speed=length(wind);
+    if(k2<1e-12 || speed<1e-4 || amplitude<=0.0)return 0.0;
+    float L=speed*speed/G;
+    float alignment=dot(normalize(k),wind/speed);
+    // Symmetric Phillips spreading avoids angle-wrap singularities.
+    float band=1.;
+    if(WindAndSeed.z>0.){
+        float magnitude=sqrt(k2),low=2.*PI/WindAndSeed.w,high=2.*PI/WindAndSeed.z;
+        band=smoothstep(low,low*1.25,magnitude)*(1.-smoothstep(high*.8,high,magnitude));
+    }
+    return band*amplitude*exp(-1.0/(k2*L*L))/(k2*k2)*alignment*alignment*exp(-k2*L*L*1e-6);
+}
+float spectralScale(vec2 k){
+    float destination=sqrt(spectrum(k,WindAndSeed.xy,A)*.5);
+    if(spectrumData.w<.5)return destination;
+    float source=sqrt(spectrum(k,previousWindData.xy,previousWindData.w)*.5);
+    return mix(source,destination,previousWindData.z);
+}
+void main() {
+    ivec2 p=ivec2(gl_GlobalInvocationID.xy);
+    if(any(greaterThanEqual(p,ivec2(N))))return;
+    // Centered frequencies in radians/metre; suppress self-aliased Nyquist axes.
+    if(p.x==0 || p.y==0 || all(equal(p,ivec2(N/2)))){imageStore(InitialSpectrumRT,p,vec4(0));return;}
+    float dk=2.0*PI/OceanLength;
+    vec2 k=vec2(p-ivec2(N/2))*dk;
+    ivec2 mirror=(ivec2(N)-p)%N;
+    vec2 h0=imageLoad(GaussianRandomRT,p).xy*spectralScale(k);
+    vec2 hm=imageLoad(GaussianRandomRT,mirror).xy*spectralScale(-k);
+    hm.y=-hm.y;
+    if(seaStateData.x>.5){
+        float a=sqrt(max(0.,swellData.z*seaShape(k,swellData.xy,spreadingData.z,1.,spreadingData.y)*.5));
+        float b=sqrt(max(0.,swellData.z*seaShape(-k,swellData.xy,spreadingData.z,1.,spreadingData.y)*.5));
+        h0+=imageLoad(GaussianRandomRT,p).zw*a;
+        vec2 sm=imageLoad(GaussianRandomRT,mirror).zw*b;sm.y=-sm.y;hm+=sm;
+    }
+    imageStore(InitialSpectrumRT,p,vec4(h0,hm));
+}

@@ -11,6 +11,7 @@ import re
 import struct
 import subprocess
 from pathlib import Path
+from metal_pt_native import native_variant
 
 
 def run(args):
@@ -60,7 +61,7 @@ def main():
         for name in args.shader:
             if Path(name).name!=name or Path(name).suffix not in ('.vert','.frag','.comp') or not (root/name).is_file():
                 parser.error('Unknown shader filename: '+name)
-    recipe=Path(__file__).read_bytes()+str(args.metal).encode()
+    recipe=Path(__file__).read_bytes()+Path(__file__).with_name('metal_pt_native.py').read_bytes()+str(args.metal).encode()
     for tool in (['glslangValidator','--version'],['spirv-cross','--version']):
         version=subprocess.run(tool,capture_output=True,check=False);recipe+=version.stdout+version.stderr
     if args.metal:
@@ -80,6 +81,7 @@ def main():
         spv = Path(str(name) + '.spv')
         digest=hashlib.sha256(recipe+inputs(src)).hexdigest();manifest=Path(str(name)+'.sha256')
         suffixes=['.spv','.json','.glsl']+(['.metallib','.metal'] if args.metal else [])
+        if args.metal and src.name in ('path-trace.comp','path-trace-probe.comp'):suffixes+=['.native.metallib','.native.metal']
         if manifest.exists() and manifest.read_text()==digest and all(Path(str(name)+suffix).is_file() for suffix in suffixes):continue
         run(['glslangValidator', '-V', '--target-env', 'vulkan1.1', '-I' + str(root), src, '-o', spv])
         run(['spirv-cross', spv, '--reflect', '--output', str(name) + '.json'])
@@ -93,6 +95,11 @@ def main():
             air = Path(str(name) + '.air')
             run(['xcrun', '-sdk', 'macosx', 'metal', '-std=macos-metal2.3', '-fmodules-cache-path=' + str(args.output / 'cache'), '-c', msl, '-o', air])
             run(['xcrun', '-sdk', 'macosx', 'metallib', air, '-o', str(name) + '.metallib'])
+            if src.name in ('path-trace.comp','path-trace-probe.comp'):
+                native=Path(str(name)+'.native.metal');native.write_text(native_variant(msl.read_text()))
+                native_air=Path(str(name)+'.native.air')
+                run(['xcrun','-sdk','macosx','metal','-std=macos-metal2.4','-fmodules-cache-path='+str(args.output/'cache'),'-c',native,'-o',native_air])
+                run(['xcrun','-sdk','macosx','metallib',native_air,'-o',str(name)+'.native.metallib'])
         manifest.write_text(digest)
 
 

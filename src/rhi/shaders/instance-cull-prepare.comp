@@ -1,0 +1,5 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+layout(local_size_x=1) in;
+#include "instance-cull-parameters.glsl"
+void main(){outputArgs[0]=inputArgs[0];outputArgs[1]=0u;outputArgs[2]=inputArgs[2];outputArgs[3]=inputArgs[3];outputArgs[4]=0u;}

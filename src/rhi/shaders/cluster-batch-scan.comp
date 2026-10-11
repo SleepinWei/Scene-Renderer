@@ -1,0 +1,22 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#include "cluster-batch-parameters.glsl"
+layout(local_size_x=128) in;
+layout(set=1,binding=4,std430) buffer Groups {uvec2 groups[];};
+layout(set=1,binding=6,std430) buffer Arguments {uint args[];};
+shared uvec2 sums[128];
+void main(){
+    ClusterMesh mesh=meshes[gl_WorkGroupID.x];uint lane=gl_LocalInvocationIndex,chunk=(mesh.counts.y+127u)/128u;
+    uint first=lane*chunk,last=min(first+chunk,mesh.counts.y);uvec2 sum=uvec2(0);
+    for(uint i=first;i<last;++i)sum+=groups[mesh.ranges.y+i];sums[lane]=sum;barrier();
+    for(uint step=1u;step<128u;step<<=1u){uvec2 add=lane>=step?sums[lane-step]:uvec2(0);barrier();sums[lane]+=add;barrier();}
+    uvec2 base=sums[lane]-sum;
+    for(uint i=first;i<last;++i){uvec2 old=groups[mesh.ranges.y+i];groups[mesh.ranges.y+i]=base;base+=old;}
+    if(lane==127u){uint a=mesh.ranges.w;
+        if(batchStage.x==3u){uint early=args[a],earlyClusters=args[a+5];
+            args[a+6]=min(sums[127].x,mesh.counts.z-early);args[a+7]=1u;args[a+8]=mesh.ranges.z+early;args[a+9]=0u;args[a+10]=0u;args[a+11]=sums[127].y;
+            args[a]=early+args[a+6];args[a+5]=earlyClusters+sums[127].y;return;
+        }
+        for(uint i=6u;i<12u;++i)args[a+i]=0u;
+        args[a]=min(sums[127].x,mesh.counts.z);args[a+1]=1u;args[a+2]=mesh.ranges.z;args[a+3]=0u;args[a+4]=0u;args[a+5]=sums[127].y;}
+}

@@ -1,6 +1,8 @@
 #include <glad/glad.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include "renderer/rhi/FeatureScenes.h"
+#include "renderer/rhi/ProceduralSand.h"
+#include "renderer/rhi/TreeGeometry.h"
 #include "renderer/SceneImport.h"
 #include "component/Model.h"
 #include "component/GameObject.h"
@@ -194,7 +196,34 @@ void floor(const std::shared_ptr<RenderScene>& target) {
 }
 }
 std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
+    if(name=="vegetation-lake"||name=="wave-particles-lake"){
+        auto scene=makeClassicScene("nature-coast");
+        auto vegetation=std::make_shared<Grass>();VegetationSettings plants;plants.species=meadowSpecies();plants.waterLevel=0;plants.shoreMargin=.3f;plants.heightScale=1;plants.widthScale=1;
+        // Clear shoreline excludes grasses from wet sand; reeds stay on dry banks.
+        scene->terrain()->addComponent(vegetation);vegetation->setSettings(plants);
+        scene->mainCamera()->setPosition({-9,4.5f,-18});scene->mainCamera()->setAngles(76,-6);scene->mainCamera()->setExposure(1.8f);
+        auto ocean=scene->terrain()->getComponent<Ocean>();ocean->updateSettings([&](auto& s){s.fft_size=256;s.MeshSize=257;s.MeshLength=4096;s.SpectrumLength=128;s.A=.000005f;s.detailStrength=.3f;s.shore.resolution=128;s.shore.length=64;s.shore.swellHeight=.08f;s.surfaceModel.physical=true;s.shortWaveRipples=true;s.rippleRmsHeight=.008f;
+            s.waveParticles.enabled=true;s.waveParticles.length=64;s.waveParticles.resolution=256;s.waveParticles.speed=2.4f;s.waveParticles.damping=.08f;
+            s.waveParticles.impulses={{1,6.4,{-5,-5},{1,0},1.2f,2.2f,6.2831853f}};
+            s.waveParticles.emitters={{{-14,-9},{1.7f,.25f},0,30,.15f,.7f,1.8f}};
+            if(name=="wave-particles-lake"){s.shore.enabled=false;s.A=0;s.detailWaves=false;s.absorption={.35f,.12f,.06f};s.scattering={.025f,.05f,.08f};s.waveParticles.impulses={{1,7,{-5,-5},{1,0},1.8f,1.4f,6.2831853f}};}
+        });
+        if(name=="wave-particles-lake"){
+            auto ground=scene->terrain()->getComponent<TerrainComponent>();uint32_t w=ground->getHeightWidth(),h=ground->getHeightHeight();
+            std::vector<float> heights(ground->getHeightData(),ground->getHeightData()+size_t(w)*h);for(auto& y:heights)if(y<0)y*=5;ground->setHeightData(w,h,std::move(heights));
+            scene->mainCamera()->setPosition({-5,10,-15});scene->mainCamera()->setAngles(90,-40);for(auto light:scene->directionLights())light->setDirection({0,-.8f,-.6f});}
+        RenderManager::GetInstance()->setting.shadowSettings.distance=180;
+        return scene;
+    }
     if(name=="coastal-seabed"){auto scene=makeClassicScene("coastal-underwater");scene->mainCamera()->setAngles(80,-35);return scene;}
+    if(name=="ocean-sea-state"){
+        auto scene=makeOceanScene(false);
+        scene->mainCamera()->setExposure(1.4f);
+        if(!scene->directionLights().empty())scene->directionLights()[0]->setDirection({0,-.42261826f,.90630779f});
+        auto ocean=scene->terrain()->getComponent<Ocean>();
+        ocean->updateSettings([](auto& s){s.seaState.enabled=true;s.surfaceModel.physical=true;s.MeshLength=2048;s.SpectrumLength=256;s.HeightScale=1;s.Lambda=.8f;s.shortWaveRipples=true;s.BubblesThreshold=.65f;s.BubblesScale=1.5f;});
+        return scene;
+    }
     if(name=="ocean" || name=="ocean-clear")return makeOceanScene(name=="ocean-clear");
     auto target = std::make_shared<RenderScene>();
     auto manager = RenderManager::GetInstance();
@@ -202,7 +231,34 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
     // Shadow attachments belong to the lights in each scene.
 
 
-    if(name=="underwater-dive") {
+    if(name=="tree-single"||name=="tree-bare"||name=="tree-forest"||name=="tree-edge") {
+        target->setCamera(std::make_shared<Camera>());
+        atmosphere(target);sun(target,{4.8f,4.5f,3.8f},{-.65f,-.5f,-.4f});
+        manager->setting.shadowSettings.distance=180;manager->setting.shadowSettings.depthBias=.0008f;
+        target->mainCamera()->setPosition({-8,3.7f,-13});target->mainCamera()->setAngles(58,1);target->mainCamera()->setZoom(48);target->mainCamera()->setExposure(1.5f);
+        if(name=="tree-forest"||name=="tree-edge"){
+            auto terrain=std::make_shared<Terrain>();auto ground=std::make_shared<TerrainComponent>();constexpr uint32_t n=129;std::vector<float> heights(n*n);
+            for(uint32_t y=0;y<n;y++)for(uint32_t x=0;x<n;x++){float wx=(float(x)/(n-1)-.5f)*128,wz=(float(y)/(n-1)-.5f)*128;heights[y*n+x]=.5f*std::sin(wx*.06f)*std::sin(wz*.08f);}
+            ground->setHeightData(n,n,std::move(heights));ground->updateSettings([&](auto& t){t.model=glm::scale(glm::mat4(1),glm::vec3(64,1,64));t.material=pbr({.25f,.32f,.15f},.94f);t.maxLeaves=8192;});terrain->addComponent(ground);
+            auto grass=std::make_shared<Grass>();auto defaults=meadowSpecies();VegetationSettings plants;plants.species={defaults[0],defaults[5],defaults[6],defaults[7]};plants.species[0].capacity=16384;plants.species[0].spacing=.3f;plants.species[0].farSpacing=1;plants.species[0].denseRadius=6;plants.species[0].sparseRadius=50;
+            plants.species[1].spacing=6.8f;plants.species[1].density=.88f;plants.species[1].height=9;plants.species[1].width=10;plants.species[1].lodDistance=22;plants.species[1].lodTransition=8;
+            plants.species[2].spacing=9;plants.species[2].density=.35f;plants.species[2].lodDistance=24;plants.species[2].lodTransition=8;plants.waterLevel=-100;grass->setSettings(plants);terrain->addComponent(grass);target->addTerrain(terrain);
+            target->mainCamera()->setPosition({-7,3,-29});target->mainCamera()->setAngles(82,4);target->mainCamera()->setZoom(62);
+            if(name=="tree-edge"){target->mainCamera()->setPosition({-7,5,-72});target->mainCamera()->setAngles(82,0);target->mainCamera()->setExposure(1.7f);}
+        }else{
+            auto tree=render::treeGeometry(PlantType::Broadleaf,0,71);
+            auto part=[&](std::shared_ptr<const render::MeshPayload> payload,bool foliage){
+                std::vector<Vertex> vertices;for(const auto& source:payload->vertices){Vertex v{};v.Position=source.position;v.Normal=source.normal;v.TexCoords=source.uv;vertices.push_back(v);}
+                auto desc=render::treeMaterial(PlantType::Broadleaf,foliage);auto mat=pbr(glm::vec3(1),1);const char* slots[]={"material.albedo","material.normal","material.metallic","material.roughness","material.ao"};
+                for(int i=0;i<5;i++)if(desc.sharedImages[i]){auto image=desc.sharedImages[i];auto texture=std::make_shared<Texture>();texture->setPixels(image->width,image->height,4,image->pixels);mat->addTexture(texture,slots[i]);}
+                if(foliage){auto image=*desc.sharedSpecial;for(size_t i=0;i<image.pixels.size();i+=4)image.pixels[i]=image.pixels[i+3];auto texture=std::make_shared<Texture>();texture->setPixels(image.width,image.height,4,std::move(image.pixels));mat->addTexture(texture,"material.thickness");}
+                auto props=mat->properties();props.alphaCutoff=desc.parameters.factors.w;props.twoSided=foliage;props.normalStrength=desc.parameters.emissiveNormal.w;props.foliageTransmission=foliage?.55f:0;mat->setProperties(props);
+                auto animated=std::make_shared<Mesh>(vertices,payload->indices);animated->setTreeWind(payload->treeWind);
+                addMeshes(target,foliage?"Tree leaves":"Tree branches",{animated},mat,{0,0,0},{10,9,10});
+            };part(tree.bark,false);if(name!="tree-bare")part(tree.foliage,true);
+            addMeshes(target,"Tree meadow floor",{quad({glm::vec3(-250,0,250),{250,0,250},{250,0,-250},{-250,0,-250}},{0,1,0})},pbr({.28f,.36f,.17f},.9f));
+        }
+    } else if(name=="underwater-dive") {
         auto terrain=std::make_shared<Terrain>();auto component=std::make_shared<TerrainComponent>();
         constexpr int n=513,texSize=2048;std::vector<float> heights(n*n);
         for(int y=0;y<n;++y)for(int x=0;x<n;++x){float wx=(float(x)/(n-1)-.5f)*128,wz=(float(y)/(n-1)-.5f)*128;
@@ -233,26 +289,33 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
         auto grass=pbr({.16f,.28f,.10f},.8f);grass->setTwoSided(true);addMeshes(target,"Dive seagrass meadows",{diveGrass()},grass);
         target->setCamera(std::make_shared<Camera>(glm::vec3(0,-6,-12),glm::vec3(0,1,0),90,-8));target->mainCamera()->setClipPlanes(.08f,600);target->mainCamera()->setZoom(68);target->mainCamera()->setExposure(1.35f);
         atmosphere(target);sun(target,glm::vec3(5),{-.35f,-.85f,-.35f});manager->setting.enableSSAO=false;manager->setting.shadowSettings.distance=90;
-    } else if(name=="coastal-beach"||name=="coastal-water"||name=="coastal-underwater") {
+    } else if(name=="coastal-beach"||name=="coastal-water"||name=="coastal-underwater"||name=="nature-coast") {
         // A precise authored coast: source spacing 0.25 m, no downloaded asset.
         auto terrain=std::make_shared<Terrain>();auto component=std::make_shared<TerrainComponent>();
         constexpr uint32_t n=513;std::vector<float> heights(size_t(n)*n);
         for(uint32_t y=0;y<n;++y)for(uint32_t x=0;x<n;++x){float wx=(float(x)/(n-1)-.5f)*128,wz=(float(y)/(n-1)-.5f)*128;
             float shoreline=2.5f*std::sin(wx*.085f),beach=.075f*(wz-shoreline);
             float reef=.9f*std::exp(-((wx-12)*(wx-12)+(wz+8)*(wz+8))*.035f);
-            float bedDetail=(.012f*std::sin(wx*6.1f+.7f*std::sin(wz*.6f))+.006f*std::sin(wz*4.3f+wx*.8f))*(1.f-glm::smoothstep(-.5f,.5f,beach));
+            float bedDetail=(.012f*std::sin(wx*.7f+.7f*std::sin(wz*.2f))+.006f*std::sin(wz*.8f+wx*.3f))*(1.f-glm::smoothstep(-.5f,.5f,beach));
             heights[size_t(y)*n+x]=beach+reef+bedDetail;
         }
         auto sand=pbr(glm::vec3(1),.85f,0);
         constexpr int grainSize=2048;
         auto grain=std::make_shared<Texture>(),sandNormals=std::make_shared<Texture>();std::vector<uint8_t> pixels(grainSize*grainSize*3),normalPixels(pixels.size());
-        for(int y=0;y<grainSize;++y)for(int x=0;x<grainSize;++x){uint32_t hash=uint32_t(x)*1664525u+uint32_t(y)*1013904223u;hash^=hash>>13;
+        render::ProceduralSand sandField;
+        for(int y=0;y<grainSize;++y)for(int x=0;x<grainSize;++x){
             float wx=(float(x)/(grainSize-1)-.5f)*128,wz=(.5f-float(y)/(grainSize-1))*128;
-            float ridges=.5f+.5f*std::cos(wx*25.1f+1.1f*std::sin(wz*1.7f));
-            float patches=.5f+.5f*std::sin(wx*.35f)*std::sin(wz*.28f);
-            float shade=.6f+.3f*ridges+.03f*patches+.07f*float(hash&255)/255.f;const float rgb[]={.8f,.72f,.54f};
-            auto normal=glm::normalize(glm::vec3(.002f*25.1f*std::sin(wx*25.1f+1.1f*std::sin(wz*1.7f)),-.002f*1.1f*1.7f*std::cos(wz*1.7f)*std::sin(wx*25.1f+1.1f*std::sin(wz*1.7f)),1));
-            for(int c=0;c<3;++c){pixels[(y*grainSize+x)*3+c]=uint8_t(255*rgb[c]*shade);normalPixels[(y*grainSize+x)*3+c]=uint8_t(255*(normal[c]*.5f+.5f));}
+            auto sample=sandField.sample({wx,wz});auto color=sample.albedo;
+            if(name=="nature-coast"){
+                // Habitat colour is camera independent and survives geometry thinning.
+                float elevation=.075f*(wz-2.5f*std::sin(wx*.085f));
+                float cover=glm::smoothstep(.3f,.85f,elevation);
+                float shade=sample.albedo.x/.76f;
+                color=glm::mix(color,glm::vec3(.24f,.34f,.13f)*shade,cover);
+                sample.gradient*=1-cover;
+            }
+            auto normal=glm::normalize(glm::vec3(-sample.gradient.x,sample.gradient.y,1));
+            for(int c=0;c<3;++c){pixels[(y*grainSize+x)*3+c]=uint8_t(glm::clamp(255*color[c],0.f,255.f));normalPixels[(y*grainSize+x)*3+c]=uint8_t(255*(normal[c]*.5f+.5f));}
         }
         grain->setPixels(grainSize,grainSize,3,std::move(pixels));sand->addTexture(grain,"material.albedo");sandNormals->setPixels(grainSize,grainSize,3,std::move(normalPixels));sand->addTexture(sandNormals,"material.normal");
         component->setHeightData(n,n,std::move(heights));
@@ -283,7 +346,8 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
             addMeshes(target,"Water demo blue cap",box(),pbr({.025f,.32f,.95f},.3f),marker+glm::vec3(0,2.23f,0),{.65f,.08f,.65f});
             target->setCamera(std::make_shared<Camera>(glm::vec3(-8,-1.2f,-28),glm::vec3(0,1,0),80,50));
         }
-        target->mainCamera()->setClipPlanes(.1f,6000);target->mainCamera()->setZoom(62);target->mainCamera()->setExposure(1.2f);
+        target->mainCamera()->setClipPlanes(.1f,6000);target->mainCamera()->setZoom(62);
+            if(name=="tree-edge"){target->mainCamera()->setPosition({-7,5,-72});target->mainCamera()->setAngles(82,0);target->mainCamera()->setExposure(1.7f);}target->mainCamera()->setExposure(1.2f);
         atmosphere(target);sun(target,glm::vec3(3),{-.5f,-.6f,name=="coastal-underwater"?.4f:-.4f});manager->setting.enableSSAO=false;
     } else if (name == "mountain-lake" || name == "mountain-lake-ground" || name == "mountain-lake-beach") {
         std::ifstream input("samples/assets/terrain/mountain-lake/scene.json");
@@ -334,9 +398,12 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
             target->setCamera(std::make_shared<Camera>(glm::vec3(-1050,439,1750),glm::vec3(0,1,0),-60,-9));
         target->mainCamera()->setClipPlanes(.1f,16000);
         target->mainCamera()->setMovementSpeed(150);
-        target->mainCamera()->setZoom(62); target->mainCamera()->setExposure(1.4f);
+        target->mainCamera()->setZoom(62);
+            if(name=="tree-edge"){target->mainCamera()->setPosition({-7,5,-72});target->mainCamera()->setAngles(82,0);target->mainCamera()->setExposure(1.7f);} target->mainCamera()->setExposure(1.4f);
         atmosphere(target); sun(target,glm::vec3(3),{-.5f,-1,-.4f});
         manager->setting.enableSSAO = true;
+        manager->setting.shadowSettings.distance=8000;
+        manager->setting.shadowSettings.depthBias=.0005f;
     } else if (name == "shadow-test") {
         manager->setting.shadowSettings=render::ShadowSettings{};
         target->setCamera(std::make_shared<Camera>(glm::vec3(12,10,30),glm::vec3(0,1,0),-102,-12));
@@ -449,7 +516,6 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
         spotLight->setDirection(glm::normalize(glm::vec3(0,-1,-.15f)));
         spotLight->setCone(std::cos(glm::radians(45.f)),std::cos(glm::radians(50.f)));
         spotObject->addComponent(spotLight); target->addObject(spotObject);
-        manager->setting.enableRSM = true;
 
     } else if (name == "sponza" || name == "san-miguel" || name == "sibenik") {
         const bool cathedral=name=="sibenik";
@@ -478,7 +544,6 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
             target->mainCamera()->setExposure(1.8f);
             point(target,{8,7,6},{4,5,0});
         }
-        manager->setting.enableRSM = true;
-    } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose underwater-dive, coastal-seabed, terrain, mountain-lake, coastal-beach, coastal-water, coastal-underwater, sky, cloud-volume, cloud-inside, cloud-vortex, clouds, clouds-sunset, clouds-storm, shadow-test, bunny, dragon, buddha, armadillo, helmet, cornell, sponza, san-miguel, sibenik, ocean or ocean-clear");
+    } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose tree-single, tree-bare, tree-edge, tree-forest, underwater-dive, coastal-seabed, terrain, mountain-lake, coastal-beach, coastal-water, coastal-underwater, sky, cloud-volume, cloud-inside, cloud-vortex, clouds, clouds-sunset, clouds-storm, shadow-test, bunny, dragon, buddha, armadillo, helmet, cornell, sponza, san-miguel, sibenik, ocean, ocean-sea-state or ocean-clear");
     return target;
 }

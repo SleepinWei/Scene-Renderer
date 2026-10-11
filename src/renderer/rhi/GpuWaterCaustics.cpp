@@ -68,7 +68,7 @@ void GpuWaterCaustics::record(Resources& frame,rhi::CommandList& commands,const 
                 if(packet.mesh->instances()){layout.entries.push_back({3,BindingType::StorageRead,ShaderStage::Vertex,"OutPose",64});bindings.push_back({3,packet.mesh->instances(),0,size_t(packet.mesh->instanceCapacity())*64,{},{}});commands.bindPipeline(receiverInstanced_);}else commands.bindPipeline(receiver_);
                 commands.bindBindingSet(frame.bindings({layout,bindings}));packet.material->bindShadow(commands);packet.mesh->draw(commands);}
             commands.endRenderPass();}
-        Parameters p{glm::inverse(s.bathymetryModel),s.bathymetryModel,shorePatch,shorePatch,{0,0,s.shore.enabled?1.f:0.f,0},{1,0,0,0},patch,
+        Parameters p{glm::inverse(s.bathymetryModel),s.bathymetryModel,shorePatch,shorePatch,{0,0,(s.shore.enabled&&s.bathymetry?1.f:0.f)+(s.waveParticles.enabled?2.f:0.f),0},{1,0,0,0},patch,
             {s.seaLevel,s.spectrum.length,32,s.detailWaves?1.f:0.f},glm::vec4(L,0),glm::vec4(s.absorption+s.scattering,0),{64,(s.surfaceLength>0?s.surfaceLength:s.spectrum.length)*.5f,0,0},projection_,{margins[cascade],sourceCell,0,0},{int(grids[cascade]),512,int(cascade),0}};
         auto buffer=frame.buffer({sizeof(p),BufferUsage::Uniform,"Water caustic parameters"},&p);
         const TextureViewHandle textures[]={bed,fft[0],fft[3],fft[1],fft[4],shore,mask};

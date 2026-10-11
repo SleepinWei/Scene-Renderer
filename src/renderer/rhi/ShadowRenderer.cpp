@@ -1,11 +1,12 @@
 #include "renderer/rhi/ShadowRenderer.h"
+#include "renderer/rhi/RasterVisibility.h"
 #include "rhi/ShaderAssets.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <cmath>
 #include <algorithm>
 #include <stdexcept>
 namespace render {
-static_assert(sizeof(ShadowParameters)==16048 && offsetof(ShadowParameters,settings)==15424,"Shadow std140 ABI");
+static_assert(sizeof(ShadowParameters)==16112 && offsetof(ShadowParameters,settings)==15424 && offsetof(ShadowParameters,cascades)==16096,"Shadow std140 ABI");
 namespace {
 rhi::ShaderAsset asset(const std::string& directory,const char* name){auto p=directory+"/"+name;return {p+".glsl",p+".metallib",p+".spv",p+".json","main0"};}
 glm::mat4 depthCorrection(){glm::mat4 m(1);m[2][2]=.5f;m[3][2]=.5f;return m;}
@@ -24,18 +25,20 @@ ShadowRenderer::ShadowRenderer(std::shared_ptr<rhi::GraphicsDevice> device,const
     GraphicsPipelineDesc p;p.vertex=asset(directory,"forward.vert");p.fragment=asset(directory,"shadow.frag");p.vertexStride=sizeof(MeshVertex);p.attributes=GpuMesh::attributes();auto geometry=objectLayout();geometry.entries.push_back({2,BindingType::UniformBuffer,ShaderStage::Fragment,"RsmLight",64});geometry.entries.push_back({4,BindingType::SampledTexture,ShaderStage::Fragment,"skyIrradiance",0});p.bindings={geometry,GpuMaterial::rsmLayout()};p.colorFormat=Format::RGBA16Float;p.additionalColorFormats={Format::RGBA16Float,Format::RGBA16Float};p.depthAttachment=p.depthTest=p.depthWrite=true;p.label="Alpha-aware shadow depth";pipeline_=resources_.pipeline(p);if(resources_.device->computeLimits().supported){p.vertex=asset(directory,"instanced.vert");p.bindings[0].entries.push_back({3,BindingType::StorageRead,ShaderStage::Vertex,"OutPose",64});instanced_=resources_.pipeline(p);}
     p.vertex=asset(directory,"forward.vert");p.fragment=asset(directory,"shadow-depth.frag");p.bindings={objectLayout(),GpuMaterial::shadowLayout()};p.colorAttachment=false;p.additionalColorFormats.clear();p.label="Depth-only alpha-aware shadow";depthOnly_=resources_.pipeline(p);
     if(resources_.device->computeLimits().supported){p.vertex=asset(directory,"instanced.vert");p.bindings[0].entries.push_back({3,BindingType::StorageRead,ShaderStage::Vertex,"OutPose",64});depthInstanced_=resources_.pipeline(p);}
+    if(resources_.device->computeLimits().supported)instanceCuller_=std::make_unique<GpuInstanceCuller>(resources_.device,directory);
     parameters_=resources_.buffer({sizeof(ShadowParameters),BufferUsage::Uniform|BufferUsage::CopyDestination,"Shadow atlas parameters"});
 }
 void ShadowRenderer::render(const FrameData& frame,const std::vector<DrawPacket>& packets) {
     if(frame.lights.size()>30 || !std::isfinite(frame.nearPlane) || !std::isfinite(frame.farPlane) || frame.nearPlane<=0 || frame.farPlane<=frame.nearPlane)throw std::invalid_argument("Shadow: invalid camera/light parameters");
     const auto& settings=frame.shadowSettings;
+    if(instanceCuller_)instanceCuller_->reset();
     for(float x:{settings.distance,settings.cascadeBlend,settings.depthBias,settings.sunAngularRadius,settings.localLightRadius,settings.maxFilterTexels})
         if(!std::isfinite(x))throw std::invalid_argument("Shadow: nonfinite setting");
     if(settings.distance<=frame.nearPlane || settings.cascadeBlend<0 || settings.cascadeBlend>.3f || settings.depthBias<0 ||
        settings.sunAngularRadius<0 || settings.sunAngularRadius>.1f || settings.localLightRadius<0 || settings.maxFilterTexels<1 || settings.maxFilterTexels>64)
         throw std::invalid_argument("Shadow: setting outside domain");
     uint32_t required=0;for(const auto& light:frame.lights)required+=light.positionType.w==0?5:light.positionType.w==1?6:1;
-    const uint32_t columns=std::max(1u,uint32_t(std::ceil(std::sqrt(float(required))))),tileSize=extent_/columns;
+    const uint32_t columns=std::max(1u,uint32_t(std::ceil(std::sqrt(float(required+1))))),tileSize=extent_/columns;
     if(tileSize<8)throw std::invalid_argument("Shadow tiles too small for filtering");
     glm::vec3 minimum(1e30f),maximum(-1e30f);
     for(const auto& packet:packets) {
@@ -60,7 +63,9 @@ void ShadowRenderer::render(const FrameData& frame,const std::vector<DrawPacket>
     }
     data_={};data_.cameraView=frame.view;data_.settings={settings.depthBias,frame.shadows?1.f:0.f,frame.rsm?frame.rsmSettings.intensity:0.f,float(sourceExtent_)};
     data_.filter={settings.pcss?1.f:0.f,frame.sky?frame.atmosphere.radii.y:settings.sunAngularRadius,settings.localLightRadius,std::min(settings.maxFilterTexels,std::max(1.f,tileSize*.25f-1.f))};
+    data_.cloudControls.x=frame.weather.cloudShadowStrength;
     data_.cascades={frame.nearPlane,far,settings.cascadeBlend,.1f};
+    data_.cloudRect={float(required%columns*tileSize)/extent_,float(required/columns*tileSize)/extent_,float(std::min(128u,tileSize))/extent_,float(std::min(128u,tileSize))/extent_};
     uint32_t tiles=0;
     const glm::vec3 faces[]={{1,0,0},{-1,0,0},{0,1,0},{0,-1,0},{0,0,1},{0,0,-1}},ups[]={{0,-1,0},{0,-1,0},{0,0,1},{0,0,-1},{0,-1,0},{0,-1,0}};
     for(size_t light=0;light<frame.lights.size();++light) {
@@ -124,10 +129,12 @@ void ShadowRenderer::render(const FrameData& frame,const std::vector<DrawPacket>
         for(const auto& packet:packets){const std::array<glm::mat4,2> object{packet.model,glm::transpose(glm::inverse(packet.model))};objects.push_back(frameResources.buffer({sizeof(object),rhi::BufferUsage::Uniform,"Shadow object"},object.data()));}
         for(uint32_t tile=0;tile<(frame.shadows?tiles:0);++tile) {
             auto camera=frameResources.buffer({64,rhi::BufferUsage::Uniform,"Shadow face/cascade matrix"},&data_.matrices[tile]);
+            auto visibility=frame;visibility.viewProjection=data_.matrices[tile];visibility.viewportWidth=visibility.viewportHeight=tileSize;
+            auto culled=instanceCuller_?instanceCuller_->record(commands,visibility,packets,settings.instanceCulling):std::vector<CulledInstances>(packets.size());
             rhi::RenderPassDesc pass;pass.depth=view_;pass.depthLoad=rhi::LoadOp::Load;pass.viewport={tile%columns*tileSize,tile/columns*tileSize,tileSize,tileSize};commands.beginRenderPass(pass);
-            for(size_t i=0;i<packets.size();++i){auto layout=objectLayout();std::vector<rhi::BindingEntry> entries{{0,camera,0,64,{},{}},{1,objects[i],0,128,{},{}}};
-                if(packets[i].mesh->instances()){layout.entries.push_back({3,rhi::BindingType::StorageRead,rhi::ShaderStage::Vertex,"OutPose",64});entries.push_back({3,packets[i].mesh->instances(),0,size_t(packets[i].mesh->instanceCapacity())*64,{},{}});commands.bindPipeline(depthInstanced_);}else commands.bindPipeline(depthOnly_);
-                commands.bindBindingSet(frameResources.bindings({layout,entries}));packets[i].material->bindShadow(commands);packets[i].mesh->draw(commands);}
+            for(size_t i=0;i<packets.size();++i){if(frame.objectCulling&&!rasterPacketVisible(packets[i],visibility))continue;auto layout=objectLayout();std::vector<rhi::BindingEntry> entries{{0,camera,0,64,{},{}},{1,objects[i],0,128,{},{}}};
+                if(packets[i].mesh->instances()){layout.entries.push_back({3,rhi::BindingType::StorageRead,rhi::ShaderStage::Vertex,"OutPose",64});entries.push_back({3,culled[i].poses?culled[i].poses:packets[i].mesh->instances(),0,size_t(packets[i].mesh->instanceCapacity())*64,{},{}});commands.bindPipeline(depthInstanced_);}else commands.bindPipeline(depthOnly_);
+                commands.bindBindingSet(frameResources.bindings({layout,entries}));packets[i].material->bindShadow(commands);if(culled[i].arguments)packets[i].mesh->draw(commands,packets[i].mesh->indexBuffer(),culled[i].arguments);else packets[i].mesh->draw(commands);}
             commands.endRenderPass();
         }
         resources_.device->writeBuffer(parameters_,0,sizeof(data_),&data_);resources_.device->submit(commands);return;
@@ -144,9 +151,18 @@ void ShadowRenderer::render(const FrameData& frame,const std::vector<DrawPacket>
         Capture capture=indirect?bounce:Capture{frame.lights[lightIndex],glm::vec4(0)};auto light=frameResources.buffer({sizeof(Capture),rhi::BufferUsage::Uniform,"RSM light"},&capture);
         auto layout=objectLayout();layout.entries.push_back({2,rhi::BindingType::UniformBuffer,rhi::ShaderStage::Fragment,"RsmLight",64});layout.entries.push_back({4,rhi::BindingType::SampledTexture,rhi::ShaderStage::Fragment,"skyIrradiance",0});
         auto camera=frameResources.buffer({64,rhi::BufferUsage::Uniform,"Shadow face/cascade matrix"},indirect?&data_.rsmMatrix:&data_.matrices[tile]);
+        auto visibility=frame;visibility.viewProjection=indirect?data_.rsmMatrix:data_.matrices[tile];visibility.viewportWidth=visibility.viewportHeight=indirect?sourceExtent_:tileSize;
+        auto culled=instanceCuller_?instanceCuller_->record(commands,visibility,packets,settings.instanceCulling):std::vector<CulledInstances>(packets.size());
         rhi::RenderPassDesc pass;pass.depth=view_;pass.color=rsmViews_[0];pass.colorLoad=rhi::LoadOp::Load;pass.additionalColors={{rsmViews_[1],rhi::LoadOp::Load},{rsmViews_[2],rhi::LoadOp::Load}};pass.depthLoad=rhi::LoadOp::Load;pass.viewport={tile%columns*tileSize,tile/columns*tileSize,tileSize,tileSize};if(indirect){pass={};pass.depth=sourceDepthView_;pass.color=sourceRsmViews_[0];pass.clearColor={0,0,0,0};pass.additionalColors={{sourceRsmViews_[1]},{sourceRsmViews_[2]}};}commands.beginRenderPass(pass);commands.bindPipeline(pipeline_);
-        for(size_t i=0;i<packets.size();++i){auto objectLayout=layout;std::vector<rhi::BindingEntry> entries{{0,camera,0,64,{},{}},{1,objects[i],0,128,{},{}},{2,light,0,64,{},{}},{4,{},0,0,skyIrradiance_,skySampler_}};if(packets[i].mesh->instances()){objectLayout.entries.push_back({3,rhi::BindingType::StorageRead,rhi::ShaderStage::Vertex,"OutPose",64});entries.push_back({3,packets[i].mesh->instances(),0,size_t(packets[i].mesh->instanceCapacity())*64,{},{}});commands.bindPipeline(instanced_);}else commands.bindPipeline(pipeline_);auto bindings=frameResources.bindings({objectLayout,entries});commands.bindBindingSet(bindings);packets[i].material->bindRsm(commands);packets[i].mesh->draw(commands);}commands.endRenderPass();
+        for(size_t i=0;i<packets.size();++i){if(frame.objectCulling&&!rasterPacketVisible(packets[i],visibility))continue;auto objectLayout=layout;std::vector<rhi::BindingEntry> entries{{0,camera,0,64,{},{}},{1,objects[i],0,128,{},{}},{2,light,0,64,{},{}},{4,{},0,0,skyIrradiance_,skySampler_}};if(packets[i].mesh->instances()){objectLayout.entries.push_back({3,rhi::BindingType::StorageRead,rhi::ShaderStage::Vertex,"OutPose",64});entries.push_back({3,culled[i].poses?culled[i].poses:packets[i].mesh->instances(),0,size_t(packets[i].mesh->instanceCapacity())*64,{},{}});commands.bindPipeline(instanced_);}else commands.bindPipeline(pipeline_);auto bindings=frameResources.bindings({objectLayout,entries});commands.bindBindingSet(bindings);packets[i].material->bindRsm(commands);if(culled[i].arguments)packets[i].mesh->draw(commands,packets[i].mesh->indexBuffer(),culled[i].arguments);else packets[i].mesh->draw(commands);}commands.endRenderPass();
     }
     resources_.device->writeBuffer(parameters_,0,sizeof(data_),&data_);resources_.device->submit(commands);
 }
+}
+
+namespace render {
+rhi::Viewport ShadowRenderer::cloudViewport() const {
+    const auto r=data_.cloudRect;return {uint32_t(std::lround(r.x*extent_)),uint32_t(std::lround(r.y*extent_)),uint32_t(std::lround(r.z*extent_)),uint32_t(std::lround(r.w*extent_))};
+}
+void ShadowRenderer::setCloudShadow(const CloudShadowField& field){data_.cloudPatch=field.patch;data_.cloudProjection=field.projection;resources_.device->writeBuffer(parameters_,0,sizeof(data_),&data_);}
 }

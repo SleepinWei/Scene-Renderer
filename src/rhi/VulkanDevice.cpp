@@ -20,6 +20,8 @@ void check(VkResult result, const char* operation) {
 VkFormat format(Format value) {
     switch (value) {
     case Format::RGBA8UNorm: return VK_FORMAT_R8G8B8A8_UNORM;
+    case Format::R16Float: return VK_FORMAT_R16_SFLOAT;
+    case Format::R32Float: return VK_FORMAT_R32_SFLOAT;
     case Format::RGBA16Float: return VK_FORMAT_R16G16B16A16_SFLOAT;
     case Format::RGBA32Float: return VK_FORMAT_R32G32B32A32_SFLOAT;
     case Format::Depth32Float: return VK_FORMAT_D32_SFLOAT;
@@ -31,6 +33,7 @@ VkAttachmentLoadOp loadOp(LoadOp value) {
 VkAttachmentStoreOp storeOp(StoreOp value) { return value == StoreOp::Store ? VK_ATTACHMENT_STORE_OP_STORE : VK_ATTACHMENT_STORE_OP_DONT_CARE; }
 struct Context {
     bool wireframe=false;
+    bool anisotropy=false;
     GLFWwindow* window = nullptr;
     VkSurfaceKHR surface = VK_NULL_HANDLE;
     VkInstance instance = VK_NULL_HANDLE;
@@ -100,7 +103,7 @@ std::unique_ptr<Context> makeContext(GLFWwindow* window) {
     float priority = 1;VkDeviceQueueCreateInfo queue{VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};queue.queueFamilyIndex = family;queue.queueCount = 1;queue.pQueuePriorities = &priority;
     VkDeviceCreateInfo device{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};device.queueCreateInfoCount = 1;device.pQueueCreateInfos = &queue;
     device.enabledExtensionCount = uint32_t(enabled.size());device.ppEnabledExtensionNames = enabled.data();
-    VkPhysicalDeviceFeatures supported{};vkGetPhysicalDeviceFeatures(c->physical,&supported);if(!supported.independentBlend)throw std::runtime_error("RHI Vulkan requires independent color attachment blending");VkPhysicalDeviceFeatures enabledFeatures{};enabledFeatures.independentBlend=VK_TRUE;enabledFeatures.fillModeNonSolid=supported.fillModeNonSolid;c->wireframe=supported.fillModeNonSolid;device.pEnabledFeatures=&enabledFeatures;
+    VkPhysicalDeviceFeatures supported{};vkGetPhysicalDeviceFeatures(c->physical,&supported);if(!supported.independentBlend)throw std::runtime_error("RHI Vulkan requires independent color attachment blending");VkPhysicalDeviceFeatures enabledFeatures{};enabledFeatures.independentBlend=VK_TRUE;enabledFeatures.fillModeNonSolid=supported.fillModeNonSolid;enabledFeatures.samplerAnisotropy=supported.samplerAnisotropy;c->anisotropy=supported.samplerAnisotropy;c->wireframe=supported.fillModeNonSolid;device.pEnabledFeatures=&enabledFeatures;
     check(vkCreateDevice(c->physical, &device, nullptr, &c->device), "create device");vkGetDeviceQueue(c->device, family, 0, &c->queue);
     if(debugUtils){c->beginLabel=reinterpret_cast<PFN_vkCmdBeginDebugUtilsLabelEXT>(vkGetDeviceProcAddr(c->device,"vkCmdBeginDebugUtilsLabelEXT"));c->endLabel=reinterpret_cast<PFN_vkCmdEndDebugUtilsLabelEXT>(vkGetDeviceProcAddr(c->device,"vkCmdEndDebugUtilsLabelEXT"));}
     VkCommandPoolCreateInfo pool{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};pool.queueFamilyIndex = family;pool.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
@@ -146,7 +149,7 @@ public:
         if (!isOpen()) return false;
         const uint32_t bits = uint32_t(usage);if (!bits || (bits & ~63u)) return false;
         if (f == Format::Depth32Float) { if (!hasUsage(usage,TextureUsage::DepthAttachment) || (bits & ~uint32_t(TextureUsage::DepthAttachment|TextureUsage::Sampled|TextureUsage::CopySource))) return false; }
-        else if ((f != Format::RGBA8UNorm && f != Format::RGBA16Float && f != Format::RGBA32Float) || hasUsage(usage, TextureUsage::DepthAttachment)) return false;
+        else if ((f != Format::RGBA8UNorm && f != Format::RGBA16Float && f != Format::RGBA32Float && f != Format::R16Float && f != Format::R32Float) || hasUsage(usage, TextureUsage::DepthAttachment)) return false;
         VkFormatProperties p{};vkGetPhysicalDeviceFormatProperties(c_->physical, format(f), &p);
         VkFormatFeatureFlags required = 0;
         if (hasUsage(usage, TextureUsage::Storage)) required |= VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
@@ -206,6 +209,17 @@ protected:
         },true,[this,staging]{freeBuffer(staging);});}catch(...){freeBuffer(staging);throw;}
     }
     void readBufferImpl(NativeBuffer id, size_t offset, size_t bytes, void* data) override { waitIdleImpl();transfer(buffers_.at(id), offset, bytes, data, false); }
+    void copyBufferImpl(NativeBuffer source,size_t sourceOffset,NativeBuffer destination,size_t destinationOffset,size_t bytes) override {
+        // Outside a frame there is no retirement token to protect handles.
+        // Match writeBuffer: finish before an offline caller can destroy them.
+        execute([&](VkCommandBuffer command){
+            VkMemoryBarrier before{VK_STRUCTURE_TYPE_MEMORY_BARRIER};before.srcAccessMask=VK_ACCESS_MEMORY_READ_BIT|VK_ACCESS_MEMORY_WRITE_BIT;before.dstAccessMask=VK_ACCESS_TRANSFER_READ_BIT|VK_ACCESS_TRANSFER_WRITE_BIT;
+            vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,0,1,&before,0,nullptr,0,nullptr);
+            VkBufferCopy copy{sourceOffset,destinationOffset,bytes};vkCmdCopyBuffer(command,buffers_.at(source).gpu,buffers_.at(destination).gpu,1,&copy);
+            VkMemoryBarrier after{VK_STRUCTURE_TYPE_MEMORY_BARRIER};after.srcAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;after.dstAccessMask=VK_ACCESS_MEMORY_READ_BIT|VK_ACCESS_MEMORY_WRITE_BIT;
+            vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,0,1,&after,0,nullptr,0,nullptr);
+        },frameActive());
+    }
     // Compatibility binding has no implicit draw on this backend. Vulkan draws
     // always resolve the explicit pipeline and BindingSet descriptor layouts.
     void bindUniformBufferImpl(uint32_t, NativeBuffer, size_t, size_t) override {
@@ -287,14 +301,16 @@ protected:
     }
     NativeObject createTextureViewImpl(NativeObject imageId, const TextureDesc& desc,const TextureViewDesc& selection) override {
         const auto& image = images_.at(imageId);VkImageView view = VK_NULL_HANDLE;
-        VkImageViewCreateInfo info{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};info.image = image.gpu;info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        info.format = format(desc.format);info.subresourceRange = {image.aspect, selection.range.firstMip, selection.range.mipCount, selection.range.firstLayer, 1};
+        VkImageViewCreateInfo info{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};info.image = image.gpu;info.viewType = selection.range.layerCount>1?VK_IMAGE_VIEW_TYPE_2D_ARRAY:VK_IMAGE_VIEW_TYPE_2D;
+        info.format = format(desc.format);info.subresourceRange = {image.aspect, selection.range.firstMip, selection.range.mipCount, selection.range.firstLayer, selection.range.layerCount};
         check(vkCreateImageView(c_->device, &info, nullptr, &view), "create image view");
         try { const auto id = next_++;views_.emplace(id, View{view, imageId,selection.range});return id; } catch (...) { vkDestroyImageView(c_->device, view, nullptr);throw; }
     }
     NativeObject createSamplerImpl(const SamplerDesc& desc) override {
         VkSamplerCreateInfo info{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};info.magFilter = info.minFilter = desc.filter == Filter::Linear ? VK_FILTER_LINEAR : VK_FILTER_NEAREST;
-        info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;info.addressModeU = info.addressModeV = info.addressModeW = desc.address == AddressMode::Repeat ? VK_SAMPLER_ADDRESS_MODE_REPEAT : VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        info.mipmapMode = desc.mipLinear?VK_SAMPLER_MIPMAP_MODE_LINEAR:VK_SAMPLER_MIPMAP_MODE_NEAREST;info.maxLod=desc.mipLinear?VK_LOD_CLAMP_NONE:0;info.addressModeU = info.addressModeV = info.addressModeW = desc.address == AddressMode::Repeat ? VK_SAMPLER_ADDRESS_MODE_REPEAT : VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        info.anisotropyEnable=c_->anisotropy&&desc.maxAnisotropy>1;
+        info.maxAnisotropy=info.anisotropyEnable?std::min(float(desc.maxAnisotropy),c_->properties.limits.maxSamplerAnisotropy):1;
         VkSampler sampler = VK_NULL_HANDLE;check(vkCreateSampler(c_->device, &info, nullptr, &sampler), "create sampler");
         try { const auto id = next_++;samplers_.emplace(id, sampler);return id; } catch (...) { vkDestroySampler(c_->device, sampler, nullptr);throw; }
     }
@@ -451,7 +467,7 @@ protected:
         } catch (...) { freeBuffer(staging);throw; }
     }
     std::function<void()> queueTextureReadbackImpl(NativeObject id,const TextureDesc& desc,std::shared_ptr<std::vector<uint8_t>> output,TextureSubresource level) override {
-        const size_t bytes=size_t(desc.width)*desc.height*(desc.format==Format::RGBA8UNorm || desc.format==Format::Depth32Float?4:desc.format==Format::RGBA16Float?8:16);auto staging=allocateBuffer(bytes,VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+        const size_t bytes=size_t(desc.width)*desc.height*(formatPixelBytes(desc.format));auto staging=allocateBuffer(bytes,VK_BUFFER_USAGE_TRANSFER_DST_BIT);
         try{execute([&](VkCommandBuffer command){auto& image=images_.at(id);transition(command,image,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,{level.mip,1,level.layer,1});VkBufferImageCopy copy{};copy.imageSubresource={image.aspect,level.mip,level.layer,1};copy.imageExtent={desc.width,desc.height,1};vkCmdCopyImageToBuffer(command,image.gpu,image.layout,staging.gpu,1,&copy);VkMemoryBarrier host{VK_STRUCTURE_TYPE_MEMORY_BARRIER};host.srcAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;host.dstAccessMask=VK_ACCESS_HOST_READ_BIT;vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_HOST_BIT,0,1,&host,0,nullptr,0,nullptr);},true,[this,staging,bytes,output]{output->resize(bytes);transfer(staging,0,bytes,output->data(),false);freeBuffer(staging);});}catch(...){freeBuffer(staging);throw;}return {};
     }
     std::vector<uint8_t> readTextureImpl(NativeObject id, const TextureDesc& desc) override { return readPixels(id, desc, 4); }
@@ -473,8 +489,8 @@ protected:
         },frameActive(),{},renderFinished_[imageIndex_]);presented_[imageIndex_]=true;copied_=true;
     }
     std::vector<float> readTextureFloatImpl(NativeObject id, const TextureDesc& desc) override {
-        if(desc.format==Format::RGBA16Float)return decodeHalfPixels(readPixels(id,desc,8));
-        const auto bytes=readPixels(id,desc,desc.format==Format::Depth32Float?4:16);std::vector<float> values(bytes.size()/4);std::memcpy(values.data(),bytes.data(),bytes.size());return values;
+        if(desc.format==Format::RGBA16Float || desc.format==Format::R16Float)return decodeHalfPixels(readPixels(id,desc,formatPixelBytes(desc.format)));
+        const auto bytes=readPixels(id,desc,formatPixelBytes(desc.format));std::vector<float> values(bytes.size()/4);std::memcpy(values.data(),bytes.data(),bytes.size());return values;
     }
     void submitGraphicsImpl(const std::vector<RecordedPass>& passes) override {
         size_t draws = 0;for (const auto& pass : passes) draws += pass.compute ? 1 : pass.draws.size();

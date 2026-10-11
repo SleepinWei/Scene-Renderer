@@ -22,16 +22,20 @@ struct RenderSetting {
     bool enableHDR = true;
     bool useDefer = true;
     bool enableShadow = true;
-    bool enableRSM = false;
+    bool enableRSM = false; // Optional demo; excluded from ongoing lighting development.
     bool enableDirectional = true;
     bool enableSSAO = true;
     bool enableTSAA = true;
+    bool taaHighQuality = true;
     bool automaticQuality = false;
     float timeOverride = -1;
     float aoRadius = 1, aoBias = .025f, aoPower = 1.5f;
     bool aoHorizon=true,aoDenoise=true;
     int aoSlices=4,aoSteps=4;
+    render::ClusterSettings clusters;
     render::PostProcessSettings postProcess;
+    render::WeatherLightingSettings weather;
+    render::DdgiSettings ddgi;
     render::RsmSettings rsmSettings;
     render::ShadowSettings shadowSettings;
 };

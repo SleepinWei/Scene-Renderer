@@ -1,0 +1,128 @@
+{
+  "scope": "GPU early/late geometry + every clusters/ and hiz/ span (including prepass and pyramid); same build/camera/LOD/materials; 3 rounds with rotated order, each 8 warmup + 24 measured; profiler overhead included; excludes shadows, lighting, tone mapping and CPU construction; CPU render call and first-cull-to-geometry-end GPU window (includes inter-encoder gaps) reported separately, not display latency",
+  "modes": {
+    "batch_4px": {
+      "actual_prepass_triangles": 0,
+      "batched": true,
+      "cluster_buffer_bytes": 21032916,
+      "cluster_dispatches": 3,
+      "cluster_occlusion": false,
+      "cpu_render_median_ms": 9.184000000000001,
+      "early_triangles": 204022,
+      "gpu_window_median_ms": 2.366583500057459,
+      "late_triangles": 0,
+      "median_ms": 2.355562001466751,
+      "occluder_triangle_budget": 250000,
+      "prepass_source_triangle_budget_used": 0,
+      "pyramid_levels": 0,
+      "selected_clusters": 6928,
+      "selected_triangles": 204022,
+      "supported": true,
+      "two_phase": false,
+      "sample_count": 72,
+      "phase_medians_ms": {
+        "cluster": 0.19197949767112732,
+        "geometry": 2.1584994979202747
+      },
+      "inter_scope_gap_median_ms": 0.0011254996061325073,
+      "compute_encoder_counts": [
+        3
+      ],
+      "pass_sum_p10_p90_ms": [
+        2.302028504759073,
+        2.738606805354357
+      ],
+      "gpu_window_p10_p90_ms": [
+        2.310299699753523,
+        2.745954102277756
+      ]
+    },
+    "batch_hiz_4px": {
+      "actual_prepass_triangles": 191378,
+      "batched": true,
+      "cluster_buffer_bytes": 21032916,
+      "cluster_dispatches": 6,
+      "cluster_occlusion": true,
+      "cpu_render_median_ms": 10.470812,
+      "early_triangles": 190984,
+      "gpu_window_median_ms": 3.2558124996721745,
+      "late_triangles": 0,
+      "median_ms": 3.251583509147167,
+      "occluder_triangle_budget": 250000,
+      "prepass_source_triangle_budget_used": 247892,
+      "pyramid_levels": 10,
+      "selected_clusters": 5416,
+      "selected_triangles": 190984,
+      "supported": true,
+      "two_phase": false,
+      "sample_count": 72,
+      "phase_medians_ms": {
+        "cluster": 0.2672094963490963,
+        "prepass": 0.6933329999446869,
+        "pyramid": 0.1376045159995556,
+        "object_tests": 0.01858299970626831,
+        "geometry": 2.0809375010430813
+      },
+      "inter_scope_gap_median_ms": 0.02637549489736557,
+      "compute_encoder_counts": [
+        17
+      ],
+      "pass_sum_p10_p90_ms": [
+        3.1870504222810268,
+        3.519050604104996
+      ],
+      "gpu_window_p10_p90_ms": [
+        3.2022535987198353,
+        3.513137801736593
+      ]
+    },
+    "two_stage_4px": {
+      "actual_prepass_triangles": 0,
+      "batched": true,
+      "cluster_buffer_bytes": 21032916,
+      "cluster_dispatches": 6,
+      "cluster_occlusion": true,
+      "cpu_render_median_ms": 9.7689165,
+      "early_triangles": 188422,
+      "gpu_window_median_ms": 2.5659794956445694,
+      "late_triangles": 0,
+      "median_ms": 2.5313960015773773,
+      "occluder_triangle_budget": 250000,
+      "prepass_source_triangle_budget_used": 0,
+      "pyramid_levels": 10,
+      "selected_clusters": 5277,
+      "selected_triangles": 188422,
+      "supported": true,
+      "two_phase": true,
+      "sample_count": 72,
+      "phase_medians_ms": {
+        "cluster": 0.32014599815011024,
+        "geometry_early": 2.0765414983034134,
+        "pyramid": 0.12496000528335571,
+        "geometry_late": 0.00793750211596489
+      },
+      "inter_scope_gap_median_ms": 0.029458489269018173,
+      "compute_encoder_counts": [
+        16
+      ],
+      "pass_sum_p10_p90_ms": [
+        2.4862882174551486,
+        2.7565551906824113
+      ],
+      "gpu_window_p10_p90_ms": [
+        2.514308598637581,
+        2.999958899617195
+      ]
+    }
+  },
+  "changes_4px": {
+    "hiz_triangle_reduction_percent": 6.39048730038917,
+    "hiz_gpu_window_increase_percent": 37.57437671618711
+  },
+  "changes_two_stage_4px": {
+    "gpu_window_reduction_vs_single_stage_percent": 21.18773744179261,
+    "gpu_pass_sum_reduction_vs_single_stage_percent": 22.14882396665502,
+    "cpu_render_reduction_vs_single_stage_percent": 6.703353092386733,
+    "gpu_window_overhead_vs_no_occlusion_percent": 8.42547899037871
+  }
+}

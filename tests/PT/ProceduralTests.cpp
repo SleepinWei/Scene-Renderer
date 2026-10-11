@@ -3,6 +3,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <cmath>
 #include <cstring>
+#include "renderer/rhi/MaterialWetness.h"
 #include <iostream>
 #include <stdexcept>
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -22,6 +23,22 @@ void terrainTest(){auto t=terrain();pt::CaptureOptions options;options.terrainGr
     auto constant=[](glm::u8vec4 color){auto image=std::make_shared<render::ImageRGBA8>();image->width=2;image->height=4;for(int i=0;i<8;++i)for(int k=0;k<4;++k)image->pixels.push_back(color[k]);return image;};
     beach->shorelineImages={constant({200,160,100,255}),constant({128,128,255,255}),constant({255,180,0,255}),constant({255,255,255,255})};t.source=beach;t.extension.features.x=2;t.extension.shoreHeight={0,10,1,1};t.extension.shoreSurface={30,.7f,.95f,1};
     s.draws={pt::freezeTerrain(t,options)};s.terrain.reset();pt::CpuScene sand(s);check(sand.intersect({0,2,0},{0,-1,0},0,10,hit),"Beach surface missing");float wet=1-glm::smoothstep(-1.f,1.f,.375f);auto expected=glm::pow(glm::vec3(200,160,100)/255.f,glm::vec3(2.2f))*glm::mix(1.f,.45f,wet);check(glm::length(hit.albedo-expected)<.012f,"Shoreline material/height/wetness mismatch");check(hit.metallic==0&&std::abs(hit.roughness-glm::mix(180/255.f,90/255.f,wet))<.01,"Shoreline roughness capture mismatch");
+    t.extension.features={int(render::MaterialFeature::RainWetness),65535,0,0};
+    auto rainy=pt::freezeTerrain(t,options);check(rainy.extension.features.y==65535,"Frozen terrain lost rain wetness");
+    s.draws={rainy};pt::CpuScene rainSand(s);check(rainSand.intersect({0,2,0},{0,-1,0},0,10,hit),"Rain beach missing");
+    check(glm::length(hit.albedo-glm::pow(glm::vec3(200,160,100)/255.f,glm::vec3(2.2f))*.45f)<.012f,"Rain/coastal wetness double-darkened PT beach");
+    auto gpu=rainSand.exportData();check(gpu.materials[0].specularShape.w==1,"GPU PT pack lost rain wetness");
+    t.extension.features={int(render::MaterialFeature::SpatialRainWetness),0,0,0};
+    for(size_t i=0;i<256;++i)render::setRainWetCell(t.extension,i,i/16<8?255:0);
+    auto spatialDraw=pt::freezeTerrain(t,options);s.draws={spatialDraw};pt::CpuScene spatial(s);pt::Surface upper,lower;
+    check(spatial.intersect({0,2,.8f},{0,-1,0},0,10,upper)&&spatial.intersect({0,2,-.8f},{0,-1,0},0,10,lower),"Spatial terrain rays missed");
+    const auto sandColor=glm::pow(glm::vec3(200,160,100)/255.f,glm::vec3(2.2f));
+    check(glm::length(upper.albedo-sandColor*.45f)<.012f&&lower.albedo.r>upper.albedo.r,"Frozen spatial wetness lost UV orientation/shore merge");
+    auto spatialGpu=spatial.exportData();const auto wetIndex=uint32_t(spatialGpu.materials[0].specularShape.z)-1;
+    check(wetIndex<spatialGpu.textures->images.size()&&spatialGpu.textures->sources[wetIndex]->pixels[0]==255&&spatialGpu.textures->sources[wetIndex]->pixels[15*16*4]==0,"GPU PT lost spatial wetness image");
+    check(spatial.exportData().textures==spatialGpu.textures,"Repeated spatial PT export rebuilt immutable textures");
+    t.extension.features={0,0,0,0};
+
     // Two points inside one global bake texel must retain distinct 30 m tiled sand detail.
     t.model=glm::scale(glm::mat4(1),glm::vec3(4000,1,4000));t.extension.shoreHeight={-2,10,1,1};
     auto detailed=std::make_shared<render::TerrainPayload>(*beach);auto striped=std::make_shared<render::ImageRGBA8>();striped->width=2;striped->height=4;
@@ -31,7 +48,7 @@ void terrainTest(){auto t=terrain();pt::CaptureOptions options;options.terrainGr
     s.draws={detailDraw};pt::CpuScene detailScene(s);pt::Surface red,blue,repeated;
     check(detailScene.intersect({7.5f,2,-7.5f},{0,-1,0},0,10,red)&&detailScene.intersect({22.5f,2,-7.5f},{0,-1,0},0,10,blue)&&detailScene.intersect({37.5f,2,-7.5f},{0,-1,0},0,10,repeated),"World-space sand test missed terrain");
     check(glm::length(red.albedo-glm::vec3(1,0,0))<.002f&&glm::length(blue.albedo-glm::vec3(0,0,1))<.002f&&glm::length(red.albedo-repeated.albedo)<.002f,"Sand detail was baked at landscape resolution instead of repeated at world scale");
-    const auto packed=detailScene.exportData();check(packed.materials[0].shoreTextures.x!=UINT32_MAX&&packed.images[packed.materials[0].shoreTextures.x].y==2,"GPU shoreline textures missing");
+    const auto packed=detailScene.exportData();check(packed.materials[0].shoreTextures.x!=UINT32_MAX&&packed.textures->images[packed.materials[0].shoreTextures.x].y==2,"GPU shoreline textures missing");
     auto broken=std::make_shared<render::TerrainPayload>(*t.source);broken->height.readPage=[](uint32_t,uint32_t,uint32_t){return render::VirtualTextureSource::Page(1);};t.source=broken;bool rejected=false;try{pt::freezeTerrain(t,options);}catch(const std::invalid_argument &){rejected=true;}check(rejected,"Truncated terrain page accepted");}
 void waterTest(){auto samples=flat();render::OceanSurfaceSettings settings;settings.meshSize=9;settings.spectrum.length=8;settings.detailWaves=false;settings.seaLevel=0;settings.absorption={.2f,.1f,.05f};settings.scattering=glm::vec3(0);auto draw=pt::freezeOcean(settings,samples,{});check(draw.mesh->vertices.size()==81&&draw.mesh->indices.size()==384,"FFT ocean topology");check(draw.pathTracingIor==1.333f&&draw.pathTracingKind==3,"Missing water optical metadata");
     auto tilted=samples;for(size_t i=0;i<tilted.normal.size();i+=4){tilted.normal[i]=-.8f;tilted.normal[i+1]=.6f;}auto grazing=camera();grazing.draws={pt::freezeOcean(settings,tilted,{})};pt::CpuScene grazingScene(grazing);pt::Surface grazingHit;auto incoming=glm::normalize(glm::vec3(-1,-1,0));check(grazingScene.intersect({1,1,0},incoming,0,10,grazingHit)&&glm::dot(grazingHit.normal,-incoming)>0,"Grazing shading normal faces away from incoming ray");
@@ -55,4 +72,35 @@ void waterTest(){auto samples=flat();render::OceanSurfaceSettings settings;setti
     for(size_t i=0;i<samples.foam.size();i+=4)samples.foam[i]=1;settings.waterMask.reset();s=camera();s.draws={pt::freezeOcean(settings,samples,{})};pt::CpuScene foam(s);check(foam.intersect({0,1,0},{0,-1,0},0,10,hit)&&hit.foam>.99,"FFT foam missing");auto sample=pt::sampleBsdf(hit,{0,1,0},random);check(!sample.delta&&!sample.transmission&&sample.pdf>0,"Opaque foam mixture failed");check(std::abs(sample.pdf-pt::bsdfPdf(hit,{0,1,0},sample.direction))<1e-5,"Foam continuous PDF mismatch");
     s.frame.oceans={settings};bool rejected=false;try{pt::CpuScene unfrozen(s);}catch(const std::invalid_argument &){rejected=true;}check(rejected,"Unfrozen ocean was silently excluded");}
 }
-int main(){try{terrainTest();waterTest();std::cout<<"Procedural PT tests passed\n";return 0;}catch(const std::exception &error){std::cerr<<error.what()<<'\n';return 1;}}
+void oceanNormalFieldsTest(){
+    auto main=flat(),detail=flat();render::OceanSurfaceSettings settings;settings.meshSize=9;settings.spectrum.length=8;settings.surfaceLength=8;settings.detailWaves=true;settings.seaLevel=0;
+    for(unsigned y=0;y<8;++y)for(unsigned x=0;x<8;++x){size_t at=(y*8+x)*4;auto n=glm::normalize(glm::vec3(.0012345f+.03f*x,1,-.012345f*y));auto d=glm::normalize(glm::vec3((x%2?1.f:-1.f)*.07123f,1,.01f*y));for(int c=0;c<3;++c){main.normal[at+c]=n[c];detail.normal[at+c]=d[c];}}
+    auto draw=pt::freezeOcean(settings,main,detail);const auto &fields=*draw.material->oceanNormals;
+    check(fields.images[0]->pixels==main.normal&&fields.images[1]->pixels==detail.normal,"FFT normal capture lost float precision");
+    check(fields.images[0]->width==8&&fields.images[1]->width==8&&!draw.material->images[1],"FFT fields were baked into a combined byte image");
+    auto snapshot=camera();snapshot.draws={draw};pt::CpuScene scene(snapshot);
+    auto expected=[&](const pt::OceanSamples &field,glm::vec2 world,float period){auto p=glm::fract(world/period+.5f)*float(field.size);int x=int(std::floor(p.x)),y=int(std::floor(p.y));auto at=[&](int u,int v){size_t i=(size_t((v+8)%8)*8+(u+8)%8)*4;return glm::vec3(field.normal[i],field.normal[i+1],field.normal[i+2]);};return glm::normalize(glm::mix(glm::mix(at(x,y),at(x+1,y),p.x-x),glm::mix(at(x,y+1),at(x+1,y+1),p.x-x),p.y-y));};
+    for(auto point:{glm::vec2(-3.91f,-3.85f),glm::vec2(-1.15f,.9f),glm::vec2(2.34f,-.87f),glm::vec2(3.91f,3.85f)}){pt::Surface hit;check(scene.intersect({point.x,1,point.y},{0,-1,0},0,10,hit),"Float ocean normal probe missed");auto n=expected(main,point,8),d=expected(detail,point,32);auto slope=glm::vec2(n.x,n.z)/n.y+glm::vec2(d.x,d.z)/d.y;check(glm::length(hit.normal-glm::normalize(glm::vec3(slope.x,1,slope.y)))<3e-6f,"FFT native period / V orientation / half texel phase mismatch");}
+    auto packed=scene.exportData();const auto ids=packed.materials[0].oceanNormals;check(ids.x!=UINT32_MAX&&ids.y!=UINT32_MAX&&ids.x!=ids.y,"Separate GPU FFT fields missing");
+    for(unsigned slot=0;slot<2;++slot){auto desc=packed.textures->images[ids[slot]];check(desc.w==1&&desc.y==8&&desc.z==8,"GPU float texture descriptor mismatch");const auto &source=slot?detail:main;check(std::memcmp(packed.textures->texels.data()+desc.x,source.normal.data(),source.normal.size()*4)==0,"GPU float texture export changed FFT bits");}
+    check(scene.exportData().texturesReused,"Float field owners did not retain immutable texture export");
+    auto invalid=std::make_shared<render::MaterialPayload>(*draw.material);auto badFields=std::make_shared<render::OceanNormalFields>(fields);auto badImage=std::make_shared<render::ImageRGBA32F>(*fields.images[0]);badImage->pixels[0]=NAN;badFields->images[0]=badImage;invalid->oceanNormals=badFields;draw.material=invalid;snapshot.draws={draw};bool rejected=false;try{pt::CpuScene bad(snapshot);}catch(const std::invalid_argument&){rejected=true;}check(rejected,"Nonfinite FFT normal field accepted");
+    std::cout<<"Native float FFT fields, periodic sampling and GPU packing passed\n";
+}
+void focusedOceanTest(){
+    render::OceanSurfaceSettings s;s.spectrum.seaState.enabled=true;s.spectrum.length=256;s.surfaceLength=2048;s.meshSize=513;s.detailWaves=false;s.seaLevel=0;
+    auto d=pt::freezeOcean(s,flat(),{},pt::CaptureOptions{},{0,30});
+    auto physical=s;physical.surfaceModel.physical=true;physical.surfaceModel.roughness=.12f;
+    auto roughDraw=pt::freezeOcean(physical,flat(),{},pt::CaptureOptions{},{0,30});
+    check(roughDraw.pathTracingRoughness==.12f&&roughDraw.pathTracingIor==WaterSurfaceModel::ior,"Shared water surface model lost during capture");
+    physical.surfaceModel.roughness=.01f;check(pt::freezeOcean(physical,flat(),{},pt::CaptureOptions{},{0,30}).pathTracingRoughness==0,"Water delta threshold differs from PT");
+    physical.refraction=false;bool missing=false;try{pt::freezeOcean(physical,flat(),{});}catch(const std::invalid_argument&){missing=true;}check(missing,"Physical surface silently lost its dielectric closure");physical.refraction=true;
+    physical.surfaceModel.roughness=-1;bool invalid=false;try{pt::freezeOcean(physical,flat(),{});}catch(const std::invalid_argument&){invalid=true;}check(invalid,"Negative shared water roughness accepted");
+    check(d.mesh->vertices.size()==513*513&&d.mesh->indices.size()==512*512*6,"Focused ocean topology");
+    float minStep=1e6f,maxStep=0;
+    for(size_t i=1;i<513;++i){float step=d.mesh->vertices[i].position.x-d.mesh->vertices[i-1].position.x;minStep=std::min(minStep,step);maxStep=std::max(maxStep,step);}
+    check(minStep<.2f&&maxStep>10,"Focused grid lost near/far sampling distribution");
+    for(const auto& v:d.mesh->vertices){check(std::abs(v.uv.x-(v.position.x/2048+.5f))<1e-6&&std::abs(v.uv.y-(.5f-v.position.z/2048))<1e-6,"Focused grid distorted physical material UVs");}
+    check(std::abs(d.mesh->vertices.front().position.x+1024)<1e-3&&std::abs(d.mesh->vertices.back().position.z-1024)<1e-3,"Focused grid changed fixed water boundaries");
+}
+int main(){try{oceanNormalFieldsTest();focusedOceanTest();terrainTest();waterTest();std::cout<<"Procedural PT tests passed\n";return 0;}catch(const std::exception &error){std::cerr<<error.what()<<'\n';return 1;}}

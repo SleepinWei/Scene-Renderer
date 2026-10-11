@@ -24,7 +24,9 @@ vec2 gaussian(vec2 id);
 void ComputeGaussianRandom(uvec3 SV_DispatchThreadID)//线程唯一全局坐标
 {
     vec2 g = gaussian(SV_DispatchThreadID.xy);
-    imageStore(GaussianRandomRT,ivec2(SV_DispatchThreadID.xy),vec4(g,0,0));
+    float x1=max(1e-6,rand()),x2=max(1e-6,rand());
+    vec2 swell=sqrt(-2.0*log(x1))*vec2(cos(2.0*PI*x2),sin(2.0*PI*x2));
+    imageStore(GaussianRandomRT,ivec2(SV_DispatchThreadID.xy),vec4(g,swell));
     // GaussianRandomRT[id.xy] = vec4(g, 0, 0);
 }
 //计算高斯随机数

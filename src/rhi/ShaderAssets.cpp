@@ -43,10 +43,10 @@ void validateComputeShaderLayout(const ComputePipelineDesc& desc) {
                 (resource.value("readonly",false) ? BindingType::StorageRead : resource.value("writeonly",false) ? BindingType::StorageWrite : BindingType::StorageReadWrite);
             if ((category=="images" && resource.at("type")!="image2D") || (category=="textures" && resource.at("type")!="sampler2D"))throw std::invalid_argument("RHI: non-2D shader image is not supported");
             if (category == "images") {
-                const auto expectedFormat = e.imageFormat == Format::RGBA32Float ? "rgba32f" : e.imageFormat == Format::RGBA16Float ? "rgba16f" : "rgba8";
+                const auto expectedFormat = e.imageFormat == Format::RGBA32Float ? "rgba32f" : e.imageFormat == Format::RGBA16Float ? "rgba16f" : e.imageFormat == Format::R16Float ? "r16f" : e.imageFormat == Format::R32Float ? "r32f" : "rgba8";
                 if (resource.value("format",std::string()) != expectedFormat) throw std::invalid_argument("RHI: storage image format differs from reflection");
             }
-            if (e.stage != ShaderStage::Compute || e.type != expected || e.name != resource.at("name") || e.minimumSize < resource.value("block_size",size_t(0)) || resource.contains("array")) throw std::invalid_argument("RHI: compute binding differs from reflection");found = true;
+            if (e.stage != ShaderStage::Compute || e.type != expected || e.name != resource.at("name") || e.minimumSize < resource.value("block_size",size_t(0)) || resource.contains("array")) throw std::invalid_argument("RHI: compute binding differs from reflection: "+desc.shader.reflectionPath+" set "+std::to_string(l.group)+" binding "+std::to_string(e.binding));found = true;
         }
         if (!found) throw std::invalid_argument("RHI: compute resource missing from layout");
     }
@@ -66,7 +66,7 @@ void validateShaderLayout(const GraphicsPipelineDesc& desc) {
             for (const auto& l : desc.bindings) for (const auto& e : l.entries) {
                 if (l.group != r.value("set", 0u) || e.binding != r["binding"] || e.stage != stage) continue;
                 const auto type = std::string(kind) == "ubos" ? BindingType::UniformBuffer : std::string(kind)=="ssbos"?BindingType::StorageRead:BindingType::SampledTexture;
-                if(std::string(kind)=="ssbos" && (stage!=ShaderStage::Vertex || !r.value("readonly",false)))throw std::invalid_argument("RHI: graphics storage must be read-only vertex data");
+                if(std::string(kind)=="ssbos" && (!r.value("readonly",false)))throw std::invalid_argument("RHI: graphics storage must be read-only");
                 if (e.type != type || e.name != r["name"] || e.minimumSize < r.value("block_size", size_t(0)) || r.contains("array"))
                     throw std::invalid_argument("RHI: binding layout disagrees with shader reflection");
                 found = true;
@@ -83,7 +83,10 @@ void validateShaderLayout(const GraphicsPipelineDesc& desc) {
             std::vector<bool> seen(outputs.size());
             for (const auto& output : outputs) {
                 const auto location = output.at("location").get<size_t>();
-                if (location >= seen.size() || seen[location] || output.at("type") != "vec4") throw std::invalid_argument("RHI: unsupported fragment output");
+                if (location >= seen.size() || seen[location]) throw std::invalid_argument("RHI: unsupported fragment output location");
+                const auto format=colorFormats(desc)[location];
+                const char* type=(format==Format::R16Float || format==Format::R32Float)?"float":"vec4";
+                if(output.at("type")!=type)throw std::invalid_argument("RHI: fragment output components differ from attachment");
                 seen[location] = true;
             }
         }

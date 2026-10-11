@@ -1,0 +1,10 @@
+#version 450
+layout(local_size_x=1) in;
+layout(set=0,binding=0,std140) uniform HiZCombine {uvec4 combineOffsets;}; // destination word, source word
+layout(set=1,binding=0,std430) readonly buffer TriangleArguments {uint triangleArguments[];};
+layout(set=1,binding=1,std430) buffer HiZArguments {uint arguments[];};
+void main(){
+    uint destination=combineOffsets.x,source=combineOffsets.y;
+    bool visible=arguments[destination]!=0;
+    for(uint i=0;i<5;++i)arguments[destination+i]=i==0&&!visible?0:triangleArguments[source+i];
+}

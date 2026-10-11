@@ -197,7 +197,6 @@ std::shared_ptr<RenderScene> makeMetalClassicScene(const std::string& name) {
         spotLight->setDirection(glm::normalize(glm::vec3(0,-1,-.15f)));
         spotLight->setCone(std::cos(glm::radians(45.f)),std::cos(glm::radians(50.f)));
         spotObject->addComponent(spotLight); target->addObject(spotObject);
-        manager->setting.enableRSM = true;
 
     } else if (name == "sponza" || name == "san-miguel") {
         std::ifstream input("samples/gi-assets.json");
@@ -217,7 +216,6 @@ std::shared_ptr<RenderScene> makeMetalClassicScene(const std::string& name) {
             target->setCamera(std::make_shared<Camera>(glm::vec3(7,2.4f,8),glm::vec3(0,1,0),-115,-3));
         target->mainCamera()->setZoom(58); target->mainCamera()->setExposure(1.1f);
         atmosphere(target);sun(target,{2.8f,2.6f,2.3f},{-.35f,-1,-.2f});
-        manager->setting.enableRSM = true;
     } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose bunny, helmet, cornell, sponza, san-miguel, ocean or ocean-clear");
     return target;
 }
@@ -243,7 +241,7 @@ void renderMetalGallery(const std::string& directory, const std::string& selecte
         scene = makeMetalClassicScene(name);
         manager->temporalAA->reset();
         if(name=="ocean" || name=="ocean-clear") {auto water=std::static_pointer_cast<Ocean>(scene->terrain()->GetComponent("Ocean"));water->animate=false;water->inner_time=8;}
-        if (name == "sponza" || name == "san-miguel") {
+        if (selected == "gi" && (name == "sponza" || name == "san-miguel")) {
             manager->setting.enableRSM = false;
             for (int frame=0;frame<accumulationFrames;++frame) {
                 MetalBackend::beginFrame();manager->render(scene);

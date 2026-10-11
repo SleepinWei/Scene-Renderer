@@ -77,14 +77,14 @@ public:
         const uint32_t bits = uint32_t(usage);
         if (!bits || (bits & ~31u)) return false;
         if (format == Format::Depth32Float) return hasUsage(usage,TextureUsage::DepthAttachment) && !(bits & ~uint32_t(TextureUsage::DepthAttachment|TextureUsage::Sampled|TextureUsage::CopySource));
-        return (format == Format::RGBA8UNorm || format == Format::RGBA16Float || format == Format::RGBA32Float) && !hasUsage(usage, TextureUsage::DepthAttachment);
+        return (format == Format::RGBA8UNorm || format == Format::RGBA16Float || format == Format::RGBA32Float || format == Format::R16Float || format == Format::R32Float) && !hasUsage(usage, TextureUsage::DepthAttachment);
     }
 protected:
     NativeObject createTextureImpl(const TextureDesc& desc) override {
         GLuint id = 0;glGenTextures(1, &id);ScopedTextureBinding binding(id);
-        const auto format = desc.format == Format::RGBA8UNorm ? GL_RGBA8 : desc.format == Format::RGBA16Float ? GL_RGBA16F : desc.format == Format::RGBA32Float ? GL_RGBA32F : GL_DEPTH_COMPONENT32F;
+        const auto format = desc.format == Format::RGBA8UNorm ? GL_RGBA8 : desc.format == Format::RGBA16Float ? GL_RGBA16F : desc.format == Format::RGBA32Float ? GL_RGBA32F : desc.format == Format::R16Float ? GL_R16F : desc.format == Format::R32Float ? GL_R32F : GL_DEPTH_COMPONENT32F;
         glTexImage2D(GL_TEXTURE_2D, 0, format, desc.width, desc.height, 0,
-            desc.format == Format::Depth32Float ? GL_DEPTH_COMPONENT : GL_RGBA, GL_FLOAT, nullptr);
+            desc.format == Format::Depth32Float ? GL_DEPTH_COMPONENT : (desc.format==Format::R16Float || desc.format==Format::R32Float) ? GL_RED : GL_RGBA, GL_FLOAT, nullptr);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
         GLint width = 0;glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
@@ -162,7 +162,7 @@ protected:
     }
     void writeTextureRegionImpl(NativeObject native,const TextureDesc& desc,TextureRegion r,const void* pixels,size_t) override {
         ScopedTextureBinding binding{GLuint(native)};
-        glTexSubImage2D(GL_TEXTURE_2D,0,r.x,r.y,r.width,r.height,GL_RGBA,desc.format==Format::RGBA8UNorm?GL_UNSIGNED_BYTE:GL_FLOAT,pixels);
+        glTexSubImage2D(GL_TEXTURE_2D,0,r.x,r.y,r.width,r.height,(desc.format==Format::R16Float || desc.format==Format::R32Float)?GL_RED:GL_RGBA,desc.format==Format::RGBA8UNorm?GL_UNSIGNED_BYTE:(desc.format==Format::R16Float || desc.format==Format::RGBA16Float)?GL_HALF_FLOAT:GL_FLOAT,pixels);
     }
     void writeTextureImpl(NativeObject id,const TextureDesc& desc,const void* pixels,size_t bytes) override {writeTextureRegionImpl(id,desc,{0,0,desc.width,desc.height},pixels,bytes);}
     void writeTextureFloatImpl(NativeObject id,const TextureDesc& desc,const float* pixels,size_t bytes) override {writeTextureImpl(id,desc,pixels,bytes);}
@@ -171,8 +171,8 @@ protected:
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, result.data());return result;
     }
     std::vector<float> readTextureFloatImpl(NativeObject native, const TextureDesc& desc) override {
-        std::vector<float> result(size_t(desc.width) * desc.height * (desc.format==Format::Depth32Float?1:4));ScopedTextureBinding binding{GLuint(native)};
-        glGetTexImage(GL_TEXTURE_2D, 0, desc.format==Format::Depth32Float?GL_DEPTH_COMPONENT:GL_RGBA, GL_FLOAT, result.data());return result;
+        std::vector<float> result(size_t(desc.width) * desc.height * ((desc.format==Format::Depth32Float || desc.format==Format::R16Float || desc.format==Format::R32Float)?1:4));ScopedTextureBinding binding{GLuint(native)};
+        glGetTexImage(GL_TEXTURE_2D, 0, desc.format==Format::Depth32Float?GL_DEPTH_COMPONENT:(desc.format==Format::R16Float || desc.format==Format::R32Float)?GL_RED:GL_RGBA, GL_FLOAT, result.data());return result;
     }
     void copyToBackbufferImpl(NativeObject native, const TextureDesc& desc) override {
         int width, height;glfwGetFramebufferSize(window_, &width, &height);
@@ -343,6 +343,10 @@ protected:
     void readBufferImpl(NativeBuffer native, size_t offset, size_t size, void* data) override {
         ScopedCopyBinding binding(GL_COPY_READ_BUFFER, GLuint(native));
         glGetBufferSubData(GL_COPY_READ_BUFFER, GLintptr(offset), GLsizeiptr(size), data);
+    }
+    void copyBufferImpl(NativeBuffer source,size_t sourceOffset,NativeBuffer destination,size_t destinationOffset,size_t size) override {
+        ScopedCopyBinding read(GL_COPY_READ_BUFFER,GLuint(source)),write(GL_COPY_WRITE_BUFFER,GLuint(destination));
+        glCopyBufferSubData(GL_COPY_READ_BUFFER,GL_COPY_WRITE_BUFFER,GLintptr(sourceOffset),GLintptr(destinationOffset),GLsizeiptr(size));
     }
     void bindUniformBufferImpl(uint32_t slot, NativeBuffer native, size_t offset, size_t size) override {
         if (native) glBindBufferRange(GL_UNIFORM_BUFFER, slot, GLuint(native), GLintptr(offset), GLsizeiptr(size));

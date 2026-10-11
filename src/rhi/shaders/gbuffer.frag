@@ -7,6 +7,7 @@ layout(location=0) out vec4 positionValid;
 layout(location=1) out vec4 normalRoughness;
 layout(location=2) out vec4 albedoMetallic;
 layout(location=3) out vec4 emissiveAO;
+layout(location=4) out vec4 materialEffects;layout(location=5) out vec4 tangentDepth;
 #define WATER_WET_ENABLED
 #include "pbr-material.glsl"
 void main() {
@@ -15,5 +16,6 @@ void main() {
     positionValid = vec4(worldPosition,1);
     normalRoughness = vec4(mappedNormal(),mappedRoughness());
     albedoMetallic = vec4(pow(max(base.rgb,vec3(0)),vec3(2.2)),mappedMetallic());
+    materialEffects=mappedLobes();tangentDepth=vec4(mappedTangent(normalRoughness.xyz),gl_FragCoord.z);
     emissiveAO = vec4(emissiveNormal.rgb,mappedAO());
 }

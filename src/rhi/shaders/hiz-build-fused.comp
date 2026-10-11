@@ -1,0 +1,40 @@
+#version 450
+layout(local_size_x=8,local_size_y=8) in;
+layout(set=0,binding=0,std140) uniform HiZBuild {uvec4 buildOptions;}; // copy, number of output levels
+layout(set=1,binding=0) uniform sampler2D hizSource;
+layout(set=1,binding=1,r32f) writeonly uniform image2D hizTarget;
+layout(set=1,binding=2,r32f) writeonly uniform image2D hizTarget1;
+layout(set=1,binding=3,r32f) writeonly uniform image2D hizTarget2;
+// A last floor-sized mip cell absorbs up to three extra source cells when
+// reducing twice. The halo is recomputed locally, never read from another WG.
+shared float tile[121];
+float firstLevel(ivec2 p,ivec2 size){
+    if(any(greaterThanEqual(p,size)))return 0.;
+    if(buildOptions.x!=0u)return texelFetch(hizSource,p,0).r;
+    ivec2 src=textureSize(hizSource,0),begin=p*2,end=min(begin+2,src);
+    if(p.x==size.x-1)end.x=src.x;
+    if(p.y==size.y-1)end.y=src.y;
+    float z=0.;for(int y=begin.y;y<end.y;++y)for(int x=begin.x;x<end.x;++x)z=max(z,texelFetch(hizSource,ivec2(x,y),0).r);
+    return z;
+}
+float localMax(ivec2 p,ivec2 size,int stride,ivec2 base,ivec2 firstSize){
+    ivec2 begin=p*stride,end=min(begin+stride,firstSize);
+    if(p.x==size.x-1)end.x=firstSize.x;
+    if(p.y==size.y-1)end.y=firstSize.y;
+    float z=0.;for(int y=begin.y;y<end.y;++y)for(int x=begin.x;x<end.x;++x)z=max(z,tile[(y-base.y)*11+x-base.x]);
+    return z;
+}
+void main(){
+    ivec2 base=ivec2(gl_WorkGroupID.xy)*8,size=imageSize(hizTarget),lane=ivec2(gl_LocalInvocationID.xy);
+    for(uint i=gl_LocalInvocationIndex;i<121u;i+=64u)tile[i]=firstLevel(base+ivec2(int(i%11u),int(i/11u)),size);
+    barrier();
+    ivec2 p=base+lane;if(all(lessThan(p,size)))imageStore(hizTarget,p,vec4(tile[lane.y*11+lane.x]));
+    if(buildOptions.y>1u&&all(lessThan(lane,ivec2(4)))){
+        p=base/2+lane;ivec2 dst=imageSize(hizTarget1);
+        if(all(lessThan(p,dst)))imageStore(hizTarget1,p,vec4(localMax(p,dst,2,base,size)));
+    }
+    if(buildOptions.y>2u&&all(lessThan(lane,ivec2(2)))){
+        p=base/4+lane;ivec2 dst=imageSize(hizTarget2);
+        if(all(lessThan(p,dst)))imageStore(hizTarget2,p,vec4(localMax(p,dst,4,base,size)));
+    }
+}

@@ -10,7 +10,7 @@ void main(){
     ivec2 at=ivec2(gl_GlobalInvocationID.xy),size=imageSize(cloudVoxels);if(any(greaterThanEqual(at,size)))return;
     int n=int(cloudVolumeQuality.x),columns=n==128?16:8;ivec2 tile=at/(n+2),p=at%(n+2)-1;
     int z=tile.y*columns+tile.x;vec3 uv=(vec3(p,z)+.5)/float(n),q=uv*2.-1.;
-    float d=0.;
+    float d=0.;vec4 encoded=vec4(0,0,0,1);
     if(all(greaterThanEqual(uv,vec3(0))) && all(lessThanEqual(uv,vec3(1)))){
         vec3 point=cloudVolumeCenterMode.xyz+(uv-.5)*cloudVolumeSize.xyz;
         vec3 turbulence=vec3(cloudNoiseSample(point/(cloudShape.x*.38)).x,
@@ -28,8 +28,15 @@ void main(){
             d=max(d,ellipsoid(q,vec3(-.58,.36,-.38),vec3(.30,.35,.36)));
         }
         vec2 noise=cloudNoiseSample(point/(cloudShape.x*.45));
-        d=clamp((d+(noise.x-.5)*.28-(1.-cloudLayer.z)*.3-(1.-noise.y)*cloudShape.z*.10)*8.,0.,1.);
-        if(cloudLayer.z<=0. || cloudLayer.w<=0.)d=0.;
+        float potential=d+(noise.x-.5)*.28-(1.-noise.y)*cloudShape.z*.10;
+        if(cloudCoverageControl.x>.5){
+            float code=round(clamp(potential/.425,0.,1.)*255.)/255.;
+            encoded=vec4(code>0.?1.:0.,code==1.?1.:0.,code,1);
+        }else{
+            d=clamp((potential-(1.-cloudLayer.z)*.3)*8.,0.,1.);
+            if(cloudLayer.z<=0. || cloudLayer.w<=0.)d=0.;
+            encoded=vec4(d,d*d,0,1);
+        }
     }
-    imageStore(cloudVoxels,at,vec4(d,d*d,0,1));
+    imageStore(cloudVoxels,at,encoded);
 }

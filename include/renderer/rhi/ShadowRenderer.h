@@ -1,5 +1,6 @@
 #pragma once
 #include "renderer/rhi/ForwardPbrRenderer.h"
+#include "renderer/rhi/GpuInstanceCuller.h"
 namespace render {
 constexpr uint32_t MaxShadowTiles=180;
 struct alignas(16) ShadowParameters {
@@ -14,18 +15,23 @@ struct alignas(16) ShadowParameters {
     glm::vec4 rsmSettings{.3f,128,.1f,0}; // UV radius, samples, minimum distance, indirect only.
     std::array<glm::vec4,30> lightDepth; // near, far, orthographic flag, tan(fov/2).
     glm::vec4 filter{1,.00465f,.05f,24}; // PCSS enabled, sun angular radius, local emitter radius, radius cap in texels.
+    glm::vec4 cloudRect{0},cloudPatch{0},cloudProjection{0};
+    glm::vec4 cloudControls{1,0,0,0}; // surface cloud shadow strength; raw field remains physical.
     glm::vec4 cascades{.1f,300,.1f,.1f}; // camera near, shadow distance, cascade overlap, far fade fraction.
 };
 class ShadowRenderer {
 public:
     ShadowRenderer(std::shared_ptr<rhi::GraphicsDevice>,const std::string& directory,uint32_t tilePixels=128,rhi::TextureViewHandle skyIrradiance={});
     void render(const FrameData&,const std::vector<DrawPacket>&);
+    rhi::Viewport cloudViewport() const;
+    void setCloudShadow(const CloudShadowField&);
     rhi::TextureViewHandle view() const {return view_;}
     rhi::TextureViewHandle rsmView(uint32_t i) const {return rsmViews_.at(i);}
     rhi::TextureViewHandle rsmSourceView(uint32_t i) const {return sourceRsmViews_.at(i);}
     std::vector<float> readRsmSource(uint32_t i){return resources_.device->readTextureFloat(sourceRsm_.at(i));}
     rhi::BufferHandle parameters() const {return parameters_;}
     const ShadowParameters& data() const {return data_;}
+    std::array<uint64_t,4> readInstanceStats(){return instanceCuller_?instanceCuller_->readStats():std::array<uint64_t,4>{};}
     std::vector<float> readDepth() {return resources_.device->readTextureFloat(atlas_);}
     std::vector<float> readRsm(uint32_t i){return resources_.device->readTextureFloat(rsm_.at(i));}
     uint32_t rsmExtent()const{return sourceExtent_;}
@@ -33,6 +39,7 @@ public:
     static rhi::BindingLayout objectLayout();
 private:
     Resources resources_;
+    std::unique_ptr<GpuInstanceCuller> instanceCuller_;
     rhi::TextureHandle atlas_;
     rhi::TextureViewHandle view_;
     std::array<rhi::TextureHandle,3> rsm_;

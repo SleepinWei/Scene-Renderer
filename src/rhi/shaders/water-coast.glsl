@@ -23,13 +23,28 @@ float coastBlend(vec2 xz,vec4 state,vec4 bounds,float level) {
 }
 float coastHeight(vec2 xz,float fftHeight,sampler2D state,vec4 bounds,float level,float enabled) {
     if(enabled<.5)return fftHeight;
-    vec4 q=coastSample(state,xz,bounds);return mix(fftHeight,coastElevation(state,xz,bounds,level),coastBlend(xz,q,bounds,level));
+    vec4 q=coastSample(state,xz,bounds);
+    float h=enabled>1.5&&enabled<2.5?fftHeight:mix(fftHeight,coastElevation(state,xz,bounds,level),coastBlend(xz,q,bounds,level));
+    vec2 cell=(xz-bounds.xy)/max(bounds.w,.001),cells=vec2(bounds.z/max(bounds.w,.001));
+    float edge=min(min(cell.x,cell.y),min(cells.x-cell.x,cells.y-cell.y));
+    return h+(enabled>1.5?q.y*smoothstep(0.,8.,edge):0.);
 }
 float coastDetailWeight(vec2 xz,sampler2D state,vec4 bounds,float level,float enabled) {
-    if(enabled<.5)return 1.;
+    if(enabled<.5||(enabled>1.5&&enabled<2.5))return 1.;
     vec4 q=coastSample(state,xz,bounds);
     return mix(1.,smoothstep(.01,.4,q.x),coastBlend(xz,q,bounds,level));
 }
 float coastDetailedHeight(vec2 xz,float fullHeight,float macroHeight,sampler2D state,vec4 bounds,float level,float enabled) {
     return coastHeight(xz,macroHeight,state,bounds,level,enabled)+(fullHeight-macroHeight)*coastDetailWeight(xz,state,bounds,level,enabled);
+}
+
+float coastParticleHeight(sampler2D state,vec2 xz,vec4 bounds){
+    vec2 cell=(xz-bounds.xy)/max(bounds.w,.001),cells=vec2(bounds.z/max(bounds.w,.001));
+    float edge=min(min(cell.x,cell.y),min(cells.x-cell.x,cells.y-cell.y));
+    return coastSample(state,xz,bounds).y*smoothstep(0.,8.,edge);
+}
+vec2 coastParticleSlope(sampler2D state,vec2 xz,vec4 bounds,float mode){
+    if(mode<1.5)return vec2(0);vec2 dx=vec2(bounds.w,0);
+    return -vec2(coastParticleHeight(state,xz+dx,bounds)-coastParticleHeight(state,xz-dx,bounds),
+                 coastParticleHeight(state,xz+dx.yx,bounds)-coastParticleHeight(state,xz-dx.yx,bounds))/(2.*bounds.w);
 }

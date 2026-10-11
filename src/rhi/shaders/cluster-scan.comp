@@ -1,0 +1,15 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#include "cluster-parameters.glsl"
+layout(local_size_x=128) in;
+layout(set=1,binding=4,std430) buffer Groups {uvec2 groups[];};
+layout(set=1,binding=6,std430) writeonly buffer Arguments {uint args[];};
+shared uvec2 sums[128];
+void main(){
+    uint lane=gl_LocalInvocationIndex,chunk=(clusterCounts.y+127u)/128u,first=lane*chunk,last=min(first+chunk,clusterCounts.y);uvec2 sum=uvec2(0);
+    for(uint i=first;i<last;++i)sum+=groups[i];sums[lane]=sum;barrier();
+    for(uint step=1u;step<128u;step<<=1u){uvec2 add=lane>=step?sums[lane-step]:uvec2(0);barrier();sums[lane]+=add;barrier();}
+    uvec2 base=sums[lane]-sum;
+    for(uint i=first;i<last;++i){uvec2 old=groups[i];groups[i]=base;base+=old;}
+    if(lane==127u){args[0]=min(sums[127].x,clusterCounts.z);args[1]=1u;args[2]=0u;args[3]=0u;args[4]=0u;args[5]=sums[127].y;}
+}

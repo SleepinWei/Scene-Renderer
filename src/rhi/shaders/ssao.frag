@@ -1,7 +1,7 @@
 #version 450
 #extension GL_GOOGLE_include_directive : require
 layout(location=0) in vec2 uv;
-layout(location=0) out vec4 color;
+layout(location=0) out float color;
 #include "ao-common.glsl"
 const float AO_PI=3.14159265359;
 float legacySsao(vec3 p,vec3 N) {
@@ -47,8 +47,10 @@ float horizonAo(ivec2 pixel,vec3 p,vec3 N) {
             vec2 at=(vec2(pixel)+.5)/vec2(size)+(side==0?-offset:offset);
             // Off-screen taps are open, never repeated/clamped border occluders.
             if(any(lessThan(at,vec2(0)))||any(greaterThanEqual(at,vec2(1))))continue;
-            vec4 sampleWorld=texelFetch(positionBuffer,ivec2(at*vec2(size)),0);if(sampleWorld.w==0.)continue;
-            vec3 delta=aoViewPosition(sampleWorld.xyz)-p;float distance2=dot(delta,delta);
+            ivec2 samplePixel=ivec2(at*vec2(size));
+            if(aoRejectBlock(samplePixel,max(pixels,1.),-p.z))continue;
+            vec4 samplePosition=aoPosition(samplePixel);if(samplePosition.w==0.)continue;
+            vec3 delta=samplePosition.xyz-p;float distance2=dot(delta,delta);
             if(distance2<1e-10||distance2>=radius*radius||dot(delta,N)<=aoSettings.y)continue;
             float falloff=1.-smoothstep(radius*radius*.36,radius*radius,distance2);
             float sampleCos=dot(delta,V)*inversesqrt(distance2);
@@ -62,9 +64,9 @@ float horizonAo(ivec2 pixel,vec3 p,vec3 N) {
     return clamp(visible/max(unoccluded,1e-6),0.,1.);
 }
 void main() {
-    ivec2 pixel=ivec2(gl_FragCoord.xy);vec4 world=texelFetch(positionBuffer,pixel,0);
-    if(world.w==0.||aoSettings.w==0.||aoSettings.x<=0.) {color=vec4(1);return;}
-    vec3 p=aoViewPosition(world.xyz);
+    ivec2 pixel=ivec2(gl_FragCoord.xy);vec4 position=aoPosition(pixel);
+    if(position.w==0.||aoSettings.w==0.||aoSettings.x<=0.) {color=1.;return;}
+    vec3 p=position.xyz;
     float ao=aoOptions.x>.5?horizonAo(pixel,p,aoGeometryNormal(pixel,p)):legacySsao(p,aoViewNormal(pixel));
-    color=vec4(ao,ao,ao,1);
+    color=ao;
 }

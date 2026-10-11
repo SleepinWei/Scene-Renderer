@@ -1,5 +1,6 @@
 #pragma once
 #include "engine/LogicAsset.h"
+#include "renderer/rhi/TreeWind.h"
 
 #include "../component/Component.h"
 #include <string>
@@ -54,6 +55,8 @@ class Mesh : public engine::LogicAsset {
     }
     void setMaterial(std::shared_ptr<Material>);
     void setGeometry(std::vector<Vertex>, std::vector<unsigned>);
+    const std::vector<render::TreeWindVertex>& getTreeWind()const{checkLogicThread();return treeWind_;}
+    void setTreeWind(std::vector<render::TreeWindVertex> value){checkLogicThread();if(!value.empty()&&value.size()!=vertices.size())throw std::invalid_argument("Tree wind vertex count mismatch");treeWind_=std::move(value);invalidate();}
     GLuint getVAO() const {
         checkLogicThread();
         return VAO;
@@ -66,6 +69,7 @@ class Mesh : public engine::LogicAsset {
   private:
     friend class GameObject;
     std::vector<Vertex> vertices;
+    std::vector<render::TreeWindVertex> treeWind_;
     std::vector<unsigned> indices;
     std::shared_ptr<Material> material;
     std::string name;

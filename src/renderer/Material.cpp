@@ -158,6 +158,9 @@ std::shared_ptr<Material> Material::loadCustomModel(const std::string& folder)
 
 void Material::loadFromJson(json& data) {
     checkLogicThread();auto candidate=properties();
+    if (data.contains("matchedGgx")) candidate.matchedGgx = data["matchedGgx"].get<bool>();
+    if (data.contains("specular_anisotropy")) candidate.specularAnisotropy = data["specular_anisotropy"].get<float>();
+    if (data.contains("specular_rotation")) candidate.specularRotation = data["specular_rotation"].get<float>();
     if (data.contains("metallicFactor")) candidate.metallicFactor = data["metallicFactor"].get<float>();
     if (data.contains("roughnessFactor")) candidate.roughnessFactor = data["roughnessFactor"].get<float>();
     if (data.contains("occlusionStrength")) candidate.occlusionStrength = data["occlusionStrength"].get<float>();
@@ -168,6 +171,7 @@ void Material::loadFromJson(json& data) {
         if (data.contains("albedoFactor")) candidate.albedoFactor[i] = data["albedoFactor"].at(i).get<float>();
         if (data.contains("emissiveFactor")) candidate.emissiveFactor[i] = data["emissiveFactor"].at(i).get<float>();
     }
+	if(data.contains("foliageTransmission"))candidate.foliageTransmission=data["foliageTransmission"].get<float>();
 	if (data.find("hasSubSurface") != data.end()) {
 		candidate.hasSubSurface = data["hasSubSurface"].get<bool>();
 	}
@@ -295,7 +299,7 @@ void Material::genTextureFloat() {
 
 Material::Material(const Material& other):engine::LogicAsset(other) {
     auto copy=other.snapshot();
-    hasSubSurface=copy.hasSubSurface;
+    hasSubSurface=copy.hasSubSurface;foliageTransmission=copy.foliageTransmission;
     alphaCutoff=copy.alphaCutoff;
     twoSided=copy.twoSided;
     albedoFactor=copy.albedoFactor;
@@ -305,10 +309,11 @@ Material::Material(const Material& other):engine::LogicAsset(other) {
     normalStrength=copy.normalStrength;
     opacityFactor=copy.opacityFactor;
     emissiveFactor=copy.emissiveFactor;
+    matchedGgx=copy.matchedGgx;specularAnisotropy=copy.specularAnisotropy;specularRotation=copy.specularRotation;
     textures=other.getTextures();texture_path=std::move(copy.texture_path);initDone=copy.initDone;parameterRevision_=other.parameterRevision();
 }
 MaterialProperties Material::properties() const {checkLogicThread();MaterialProperties result;
-    result.hasSubSurface=hasSubSurface;
+    result.hasSubSurface=hasSubSurface;result.foliageTransmission=foliageTransmission;
     result.alphaCutoff=alphaCutoff;
     result.twoSided=twoSided;
     result.albedoFactor=albedoFactor;
@@ -318,13 +323,14 @@ MaterialProperties Material::properties() const {checkLogicThread();MaterialProp
     result.normalStrength=normalStrength;
     result.opacityFactor=opacityFactor;
     result.emissiveFactor=emissiveFactor;
+    result.matchedGgx=matchedGgx;result.specularAnisotropy=specularAnisotropy;result.specularRotation=specularRotation;
     return result;
 }
 MaterialData Material::snapshot() const {checkLogicThread();MaterialData result;static_cast<MaterialProperties&>(result)=properties();for(const auto& entry:textures)if(entry.second)result.textures.emplace(entry.first,entry.second->snapshot());result.texture_path=texture_path;result.initDone=initDone;return result;}
 void Material::setProperties(const MaterialProperties& value) {
     checkLogicThread();
     validateProperties(value);
-    hasSubSurface=value.hasSubSurface;
+    hasSubSurface=value.hasSubSurface;foliageTransmission=value.foliageTransmission;
     alphaCutoff=value.alphaCutoff;
     twoSided=value.twoSided;
     albedoFactor=value.albedoFactor;
@@ -334,6 +340,7 @@ void Material::setProperties(const MaterialProperties& value) {
     normalStrength=value.normalStrength;
     opacityFactor=value.opacityFactor;
     emissiveFactor=value.emissiveFactor;
+    matchedGgx=value.matchedGgx;specularAnisotropy=value.specularAnisotropy;specularRotation=value.specularRotation;
     ++parameterRevision_;
 }
 void Material::setTexturePath(std::string type,std::string path) {
@@ -347,9 +354,12 @@ bool Material::removeTexture(const std::string& type) {
 void Material::setTextures(std::unordered_map<std::string,std::shared_ptr<Texture>> value) {checkLogicThread();for(const auto& item:value)if(item.first.empty()||!item.second)throw std::invalid_argument("Null texture or empty slot");textures=std::move(value);texture_path.clear();initDone=false;invalidate();}
 
 void Material::validateProperties(const MaterialProperties& value) {
+    if(!std::isfinite(value.specularAnisotropy)||std::abs(value.specularAnisotropy)>.9f||
+       !std::isfinite(value.specularRotation)||std::abs(value.specularRotation)>6.28318530718f)
+        throw std::invalid_argument("Material invalid GGX anisotropy / rotation");
     auto unit=[](float x){return std::isfinite(x)&&x>=0&&x<=1;};
     auto nonnegative=[](float x){return std::isfinite(x)&&x>=0;};
-    if(!unit(value.alphaCutoff)||!unit(value.opacityFactor)||!unit(value.occlusionStrength)||
+    if(!unit(value.foliageTransmission)||!unit(value.alphaCutoff)||!unit(value.opacityFactor)||!unit(value.occlusionStrength)||
        !nonnegative(value.normalStrength)||(value.metallicFactor&&!unit(*value.metallicFactor))||
        (value.roughnessFactor&&!unit(*value.roughnessFactor)))throw std::invalid_argument("Invalid PBR material factors");
     for(int i=0;i<3;i++)if(!nonnegative(value.albedoFactor[i])||!nonnegative(value.emissiveFactor[i]))throw std::invalid_argument("Material colors must be finite and nonnegative");

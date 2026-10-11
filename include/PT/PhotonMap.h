@@ -9,10 +9,13 @@ struct alignas(16) Photon {
 };
 struct alignas(16) PhotonCell { glm::ivec4 keyFirst; glm::uvec4 count; };
 struct PhotonEstimate { glm::vec3 radiance{0}, caustics{0}; };
+struct PhotonGather { glm::dvec3 flux{0}, causticFlux{0}; uint32_t count=0; };
 class PhotonMap {
   public:
-    PhotonMap(const CpuScene &,const Options &);
+    PhotonMap(const CpuScene &,const Options &,uint32_t iteration=0,bool report=true);
     PhotonEstimate estimate(const Surface &,glm::vec3 view,uint32_t remainingDepth) const;
+    // Unnormalized uniform disk sum for SPPM. Radius must be <= cell width.
+    PhotonGather gather(const Surface &,glm::vec3 view,uint32_t remainingDepth,float queryRadius) const;
     const std::vector<Photon> &photons() const { return photons_; }
     const std::vector<PhotonCell> &cells() const { return cells_; }
     uint64_t rays=0, causticCount=0;

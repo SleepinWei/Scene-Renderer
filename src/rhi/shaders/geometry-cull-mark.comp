@@ -1,0 +1,55 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#include "geometry-cull-parameters.glsl"
+layout(local_size_x=64) in;
+layout(set=1,binding=0,std430) readonly buffer CullVertices {float sourceVertices[];};
+layout(set=1,binding=1,std430) readonly buffer CullIndices {uint sourceIndices[];};
+layout(set=1,binding=2,std430) readonly buffer CullInputArguments {uint inputCount;uint inputInstances;uint inputFirst;int inputBase;uint inputInstance;};
+layout(set=1,binding=3,std430) writeonly buffer CullLocalOffsets {uint localOffsets[];};
+layout(set=1,binding=4,std430) writeonly buffer CullGroups {uint groupResults[];};
+shared uint prefix[64];
+bool visible(uint triangle) {
+    uint first=cullCounts.z!=0u?inputFirst:0u;
+    uint capacity=cullCounts.x*3u;
+    uint count=cullCounts.z!=0u?min(inputCount,capacity-min(first,capacity)):capacity;
+    if(triangle>=count/3u || (cullCounts.z!=0u && inputInstances==0u))return false;
+    vec4 p[3];float scale=1.,roundoff=0.;
+    for(uint i=0u;i<3u;++i){
+        uint index=sourceIndices[first+triangle*3u+i];
+        int base=cullCounts.z!=0u?inputBase:0;
+        int vertex=int(index)+base;
+        // Invalid producer contents never trigger an out-of-bounds compute read.
+        if(vertex<0 || uint(vertex)>=cullCounts.y)return true;
+        uint at=uint(vertex)*8u;
+        vec3 position=vec3(sourceVertices[at],sourceVertices[at+1u],sourceVertices[at+2u]);
+        p[i]=cullViewProjection*(cullModel*vec4(position,1));
+        if(any(isnan(p[i]))||any(isinf(p[i])))return true;
+        scale=max(scale,max(max(abs(p[i].x),abs(p[i].y)),max(abs(p[i].z),abs(p[i].w))));
+        // Bound float transform cancellation in large translated worlds.
+        vec4 magnitude=abs(cullModel[0])*abs(position.x)+abs(cullModel[1])*abs(position.y)+abs(cullModel[2])*abs(position.z)+abs(cullModel[3]);
+        vec4 error=abs(cullViewProjection[0])*magnitude.x+abs(cullViewProjection[1])*magnitude.y+abs(cullViewProjection[2])*magnitude.z+abs(cullViewProjection[3])*magnitude.w;
+        roundoff=max(roundoff,max(max(error.x,error.y),max(error.z,error.w)));
+    }
+    float epsilon=scale*cullGuard.z+roundoff*(1.+max(cullGuard.x,cullGuard.y))*1e-6;
+    for(int plane=0;plane<6;++plane){
+        bool outside=true;
+        for(int i=0;i<3;++i){vec4 v=p[i];
+            float d=plane==0?v.x+cullGuard.x*v.w:plane==1?cullGuard.x*v.w-v.x:
+                    plane==2?v.y+cullGuard.y*v.w:plane==3?cullGuard.y*v.w-v.y:plane==4?v.z:v.w-v.z;
+            if(d>=-epsilon)outside=false;
+        }
+        if(outside)return false;
+    }
+    return true;
+}
+void main(){
+    uint lane=gl_LocalInvocationIndex,triangle=gl_GlobalInvocationID.x;
+    uint keep=triangle<cullCounts.x && visible(triangle)?1u:0u;
+    prefix[lane]=keep;barrier();
+    for(uint step=1u;step<64u;step<<=1u){
+        uint add=lane>=step?prefix[lane-step]:0u;barrier();
+        prefix[lane]+=add;barrier();
+    }
+    if(triangle<cullCounts.x)localOffsets[triangle]=keep!=0u?prefix[lane]-1u:0xffffffffu;
+    if(lane==63u)groupResults[gl_WorkGroupID.x*2u]=prefix[63];
+}

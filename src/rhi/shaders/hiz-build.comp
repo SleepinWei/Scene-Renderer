@@ -1,0 +1,30 @@
+#version 450
+layout(local_size_x=8,local_size_y=8) in;
+layout(set=0,binding=0,std140) uniform HiZBuild {uvec4 buildOptions;}; // copy hardware depth at mip 0
+layout(set=1,binding=0) uniform sampler2D hizSource;
+layout(set=1,binding=1,r32f) writeonly uniform image2D hizTarget;
+void main(){
+    ivec2 pixel=ivec2(gl_GlobalInvocationID.xy),destSize=imageSize(hizTarget);
+    if(any(greaterThanEqual(pixel,destSize)))return;
+    float value=0.;
+    if(buildOptions.x==1u)value=texelFetch(hizSource,pixel,0).r;
+    else if(buildOptions.x==2u){
+        ivec2 sourceSize=textureSize(hizSource,0),first=pixel*4;
+        // Fixed interior footprint lets the native compiler unroll these loads.
+        for(int y=0;y<4;++y)for(int x=0;x<4;++x)value=max(value,texelFetch(hizSource,min(first+ivec2(x,y),sourceSize-1),0).r);
+        if(pixel.x==destSize.x-1||pixel.y==destSize.y-1){
+            ivec2 end=min(first+4,sourceSize);
+            if(pixel.x==destSize.x-1)end.x=sourceSize.x;
+            if(pixel.y==destSize.y-1)end.y=sourceSize.y;
+            for(int y=first.y;y<end.y;++y)for(int x=first.x;x<end.x;++x)if(x>=first.x+4||y>=first.y+4)value=max(value,texelFetch(hizSource,ivec2(x,y),0).r);
+        }
+    }else{
+        ivec2 sourceSize=textureSize(hizSource,0),first=pixel*2,end=min(first+2,sourceSize);
+        // Floor mip extents absorb trailing texels; sky/alpha holes remain 1.
+        if(pixel.x==destSize.x-1)end.x=sourceSize.x;
+        if(pixel.y==destSize.y-1)end.y=sourceSize.y;
+        for(int y=first.y;y<end.y;++y)for(int x=first.x;x<end.x;++x)
+            value=max(value,texelFetch(hizSource,ivec2(x,y),0).r);
+    }
+    imageStore(hizTarget,pixel,vec4(value));
+}

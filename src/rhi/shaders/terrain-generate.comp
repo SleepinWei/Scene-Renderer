@@ -8,18 +8,37 @@ layout(set=1,binding=3,std430) writeonly buffer GeneratedIndices {uint generated
 layout(set=1,binding=7,rgba32f) readonly uniform image2D lodMap;
 layout(set=1,binding=5,std430) buffer OutIndirect {uint count;uint primCount;uint firstIndex;uint baseVertex;int baseInstance;};
 #include "terrain-surface.glsl"
+// A leaf contains 8x8 quads but only 9x9 distinct lattice vertices. Evaluate
+// height/gradient once, then retain the existing packed per-quad draw ABI.
+shared vec3 positions[81];
+shared vec3 normals[81];
+shared vec2 coordinates[81];
+shared uint leafFirstIndex;
 void main(){
-    uint leaf=gl_WorkGroupID.x;if(leaf>=finalNodeCnt)return;ivec3 node=ivec3(finalNode[leaf]);int interval=1<<node.z;
-    ivec2 offsets[4]={ivec2(0,0),ivec2(1,0),ivec2(1,1),ivec2(0,1)};
-    uint first=atomicAdd(count,6),base=first/6*4;
-    for(uint i=0;i<4;i++){
-        ivec2 grid=terrainStitch((node.xy*8+ivec2(gl_LocalInvocationID.xy)+offsets[i])*interval);vec2 uv=vec2(grid)/1280.;
+    uint leaf=gl_WorkGroupID.x;if(leaf>=finalNodeCnt)return;
+    ivec3 node=ivec3(finalNode[leaf]);int interval=1<<node.z;
+    uint lane=gl_LocalInvocationIndex;
+    if(lane==0u)leafFirstIndex=atomicAdd(count,384u);
+    for(uint v=lane;v<81u;v+=64u){
+        ivec2 offset=ivec2(int(v%9u),int(v/9u));
+        ivec2 grid=terrainStitch((node.xy*8+offset)*interval);vec2 uv=vec2(grid)/1280.;
         vec2 delta=1./vec2(heightDimensions.xy-1),lo=max(uv-delta,0.),hi=min(uv+delta,1.);
         int effectiveInterval=terrainInterval(grid,interval);
         float dx=(terrainMorphHeight(vec2(hi.x,uv.y),effectiveInterval,model,view,viewProjection,terrainScreen)-terrainMorphHeight(vec2(lo.x,uv.y),effectiveInterval,model,view,viewProjection,terrainScreen))/(2.*(hi.x-lo.x));
         float dz=(terrainMorphHeight(vec2(uv.x,hi.y),effectiveInterval,model,view,viewProjection,terrainScreen)-terrainMorphHeight(vec2(uv.x,lo.y),effectiveInterval,model,view,viewProjection,terrainScreen))/(2.*(hi.y-lo.y));
-        vec3 position=vec3(uv.x*2.-1.,terrainMorphHeight(uv,effectiveInterval,model,view,viewProjection,terrainScreen),uv.y*2.-1.),normal=normalize(vec3(-dx,1,-dz));
-        uint at=(base+i)*8;packedVertices[at]=position.x;packedVertices[at+1]=position.y;packedVertices[at+2]=position.z;packedVertices[at+3]=normal.x;packedVertices[at+4]=normal.y;packedVertices[at+5]=normal.z;packedVertices[at+6]=uv.x;packedVertices[at+7]=1.-uv.y;
+        positions[v]=vec3(uv.x*2.-1.,terrainMorphHeight(uv,effectiveInterval,model,view,viewProjection,terrainScreen),uv.y*2.-1.);
+        normals[v]=normalize(vec3(-dx,1,-dz));coordinates[v]=vec2(uv.x,1.-uv.y);
     }
-    uint order[6]={0,2,1,0,3,2};for(uint i=0;i<6;i++)generatedIndices[first+i]=base+order[i];
+    barrier();
+    uint first=leafFirstIndex+lane*6u,base=first/6u*4u;
+    uint corner=gl_LocalInvocationID.y*9u+gl_LocalInvocationID.x;
+    uint offsets[4]=uint[4](0u,1u,10u,9u);
+    for(uint i=0u;i<4u;++i){
+        uint v=corner+offsets[i],at=(base+i)*8u;
+        packedVertices[at]=positions[v].x;packedVertices[at+1u]=positions[v].y;packedVertices[at+2u]=positions[v].z;
+        packedVertices[at+3u]=normals[v].x;packedVertices[at+4u]=normals[v].y;packedVertices[at+5u]=normals[v].z;
+        packedVertices[at+6u]=coordinates[v].x;packedVertices[at+7u]=coordinates[v].y;
+    }
+    uint order[6]=uint[6](0u,2u,1u,0u,3u,2u);
+    for(uint i=0u;i<6u;++i)generatedIndices[first+i]=base+order[i];
 }

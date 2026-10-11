@@ -1,4 +1,4 @@
-layout(set=1,binding=6,std140) uniform MaterialExtension {vec4 materialLobes;vec4 materialSettings;ivec4 materialFeatures;vec4 shoreHeight;vec4 shoreSurface;};
+layout(set=1,binding=6,std140) uniform MaterialExtension {vec4 materialLobes;vec4 materialSettings;ivec4 materialFeatures;vec4 shoreHeight;vec4 shoreSurface;vec4 materialSpecularShape;uvec4 rainWetCells[16];};
 layout(set=1,binding=7) uniform sampler2D specialMap;
 #include "virtual-texture.glsl"
 // Feature bit 0 is set by GpuMaterial when the five maps are physical VT atlases.

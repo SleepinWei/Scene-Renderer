@@ -1,0 +1,15 @@
+#version 450
+layout(local_size_x=8,local_size_y=8) in;
+layout(rgba32f,set=0,binding=0) readonly uniform image2D slopeInput;
+layout(rgba32f,set=0,binding=1) readonly uniform image2D crossInput;
+layout(rgba32f,set=0,binding=2) readonly uniform image2D normalInput;
+layout(rgba32f,set=0,binding=3) writeonly uniform image2D slopeOutput;
+layout(rgba32f,set=0,binding=4) writeonly uniform image2D crossOutput;
+layout(rgba32f,set=0,binding=5) writeonly uniform image2D normalOutput;
+void main(){
+    ivec2 p=ivec2(gl_GlobalInvocationID.xy);
+    if(any(greaterThanEqual(p,imageSize(slopeOutput))))return;
+    vec4 a=vec4(0),b=vec4(0),c=vec4(0);
+    for(int y=0;y<2;++y)for(int x=0;x<2;++x){ivec2 at=p*2+ivec2(x,y);a+=imageLoad(slopeInput,at);b+=imageLoad(crossInput,at);c+=imageLoad(normalInput,at);}
+    imageStore(slopeOutput,p,a*.25);imageStore(crossOutput,p,b*.25);imageStore(normalOutput,p,c*.25);
+}

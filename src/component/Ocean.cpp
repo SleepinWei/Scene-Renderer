@@ -33,6 +33,7 @@ void Ocean::simulate(float seconds) {
     inner_time=seconds;ComputeOceanValue();
 }
 void Ocean::Start() {
+    if(seaState.enabled||surfaceModel.physical||waveParticles.enabled)throw std::invalid_argument("Physical sea states and wave particles require native Metal/Vulkan rendering");
     if(FFTPow<3 || FFTPow>11 || fft_size!=(1<<FFTPow) || MeshSize<2 || !std::isfinite(MeshLength) || MeshLength<=0)
         throw std::invalid_argument("Ocean requires fft_size=2^FFTPow (8..2048), MeshSize>=2 and positive length");
     initMesh();initTextures();initShaders();initGaussianRandom();
@@ -92,6 +93,7 @@ void Ocean::ComputeFFT(std::shared_ptr<Shader> shader,std::shared_ptr<ImageTextu
     input->tex->swapGpuStorage(*OutputRT_Texture->tex);
 }
 void Ocean::ComputeOceanValue() {
+    if(seaState.enabled||surfaceModel.physical||waveParticles.enabled)throw std::invalid_argument("Physical sea states and wave particles require native Metal/Vulkan rendering");
     if(FFTPow<3 || FFTPow>11 || fft_size!=initializedSize || MeshSize!=initializedMeshSize || MeshLength!=initializedLength || fft_size!=(1<<FFTPow))
         throw std::invalid_argument("Ocean grid/domain changed after initialization; recreate the component");
     if(seed!=initializedSeed){initGaussianRandom();initializedSeed=seed;}
@@ -224,6 +226,7 @@ void Ocean::Draw() {
 
 void Ocean::setSettings(OceanConfiguration value) {
     checkLogicThread();
+    value.waveParticles.validate();if(value.waveParticles.enabled&&value.TimeScale<0)throw std::invalid_argument("Wave particle clock cannot run backwards; rewind by simulation time");value.seaState.validate();value.surfaceModel.validate(value.refraction);
     if(value.fft_size<8 || value.fft_size>2048 || (value.fft_size&(value.fft_size-1)) ||
        value.MeshSize<2 || value.MeshSize>1025 || value.MeshLength<=0)
         throw std::invalid_argument("Invalid ocean domain or mesh resolution");
@@ -235,7 +238,7 @@ void Ocean::setSettings(OceanConfiguration value) {
                  value.shore.foamStrength,value.shore.foamLifetime,value.shore.dryingTime})
         if(!std::isfinite(v))throw std::invalid_argument("Nonfinite ocean configuration");
     if(value.SpectrumLength<0 || value.A<0 || value.WindScale<0 || value.HeightScale<0 || value.BubblesScale<0 || value.detailStrength<0 || value.rippleRmsHeight<0 || value.rippleRmsHeight>.1f || value.causticStrength<0 || value.causticStrength>1 ||
-       value.sunShaftStrength<0 || value.sunShaftStrength>3 || value.particleDensity<0 || value.particleDensity>1 || value.underwaterVolumeSteps<4 || value.underwaterVolumeSteps>32 ||
+       value.sunShaftStrength<0 || value.sunShaftStrength>3 || value.particleDensity<0 || value.particleDensity>1 || (value.underwaterVolumeDownsample!=1&&value.underwaterVolumeDownsample!=2) || value.underwaterVolumeSteps<4 || value.underwaterVolumeSteps>32 ||
        value.deepWaterDistance<=0 || value.gridFocus<=0 || value.subsurfaceStrength<0 || std::abs(value.scatteringAnisotropy)>=1 ||
        value.outer_FresnelScale<0 || value.outer_FresnelScale>1 || value.outer_Gloss<0 || value.refractionStrength<0)
         throw std::invalid_argument("Invalid ocean optical or spectrum configuration");

@@ -7,11 +7,14 @@ layout(set=1,binding=0) uniform sampler2D cloudVoxels;
 layout(set=1,binding=1,rgba16f) writeonly uniform image2D cloudVoxelLight;
 void main(){
     ivec2 at=ivec2(gl_GlobalInvocationID.xy);if(any(greaterThanEqual(at,imageSize(cloudVoxelLight))))return;
-    ivec2 tile=at/66,p=at%66-1;int z=tile.y*8+tile.x;
-    vec3 uv=(vec3(p,z)+.5)/64.;float tau=0.,reach=length(cloudVolumeSize.xyz);int count=cloudQuality.y*4;
+    int panel=at.x/528;ivec2 local=ivec2(at.x%528,at.y),tile=local/66,p=local%66-1;int z=tile.y*8+tile.x;
+    vec3 uv=(vec3(p,z)+.5)/64.;vec4 tau=vec4(0);float reach=length(cloudVolumeSize.xyz);int count=cloudQuality.y*4;
     for(int j=0;j<count;j++){
         float a=float(j)/float(count),b=float(j+1)/float(count),lo=a*a*reach,hi=b*b*reach;
-        tau+=cloudVolumeSample(cloudVoxels,uv+cloudSun.xyz*(lo+hi)*.5/cloudVolumeSize.xyz,int(cloudVolumeQuality.x)).r*cloudLayer.w*(hi-lo);
+        vec4 value=cloudVolumeSample(cloudVoxels,uv+cloudSun.xyz*(lo+hi)*.5/cloudVolumeSize.xyz,int(cloudVolumeQuality.x));
+        float first=float(panel*4)/15.;
+        vec4 density=cloudCoverageControl.x>.5?vec4(cloudBaseDensity(value,first),cloudBaseDensity(value,first+1./15.),cloudBaseDensity(value,first+2./15.),cloudBaseDensity(value,first+3./15.)):vec4(value.r,0,0,0);
+        tau+=density*cloudLayer.w*(hi-lo);
     }
-    imageStore(cloudVoxelLight,at,vec4(min(tau,65000.),0,0,1));
+    imageStore(cloudVoxelLight,at,cloudCoverageControl.x>.5?min(tau,vec4(65000.)):vec4(min(tau.r,65000.),0,0,1));
 }

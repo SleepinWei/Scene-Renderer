@@ -1,6 +1,7 @@
 #pragma once
 #include "rhi/Device.h"
 #include <array>
+#include <atomic>
 #include <vector>
 
 namespace rhi {
@@ -13,8 +14,35 @@ using TextureViewHandle = Handle<struct TextureViewTag>;
 using SamplerHandle = Handle<struct SamplerTag>;
 using PipelineHandle = Handle<struct PipelineTag>;
 using ComputePipelineHandle = Handle<struct ComputePipelineTag>;
+class GraphicsDevice;
+// Native traversal is optional. Input memory is borrowed only during build;
+// the returned immutable scene owns the native BLAS/TLAS and can outlive a dispatch.
+struct RayTracingMesh {const uint32_t* indices=nullptr;uint32_t triangles=0;size_t indexStride=16;};
+struct RayTracingInstance {std::array<float,16> transform{};uint32_t mesh=0;};
+struct RayTracingScene;
+struct RayTracingSceneDesc {
+    BufferHandle vertices;size_t vertexStride=0;uint32_t vertexCount=0;
+    std::vector<RayTracingMesh> meshes;std::vector<RayTracingInstance> instances;
+    // Caller proves unchanged packed vertex/index storage; reuse BLAS only.
+    std::shared_ptr<RayTracingScene> previousGeometry;
+};
+struct RayTracingScene {
+    virtual ~RayTracingScene()=default;
+    std::weak_ptr<GraphicsDevice> owner;
+    uint64_t bytes=0,blasCount=0,instanceCount=0,blasBuilds=0;double buildSeconds=0;
+};
 using BindingSetHandle = Handle<struct BindingSetTag>;
-enum class Format { RGBA8UNorm, RGBA16Float, Depth32Float, RGBA32Float };
+enum class Format { RGBA8UNorm, RGBA16Float, Depth32Float, RGBA32Float, R16Float, R32Float };
+// Storage size per texel; readTextureFloat returns one component for R/depth.
+constexpr uint32_t formatPixelBytes(Format f) {
+    switch(f) {
+    case Format::R16Float: return 2;
+    case Format::RGBA8UNorm: case Format::Depth32Float: case Format::R32Float: return 4;
+    case Format::RGBA16Float: return 8;
+    case Format::RGBA32Float: return 16;
+    }
+    return 0;
+}
 enum class TextureUsage : uint32_t { None = 0, Sampled = 1, ColorAttachment = 2, DepthAttachment = 4, CopySource = 8, CopyDestination = 16, Storage = 32 };
 constexpr TextureUsage operator|(TextureUsage a, TextureUsage b) {
     return TextureUsage(uint32_t(a) | uint32_t(b));
@@ -37,7 +65,8 @@ struct GraphicsLimits {
     uint32_t maxBindingsPerGroup = 8;
     uint32_t maxColorAttachments = 4;
 };
-// Single-sample 2D/2D-array storage. Views expose one layer as sampler2D.
+// Single-sample 2D/2D-array storage. One-layer views use sampler2D;
+// views selecting multiple layers use sampler2DArray.
 struct TextureDesc {
     uint32_t width = 0, height = 0;
     Format format = Format::RGBA8UNorm;
@@ -49,7 +78,7 @@ struct TextureRegion { uint32_t x=0, y=0, width=0, height=0, mip=0, layer=0; };
 struct TextureSubresource {uint32_t mip=0,layer=0;};
 struct TextureRange {uint32_t firstMip=0,mipCount=1,firstLayer=0,layerCount=1;};
 struct TextureViewDesc { TextureHandle texture; TextureRange range; };
-struct SamplerDesc { Filter filter = Filter::Linear; AddressMode address = AddressMode::ClampToEdge; };
+struct SamplerDesc { Filter filter = Filter::Linear; AddressMode address = AddressMode::ClampToEdge; bool mipLinear=false; uint32_t maxAnisotropy=1; };
 struct BindingLayoutEntry {
     uint32_t binding = 0;
     BindingType type = BindingType::UniformBuffer;
@@ -85,6 +114,7 @@ struct ComputePipelineDesc {
     std::vector<BindingLayout> bindings;
     std::array<uint32_t,3> threads{1,1,1};
     std::string label;
+    bool nativeRayTracing=false; // Native scene argument at buffer slot 24.
 };
 struct VertexAttribute { uint32_t location = 0; VertexFormat format = VertexFormat::Float2; uint32_t offset = 0; };
 enum class DepthCompare {Less,LessEqual,Greater,Always};
@@ -158,7 +188,7 @@ struct ResourceDependency {
     ResourceStage beforeStages=ResourceStage::None, afterStages=ResourceStage::None;
     TextureRange range;
 };
-struct DispatchCommand { ComputePipelineHandle pipeline;std::vector<BindingSetHandle> bindings;std::array<uint32_t,3> groups{1,1,1};BufferHandle indirect;size_t indirectOffset=0; };
+struct DispatchCommand { ComputePipelineHandle pipeline;std::vector<BindingSetHandle> bindings;std::array<uint32_t,3> groups{1,1,1};BufferHandle indirect;size_t indirectOffset=0;std::shared_ptr<RayTracingScene> rayScene; };
 // Each dispatch is a separate logical pass, with a dependency boundary.
 struct RecordedPass { RenderPassDesc desc;std::vector<DrawCommand> draws;bool compute = false;DispatchCommand dispatch;std::vector<ResourceDependency> dependencies;bool copy=false;TextureHandle copySource,copyDestination;TextureSubresource sourceSubresource,destinationSubresource;std::string label; };
 class GraphicsDevice;
@@ -179,7 +209,7 @@ public:
     void copyTexture(TextureHandle source,TextureHandle destination,TextureSubresource sourceLevel={},TextureSubresource destinationLevel={});
     void setPassLabel(const std::string&);
     void setLabel(std::string label) {if(submitted_)throw std::logic_error("RHI: submitted command list");label_=std::move(label); }
-    void dispatch(ComputePipelineHandle, const std::vector<BindingSetHandle>&, std::array<uint32_t,3> groups);
+    void dispatch(ComputePipelineHandle, const std::vector<BindingSetHandle>&, std::array<uint32_t,3> groups,std::shared_ptr<RayTracingScene> = {});
     void dispatchIndirect(ComputePipelineHandle,const std::vector<BindingSetHandle>&,BufferHandle arguments,size_t offset=0);
     CommandList(const CommandList&) = delete;
     CommandList& operator=(const CommandList&) = delete;
@@ -205,6 +235,9 @@ struct PipelineCacheStats {
     size_t nativeEntries = 0, idleEntries = 0, liveHandles = 0;
 };
 struct ReadbackTicket {CompletionToken completion;std::shared_ptr<std::vector<uint8_t>> bytes;};
+// Ready is published after the staging copy callback. This ticket does not
+// split an active frame or reserve a separate in-flight submission slot.
+struct FrameReadbackTicket {std::shared_ptr<std::atomic<bool>> ready;std::shared_ptr<std::vector<uint8_t>> bytes;};
 class GraphicsDevice : public Device, public std::enable_shared_from_this<GraphicsDevice> {
 public:
     TextureHandle createTexture(const TextureDesc&);
@@ -222,6 +255,8 @@ public:
     void setPipelineCacheIdleLimit(size_t count); // Combined graphics/compute idle LRU; default 64.
     void trimPipelineCache();
     virtual ComputeLimits computeLimits() const { return {}; }
+    virtual bool supportsNativeRayTracing() const {return false;}
+    virtual std::shared_ptr<RayTracingScene> buildRayTracingScene(const RayTracingSceneDesc&) {throw std::runtime_error("RHI: native ray tracing unavailable");}
     virtual bool supportsTextureSubresources() const {return false;}
     virtual bool supportsWireframe() const { return false; }
     BindingSetHandle createBindingSet(const BindingSetDesc&);
@@ -233,6 +268,7 @@ public:
     void writeTextureRegion(TextureHandle, TextureRegion, const void*, size_t bytes);
     void writeTexture(TextureHandle, const void* rgba, size_t bytes);
     // RGBA8 readback, tightly packed, row zero is the top of the render target.
+    FrameReadbackTicket requestFrameTextureReadback(TextureHandle,TextureSubresource={},bool immediate=false);
     ReadbackTicket requestTextureReadback(TextureHandle,TextureSubresource={}); // Tightly packed rows; format matches TextureDesc.
     std::vector<uint8_t> readTexture(TextureHandle);
     std::vector<uint8_t> readTextureSubresource(TextureHandle,TextureSubresource);

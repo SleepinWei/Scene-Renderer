@@ -4,19 +4,32 @@ layout(local_size_x=16,local_size_y=16,local_size_z=1)in;
 #include "grass-placement.glsl"
 layout(set=1,binding=1,std430) writeonly buffer OutPose {mat4 outPose[];};
 layout(set=1,binding=2,std430) buffer GrassIndirect {uint indexCount;uint instanceCount;uint firstIndex;int baseVertex;uint firstInstance;};
-layout(set=1,binding=3,std430) readonly buffer GrassCandidates {uint candidateCount;uint nearCandidateCount;};
+layout(set=1,binding=3,std430) buffer GrassCandidates {uint candidateCount;uint nearCandidateCount;uint admittedCount;};
+layout(set=2,binding=1,std430) writeonly buffer OutPreviousPose{mat4 outPreviousPose[];};
+vec2 bendAt(float seconds,vec4 wind,vec3 position,float h){
+    if(wind.w>.5){float speed=length(wind.xy);return .16*h*wind.xy/(10.+speed)*(.7+.3*sin(wind.z+position.x*.3+position.z*.2));}
+    return vec2(.16*sin(seconds*1.7+position.x*.3+position.z*.2)*h,0);
+}
 void generate(uint sampleIndex,uint side){
     vec3 position;uint seed;float growth;if(!candidate(sampleIndex,side,position,seed,growth))return;
     float budgetCapacity=grassSettings.y,nearCount=float(nearCandidateCount),farCount=float(candidateCount-nearCandidateCount);
     float budget=nearCandidate(position)?(nearCount<=budgetCapacity?1.:.9*budgetCapacity/max(nearCount,1.)):
         (farCount<=max(budgetCapacity-nearCount,0.)?1.:.9*max(budgetCapacity-nearCount,0.)/max(farCount,1.));
     if(random(seed,5u)>budget)return;
-    float angle=6.2831853*random(seed,6u),c=cos(angle),s=sin(angle);
+    uint admitted=atomicAdd(admittedCount,1);if(admitted>=uint(grassSettings.y))return;
+    // Shared deformed tree geometry has one fixed yaw per shape. Grass retains
+    // per-root yaw; tree wind is rotated into this shape's local coordinates.
+    float angle=previousClock.w>.5?heightDimensions.z*2.3999632+mod(controls.w,97.)*.067:6.2831853*random(seed,6u),c=cos(angle),s=sin(angle);
     float h=shape.x*growth,w=shape.y*growth;
-    float bend=.16*sin(grassSettings.x*1.7+position.x*.3+position.z*.2)*h;
-    mat4 model=mat4(c*w,0,-s*w,0,bend,h,0,0,s*w,0,c*w,0,position,1);
+    float oldDistance=distance(position.xz,grassCoverage.zw);
+    float coverage=mix(1.,grassCoverage.x,smoothstep(distribution.z,max(distribution.w,distribution.z+.001),distance(position.xz,grassCamera.xz)));
+    float oldCoverage=mix(1.,grassCoverage.y,smoothstep(previousDensity.x,max(previousDensity.y,previousDensity.x+.001),oldDistance));
+    float oldGrowth=(.75+.5*random(seed,4u))*smoothstep(0.,.15,1.-smoothstep(previousDensity.z,previousDensity.w,oldDistance));
+    float oldH=previousClock.y*oldGrowth,oldW=previousClock.z*oldGrowth*oldCoverage;w*=coverage;
+    vec2 bendXZ=bendAt(grassSettings.x,grassWind,position,h);
+    mat4 model=mat4(c*w,0,-s*w,0,bendXZ.x,h,bendXZ.y,0,s*w,0,c*w,0,position,1);
     uint index=atomicAdd(instanceCount,1),instanceCapacity=uint(grassSettings.y);
-    if(index>=instanceCapacity){atomicMin(instanceCount,instanceCapacity);return;}outPose[index]=model;
+    if(index>=instanceCapacity){atomicMin(instanceCount,instanceCapacity);return;}outPose[index]=model;vec2 oldBend=bendAt(previousClock.x,previousWind,position,oldH);model[1]=vec4(oldBend.x,oldH,oldBend.y,0);model[0]=vec4(c*oldW,0,-s*oldW,0);model[2]=vec4(s*oldW,0,c*oldW,0);outPreviousPose[index]=model;
 }
 
 void main(){if(!leafEligible())return;preparePatch();uint side=cellSide(),blocks=side/2u;for(uint i=0;i<blocks*blocks;i++)generate(i,side);}

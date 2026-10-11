@@ -1,0 +1,17 @@
+#version 450
+layout(local_size_x=8,local_size_y=8,local_size_z=1)in;
+layout(set=0,binding=0,std140) uniform WaveParameters{vec4 wavePatch;uvec4 mode;};
+layout(set=0,binding=1) uniform sampler2D shore;
+layout(set=1,binding=0,std430) readonly buffer Particles{vec4 particles[];};
+layout(set=1,binding=1,std430) readonly buffer Bins{uvec2 bins[];};
+layout(set=1,binding=2,std430) readonly buffer References{uint references[];};
+layout(set=1,binding=3,rgba32f) writeonly uniform image2D result;
+void main(){
+    ivec2 p=ivec2(gl_GlobalInvocationID.xy);if(any(greaterThanEqual(p,ivec2(mode.x))))return;
+    vec2 uv=(vec2(p)+.5)/float(mode.x),x=wavePatch.xy+uv*wavePatch.z;
+    uvec2 range=bins[uint(p.y/16)*mode.y+uint(p.x/16)];float h=0;
+    for(uint i=0;i<range.y;i++){vec4 q=particles[references[range.x+i]];float d=length(x-q.xy);if(d<q.w)h+=.5*q.z*(1.+cos(3.14159265359*d/q.w));}
+    // H and bed remain intact for shallow-water clipping. Momentum is owned by
+    // the original solver, never consumed from this render-only combined state.
+    vec4 q=mode.z!=0u?textureLod(shore,uv,0):vec4(0);q.y=h;q.z=0;imageStore(result,p,q);
+}

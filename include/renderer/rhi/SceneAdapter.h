@@ -2,6 +2,8 @@
 #include "renderer/rhi/ForwardPbrRenderer.h"
 #include "renderer/rhi/SceneSnapshot.h"
 #include "renderer/rhi/GpuImageCache.h"
+#include "renderer/rhi/RasterInstanceBatcher.h"
+#include "renderer/rhi/GpuVegetation.h"
 class RenderScene;
 namespace render {
 struct MeshUploadBudget {
@@ -11,9 +13,17 @@ struct MeshUploadBudget {
     double cpuMilliseconds = 2;
     uint32_t maxPendingMeshes = 4;
 };
+struct RasterMaterialStats {
+    uint64_t builds = 0, cacheHits = 0, liveVariants = 0;
+    // Parameter and extension UBOs only; excludes images, bindings and driver allocations.
+    uint64_t parameterUploadBytes = 0;
+};
 struct SceneFrame {
     FrameData frame;
     std::vector<DrawPacket> packets;
+    // Present only when main-view culling is active. Shadows and water use this full list.
+    std::vector<DrawPacket> auxiliaryPackets;
+    uint64_t rasterCulledPackets=0;
     float exposure = 1;
     size_t uploadBytes = 0;
     uint32_t assetUploads = 0, assetsPending = 0;
@@ -22,6 +32,8 @@ struct SceneFrame {
     size_t meshUploadBytes = 0;
     uint32_t meshUploadChunks = 0, meshUploadsPending = 0;
     double resolveCpuMilliseconds = 0; // Whole resolve, not a GPU upload timestamp.
+    RasterBatchStats rasterBatches;
+    RasterMaterialStats rasterMaterials;
 };
 // Render-thread diagnostic leases; inspecting these must not mutate residency.
 struct TerrainVirtualTextures {
@@ -43,6 +55,7 @@ class SceneAdapter {
     void recordVirtualFeedback(const FrameData&,rhi::TextureViewHandle,const std::vector<glm::mat4>& auxiliaryViews={});
     void invalidateAssets(); // Call after changing cached CPU geometry/images.
     TerrainVirtualTextures terrainVirtualTextures() const;
+    std::vector<VegetationBatchStats> vegetationStats();
   private:
     struct Cache;
     std::shared_ptr<rhi::GraphicsDevice> device_;
@@ -50,6 +63,7 @@ class SceneAdapter {
     SceneFrame resolveCandidate(const RenderWorldSnapshot &);
     MeshUploadBudget meshUploadBudget_;
     SceneSnapshotBuilder builder_; // Single-thread compatibility capture.
+    RasterInstanceBatcher batches_, auxiliaryBatches_;
 };
 void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice>);
 void validateSceneSolarControls(std::shared_ptr<rhi::GraphicsDevice>);

@@ -5,6 +5,8 @@
 #include <cmath>
 #include <algorithm>
 #include <limits>
+#include <cstdlib>
+#include <cstring>
 namespace render {
 namespace {void check(bool v,const char* text){if(!v)throw std::runtime_error(text);}}
 void validateSceneEffects(std::shared_ptr<rhi::GraphicsDevice> device,const std::string& directory){
@@ -16,6 +18,21 @@ void validateSceneEffects(std::shared_ptr<rhi::GraphicsDevice> device,const std:
     glm::mat4 correction(1);correction[2][2]=.5f;correction[3][2]=.5f;f.viewProjection=correction*glm::perspective(glm::radians(70.f),1.f,f.nearPlane,f.farPlane)*f.view;
     f.lights={{{0,0,0,0},{3,3,3,0},{.6f,0,-1,0}}};
     ForwardPbrRenderer renderer(device,directory,96,96,PbrPath::Scene);renderer.render(f,draws);const auto lit=renderer.readHDR();
+    {
+        const auto culledOutput=renderer.readOutput();const auto culledStats=renderer.graphPassStats();
+        const auto disable=std::getenv("SCENERENDERER_DISABLE_GRAPH_CULLING");
+        const bool forcedOff=disable && std::strcmp(disable,"1")==0;
+        check(culledStats.culled==(forcedOff?std::vector<std::string>{}:std::vector<std::string>{"motion"}),
+              "Opaque non-TAA scene did not respect motion culling switch");
+        f.graphCulling=false;renderer.render(f,draws);const auto baseline=renderer.readHDR();
+        const auto baselineStats=renderer.graphPassStats();
+        check(baselineStats.culled.empty() && baselineStats.executed.size()==culledStats.executed.size()+(forcedOff?0:1),
+              "Graph culling switch did not restore recording baseline");
+        check(lit==baseline && culledOutput==renderer.readOutput(),"Graph culling changed HDR or display pixels");
+        f.graphCulling=true;
+        std::cout<<"Graph culling: "<<baselineStats.executed.size()<<" -> "<<culledStats.executed.size()
+                 <<" passes"<<(forcedOff?" (disabled by environment)":", culled motion")<<"; HDR / display pixels identical\n";
+    }
     f.forwardShading=true;renderer.render(f,draws);const auto forward=renderer.readHDR();float maxDifference=0;for(size_t i=0;i<lit.size();++i)maxDifference=std::max(maxDifference,std::abs(lit[i]-forward[i]));check(maxDifference<.025f,"Scene forward/deferred PBR disagreement");f.forwardShading=false;
     f.inverseSquareLocalLights=true;f.lights={{{0,0,2,1},{3,3,3,0},{0,0,0,0}}};renderer.render(f,{{plane,material,glm::mat4(1)}});auto closeLight=renderer.readHDR();f.lights[0].positionType.z=4;renderer.render(f,{{plane,material,glm::mat4(1)}});auto farLight=renderer.readHDR();const size_t sample=(48*96+48)*4;float ambient=f.ambient;check(std::abs((closeLight[sample]-ambient)/(farLight[sample]-ambient)-4)<.08f,"Local light did not retain inverse-square attenuation");f.inverseSquareLocalLights=false;f.lights={{{0,0,0,0},{3,3,3,0},{.6f,0,-1,0}}};
     f.shadows=true;renderer.render(f,draws);const auto shadowed=renderer.readHDR(),positions=renderer.readGBuffer(0),depth=renderer.readShadowDepth();
@@ -138,7 +155,7 @@ void validateSceneEffects(std::shared_ptr<rhi::GraphicsDevice> device,const std:
     f.ssao=true;renderer.render(f,draws);const auto ao=renderer.readSSAO();size_t occluded=0;
     for(size_t i=0;i<ao.size();i+=4){check(std::isfinite(ao[i])&&ao[i]>=0&&ao[i]<=1,"SSAO range invalid");if(ao[i]<.99f)++occluded;}check(occluded>8,"SSAO did not detect blocker contact");
     {
-        auto test=f;test.shadows=false;test.rsm=false;test.aoPower=1;test.aoDenoise=false;
+        auto test=f;test.shadows=false;test.rsm=false;test.aoPower=1;test.aoDenoise=false;test.aoLinearDepth=true;
         auto validAo=[&](const std::vector<float>& values){
             for(size_t i=0;i<values.size();i+=4)check(std::isfinite(values[i])&&values[i]>=0&&values[i]<=1,"AO visibility outside 0..1");
         };
@@ -160,6 +177,18 @@ void validateSceneEffects(std::shared_ptr<rhi::GraphicsDevice> device,const std:
         check(receiverOccluded>8,"GTAO did not occlude the receiver near a blocker");
         test.aoDenoise=true;renderer.render(test,draws);auto filtered=renderer.readSSAO();validAo(filtered);
         for(size_t i=0;i<world.size();i+=4)if(world[i+3]==0)check(filtered[i]==1,"AO filter bled into the background");
+        auto timing=renderer.measureAO(0,2);if(timing.supported)check(timing.depthMilliseconds.size()==2&&timing.rawMilliseconds.size()==2&&timing.filterMilliseconds.size()==2,"AO timing did not measure preprocessing and both isolated passes");
+        check(filtered==renderer.readSSAO(),"AO timing replay changed the final visibility");
+        // Scalar depth reconstruction must preserve the previous world-position AO.
+        test.aoLinearDepth=false;renderer.render(test,draws);const auto worldFiltered=renderer.readSSAO();
+        float reconstructionError=0;for(size_t i=0;i<filtered.size();i+=4)reconstructionError=std::max(reconstructionError,std::abs(filtered[i]-worldFiltered[i]));
+        check(reconstructionError<.002f,"Linear-depth AO changed receiver visibility excessively");
+        test.aoLinearDepth=true;test.aoDepthHierarchy=true;renderer.render(test,draws);
+        check(filtered==renderer.readSSAO(),"Conservative hierarchy discarded a valid occluder");
+        auto skewed=test;auto projection=skewed.viewProjection*glm::inverse(skewed.view);projection[1][0]=.2f;skewed.viewProjection=projection*skewed.view;
+        renderer.render(skewed,draws);const auto skewDepth=renderer.readSSAO();skewed.aoLinearDepth=false;renderer.render(skewed,draws);const auto skewWorld=renderer.readSSAO();
+        float skewError=0;for(size_t i=0;i<skewDepth.size();i+=4)skewError=std::max(skewError,std::abs(skewDepth[i]-skewWorld[i]));
+        check(skewError<.002f,"General inverse-projection fallback changed AO visibility excessively");
         // A blocker beyond the world-space radius must not leave a receiver halo.
         auto separated=draws;separated[1].model[3].z=1.5f;renderer.render(test,separated);
         auto distant=renderer.readSSAO(),distantWorld=renderer.readGBuffer(0);
@@ -196,7 +225,23 @@ void validateSceneEffects(std::shared_ptr<rhi::GraphicsDevice> device,const std:
         bad=test;bad.aoSteps=0;rejected=false;try{renderer.render(bad,draws);}catch(const std::invalid_argument&){rejected=true;}check(rejected,"AO accepted zero quality steps");
         // Odd-size target rebuilding must replace both AO attachments/bindings.
         renderer.resize(65,49);renderer.render(test,draws);validAo(renderer.readSSAO());
-        check(renderer.readRawAO().size()==65*49*4,"Raw AO resize did not rebuild attachments");renderer.resize(96,96);
+        check(renderer.readRawAO().size()==65*49*4,"Raw AO resize did not rebuild attachments");
+        if(device->supportsTextureSubresources()) {
+            auto previous=renderer.readAoDepth();uint32_t width=65,height=49;
+            for(uint32_t mip=1;mip<renderer.aoDepthLevels();++mip) {
+                const uint32_t w=std::max(1u,width/2),h=std::max(1u,height/2);const auto reduced=renderer.readAoDepth(mip);
+                check(reduced.size()==w*h,"AO depth mip dimensions differ");
+                for(uint32_t y=0;y<h;++y)for(uint32_t x=0;x<w;++x) {
+                    float nearest=std::numeric_limits<float>::max();
+                    const auto endX=x==w-1?width:std::min(width,x*2+2),endY=y==h-1?height:std::min(height,y*2+2);
+                    for(uint32_t sy=y*2;sy<endY;++sy)for(uint32_t sx=x*2;sx<endX;++sx)if(previous[sy*width+sx]>0)nearest=std::min(nearest,previous[sy*width+sx]);
+                    if(nearest==std::numeric_limits<float>::max())nearest=0;
+                    check(reduced[y*w+x]==nearest,"AO depth reduction dropped an odd edge or invalidated conservative bounds");
+                }
+                previous=reduced;width=w;height=h;
+            }
+        }
+        renderer.resize(96,96);
         std::cout<<"GTAO isolated/inclined/orthographic planes, receiver occlusion, radius, ambient-only composition, disabled state and odd resize passed; receiver pixels "<<receiverOccluded<<"\n";
     }
     f.rsm=true;renderer.render(f,draws);for(float v:renderer.readHDR())check(std::isfinite(v),"RSM lighting nonfinite");

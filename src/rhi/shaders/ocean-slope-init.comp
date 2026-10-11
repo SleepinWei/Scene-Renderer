@@ -1,0 +1,14 @@
+#version 450
+layout(local_size_x=8,local_size_y=8) in;
+layout(rgba32f,set=0,binding=0) readonly uniform image2D sourceNormal;
+layout(rgba32f,set=0,binding=1) writeonly uniform image2D slopeOutput;
+layout(rgba32f,set=0,binding=2) writeonly uniform image2D crossOutput;
+layout(rgba32f,set=0,binding=3) writeonly uniform image2D normalOutput;
+void main(){
+    ivec2 p=ivec2(gl_GlobalInvocationID.xy);
+    if(any(greaterThanEqual(p,imageSize(sourceNormal))))return;
+    vec4 n=imageLoad(sourceNormal,p);vec2 s=n.xz/max(n.y,.1);
+    imageStore(slopeOutput,p,vec4(s,s*s));
+    imageStore(crossOutput,p,vec4(s.x*s.y,n.w,0,0));
+    imageStore(normalOutput,p,n);
+}

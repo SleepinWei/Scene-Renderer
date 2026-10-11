@@ -26,7 +26,8 @@ void main(){
     vec3 n=textureLod(shaftLargeNormal,waterWaveUV(q,waves.y,shaftLargeNormal),0).xyz;vec2 slope=n.xz/max(n.y,.1);
     // Filter unresolved ripple slopes to the photon lattice footprint.
     vec2 fine=vec2(0);if(waves.w>.5){for(int i=0;i<4;++i){vec2 at=q+vec2((i%2==0?-.25:.25),(i<2?-.25:.25))*shaftSettings.z;vec3 d=textureLod(shaftDetailNormal,waterWaveUV(at,waves.z,shaftDetailNormal),0).xyz;fine+=d.xz/max(d.y,.1)*.25;}slope+=fine;}
-    if(coastFeatures.z>.5){vec2 dx=vec2(coastPatch.w,0);float a=coastElevation(shaftShore,xz-dx,coastPatch,waves.x),b=coastElevation(shaftShore,xz+dx,coastPatch,waves.x),c=coastElevation(shaftShore,xz-dx.yx,coastPatch,waves.x),d=coastElevation(shaftShore,xz+dx.yx,coastPatch,waves.x);slope=mix(slope,-vec2(b-a,d-c)/(2.*coastPatch.w)+fine,coastBlend(xz,state,coastPatch,waves.x));}
+    if(coastFeatures.z>.5&&abs(coastFeatures.z-2.)>.5){vec2 dx=vec2(coastPatch.w,0);float a=coastElevation(shaftShore,xz-dx,coastPatch,waves.x),b=coastElevation(shaftShore,xz+dx,coastPatch,waves.x),c=coastElevation(shaftShore,xz-dx.yx,coastPatch,waves.x),d=coastElevation(shaftShore,xz+dx.yx,coastPatch,waves.x);slope=mix(slope,-vec2(b-a,d-c)/(2.*coastPatch.w)+fine,coastBlend(xz,state,coastPatch,waves.x));}
+    slope+=coastParticleSlope(shaftShore,xz,coastPatch,coastFeatures.z);
     n=normalize(vec3(slope.x,1,slope.y));float cosine=dot(n,sun.xyz);vec3 ray=refract(-sun.xyz,n,1./1.333);if(cosine<=0.||ray.y>=-.05)return;
     // Relative horizontal-plane flux: Beer extinction and flat-interface
     // Fresnel are applied once later by the volume integrator.

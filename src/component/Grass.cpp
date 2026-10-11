@@ -31,6 +31,7 @@ void Grass::init() {
 }
 
 void Grass::prepareData() {
+    if(!settings_.species.empty())throw std::invalid_argument("Multi-species vegetation requires native Metal/Vulkan rendering");
 	// indirect buff
 	if (!initDone) {
 		initDone = true;

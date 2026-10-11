@@ -7,18 +7,20 @@
 namespace render {
 namespace {
 struct alignas(16) Parameters {
-    glm::mat4 model;glm::ivec4 dimensions;glm::vec4 settings,placement,shape,controls,camera,distribution,exclusion;
+    glm::mat4 model;glm::ivec4 dimensions;glm::vec4 settings,placement,shape,controls,camera,distribution,exclusion,wind,geometry,previousClock,previousWind,coverage,previousDensity;
 };
-static_assert(sizeof(Parameters)==192,"Vegetation std140 ABI");
+static_assert(sizeof(Parameters)==288,"Vegetation std140 ABI");
 }
 GpuGrass::GpuGrass(std::shared_ptr<rhi::GraphicsDevice> d,const std::string& dir,
                   std::shared_ptr<GpuTerrain> terrain,const glm::mat4& model,uint32_t cap,
-                  VegetationSettings settings,std::shared_ptr<const ImageRGBA8> mask,std::shared_ptr<const ImageRGBA8> exclusionMask)
+                  VegetationSettings settings,std::shared_ptr<const ImageRGBA8> mask,std::shared_ptr<const ImageRGBA8> exclusionMask,std::shared_ptr<const MeshPayload> geometry)
     :terrain_(std::move(terrain)),resources_(d),settings_(std::move(settings)) {
     using namespace rhi;settings_.capacity=cap;settings_.validate();
     if(!terrain_)throw std::invalid_argument("Grass needs terrain");
-    auto blades=grassBladeGeometry();
+    auto blades=geometry?geometry:grassBladeGeometry();
+    treeGeometry_=!blades->treeWind.empty();
     mesh_=std::make_shared<GpuMesh>(d,blades->vertices,blades->indices,cap,glm::vec3(-1),glm::vec3(1));
+    mesh_->enableInstanceHistory();
     imageCache_=GpuImageCache::forDevice(d);
     mask_=imageCache_->acquire(mask?mask:std::make_shared<const ImageRGBA8>(ImageRGBA8{1,1,{0,0,0,255}}));
     exclusion_=imageCache_->acquire(exclusionMask?exclusionMask:std::make_shared<const ImageRGBA8>(ImageRGBA8{1,1,{0,0,0,255}}));
@@ -27,24 +29,26 @@ GpuGrass::GpuGrass(std::shared_ptr<rhi::GraphicsDevice> d,const std::string& dir
     hasMask_=bool(mask);
     ComputePipelineDesc p;auto path=dir+"/grass-generate.comp";
     p.shader={path+".glsl",path+".metallib",path+".spv",path+".json","main0"};p.threads={16,16,1};
-    p.bindings={{0,{{0,BindingType::UniformBuffer,ShaderStage::Compute,"GrassParameters",192},
+    p.bindings={{0,{{0,BindingType::UniformBuffer,ShaderStage::Compute,"GrassParameters",288},
                     {1,BindingType::UniformBuffer,ShaderStage::Compute,"GrassSurface",144}}},
                 {1,{{0,BindingType::StorageRead,ShaderStage::Compute,"FinalNodeList",16},
                     {1,BindingType::StorageWrite,ShaderStage::Compute,"OutPose",64},
                     {2,BindingType::StorageReadWrite,ShaderStage::Compute,"GrassIndirect",20},
-                    {3,BindingType::StorageRead,ShaderStage::Compute,"GrassCandidates",8},
+                    {3,BindingType::StorageReadWrite,ShaderStage::Compute,"GrassCandidates",12},
                     {4,BindingType::StorageTextureRead,ShaderStage::Compute,"lodMap",0},
                     {5,BindingType::SampledTexture,ShaderStage::Compute,"waterMask",0},
                     {6,BindingType::SampledTexture,ShaderStage::Compute,"heightAtlas",0},
                     {7,BindingType::SampledTexture,ShaderStage::Compute,"heightPageTable",0}}}};
-    p.bindings.push_back({2,{{0,BindingType::SampledTexture,ShaderStage::Compute,"exclusionMask",0}}});
+    p.bindings.push_back({2,{{0,BindingType::SampledTexture,ShaderStage::Compute,"exclusionMask",0},{1,BindingType::StorageWrite,ShaderStage::Compute,"OutPreviousPose",64}}});
     layouts_=p.bindings;pipeline_=resources_.computePipeline(p);
-    candidates_=resources_.buffer({8,BufferUsage::Storage|BufferUsage::CopyDestination,"Eligible vegetation count"});
+    candidates_=resources_.buffer({12,BufferUsage::Storage|BufferUsage::CopyDestination,"Eligible vegetation count"});
     path=dir+"/grass-count.comp";p.shader={path+".glsl",path+".metallib",path+".spv",path+".json","main0"};
     auto& entries=p.bindings[1].entries;
     entries.erase(entries.begin()+1,entries.begin()+3);entries[1].type=BindingType::StorageReadWrite;
+    p.bindings[2].entries.pop_back();
     countLayouts_=p.bindings;countPipeline_=resources_.computePipeline(p);
 }
+void GpuGrass::sharePopulationBudget(std::shared_ptr<GpuGrass> owner){if(!owner||owner.get()==this||owner->resources_.device!=resources_.device||owner->mesh_->instanceCapacity()!=mesh_->instanceCapacity())throw std::invalid_argument("Incompatible vegetation population budget");budgetOwner_=std::move(owner);candidates_=budgetOwner_->candidates_;}
 void GpuGrass::update(const glm::mat4& model,float seconds,const VegetationSettings& settings){
     settings.validate();
     if(settings.capacity!=mesh_->instanceCapacity())throw std::invalid_argument("Vegetation capacity change requires recreation");
@@ -56,18 +60,24 @@ void GpuGrass::update(const glm::mat4& model,float seconds){
     for(int i=0;i<8;i++){auto a=terrain_->mesh()->boundsMin(),b=terrain_->mesh()->boundsMax();
         glm::vec3 p=model*glm::vec4(i&1?b.x:a.x,i&2?b.y:a.y,i&4?b.z:a.z,1);
         minimum=glm::min(minimum,p);maximum=glm::max(maximum,p);}
-    float radius=std::max(settings_.heightScale*.4f,settings_.widthScale*.15f);
+    float radius=settings_.geometryRadius*std::max(settings_.heightScale,settings_.widthScale*settings_.farWidthScale)*1.6f;
     mesh_->setBounds(minimum-glm::vec3(radius),maximum+glm::vec3(radius));
-    const DrawIndexedIndirectArguments args{60,0,0,0,0};
+    const DrawIndexedIndirectArguments args{mesh_->indexCount(),0,0,0,0};
     resources_.device->writeBuffer(mesh_->indirectBuffer(),0,sizeof(args),&args);
-    uint32_t zero[2]={0,0};resources_.device->writeBuffer(candidates_,0,8,zero);Resources frame(resources_.device);
-    Parameters p{model,{int(terrain_->width()),int(terrain_->height()),0,0},
+    uint32_t zero[3]={0,0,0};if(!budgetOwner_)resources_.device->writeBuffer(candidates_,0,12,zero);Resources frame(resources_.device);
+    const auto camera=glm::inverse(terrain_->surfaceView())[3];
+    Parameters p{model,{int(terrain_->width()),int(terrain_->height()),int(settings_.geometryVariant),int(settings_.geometryVariants)},
         {seconds,float(mesh_->instanceCapacity()),settings_.density,settings_.distance},
         {settings_.fadeStart,settings_.minimumNormalY,settings_.waterLevel,settings_.shoreMargin},
         {settings_.heightScale,settings_.widthScale,settings_.maximumAltitude,hasMask_?1.f:0.f},
-        {float(settings_.maxLod),settings_.frustumCull?1.f:0.f,float(settings_.samplesPerCell),0},glm::inverse(terrain_->surfaceView())[3],
+        {float(settings_.maxLod),settings_.frustumCull?1.f:0.f,float(settings_.samplesPerCell),float(settings_.placementSeed)},camera,
         {settings_.nearSpacing,settings_.farSpacing,settings_.denseRadius,settings_.sparseRadius},
-        {settings_.exclusionSeaLevel,settings_.exclusionHeightRange,settings_.exclusionSlopeMin,settings_.exclusionSlopeMax}};
+        {settings_.exclusionSeaLevel,settings_.exclusionHeightRange,settings_.exclusionSlopeMin,settings_.exclusionSlopeMax},
+        {settings_.windX,settings_.windZ,settings_.windPhase,settings_.environmentWind?1.f:0.f},
+        {settings_.lodDistance,settings_.lodTransition,float(settings_.geometryLod),settings_.stableLattice?1.f:0.f},
+        {history_?previousSeconds_:seconds,history_?previousHeight_:settings_.heightScale,history_?previousWidth_:settings_.widthScale,treeGeometry_?1.f:0.f},history_?previousWind_:glm::vec4(settings_.windX,settings_.windZ,settings_.windPhase,settings_.environmentWind?1.f:0.f),
+        {settings_.farWidthScale,history_?previousFarWidth_:settings_.farWidthScale,history_?previousCamera_.x:camera.x,history_?previousCamera_.y:camera.z},
+        {history_?previousDenseRadius_:settings_.denseRadius,history_?previousSparseRadius_:settings_.sparseRadius,history_?previousFadeStart_:settings_.fadeStart,history_?previousDistance_:settings_.distance}};
     auto data=frame.buffer({sizeof(p),BufferUsage::Uniform,"Vegetation placement parameters"},&p);
     struct alignas(16) Surface {glm::mat4 view,vp;glm::vec4 screen;};
     Surface surface{terrain_->surfaceView(),terrain_->surfaceVP(),terrain_->surfaceScreen()};
@@ -75,15 +85,21 @@ void GpuGrass::update(const glm::mat4& model,float seconds){
     auto a=frame.bindings({layouts_[0],{{0,data,0,sizeof(p),{},{}},{1,surfaceData,0,sizeof(surface),{},{}}}});
     std::vector<BindingEntry> entries{{0,terrain_->leafQueue(),0,16+size_t(terrain_->leafCapacity())*16,{},{}},
         {1,mesh_->instances(),0,size_t(mesh_->instanceCapacity())*64,{},{}},{2,mesh_->indirectBuffer(),0,20,{},{}},
-        {3,candidates_,0,8,{},{}},{4,{},0,0,terrain_->lodView(),{}},{5,{},0,0,mask_->view(),maskSampler_},
+        {3,candidates_,0,12,{},{}},{4,{},0,0,terrain_->lodView(),{}},{5,{},0,0,mask_->view(),maskSampler_},
         {6,{},0,0,terrain_->heightTexture()->atlas(),terrain_->heightTexture()->sampler()},
         {7,{},0,0,terrain_->heightTexture()->pageTable(),terrain_->heightTexture()->sampler()}};
     auto b=frame.bindings({layouts_[1],entries});entries.erase(entries.begin()+1,entries.begin()+3);
     auto counter=frame.bindings({countLayouts_[1],entries});
-    auto exclusion=frame.bindings({layouts_[2],{{0,{},0,0,exclusion_->view(),maskSampler_}}});
+    auto countExclusion=frame.bindings({countLayouts_[2],{{0,{},0,0,exclusion_->view(),maskSampler_}}});
+    auto exclusion=frame.bindings({layouts_[2],{{0,{},0,0,exclusion_->view(),maskSampler_},{1,mesh_->previousInstances(),0,size_t(mesh_->instanceCapacity())*64,{},{}}}});
     auto commands=resources_.device->createCommandList();
-    commands.dispatchIndirect(countPipeline_,{a,counter,exclusion},terrain_->leafQueue());
+    if(!budgetOwner_)commands.dispatchIndirect(countPipeline_,{a,counter,countExclusion},terrain_->leafQueue());
     commands.dispatchIndirect(pipeline_,{a,b,exclusion},terrain_->leafQueue());resources_.device->submit(commands);
+    historyReliable_=history_&&terrain_->geometryStable()&&previousHeightVersion_==terrain_->heightTexture()->version()&&previousModel_==model&&previousHeight_==settings_.heightScale&&previousWidth_==settings_.widthScale&&previousSpacing_==settings_.nearSpacing&&previousSeed_==settings_.placementSeed&&previousSamples_==settings_.samplesPerCell&&previousStableLattice_==settings_.stableLattice;
+    previousHeightVersion_=terrain_->heightTexture()->version();previousModel_=model;previousHeight_=settings_.heightScale;previousWidth_=settings_.widthScale;previousSeconds_=seconds;previousWind_=p.wind;
+    previousCamera_={camera.x,camera.z};previousFarWidth_=settings_.farWidthScale;previousDenseRadius_=settings_.denseRadius;previousSparseRadius_=settings_.sparseRadius;history_=true;
+    previousFadeStart_=settings_.fadeStart;previousDistance_=settings_.distance;
+    previousSpacing_=settings_.nearSpacing;previousSeed_=settings_.placementSeed;previousSamples_=settings_.samplesPerCell;previousStableLattice_=settings_.stableLattice;
 }
 rhi::DrawIndexedIndirectArguments GpuGrass::readArguments(){rhi::DrawIndexedIndirectArguments a;resources_.device->readBuffer(mesh_->indirectBuffer(),0,sizeof(a),&a);return a;}
 std::vector<glm::mat4> GpuGrass::readPoses(uint32_t n){if(n>mesh_->instanceCapacity())throw std::invalid_argument("Grass readback exceeds capacity");std::vector<glm::mat4> result(n);resources_.device->readBuffer(mesh_->instances(),0,size_t(n)*64,result.data());return result;}

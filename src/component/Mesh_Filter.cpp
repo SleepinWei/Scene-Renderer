@@ -322,6 +322,7 @@ void Mesh::genVAO() {
 
 Mesh::Mesh(const Mesh& other):Mesh(other.getVertices(),other.getIndices()) {
     material=other.getMaterial();name=other.getName();
+    treeWind_=other.getTreeWind();
 }
 void Mesh::setMaterial(std::shared_ptr<Material> value) {
     checkLogicThread();if(value)value->checkLogicThread();material=std::move(value);
@@ -333,5 +334,5 @@ void Mesh::setGeometry(std::vector<Vertex> value,std::vector<unsigned> order) {
         for(int i=0;i<3;i++)if(!std::isfinite(v.Position[i])||!std::isfinite(v.Normal[i]))throw std::invalid_argument("Mesh contains nonfinite vertex");
         for(int i=0;i<2;i++)if(!std::isfinite(v.TexCoords[i]))throw std::invalid_argument("Mesh contains nonfinite UV");
     }
-    vertices=std::move(value);indices=std::move(order);invalidate();
+    vertices=std::move(value);indices=std::move(order);treeWind_.clear();invalidate();
 }

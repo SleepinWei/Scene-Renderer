@@ -178,6 +178,16 @@ void validateUnderwater(std::shared_ptr<rhi::GraphicsDevice> d,const std::string
     pointCamera({0,-2,0});auto clear=render();
     for(int c=0;c<3;++c)require(std::abs(clear[centre+c]-material.parameters.emissiveNormal[c])<.002,"Zero-extinction underwater view changed the floor");
     f.oceans[0].absorption={.2f,.1f,.05f};auto absorbed=render();auto position=renderer.readGBuffer(0);
+    {
+        const auto stats=renderer.graphPassStats();
+        for(const auto& name:{"ocean-simulation","water-capture/1","water-volume/1","water-surface/1","water-eye/1"})
+            require(std::find(stats.executed.begin(),stats.executed.end(),name)!=stats.executed.end(),
+                    "Graph culling removed water transport or persistent simulation history");
+        f.graphCulling=false;const auto baseline=render();f.graphCulling=true;
+        float difference=0;for(size_t i=0;i<absorbed.size();++i)difference=std::max(difference,std::abs(absorbed[i]-baseline[i]));
+        require(difference<.002f,"Graph culling changed underwater transport");
+        std::cout<<"Water graph culling retains simulation / capture / volume / surface / eye; HDR max difference "<<difference<<"\n";
+    }
     float distance=glm::length(glm::vec3(position[centre],position[centre+1],position[centre+2])-f.cameraPosition);
     for(int c=0;c<3;++c)require(std::abs(absorbed[centre+c]-clear[centre+c]*std::exp(-f.oceans[0].absorption[c]*distance))<.002,"Underwater fog failed independent Beer distance");
     f.oceans[0].underwaterCapture=false;auto noCapture=render();for(int c=0;c<3;++c)require(std::abs(noCapture[centre+c]-absorbed[centre+c])<.002,"Fog depended on a stale disabled capture");f.oceans[0].underwaterCapture=true;
@@ -258,22 +268,67 @@ void validateUnderwater(std::shared_ptr<rhi::GraphicsDevice> d,const std::string
     renderer.resize(47,33);render();f.oceans[0].underwaterView=false;render();f.oceans[0].underwaterView=true;render();
     std::cout<<"Underwater view: independent Beer/slab energy, capture/fog switches, volume shadow, one eye leg, far air-side capture, Snell window/solar disk/offscreen wide air/toggle, separated air capture behind submerged occluder, 30/60-degree transmission/TIR, offscreen bed reflection, dry mask, surface crossing/TSAA/odd resize passed\n";
 }
+// The reflected emitter is above the eye and outside the primary viewing
+// frustum. A sky-only reflection or a primary-screen lookup must stay black.
+void validateSceneReflection(std::shared_ptr<rhi::GraphicsDevice> d,const std::string& directory){
+    FrameData f;f.cameraPosition={0,2,4};f.ambient=0;f.toneMapping=false;f.viewportWidth=f.viewportHeight=64;
+    OceanSurfaceSettings s;s.spectrum.size=8;s.spectrum.length=32;s.spectrum.amplitude=0;s.meshSize=17;
+    s.seaLevel=0;s.detailWaves=false;s.cameraGrid=false;s.underwaterWideRefraction=false;s.underwaterView=false;
+    s.refraction=false;s.volumeIntegration=false;s.absorption=s.scattering=s.specular=s.ambient=glm::vec3(0);
+    s.robustRefraction=true;f.oceans={s};
+    glm::mat4 depth(1);depth[2][2]=.5f;depth[3][2]=.5f;
+    auto camera=[&](){f.view=glm::lookAt(f.cameraPosition,glm::vec3(0),glm::vec3(0,1,0));
+        f.viewProjection=depth*glm::perspective(glm::radians(35.f),float(f.viewportWidth)/f.viewportHeight,.1f,100.f)*f.view;};camera();
+    MaterialDesc emissive;emissive.parameters.albedoAlpha={0,0,0,1};emissive.parameters.emissiveNormal={4,0,0,0};
+    auto material=std::make_shared<GpuMaterial>(d,emissive);
+    std::vector<DrawPacket> packets{{waterQuad(d,4,40),material,glm::mat4(1)}};
+    ForwardPbrRenderer renderer(d,directory,64,64,PbrPath::Scene);
+    const size_t centre=4*(32*64+32);
+    auto render=[&](){renderer.render(f,packets);auto image=renderer.readHDR();
+        for(float v:image)require(std::isfinite(v),"Scene reflection produced nonfinite HDR");return image;};
+    f.oceans[0].sceneReflection=false;auto skyOnly=render();require(skyOnly[centre]<.001,"Reflection fixture emitter was visible in the primary view");
+    f.oceans[0].sceneReflection=true;auto reflected=render();
+    require(reflected[centre]>.05&&reflected[centre+1]<.001&&reflected[centre+2]<.001,"Offscreen scene emitter is missing or contaminated in water reflection");
+    // The emitter is known to be absent from the primary view. A separately
+    // culled camera list must still supply its full geometry to water captures.
+    renderer.render(f,{},1,2.2f,&packets);auto culledReflection=renderer.readHDR();
+    for(size_t i=0;i<reflected.size();++i)require(std::abs(reflected[i]-culledReflection[i])<.002f,"Main-view culling changed an offscreen water reflection");
+
+    // The original opaque G-buffer is empty at the water pixel; independent
+    // geometric intersection fixes the expected Fresnel energy instead.
+    glm::vec4 q=glm::inverse(f.viewProjection)*glm::vec4(1.f/64,-1.f/64,1,1);
+    glm::vec3 ray=glm::normalize(glm::vec3(q)/q.w-f.cameraPosition);
+    float expected=4*(s.fresnel+(1-s.fresnel)*std::pow(1+ray.y,5.f));
+    require(std::abs(reflected[centre]-expected)<.01,"Scene reflection did not preserve Fresnel energy");
+    MaterialDesc black;black.parameters.albedoAlpha={0,0,0,1};
+    auto occluder=std::make_shared<GpuMaterial>(d,black);
+    packets.push_back({waterQuad(d,3,40),occluder,glm::mat4(1)});
+    require(render()[centre]<.001,"Reflection ignored nearer offscreen opaque geometry");packets.pop_back();
+    packets[0].mesh=waterQuad(d,-4,40);
+    require(render()[centre]<.001,"Submerged geometry leaked into air-side reflection");packets[0].mesh=waterQuad(d,4,40);
+    f.oceans[0].sceneReflection=false;require(render()[centre]<.001,"Disabling reflection retained a stale capture");
+    f.oceans[0].sceneReflection=true;f.taa=true;
+    for(int i=0;i<4;++i){f.cameraPosition.x+=.05f;camera();require(render()[centre]>.04,"Moving / temporal water reflection lost offscreen geometry");}
+    renderer.resize(47,33);f.viewportWidth=47;f.viewportHeight=33;camera();render();
+    packets.clear();auto empty=render();for(size_t i=0;i<empty.size();i+=4)require(empty[i]<.001,"Empty scene reused stale reflection geometry");
+    std::cout<<"Water scene reflection: offscreen mirrored geometry, independent Fresnel energy, on/off, moving camera / TSAA, odd resize and empty-scene rejection passed\n";
+}
 // Complete silhouettes need an independent geometric reference: a centre-pixel
 // energy check cannot detect self-occlusion holes or duplicated box faces.
-void validateWaterMarker(std::shared_ptr<rhi::GraphicsDevice> d,const std::string& directory) {
+void validateWaterMarker(std::shared_ptr<rhi::GraphicsDevice> d,const std::string& directory,bool reflection=false) {
     constexpr int width=320,height=180;
     struct Box {glm::vec3 centre,half,color;};
     const std::array<Box,3> boxes={Box{{-7.4f,.2f,-24.6f},{1,.45f,1},{.6f,0,0}},
         Box{{-7.4f,1.4f,-24.6f},{.45f,.75f,.45f},{0,.6f,0}},
         Box{{-7.4f,2.23f,-24.6f},{.65f,.08f,.65f},{0,0,.6f}}};
-    FrameData f;f.cameraPosition={-8,-1.2f,-28};f.ambient=0;f.toneMapping=false;f.viewportWidth=width;f.viewportHeight=height;
-    const float yaw=glm::radians(80.f),pitch=glm::radians(50.f);
+    FrameData f;f.cameraPosition={-8,reflection?1.5f:-1.2f,-28};f.ambient=0;f.toneMapping=false;f.viewportWidth=width;f.viewportHeight=height;
+    const float yaw=glm::radians(80.f),pitch=glm::radians(reflection?-12.f:50.f);
     glm::vec3 front(std::cos(yaw)*std::cos(pitch),std::sin(pitch),std::sin(yaw)*std::cos(pitch));
     f.view=glm::lookAt(f.cameraPosition,f.cameraPosition+front,glm::vec3(0,1,0));glm::mat4 depth(1);depth[2][2]=.5f;depth[3][2]=.5f;
     f.viewProjection=depth*glm::perspective(glm::radians(62.f),float(width)/height,.1f,100.f)*f.view;
     f.lights={{{0,0,0,0},{0,0,0,0},{0,-1,0,0}}};
     OceanSurfaceSettings s;s.spectrum.size=16;s.spectrum.length=16;s.spectrum.amplitude=0;s.surfaceLength=128;s.meshSize=33;
-    s.seaLevel=0;s.detailWaves=false;s.robustRefraction=true;s.underwaterFog=false;s.absorption=s.scattering=glm::vec3(0);s.cameraGrid=false;f.oceans={s};
+    s.seaLevel=0;s.detailWaves=false;s.robustRefraction=true;s.underwaterFog=false;s.absorption=s.scattering=glm::vec3(0);s.cameraGrid=false;s.refraction=!reflection;s.volumeIntegration=!reflection;f.oceans={s};
     std::vector<DrawPacket> packets;
     for(const auto& b:boxes){
         std::vector<MeshVertex> vertices;
@@ -298,7 +353,14 @@ void validateWaterMarker(std::shared_ptr<rhi::GraphicsDevice> d,const std::strin
         auto world=inverse*glm::vec4(2*(x+.5f)/width-1,1-2*(y+.5f)/height,1,1);
         auto ray=glm::normalize(glm::vec3(world)/world.w-f.cameraPosition);float directT;auto result=trace(f.cameraPosition,ray,directT);
         float surfaceT=-f.cameraPosition.y/ray.y;
-        if(ray.y>0&&surfaceT<directT){auto point=f.cameraPosition+ray*surfaceT;
+        if(reflection&&ray.y<0&&surfaceT>0&&surfaceT<directT){
+            auto point=f.cameraPosition+ray*surfaceT;
+            if(std::max(std::abs(point.x),std::abs(point.z))<64){
+                glm::vec3 reflected(ray.x,-ray.y,ray.z);float t;
+                float fresnel=s.fresnel+(1-s.fresnel)*std::pow(1+ray.y,5.f);
+                result=trace(point+reflected*.001f,reflected,t)*fresnel;
+            }
+        } else if(!reflection&&ray.y>0&&surfaceT<directT){auto point=f.cameraPosition+ray*surfaceT;
             const double eta=1.333,cosine=ray.y,sin2=eta*eta*(1-cosine*cosine);double fresnel=1;glm::vec3 air(0);
             if(sin2<1){double ct=std::sqrt(1-sin2),rs=(eta*cosine-ct)/(eta*cosine+ct),rp=(cosine-eta*ct)/(cosine+eta*ct);fresnel=(rs*rs+rp*rp)/2;
                 glm::vec3 refracted(eta*ray.x,ct,eta*ray.z);float t;air=trace(point+refracted*.001f,refracted,t);}
@@ -317,11 +379,46 @@ void validateWaterMarker(std::shared_ptr<rhi::GraphicsDevice> d,const std::strin
     if(const char* output=std::getenv("SCENERENDERER_WATER_REFERENCE_OUTPUT")){
         std::filesystem::create_directories(output);
         auto save=[&](const char* name,const std::vector<float>& values){std::vector<uint8_t> pixels(values.size());for(size_t i=0;i<values.size();++i)pixels[i]=uint8_t(std::clamp(values[i],0.f,1.f)*255);auto path=std::filesystem::path(output)/name;require(stbi_write_png(path.string().c_str(),width,height,4,pixels.data(),width*4),"Cannot save marker reference");};
-        save("marker-cpu.png",reference);save("marker-gpu.png",gpu);
-        std::ofstream(std::filesystem::path(output)/"marker-reference.txt")<<"Interior pixels "<<interior<<", mismatch "<<mismatch<<", mean max-channel error "<<error/interior<<'\n';
+        save(reflection?"reflection-cpu.png":"marker-cpu.png",reference);save(reflection?"reflection-gpu.png":"marker-gpu.png",gpu);
+        std::ofstream(std::filesystem::path(output)/(reflection?"reflection-reference.txt":"marker-reference.txt"))<<"Interior pixels "<<interior<<", mismatch "<<mismatch<<", mean max-channel error "<<error/interior<<'\n';
     }
-    std::cout<<"Water marker geometric reference: interior "<<interior<<", mismatches "<<mismatch<<", mean error "<<error/interior<<'\n';
+    std::cout<<(reflection?"Water reflection":"Water marker")<<" geometric reference: interior "<<interior<<", mismatches "<<mismatch<<", mean error "<<error/interior<<'\n';
 }
+}
+void validateHalfVolume(std::shared_ptr<rhi::GraphicsDevice> d,const std::string& directory){
+    FrameData f;f.cameraPosition={0,-1,0};f.viewportWidth=129;f.viewportHeight=95;f.toneMapping=false;f.taa=false;f.ambient=0;
+    f.lights={{{0,0,0,0},{2,2,2,0},{0,-1,0,0}}};
+    OceanSurfaceSettings s;s.spectrum.size=16;s.spectrum.length=16;s.spectrum.amplitude=0;s.meshSize=33;s.surfaceLength=64;
+    s.seaLevel=0;s.detailWaves=false;s.cameraGrid=false;s.robustRefraction=true;s.scattering={.025,.04,.06};s.absorption={.12,.04,.02};s.underwaterVolumeSteps=32;
+    f.oceans={s};MaterialDesc material;material.parameters.albedoAlpha={0,0,0,1};material.parameters.factors={0,1,1,0};material.parameters.emissiveNormal={.4,.15,.05,0};
+    auto glow=std::make_shared<GpuMaterial>(d,material);std::vector<DrawPacket> packets{{waterQuad(d,-4,40),glow,glm::mat4(1)},{waterQuad(d,2,40),glow,glm::mat4(1)}};
+    ForwardPbrRenderer renderer(d,directory,129,95,PbrPath::Scene);glm::mat4 depth(1);depth[2][2]=.5;depth[3][2]=.5;
+    double maxError=0;
+    for(float angle:{0.f,30.f,60.f}){
+        f.view=glm::lookAt(f.cameraPosition,f.cameraPosition+glm::vec3(std::sin(glm::radians(angle)),std::cos(glm::radians(angle)),0),glm::vec3(0,0,-1));
+        f.viewProjection=depth*glm::perspective(glm::radians(25.f),129.f/95,.05f,100.f)*f.view;
+        f.oceans[0].underwaterVolumeDownsample=1;renderer.render(f,packets);auto full=renderer.readHDR();
+        f.oceans[0].underwaterVolumeDownsample=2;renderer.render(f,packets);auto half=renderer.readHDR();
+        for(int y=8;y<87;++y)for(int x=8;x<121;++x)for(int c=0;c<3;++c){size_t i=4*(y*129+x)+c;
+            require(std::isfinite(half[i]),"Half-resolution optical volume became nonfinite");
+            maxError=std::max(maxError,double(std::abs(full[i]-half[i])));}
+    }
+    require(maxError<.008,"Guided interface scattering changed flat transmission/TIR energy");
+    f.view=glm::lookAt(f.cameraPosition,f.cameraPosition+glm::vec3(0,-1,0),glm::vec3(0,0,-1));
+    f.viewProjection=depth*glm::perspective(glm::radians(25.f),129.f/95,.05f,100.f)*f.view;
+    f.oceans[0].underwaterVolumeDownsample=1;renderer.render(f,packets);auto downward=renderer.readHDR();
+    f.oceans[0].underwaterVolumeDownsample=2;renderer.render(f,packets);auto adaptive=renderer.readHDR();
+    for(size_t i=0;i<downward.size();++i)require(std::abs(downward[i]-adaptive[i])<.002,"Seabed adaptive scattering did not retain full-resolution transport");
+    f.view=glm::lookAt(f.cameraPosition,f.cameraPosition+glm::vec3(0,1,0),glm::vec3(0,0,-1));
+    f.viewProjection=depth*glm::perspective(glm::radians(25.f),129.f/95,.05f,100.f)*f.view;
+    f.oceans[0].underwaterCapture=false;renderer.render(f,packets);for(float v:renderer.readHDR())require(std::isfinite(v),"Half-resolution scattering failed screen-space fallback");
+    f.oceans[0].scattering=glm::vec3(0);f.oceans[0].underwaterCapture=true;renderer.render(f,packets);auto noScatter=renderer.readHDR();
+    f.oceans[0].underwaterVolumeDownsample=1;renderer.render(f,packets);auto reference=renderer.readHDR();
+    for(size_t i=0;i<reference.size();++i)require(std::abs(reference[i]-noScatter[i])<.002,"Half-volume toggle reused stale scattering when coefficients became zero");
+    f.oceans[0].underwaterVolumeDownsample=2;f.oceans[0].scattering=s.scattering;f.taa=true;renderer.resize(47,33);f.viewportWidth=47;f.viewportHeight=33;
+    renderer.render(f,packets);f.cameraPosition.x+=.03f;f.view=glm::lookAt(f.cameraPosition,f.cameraPosition+glm::vec3(0,1,0),glm::vec3(0,0,-1));f.viewProjection=depth*glm::perspective(glm::radians(25.f),47.f/33,.05f,100.f)*f.view;renderer.render(f,packets);
+    for(float v:renderer.readHDR())require(std::isfinite(v),"Half-volume odd resize or moving TAA history failed");
+    std::cout<<"Guided half-volume: independent full-resolution transmission/TIR comparison, max HDR error "<<maxError<<", capture/zero-scattering toggles and odd resize/moving TAA passed\n";
 }
 void validateWaterSurface(std::shared_ptr<rhi::GraphicsDevice> d,const std::string& directory){
     validateSunShafts(d,directory);validateCaustics(d,directory);validateWaterTransport();validateShore(d,directory);validateCoastEdges(d,directory);
@@ -415,7 +512,7 @@ void validateWaterSurface(std::shared_ptr<rhi::GraphicsDevice> d,const std::stri
     renderer.resize(64,64);f.taa=false;f.oceans[0].opticalDebug=3;f.oceans[0].waterMask=std::make_shared<const ImageRGBA8>(ImageRGBA8{1,1,{0,0,0,255}});
     f.oceans[0].shore.enabled=false;renderer.render(f,{});fallback=renderer.readHDR();require(fallback[centre]<.001,"Disabling shore simulation left stale water coverage");
     std::cout<<"Water optional optics: DDA floor, independent world-space bathymetry, offscreen terrain hit/path, multi-scattering on/off and absorption limit, wet/dry mask override, live TSAA/camera scrolling/odd resize and stale-state rejection passed\n";
-    validateUnderwater(d,directory);validateDiveVolume(d,directory);
-    validateWaterMarker(d,directory);
+    validateUnderwater(d,directory);validateDiveVolume(d,directory);validateHalfVolume(d,directory);
+    validateWaterMarker(d,directory);validateSceneReflection(d,directory);validateWaterMarker(d,directory,true);
 }
 }

@@ -1,0 +1,12 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#include "cluster-batch-parameters.glsl"
+layout(local_size_x=64) in;
+layout(set=1,binding=1,std430) readonly buffer Clusters {GeometryCluster clusters[];};
+layout(set=1,binding=2,std430) readonly buffer SourceIndices {uint sourceIndices[];};
+layout(set=1,binding=3,std430) readonly buffer Offsets {uvec4 offsets[];};
+layout(set=1,binding=4,std430) readonly buffer Groups {uvec2 groups[];};
+layout(set=1,binding=5,std430) writeonly buffer OutputIndices {uint outputIndices[];};
+layout(set=1,binding=6,std430) readonly buffer Arguments {uint args[];};
+void main(){uint id=gl_WorkGroupID.x+gl_WorkGroupID.y*batchStage.z;if(id>=batchStage.w)return;uvec2 o=offsets[id].xy;if(o.y==0u)return;GeometryCluster c=clusters[id];ClusterMesh mesh=meshes[c.range.w];uint base=groups[id/64u].x+o.x;if(batchStage.x==3u)base+=args[mesh.ranges.w]-args[mesh.ranges.w+6u];
+    for(uint i=gl_LocalInvocationIndex;i<o.y;i+=64u)if(base+i<mesh.counts.z)outputIndices[mesh.ranges.z+base+i]=sourceIndices[c.range.x+i];}

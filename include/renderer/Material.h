@@ -22,6 +22,9 @@ struct MaterialProperties {
     float normalStrength = 1;
     float opacityFactor = 1;
     glm::vec3 emissiveFactor = glm::vec3(0);
+    bool matchedGgx = false;
+    float specularAnisotropy = 0, specularRotation = 0;
+    float foliageTransmission = 0;
 };
 struct MaterialData : MaterialProperties {
     std::unordered_map<std::string, TextureSnapshot> textures;
@@ -175,6 +178,9 @@ class Material : public engine::LogicAsset, public std::enable_shared_from_this<
     float normalStrength = 1;
     float opacityFactor = 1;
     glm::vec3 emissiveFactor = glm::vec3(0);
+    bool matchedGgx = false;
+    float specularAnisotropy = 0, specularRotation = 0;
+    float foliageTransmission = 0;
     std::unordered_map<std::string, std::shared_ptr<Texture>> textures;
     std::unordered_map<std::string, std::string> texture_path;
     bool initDone = false;

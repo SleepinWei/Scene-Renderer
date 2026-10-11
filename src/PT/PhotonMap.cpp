@@ -18,7 +18,7 @@ glm::ivec3 key(glm::vec3 p,float radius){auto k=glm::floor(p/radius);if(!finite(
 bool less(glm::ivec3 a,glm::ivec3 b){return std::tie(a.x,a.y,a.z)<std::tie(b.x,b.y,b.z);}
 float adjoint(const Surface &s,glm::vec3 v,glm::vec3 l){float denominator=std::abs(glm::dot(v,s.geometricNormal)*glm::dot(l,s.normal));return denominator>1e-8f?std::abs(glm::dot(v,s.normal)*glm::dot(l,s.geometricNormal))/denominator:0;}
 }
-PhotonMap::PhotonMap(const CpuScene &scene,const Options &options):paths(options.photonPaths),radius(options.photonRadius){
+PhotonMap::PhotonMap(const CpuScene &scene,const Options &options,uint32_t iteration,bool report):paths(options.photonPaths),radius(options.photonRadius){
     validateOptions(options);scene.validatePhotonMapping();auto started=std::chrono::steady_clock::now();
     auto box=scene.bounds();key(box.first,radius);key(box.second,radius);auto center=(box.first+box.second)*.5f;float aperture=std::max(glm::length(box.second-box.first)*.5001f,.01f);
     Random probe;bool area=scene.sampleEmitter(probe).pdfArea>0,sun=scene.sunRadius>0&&energy(scene.sunIrradiance)>0,sky=bool(scene.environment);
@@ -28,7 +28,7 @@ PhotonMap::PhotonMap(const CpuScene &scene,const Options &options):paths(options
     struct Worker {std::vector<Photon> photons;uint64_t rays=0,caustics=0;};std::vector<Worker> results(workers);
     std::atomic<uint32_t> stored{0};std::atomic<bool> failed{false};std::exception_ptr failure;std::mutex mutex;std::vector<std::thread> threads;
     auto run=[&](uint32_t worker){try{auto &workerResult=results[worker];workerResult.photons.reserve(std::min<uint64_t>(uint64_t(paths)*2/workers,4000000/workers));
-        for(uint32_t path=worker;path<paths&&!failed.load(std::memory_order_relaxed);path+=workers){auto rng=Random::forPixel(options.seed^0x70686f746f6eull,path,0,false);glm::vec3 origin,d,beta;uint32_t source=std::min(uint32_t(rng.uniform()*sources),sources-1);bool areaOrigin=area&&source==0;
+        for(uint32_t path=worker;path<paths&&!failed.load(std::memory_order_relaxed);path+=workers){auto rng=Random::forPixel(options.seed^0x70686f746f6eull,path,iteration,false);glm::vec3 origin,d,beta;uint32_t source=std::min(uint32_t(rng.uniform()*sources),sources-1);bool areaOrigin=area&&source==0;
         if(area&&source==0){auto emitter=scene.sampleEmitter(rng);auto n=emitter.surface.normal;if(emitter.surface.twoSided&&rng.uniform()<.5f)n=-n;auto uv=rng.uniform2();float r=std::sqrt(uv[0]),phi=2*pi*uv[1];d=local({r*std::cos(phi),r*std::sin(phi),std::sqrt(1-uv[0])},n);origin=offset(emitter.surface,d);beta=emitter.surface.emission*emitter.surface.opacity*(pi*(emitter.surface.twoSided?2.f:1.f)*sources/emitter.pdfArea);}
         else {source-=uint32_t(area);glm::vec3 Le;float pdf;
             if(sun&&source==0){auto uv=rng.uniform2();float edge=std::cos(scene.sunRadius),c=glm::mix(1.f,edge,uv[0]),r=std::sqrt(std::max(0.f,1-c*c)),phi=2*pi*uv[1];d=-local({r*std::cos(phi),r*std::sin(phi),c},scene.sunDirection);Le=scene.sunIrradiance/(pi*std::sin(scene.sunRadius)*std::sin(scene.sunRadius));pdf=1/(2*pi*(1-edge));}
@@ -67,7 +67,7 @@ PhotonMap::PhotonMap(const CpuScene &scene,const Options &options):paths(options
     photons_.reserve(stored);for(auto &workerResult:results){rays+=workerResult.rays;causticCount+=workerResult.caustics;photons_.insert(photons_.end(),workerResult.photons.begin(),workerResult.photons.end());std::vector<Photon>().swap(workerResult.photons);}
     std::stable_sort(photons_.begin(),photons_.end(),[&](const auto &a,const auto &b){auto ka=key(glm::vec3(a.positionDepth),radius),kb=key(glm::vec3(b.positionDepth),radius);if(ka!=kb)return less(ka,kb);return a.normal.w!=b.normal.w?a.normal.w<b.normal.w:a.positionDepth.w<b.positionDepth.w;});
     for(uint32_t i=0;i<photons_.size();++i){auto k=key(glm::vec3(photons_[i].positionDepth),radius);if(cells_.empty()||glm::ivec3(cells_.back().keyFirst)!=k)cells_.push_back({glm::ivec4(k,int(i)),glm::uvec4(0)});++cells_.back().count.x;}
-    seconds=std::chrono::duration<double>(std::chrono::steady_clock::now()-started).count();std::cout<<"Photon map: "<<paths<<" paths, "<<photons_.size()<<" vertices, "<<causticCount<<" caustic photons, "<<seconds<<" s\n"<<std::flush;
+    seconds=std::chrono::duration<double>(std::chrono::steady_clock::now()-started).count();if(report)std::cout<<"Photon map: "<<paths<<" paths, "<<photons_.size()<<" vertices, "<<causticCount<<" caustic photons, "<<seconds<<" s\n"<<std::flush;
 }
 PhotonEstimate PhotonMap::estimate(const Surface &s,glm::vec3 view,uint32_t remainingDepth) const {
     PhotonEstimate result;auto k=key(s.position,radius);float r2=radius*radius;
@@ -80,5 +80,16 @@ PhotonEstimate PhotonMap::estimate(const Surface &s,glm::vec3 view,uint32_t rema
     }return result;
 }
 uint64_t PhotonMap::memoryBytes() const{return photons_.size()*sizeof(Photon)+cells_.size()*sizeof(PhotonCell);}
+PhotonGather PhotonMap::gather(const Surface &s,glm::vec3 view,uint32_t remainingDepth,float queryRadius) const {
+    if(!std::isfinite(queryRadius)||queryRadius<=0||queryRadius>radius)throw std::invalid_argument("SPPM gather radius exceeds photon grid cell width");
+    PhotonGather result;auto k=key(s.position,radius);const float r2=queryRadius*queryRadius;
+    for(int x=-1;x<=1;++x)for(int y=-1;y<=1;++y)for(int z=-1;z<=1;++z){auto neighbor=k+glm::ivec3(x,y,z);auto it=std::lower_bound(cells_.begin(),cells_.end(),neighbor,[](const auto &cell,glm::ivec3 value){return less(glm::ivec3(cell.keyFirst),value);});if(it==cells_.end()||glm::ivec3(it->keyFirst)!=neighbor)continue;
+        for(uint32_t i=uint32_t(it->keyFirst.w),end=i+it->count.x;i<end;++i){const auto &p=photons_[i];auto delta=glm::vec3(p.positionDepth)-s.position;
+            if(glm::dot(delta,delta)>=r2||p.positionDepth.w>=remainingDepth||glm::dot(glm::vec3(p.normal),s.geometricNormal)<.9f||std::abs(glm::dot(delta,s.geometricNormal))>queryRadius*.1f)continue;
+            const auto value=glm::dvec3(evaluateBsdf(s,view,glm::vec3(p.incoming)))*glm::dvec3(p.fluxCaustic);
+            result.flux+=value;if(p.fluxCaustic.w>0)result.causticFlux+=value;++result.count;
+        }
+    }return result;
+}
 static_assert(sizeof(Photon)==64&&sizeof(PhotonCell)==32,"Photon GPU ABI");
 } // namespace pt

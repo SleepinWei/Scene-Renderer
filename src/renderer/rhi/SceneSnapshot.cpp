@@ -80,12 +80,15 @@ ImageRGBA8 decode(const MaterialData &m, const char *name) {
 MaterialExtension extension(ShaderType type, const MaterialProperties &material) {
     MaterialExtension e;
     e.settings.w = material.twoSided ? 1.f : 0.f;
+    if(material.matchedGgx || material.specularAnisotropy!=0 || material.specularRotation!=0)
+        e.specularShape={material.specularAnisotropy,material.specularRotation,1,0};
     if (type == ShaderType::PBR_CLEARCOAT)
         e.lobes.x = 1;
     if (type == ShaderType::PBR_ANISOTROPY)
         e.lobes.z = .95f;
     if (type == ShaderType::PBR_SSS || material.hasSubSurface)
         e.lobes.w = 1;
+    if(material.foliageTransmission>0){e.features.x|=int(MaterialFeature::Foliage);e.lobes.w=material.foliageTransmission;e.settings.w=1;}
     if (type == ShaderType::SIMPLE || type == ShaderType::LIGHT || type == ShaderType::TEST)
         e.settings.z = 1;
     return e;
@@ -273,10 +276,12 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
                                            glm::vec4(l->getData().color, l->getData().cutOff),
                                            glm::vec4(l->getData().direction, l->getData().outerCutOff)});
         }
-    result.frame.shadows = result.frame.ssao = result.frame.rsm = true;
+    result.frame.shadows = result.frame.ssao = true;
+    result.frame.rsm = false; // RSM is an opt-in lighting demo.
     result.frame.inverseSquareLocalLights = true;
     result.frame.timeSeconds = time;
     result.frame.taa = true;
+    result.frame.giSceneKey = scene->assetId;
     result.frame.historyKey = scene->assetId ^ (scene->revision() * 0x9e3779b97f4a7c15ull);
     if (scene->sky()) {
         if(auto cloud=scene->sky()->getComponent<Cloud>())result.frame.clouds=cloud->settings();
@@ -302,6 +307,7 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
     result.asynchronousStreaming = !wait;
     result.sequence = ++state_->sequence;
     result.frame.historyKey ^= state_->epoch * 0xd1b54a32d192ed03ull;
+    result.frame.giSceneKey ^= state_->epoch * 0xd1b54a32d192ed03ull;
     bool ready = true;
     std::unordered_set<uint64_t> usedMeshes, usedMaterials, usedMasks;
     if (scene->terrain()) {
@@ -328,7 +334,8 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
             mix(shoreline.enabled);
             if(shoreline.enabled)for(auto& path:shoreline.paths)mix(std::hash<std::string>{}(path));
             if (grass) {
-                mix(vegetation.capacity);
+                mix(vegetation.capacity);mix(vegetation.speciesLod);mix(vegetation.species.size());
+                for(auto& v:vegetation.species){mix(uint32_t(v.type));mix(v.capacity);mix(v.variants);mix(v.seed);}
                 mix(std::hash<std::string>{}(vegetation.waterMaskPath));
             }
             // Paths are part of source identity; scalars and model are per-frame values.
@@ -454,6 +461,8 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
                               configuration.BubblesThreshold,
                               glm::vec2(configuration.WindAndSeed),
                               configuration.seed};
+                s.spectrum.seaState=configuration.seaState;
+                if(configuration.seaState.enabled){s.spectrum.minWavelength=std::max(2.f,2*s.spectrum.length/s.spectrum.size);s.spectrum.maxWavelength=s.spectrum.length;}
                 s.meshSize = uint32_t(configuration.MeshSize);
                 s.surfaceLength = configuration.MeshLength;
                 s.seaLevel = configuration.seaLevel;
@@ -464,8 +473,8 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
                 s.shortWaveRipples=configuration.shortWaveRipples;
                 s.bedCaustics=configuration.bedCaustics;s.causticStrength=configuration.causticStrength;
                 s.causticCascades=configuration.causticCascades;s.causticMeshReceivers=configuration.causticMeshReceivers;
-                s.underwaterWideRefraction=configuration.underwaterWideRefraction;s.underwaterSunShafts=configuration.underwaterSunShafts;s.sunShaftStrength=configuration.sunShaftStrength;
-                s.underwaterParticles=configuration.underwaterParticles;s.particleDensity=configuration.particleDensity;s.underwaterVolumeSteps=configuration.underwaterVolumeSteps;
+                s.sceneReflection=configuration.sceneReflection;s.underwaterWideRefraction=configuration.underwaterWideRefraction;s.underwaterSunShafts=configuration.underwaterSunShafts;s.sunShaftStrength=configuration.sunShaftStrength;
+                s.underwaterParticles=configuration.underwaterParticles;s.particleDensity=configuration.particleDensity;s.underwaterVolumeSteps=configuration.underwaterVolumeSteps;s.underwaterVolumeDownsample=configuration.underwaterVolumeDownsample;
                 s.rippleRmsHeight=configuration.rippleRmsHeight;
                 s.cameraGrid = configuration.cameraGrid;
                 s.gridFocus = configuration.gridFocus;
@@ -475,7 +484,7 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
                 s.multipleScattering=configuration.multipleScattering;
                 s.underwaterView=configuration.underwaterView;s.underwaterFog=configuration.underwaterFog;
                 s.opticalDebug=configuration.opticalDebug;
-                s.shore=configuration.shore;
+                s.shore=configuration.shore;s.waveParticles=configuration.waveParticles;
                 if(result.terrain){s.bathymetry=result.terrain->source->bathymetry;s.bathymetryModel=result.terrain->model;}
                 s.refraction = configuration.refraction;
                 s.refractionStrength = configuration.refractionStrength;
@@ -484,6 +493,7 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
                 s.anisotropy = configuration.scatteringAnisotropy;
                 s.absorption = configuration.absorption;
                 s.scattering = configuration.scattering;
+                s.surfaceModel=configuration.surfaceModel;
                 s.fresnel = configuration.outer_FresnelScale;
                 s.gloss = float(configuration.outer_Gloss);
                 s.shallow = configuration.outer_OceanColorShallow;
@@ -522,15 +532,17 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
                     usedMeshes.insert(mesh->assetId);
                     std::vector<Vertex> vertices;
                     std::vector<unsigned> indices;
+                    std::vector<TreeWindVertex> treeWind;
                     if ((!record.pending.valid() && !record.value) ||
                         record.revision != mesh->getContentRevision()) {
                         vertices = mesh->getVertices();
                         indices = mesh->getIndices();
+                        treeWind=mesh->getTreeWind();
                     }
                     auto payload = requestPayload(
                         record, mesh->getContentRevision(),
                         [id = mesh->assetId, rev = mesh->getContentRevision(), vertices = std::move(vertices),
-                         indices = std::move(indices)] {
+                         indices = std::move(indices),treeWind=std::move(treeWind)] {
                             auto result = std::make_shared<MeshPayload>();
                             result->id = id;
                             result->revision = rev;
@@ -545,6 +557,7 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
                                         {vertex.Position,
                                          vertex.Normal,
                                          {vertex.TexCoords.x, 1 - vertex.TexCoords.y}});
+                                    if(!treeWind.empty())result->treeWind.push_back(treeWind[index]);
                                 }
                                 result->indices.push_back(remap[index]);
                             }
@@ -582,6 +595,8 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
                         draw.parameters = parameters(*material);
                         draw.extension = extension(renderer ? renderer->getShaderType() : ShaderType::PBR,
                                                    material->properties());
+                        draw.pathTracingSpecularAnisotropy=draw.extension.specularShape.x;
+                        draw.pathTracingSpecularRotation=draw.extension.specularShape.y;
                         if (!draw.material)
                             ready = false;
                     } else {

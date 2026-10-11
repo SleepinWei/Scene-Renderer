@@ -1,0 +1,468 @@
+// Shared camera / probe transport implementation.
+#ifndef PT_PROBE_ENTRY
+#define PT_PROBE_ENTRY 0
+#endif
+#include "pt-sampling.glsl"
+struct Vertex {vec4 positionU,normalV,tangent;};
+struct Node {vec4 low,high;};
+struct Instance {mat4 model,inverse;uvec4 info,range;};
+struct Material {vec4 albedo,emission,factors,optics,absorption,scattering;uvec4 textures,extra;vec4 shoreHeight,shoreSurface;uvec4 shoreTextures;vec4 specularShape,fiber,sheen,sheenColor,knit,diffuseTransmission;uvec4 oceanNormals;};
+struct Light {vec4 positionType,colorInner,directionOuter;};
+struct Emitter {vec4 primitiveAreaCDF,normal;};
+struct Pixel {vec4 mean,m2;uvec4 stats;vec4 albedo,normal;}; // count, stable, rays, invalid; photon mode uses mean/m2/albedo.w for caustic RGB (learning disabled)
+layout(set=0,binding=0,std140) uniform Parameters {
+    mat4 inverseProjection;
+    vec4 camera,sunDirectionRadius,sunIrradiance;
+    uvec4 dimensions; // width,height,begin,end
+    uvec4 counts; // TLAS nodes,lights,environment width,height
+    uvec4 control; // depth,seed,mode,emitters
+    vec4 settings; // emitterWeight,relativeError,absoluteError,inverseSquare
+    uvec4 adaptive; // enabled,minSamples,budget,Sobol enabled
+    uvec4 learning; // capacity,flags: guide=1/cache=2/disable solar=4/disable thin solar=8,cache minimum,cache depth
+    vec4 guideSettings; // cell size,mix fraction,unused,unused
+    uvec4 cameraMedia[2],cameraWinding[2];
+    uvec4 acceleration; // instances, closed dielectric interfaces, thin orientations, shadow flags (any-hit=1/all opaque=2)
+    vec4 thinSolarNormals[8];
+    vec4 photonSettings; // radius, normalized disk kernel scale, normal tolerance, plane tolerance
+    uvec4 photonControl; // enabled, cell count, emitted paths, reserved
+    vec4 cloudPatch,cloudProjection;uvec4 cloudInfo;
+} p;
+layout(set=0,binding=1,std430) readonly buffer TlasNodes {Node tlasNodes[];};
+layout(set=0,binding=2,std430) readonly buffer Vertices {Vertex vertices[];};
+layout(set=0,binding=3,std430) readonly buffer Triangles {uvec4 triangles[];};
+layout(set=0,binding=4,std430) readonly buffer Materials {Material materials[];};
+layout(set=0,binding=5,std430) readonly buffer Texels {uint texels[];};
+layout(set=0,binding=6,std430) readonly buffer Instances {Instance instances[];};
+layout(set=0,binding=7,std430) readonly buffer InstanceOrder {uint instanceOrder[];};
+layout(set=2,binding=2,std430) readonly buffer BlasNodes {Node blasNodes[];};
+layout(set=1,binding=0,std430) readonly buffer Images {uvec4 images[];};
+layout(set=1,binding=1,std430) readonly buffer Environment {vec4 environment[];};
+layout(set=1,binding=2,std430) readonly buffer Lights {Light lights[];};
+layout(set=1,binding=3,std430) readonly buffer Emitters {Emitter emitters[];};
+layout(set=1,binding=4,std430) buffer Pixels {Pixel pixels[];};
+struct Photon {vec4 positionDepth,normal,incoming,fluxCaustic;};
+struct PhotonCell {ivec4 keyFirst;uvec4 count;};
+layout(set=2,binding=0,std430) readonly buffer Photons {Photon photons[];};
+layout(set=2,binding=1,std430) readonly buffer PhotonCells {PhotonCell photonCells[];};
+vec3 pathCaustics;bool photonMerge;
+const float PI=3.14159265358979323846,EPS=1e-4,INF=3.402823466e38;
+uint pixelSeed,sampleIndex,dimension,rayCount,volumeEvents;
+uint fallbackState;
+float rayEpsilon;
+float randomValue(){
+    if(p.adaptive.w!=0u)return sobol(pixelSeed,sampleIndex,dimension++);
+    fallbackState=ptHash(fallbackState+0x9e3779b9u);return float(fallbackState>>8)*(1.0/16777216.0);
+}
+vec2 randomPair(){if((dimension&1u)!=0u)++dimension;float x=randomValue(),y=randomValue();return vec2(x,y);}
+float luminance(vec3 c){return dot(c,vec3(.2126,.7152,.0722));}
+vec3 unit(vec3 v,vec3 backup){float n=dot(v,v);return n>1e-20&&!isinf(n)&&!isnan(n)?v*inversesqrt(n):backup;}
+vec3 localVector(vec3 v,vec3 n){vec3 t=unit(cross(abs(n.y)<.99?vec3(0,1,0):vec3(1,0,0),n),vec3(1,0,0));return t*v.x+cross(n,t)*v.y+n*v.z;}
+float mis(float a,float b){if(a==0)return 0;float r=b/a;return 1/(1+r*r);}
+vec4 imagePixel(uvec4 image,int x,int y){int w=int(image.y),h=int(image.z);x=(x%w+w)%w;y=(y%h+h)%h;uint at=image.x+uint(y*w+x)*(image.w==1u?4u:1u);if(image.w==1u)return uintBitsToFloat(uvec4(texels[at],texels[at+1u],texels[at+2u],texels[at+3u]));return unpackUnorm4x8(texels[at]);}
+vec4 textureValue(uint id,vec2 uv){
+    if(id==0xffffffffu)return vec4(1);uvec4 image=images[id];vec2 xy=fract(uv)*vec2(image.yz)-.5;ivec2 i=ivec2(floor(xy));vec2 f=fract(xy);
+    return mix(mix(imagePixel(image,i.x,i.y),imagePixel(image,i.x+1,i.y),f.x),mix(imagePixel(image,i.x,i.y+1),imagePixel(image,i.x+1,i.y+1),f.x),f.y);
+}
+vec4 textureClamped(uint id,vec2 uv){
+    uvec4 image=images[id];vec2 xy=clamp(uv,vec2(0),vec2(1))*vec2(image.yz)-.5;ivec2 i=ivec2(floor(xy)),high=ivec2(image.yz)-1;vec2 f=fract(xy);
+    return mix(mix(imagePixel(image,clamp(i.x,0,high.x),clamp(i.y,0,high.y)),imagePixel(image,clamp(i.x+1,0,high.x),clamp(i.y,0,high.y)),f.x),mix(imagePixel(image,clamp(i.x,0,high.x),clamp(i.y+1,0,high.y)),imagePixel(image,clamp(i.x+1,0,high.x),clamp(i.y+1,0,high.y)),f.x),f.y);
+}
+struct Hit {uint primitive;float distance;vec2 bary;uint instance,triangle;};
+struct Surface {vec3 position,gn,n,albedo,emission;float roughness,metallic,opacity,ior,foam,exteriorIor,transmissionRoughness;vec3 absorption;uint primitive,mediumId;bool frontFace,water,thinDielectric;uint bsdfModel;vec3 diffuseTransmission,diffuseNormal,smoothNormal;float specularAnisotropy;vec4 specularTangent,specularBitangent,fiber,sheen,sheenColor;float hairOffset;vec4 knitSurface;};
+#include "pt-fiber.glsl"
+bool boxHit(Node node,vec3 o,vec3 d,float maximum,out float nearDistance){
+    float minimum=rayEpsilon;
+    for(int i=0;i<3;++i){if(abs(d[i])<1e-30){if(o[i]<node.low[i]||o[i]>node.high[i])return false;continue;}
+        float a=(node.low[i]-o[i])/d[i],b=(node.high[i]-o[i])/d[i];minimum=max(minimum,min(a,b));maximum=min(maximum,max(a,b));if(maximum<minimum)return false;}
+    nearDistance=minimum;return true;
+}
+uint findInstance(uint primitive){uint low=0u,high=p.acceleration.x;while(low<high){uint mid=(low+high)/2u;if(instances[mid].info.z<=primitive)low=mid+1u;else high=mid;}return low-1u;}
+Hit primitiveHit(uint primitive,float distance,vec2 bary){uint instance=findInstance(primitive);return Hit(primitive,distance,bary,instance,instances[instance].info.w+primitive-instances[instance].info.z);}
+uvec4 triangleIndex(uint instance,uint triangle){uvec4 index=triangles[triangle];if(instances[instance].range.y!=0u)index.yz=index.zy;return index;}
+Vertex worldVertex(uint id,Instance instance){Vertex v=vertices[id];v.positionU.xyz=(instance.model*vec4(v.positionU.xyz,1)).xyz;v.normalV.xyz=transpose(mat3(instance.inverse))*v.normalV.xyz;if(instance.range.w==0u)v.normalV.xyz=unit(v.normalV.xyz,vec3(0,1,0));return v;}
+bool triangleHit(uint id,uint instance,vec3 o,vec3 d,float maximum,out Hit hit){
+    uvec4 index=triangleIndex(instance,id);Vertex a=vertices[index.x],b=vertices[index.y],c=vertices[index.z];vec3 e1=b.positionU.xyz-a.positionU.xyz,e2=c.positionU.xyz-a.positionU.xyz;
+    vec3 crossD=cross(d,e2);float determinant=dot(e1,crossD);
+    if(abs(determinant)<=1e-10*sqrt(dot(e1,e1)*dot(e2,e2)*dot(d,d)))return false;
+    vec3 t=o-a.positionU.xyz;float u=dot(t,crossD)/determinant;if(u<0||u>1)return false;
+    vec3 q=cross(t,e1);float v=dot(d,q)/determinant;if(v<0||u+v>1)return false;
+    float distance=dot(e2,q)/determinant;if(distance<rayEpsilon||distance>maximum)return false;
+    Material m=materials[instances[instance].info.y];vec2 uv=vec2(a.positionU.w,a.normalV.w)*(1-u-v)+vec2(b.positionU.w,b.normalV.w)*u+vec2(c.positionU.w,c.normalV.w)*v;
+    if(m.factors.w>0&&textureValue(m.textures.x,uv).a*m.albedo.a<m.factors.w)return false;
+    hit=Hit(instances[instance].info.z+id-instances[instance].info.w,distance,vec2(u,v),instance,id);return true;
+}
+bool shadowOpaqueHit(Hit hit){
+    Material m=materials[instances[hit.instance].info.y];if((uint(m.optics.w)&4u)!=0u)return true;if((m.extra.w&1u)!=0u)return false;
+    uvec4 ids=triangleIndex(hit.instance,hit.triangle);Vertex a=vertices[ids.x],b=vertices[ids.y],c=vertices[ids.z];vec2 uv=vec2(a.positionU.w,a.normalV.w)*(1-hit.bary.x-hit.bary.y)+vec2(b.positionU.w,b.normalV.w)*hit.bary.x+vec2(c.positionU.w,c.normalV.w)*hit.bary.y;
+    return textureValue(m.textures.x,uv).a*m.albedo.a>=1;
+}
+// mode: nearest camera hit=0, any geometric hit=1, opaque blocker or nearest transparent hit=2.
+bool intersectBlas(uint instance,vec3 worldOrigin,vec3 worldDirection,inout Hit hit,uint mode,float maximum){
+    Instance transform=instances[instance];vec3 o=(transform.inverse*vec4(worldOrigin,1)).xyz,d=(transform.inverse*vec4(worldDirection,0)).xyz;
+    uint stack[64];uint size=1u;stack[0]=transform.info.x;
+    while(size>0u){Node node=blasNodes[stack[--size]];float nearDistance,limit=mode==2u?maximum:hit.distance;if(!boxHit(node,o,d,limit,nearDistance))continue;
+        uint first=floatBitsToUint(node.low.w),count=floatBitsToUint(node.high.w);
+        if(count>0u){for(uint i=0u;i<count;++i){Hit candidate;if(!triangleHit(first+i,instance,o,d,mode==2u?maximum:hit.distance,candidate))continue;
+            if(mode==1u||(mode==2u&&shadowOpaqueHit(candidate))){hit=candidate;return true;}
+            if(candidate.distance<hit.distance||(candidate.distance==hit.distance&&candidate.primitive<hit.primitive))hit=candidate;
+        }}else {Node a=blasNodes[first],b=blasNodes[first+1u];float da,db;bool ha=boxHit(a,o,d,limit,da),hb=boxHit(b,o,d,limit,db);
+            if(ha&&hb){if(da<db){stack[size++]=first+1u;stack[size++]=first;}else{stack[size++]=first;stack[size++]=first+1u;}}else if(ha)stack[size++]=first;else if(hb)stack[size++]=first+1u;
+        }
+    }return false;
+}
+bool intersectSceneMode(vec3 o,vec3 d,float maximum,out Hit hit,uint mode,out bool opaque){
+    ++rayCount;opaque=false;hit=Hit(0xffffffffu,maximum,vec2(0),0u,0u);if(p.acceleration.x==0u)return false;
+    uint stack[64];uint size=1u;stack[0]=0u;
+    while(size>0u){Node node=tlasNodes[stack[--size]];float nearDistance,limit=mode==2u?maximum:hit.distance;if(!boxHit(node,o,d,limit,nearDistance))continue;uint first=floatBitsToUint(node.low.w),count=floatBitsToUint(node.high.w);
+        if(count>0u){for(uint i=0u;i<count;++i)if(intersectBlas(instanceOrder[first+i],o,d,hit,mode,maximum)){opaque=true;return true;}}
+        else {Node a=tlasNodes[first],b=tlasNodes[first+1u];float da,db;bool ha=boxHit(a,o,d,limit,da),hb=boxHit(b,o,d,limit,db);
+            if(ha&&hb){if(da<db){stack[size++]=first+1u;stack[size++]=first;}else{stack[size++]=first;stack[size++]=first+1u;}}else if(ha)stack[size++]=first;else if(hb)stack[size++]=first+1u;
+        }
+    }return hit.primitive!=0xffffffffu;
+}
+bool intersectScene(vec3 o,vec3 d,float maximum,out Hit hit){bool opaque;return intersectSceneMode(o,d,maximum,hit,0u,opaque);}
+bool intersectsAny(vec3 o,vec3 d,float maximum){Hit hit;bool opaque;return intersectSceneMode(o,d,maximum,hit,1u,opaque);}
+vec3 correctedReflectionNormal(vec3 gn,vec3 view,vec3 shading){
+    float z=dot(view,gn),threshold=min(.9*z,.01);if(z<=0||dot(gn,reflect(-view,shading))>=threshold)return shading;
+    vec3 side=shading-gn*dot(shading,gn);if(dot(side,side)<1e-20)return gn;
+    vec3 x=unit(side,gn);float vx=dot(view,x),radius=sqrt(vx*vx+z*z);
+    float angle=.5*(atan(vx,z)+acos(clamp(threshold/radius,-1,1)));
+    return unit(x*sin(angle)+gn*cos(angle),gn);
+}
+Surface makeSurface(Hit hit,vec3 o,vec3 d){
+    Instance instance=instances[hit.instance];uvec4 index=triangleIndex(hit.instance,hit.triangle);Vertex a=worldVertex(index.x,instance),b=worldVertex(index.y,instance),c=worldVertex(index.z,instance);Material m=materials[instance.info.y];
+    float u=hit.bary.x,v=hit.bary.y;vec3 n=unit(a.normalV.xyz*(1-u-v)+b.normalV.xyz*u+c.normalV.xyz*v,vec3(0,1,0));
+    vec3 e1=b.positionU.xyz-a.positionU.xyz,e2=c.positionU.xyz-a.positionU.xyz,gn=unit(cross(e1,e2),n);if(dot(gn,n)<0){if((uint(m.optics.w)&1u)!=0u||m.optics.y>0)n=-n;else gn=-gn;}
+    bool frontFace=dot(gn,d)<0;if(!frontFace){gn=-gn;n=-n;}
+    vec2 auv=vec2(a.positionU.w,a.normalV.w),buv=vec2(b.positionU.w,b.normalV.w),cuv=vec2(c.positionU.w,c.normalV.w),uv=auv*(1-u-v)+buv*u+cuv*v;
+    vec3 normal=n;
+    bool water=m.optics.y>0;
+    if(water&&m.oceanNormals.x!=0xffffffffu){
+        vec2 base=vec2(uv.x,1.-uv.y)-.5;uvec4 mainImage=images[m.oceanNormals.x];
+        vec3 mapped=unit(textureValue(m.oceanNormals.x,base*uintBitsToFloat(m.oceanNormals.z)+.5+.5/vec2(mainImage.yz)).xyz,n);
+        if(m.oceanNormals.y!=0xffffffffu){uvec4 detailImage=images[m.oceanNormals.y];vec3 fine=unit(textureValue(m.oceanNormals.y,base*uintBitsToFloat(m.oceanNormals.w)+.5+.5/vec2(detailImage.yz)).xyz,vec3(0,1,0));
+            vec2 slope=mapped.xz/max(mapped.y,.1)+fine.xz/max(fine.y,.1);mapped=unit(vec3(slope.x,1,slope.y),n);}
+        if(!frontFace)mapped=-mapped;if(dot(mapped,gn)>.05)normal=mapped;
+    }
+    else if(water&&m.textures.y!=0xffffffffu){vec3 map=textureValue(m.textures.y,uv*m.optics.z).xyz*2-1;vec3 mapped=unit(vec3(map.x,map.z,-map.y),n);if(!frontFace)mapped=-mapped;if(dot(mapped,gn)>.05)normal=mapped;}
+    else if(m.textures.y!=0xffffffffu&&m.emission.w>0){bool explicitFrame=false;vec4 frame=a.tangent*(1-u-v)+b.tangent*u+c.tangent*v;vec3 tangent=frame.xyz;
+        if(dot(tangent,tangent)>1e-12&&abs(frame.w)>.5){vec3 localNormal=vertices[index.x].normalV.xyz*(1-u-v)+vertices[index.y].normalV.xyz*u+vertices[index.z].normalV.xyz*v;
+            vec3 bitangent=cross(localNormal,tangent)*frame.w,map=textureValue(m.textures.y,uv).xyz*2-1;map.xy*=m.emission.w;map.z=mix(1,map.z,clamp(m.emission.w,0,1));
+            mat3 normalMatrix=transpose(mat3(instance.inverse));vec3 mapped=unit(normalMatrix*(tangent*map.x+bitangent*map.y+localNormal*map.z),n);
+            if(dot(normalMatrix*localNormal,frontFace?n:-n)<0)mapped=-mapped;if(!frontFace)mapped=-mapped;
+            if(dot(mapped,gn)>.05)normal=mapped;explicitFrame=true;}vec2 ta=buv-auv,tb=cuv-auv;float det=ta.x*tb.y-ta.y*tb.x;
+        if(!explicitFrame&&abs(det)>1e-10){vec3 tangent=(e1*tb.y-e2*ta.y)/det,bitangent=(-e1*tb.x+e2*ta.x)/det;tangent=unit(tangent-n*dot(n,tangent),vec3(0,1,0));bitangent=unit(bitangent-n*dot(n,bitangent),vec3(0,1,0));
+            vec3 map=textureValue(m.textures.y,uv).xyz*2-1;map.xy*=m.emission.w;if(!frontFace)map.xy=-map.xy;vec3 mapped=unit(tangent*map.x+bitangent*map.y+n*map.z,n);if(dot(mapped,gn)>.05)normal=mapped;}}
+    if(!(m.optics.x==0&&(m.extra.w>>1u)>0u)&&dot(normal,-d)<=0)normal=dot(n,-d)>0?n:gn;
+    vec4 base=textureValue(m.textures.x,uv)*m.albedo;vec3 albedo=pow(max(base.xyz,vec3(0)),vec3(2.2));
+    float roughness=clamp(textureValue(m.textures.w,uv).g*m.factors.y,.045,1),metallic=clamp(textureValue(m.textures.z,uv).b*m.factors.x,0,1);
+    float rainWet=m.specularShape.z>0?textureClamped(uint(m.specularShape.z)-1u,uv).r:m.specularShape.w;
+    albedo*=mix(1.,.45,rainWet);roughness=clamp(roughness*mix(1.,.5,rainWet),.045,1);
+    if(m.shoreTextures.x!=0xffffffffu){
+        vec4 H=m.shoreHeight,S=m.shoreSurface;vec3 position=o+d*hit.distance;float altitude=position.y-H.x;
+        float weight=textureClamped(m.shoreTextures.w,uv).r*(1-smoothstep(H.y*.55,H.y,altitude))*smoothstep(S.y,S.z,abs(n.y))*smoothstep(-4,-.5,altitude);
+        float wet=max(rainWet,1-smoothstep(-H.z,H.w,altitude));vec2 beachUV=vec2(position.x,-position.z)/S.x;
+        vec4 sand=textureValue(m.shoreTextures.x,beachUV),orm=textureValue(m.shoreTextures.z,beachUV);
+        albedo=mix(albedo,pow(sand.xyz,vec3(2.2))*mix(1,.45,wet),weight);
+        roughness=clamp(mix(roughness,mix(orm.g,max(.28,orm.g*.5),wet),weight),.045,1);metallic=mix(metallic,0,weight);
+        vec3 tangent=vec3(1,0,0)-n*n.x;
+        if(dot(tangent,tangent)>1e-8){tangent=unit(tangent,vec3(1,0,0));vec3 map=unit(textureValue(m.shoreTextures.y,beachUV).xyz*2-1,vec3(0,0,1));map.xy*=S.w;if(!frontFace)map.xy=-map.xy;
+            vec3 mapped=unit(mix(normal,unit(tangent*map.x+cross(n,tangent)*map.y+n*map.z,n),weight),n);if(dot(mapped,gn)>.05&&dot(mapped,-d)>0)normal=mapped;}
+    }
+    vec3 emission=frontFace||m.extra.y!=0u?m.emission.xyz:vec3(0);if(m.extra.z!=0u&&luminance(emission)==0)emission=albedo;
+    if((m.extra.w&1u)!=0u)normal=gn;
+    vec3 diffuseNormal=vec3(0),smoothNormal=vec3(0);uint model=m.extra.w>>1u;
+    if(m.optics.x==0&&model>0u){diffuseNormal=normal;smoothNormal=n;if(model==2u||model==3u)normal=correctedReflectionNormal(gn,-d,normal);}
+    vec4 specularTangent=vec4(0);
+    if(model>=4u)normal=gn;
+    if(m.specularShape.x!=0||model>=4u){
+        vec3 tangent=vec3(0),bitangent=vec3(0);vec4 frame=a.tangent*(1-u-v)+b.tangent*u+c.tangent*v;
+        if(dot(frame.xyz,frame.xyz)>1e-12&&abs(frame.w)>.5){
+            vec3 localNormal=vertices[index.x].normalV.xyz*(1-u-v)+vertices[index.y].normalV.xyz*u+vertices[index.z].normalV.xyz*v;
+            tangent=mat3(instance.model)*frame.xyz;bitangent=mat3(instance.model)*(cross(localNormal,frame.xyz)*frame.w);
+        }
+        vec2 ta=buv-auv,tb=cuv-auv;float det=ta.x*tb.y-ta.y*tb.x;
+        if(dot(tangent,tangent)<1e-12&&abs(det)>1e-10){tangent=(e1*tb.y-e2*ta.y)/det;bitangent=(-e1*tb.x+e2*ta.x)/det;}
+        tangent-=normal*dot(normal,tangent);
+        if(dot(tangent,tangent)>1e-12)specularTangent=vec4(unit(tangent,vec3(1,0,0)),dot(cross(normal,tangent),bitangent)<0?-1:1);
+    }
+    vec4 specularBitangent=vec4(0);
+    if(m.specularShape.x!=0){
+        vec3 t=specularTangent.xyz;t-=normal*dot(normal,t);if(dot(t,t)<1e-12)t=cross(abs(normal.y)<.99?vec3(0,1,0):vec3(1,0,0),normal);
+        t=unit(t,vec3(1,0,0));vec3 b=cross(normal,t)*(specularTangent.w<0?-1:1);float cs=cos(m.specularShape.y),sn=sin(m.specularShape.y),alpha=roughness*roughness,aspect=sqrt(1-.9*abs(m.specularShape.x));vec2 axes=vec2(alpha/aspect,alpha*aspect);if(m.specularShape.x<0)axes=axes.yx;
+        specularTangent=vec4(t*cs+b*sn,axes.x);specularBitangent=vec4(b*cs-t*sn,axes.y);
+    }
+    vec4 knitSurface=fiberKnit(uv,m.knit);knitSurface.z*=specularTangent.w<0?-1:1;
+    return Surface(o+d*hit.distance,gn,normal,albedo,emission,roughness,metallic,m.factors.w>0?(base.a<m.factors.w?0:1):clamp(base.a,0,1),m.optics.x,water&&m.textures.z!=0xffffffffu?textureValue(m.textures.z,uv*m.optics.z).r:0,1,(uint(m.optics.w)&2u)!=0u&&m.textures.w!=0xffffffffu?clamp(textureValue(m.textures.w,uv).g,0,1):m.absorption.w,m.absorption.xyz,hit.primitive,m.optics.x>0&&(m.extra.w&1u)==0u?instance.info.y+1u:0u,frontFace,water,(m.extra.w&1u)!=0u,m.extra.w>>1u,m.diffuseTransmission.xyz*pow(max(textureValue(floatBitsToUint(m.diffuseTransmission.w),uv).xyz,vec3(0)),vec3(2.2)),diffuseNormal,smoothNormal,m.specularShape.x,specularTangent,specularBitangent,m.fiber,m.sheen,m.sheenColor,clamp(uv.y*2-1,-.999,.999),knitSurface);
+}
+bool transitionMedium(inout uint media[8],inout uint winding[8],inout uint count,Surface s){
+    uint found=count;for(uint j=0u;j<count;++j)if(media[j]==s.mediumId)found=j;
+    if(s.frontFace){if(found<count){++winding[found];return winding[found]<=64u;}if(count==8u)return false;
+        if(s.water){for(uint j=count;j>0u;--j){media[j]=media[j-1u];winding[j]=winding[j-1u];}media[0]=s.mediumId;winding[0]=1u;++count;}else{media[count]=s.mediumId;winding[count++]=1u;}
+    }else if(found<count){if(winding[found]>1u){--winding[found];return true;}if(!s.water&&found+1u!=count)return false;for(uint j=found+1u;j<count;++j){media[j-1u]=media[j];winding[j-1u]=winding[j];}--count;}
+    return true;
+}
+float distribution(float nh,float roughness){float a=roughness*roughness,a2=a*a,q=nh*nh*(a2-1)+1;return a2/(PI*q*q);}
+float smith(float cosine,float roughness){if(cosine<=0)return 0;float a=roughness*roughness;return 2*cosine/(cosine+sqrt(a*a+(1-a*a)*cosine*cosine));}
+#include "pt-dielectric.glsl"
+float specularChance(Surface s){float spec=luminance(mix(vec3(.04),s.albedo,s.metallic)),diffuse=luminance(s.albedo)*(1-s.metallic);return clamp(spec/(spec+diffuse+1e-20),.1,.9);}
+float specularD(Surface s,vec3 h){
+    if(s.specularAnisotropy==0)return distribution(max(0,dot(s.n,h)),s.roughness);
+    float x=dot(h,s.specularTangent.xyz)/s.specularTangent.w,y=dot(h,s.specularBitangent.xyz)/s.specularBitangent.w,z=dot(h,s.n),q=x*x+y*y+z*z;
+    return z>0?1/(PI*s.specularTangent.w*s.specularBitangent.w*q*q):0;
+}
+float specularG1(Surface s,vec3 v){
+    if(s.specularAnisotropy==0)return smith(dot(s.n,v),s.roughness);
+    float z=dot(v,s.n),x=dot(v,s.specularTangent.xyz)*s.specularTangent.w,y=dot(v,s.specularBitangent.xyz)*s.specularBitangent.w;
+    return z>0?2*z/(z+sqrt(z*z+x*x+y*y)):0;
+}
+vec3 specularVisibleNormal(Surface s,vec3 v,vec2 uv){
+    if(s.specularAnisotropy==0)return visibleNormal(v,s.n,s.roughness,uv);
+    vec3 vh=unit(vec3(s.specularTangent.w*dot(v,s.specularTangent.xyz),s.specularBitangent.w*dot(v,s.specularBitangent.xyz),dot(v,s.n)),vec3(0,0,1));
+    float len=vh.x*vh.x+vh.y*vh.y;vec3 t1=len>0?vec3(-vh.y,vh.x,0)/sqrt(len):vec3(1,0,0),t2=cross(vh,t1);
+    float radius=sqrt(uv.x),phi=2*PI*uv.y,x=radius*cos(phi),blend=.5*(1+vh.z),y=mix(sqrt(max(0,1-x*x)),radius*sin(phi),blend);
+    vec3 nh=t1*x+t2*y+vh*sqrt(max(0,1-x*x-y*y)),ne=unit(vec3(s.specularTangent.w*nh.x,s.specularBitangent.w*nh.y,max(0,nh.z)),vec3(0,0,1));
+    return s.specularTangent.xyz*ne.x+s.specularBitangent.xyz*ne.y+s.n*ne.z;
+}
+vec3 diffuseNormal(Surface s){return dot(s.diffuseNormal,s.diffuseNormal)>0?s.diffuseNormal:s.n;}
+float bumpShadowing(Surface s,vec3 n,vec3 l){
+    if(dot(s.smoothNormal,s.smoothNormal)==0)return 1;
+    float i=dot(s.smoothNormal,l),d=dot(s.smoothNormal,n),c=dot(n,l);if(i*d*c<0)return 0;
+    float ci=abs(i),cd=abs(d);if(cd>=1||ci>=1)return 1;if(ci<1e-6)return 0;
+    float a2=clamp(.125*(1/max(cd*cd,1e-20)-1),0,1);return 2*ci/(ci+sqrt(a2+(1-a2)*ci*ci));
+}
+mat3 fiberFrame(Surface s){vec3 n=s.gn,t=s.specularTangent.xyz;t-=n*dot(n,t);if(dot(t,t)<1e-12)t=cross(abs(n.y)<.99?vec3(0,1,0):vec3(1,0,0),n);t=unit(t,vec3(1,0,0));return mat3(t,cross(n,t),n);}
+FiberHair hairClosure(Surface s,vec3 v){return fiberHair(transpose(fiberFrame(s))*v,s.albedo,s.fiber,s.hairOffset,s.absorption);}
+float surfaceCosine(Surface s,vec3 l){if(s.ior>0)return abs(dot(s.n,l));float c=dot(s.bsdfModel>0u?s.gn:s.n,l);return s.bsdfModel>=3u?abs(c):max(0,c);}
+vec3 bsdf(Surface s,vec3 v,vec3 l){if(s.bsdfModel==5u)return fiberHairKernel(hairClosure(s,v),transpose(fiberFrame(s))*l)/max(surfaceCosine(s,l),1e-8);if(s.bsdfModel==4u){mat3 f=transpose(fiberFrame(s));return fiberCloth(s.albedo,s.sheenColor.xyz,s.sheen,s.roughness,f*v,f*l,s.knitSurface);}if(s.thinDielectric)return vec3(0);if(s.ior>0){float foam=s.water?s.foam:0;vec2 f=s.transmissionRoughness>=.02?roughDielectric(s,v,l):vec2(0);return (1-foam)*f.x*(dot(s.n,l)<0?s.albedo:vec3(1))+(foam>0&&dot(s.n,v)>0&&dot(s.n,l)>0&&dot(s.gn,l)>0?foam*s.albedo/PI:vec3(0));}float nv=dot(s.n,v),nl=dot(s.n,l),ngl=dot(s.gn,l);vec3 dn=diffuseNormal(s);float dl=max(0,dot(dn,l));if(dot(s.gn,v)<=0)return vec3(0);
+    if(s.bsdfModel==3u){if(ngl>0)return s.albedo*(dl/max(ngl,1e-20)*bumpShadowing(s,dn,l)/PI);if(ngl<0&&nl<0)return s.diffuseTransmission*(nl/ngl*bumpShadowing(s,s.n,l)/PI);return vec3(0);}
+    if(s.bsdfModel==1u)return ngl>0?s.albedo*(dl*bumpShadowing(s,dn,l)/max(ngl,1e-20)/PI):vec3(0);
+    if(s.bsdfModel==2u){if(ngl<=0)return vec3(0);vec3 result=.96*s.albedo*(1-s.metallic)*(dl/max(ngl,1e-20)*bumpShadowing(s,dn,l)/PI);
+        if(nv>0&&nl>0){vec3 h=unit(v+l,s.n);float gv=specularG1(s,v),gl=specularG1(s,l);vec3 f0=mix(vec3(.04),s.albedo,s.metallic);result+=f0*(specularD(s,h)*gv*gl/((gv+gl-gv*gl)*4*nv*ngl));}return result;}
+    if(nv<=0||nl<=0||ngl<=0)return vec3(0);
+    vec3 h=unit(v+l,s.n);float nh=max(0,dot(s.n,h)),vh=max(0,dot(v,h));vec3 f0=mix(vec3(.04),s.albedo,s.metallic),f=f0+(1-f0)*pow(1-vh,5);
+    return (1-f)*s.albedo*(1-s.metallic)/PI+f*(specularD(s,h)*specularG1(s,v)*specularG1(s,l)/(4*nv*nl));
+}
+float bsdfPdf(Surface s,vec3 v,vec3 l){if(s.bsdfModel==5u)return fiberHairPdf(hairClosure(s,v),transpose(fiberFrame(s))*l);if(s.bsdfModel==4u){float transmit=fiberClothTransmission(s.sheen);return (dot(s.gn,l)>0?1-transmit:transmit)*surfaceCosine(s,l)/PI;}if(s.thinDielectric)return 0;if(s.ior>0){float foam=s.water?s.foam:0;return (1-foam)*(s.transmissionRoughness>=.02?roughDielectric(s,v,l).y:0)+(dot(s.n,v)>0?foam*max(0,dot(s.n,l))/PI:0);}float nv=dot(s.n,v),nl=dot(s.n,l),dl=max(0,dot(diffuseNormal(s),l));
+    if(s.bsdfModel==3u){float r=luminance(s.albedo),t=luminance(s.diffuseTransmission),sum=r+t;if(sum<=0)return 0;return dot(s.gn,l)>0?r/sum*dl/PI:dot(s.gn,l)<0?t/sum*max(0,-nl)/PI:0;}
+    if(s.bsdfModel==1u)return dl/PI;
+    if(s.bsdfModel==2u){float chance=specularChance(s),pdf=(1-chance)*dl/PI;if(nv>0&&nl>0){vec3 h=unit(v+l,s.n);if(dot(v,h)>0)pdf+=chance*specularD(s,h)*specularG1(s,v)/(4*nv);}return pdf;}
+    if(nv<=0||nl<=0)return 0;
+    vec3 h=unit(v+l,s.n);if(dot(v,h)<=0)return 0;float chance=specularChance(s);
+    return (1-chance)*nl/PI+chance*specularD(s,h)*specularG1(s,v)/(4*nv);
+}
+bool photonKeyLess(ivec3 a,ivec3 b){return a.x!=b.x?a.x<b.x:a.y!=b.y?a.y<b.y:a.z<b.z;}
+vec3 photonEstimate(Surface s,vec3 view,uint remainingDepth,out vec3 caustic){
+    vec3 result=vec3(0);caustic=vec3(0);float radius=p.photonSettings.x,r2=radius*radius;ivec3 key=ivec3(floor(s.position/radius));
+    for(int x=-1;x<=1;++x)for(int y=-1;y<=1;++y)for(int z=-1;z<=1;++z){ivec3 neighbor=key+ivec3(x,y,z);uint low=0u,high=p.photonControl.y;
+        while(low<high){uint mid=(low+high)/2u;if(photonKeyLess(photonCells[mid].keyFirst.xyz,neighbor))low=mid+1u;else high=mid;}
+        if(low==p.photonControl.y)continue;PhotonCell cell=photonCells[low];if(any(notEqual(cell.keyFirst.xyz,neighbor)))continue;
+        for(uint i=uint(cell.keyFirst.w),end=i+cell.count.x;i<end;++i){Photon photon=photons[i];vec3 delta=photon.positionDepth.xyz-s.position;float distance2=dot(delta,delta);
+            if(distance2>=r2||photon.positionDepth.w>=float(remainingDepth)||dot(photon.normal.xyz,s.gn)<p.photonSettings.z||abs(dot(delta,s.gn))>radius*p.photonSettings.w)continue;
+            vec3 value=bsdf(s,view,photon.incoming.xyz)*photon.fluxCaustic.xyz*((1-distance2/r2)*p.photonSettings.y);result+=value;if(photon.fluxCaustic.w>0)caustic+=value;
+        }
+    }return result;
+}
+vec3 sampleBsdf(Surface s,vec3 v){
+    float selection=randomValue();vec2 uv=randomPair();
+    if(s.bsdfModel==5u)return fiberFrame(s)*fiberHairSample(hairClosure(s,v),selection,uv);
+    if(s.bsdfModel==4u){float radius=sqrt(uv.x),phi=2*PI*uv.y,sign=selection<fiberClothTransmission(s.sheen)?-1:1;return fiberFrame(s)*vec3(radius*cos(phi),radius*sin(phi),sign*sqrt(1-uv.x));}
+    if(s.bsdfModel==3u){float sum=luminance(s.albedo+s.diffuseTransmission),chance=sum>0?luminance(s.diffuseTransmission)/sum:0;float r=sqrt(uv.x),phi=2*PI*uv.y;bool transmit=selection<chance;vec3 l=localVector(vec3(r*cos(phi),r*sin(phi),(transmit?-1:1)*sqrt(1-uv.x)),transmit?s.n:diffuseNormal(s));if((dot(s.gn,l)<0)!=transmit)return vec3(0);return l;}
+    if(s.bsdfModel!=1u&&selection<specularChance(s)){
+        vec3 halfVector=specularVisibleNormal(s,v,uv),l=reflect(-v,halfVector);
+        if(dot(v,halfVector)<=0||dot(l,s.n)<=0)return vec3(0);return l;
+    }
+    float q=uv.x,phi=2*PI*uv.y;return localVector(vec3(sqrt(q)*cos(phi),sqrt(q)*sin(phi),sqrt(1-q)),s.bsdfModel==1u||s.bsdfModel==2u?diffuseNormal(s):s.n);
+}
+vec2 environmentUV(vec3 d){d=unit(d,vec3(0,1,0));float u=atan(d.x,-d.z)/(2*PI);return vec2(fract(u),acos(clamp(d.y,-1,1))/PI);}
+float cloudSolarTransmission(vec3 position){
+    if(p.cloudInfo.y==0u||p.cloudProjection.w==0.||position.y>=p.cloudProjection.w)return 1.;
+    vec2 uv=(position.xz-p.cloudProjection.xy*(position.y-p.cloudProjection.z)-p.cloudPatch.xy)/p.cloudPatch.zw;
+    if(any(lessThan(uv,vec2(0)))||any(greaterThan(uv,vec2(1))))return 1.;
+    int n=int(p.cloudInfo.y);vec2 at=uv*float(n)-.5;ivec2 b=ivec2(floor(at));vec2 f=fract(at);
+    ivec2 a=clamp(b,ivec2(0),ivec2(n-1)),c=clamp(b+ivec2(1),ivec2(0),ivec2(n-1));uint start=p.cloudInfo.x;
+    return mix(mix(environment[start+uint(a.y*n+a.x)].x,environment[start+uint(a.y*n+c.x)].x,f.x),mix(environment[start+uint(c.y*n+a.x)].x,environment[start+uint(c.y*n+c.x)].x,f.x),f.y);
+}
+vec3 environmentPixel(int x,int y){int w=int(p.counts.z),h=int(p.counts.w);x=(x%w+w)%w;y=clamp(y,0,h-1);return environment[y*w+x].xyz;}
+vec3 environmentValue(vec3 d){if(p.counts.z==0u)return vec3(0);vec2 xy=environmentUV(d)*vec2(p.counts.zw)-.5;ivec2 i=ivec2(floor(xy));vec2 f=fract(xy);return mix(mix(environmentPixel(i.x,i.y),environmentPixel(i.x+1,i.y),f.x),mix(environmentPixel(i.x,i.y+1),environmentPixel(i.x+1,i.y+1),f.x),f.y);}
+float environmentMass(uint i){return environment[i].w-(i>0u?environment[i-1u].w:0);}
+float environmentSolid(uint y){return 2*PI/float(p.counts.z)*(cos(PI*float(y)/float(p.counts.w))-cos(PI*float(y+1u)/float(p.counts.w)));}
+float environmentPdf(vec3 d){if(p.counts.z==0u)return 0;vec2 uv=environmentUV(d);uvec2 i=min(uvec2(uv*vec2(p.counts.zw)),p.counts.zw-uvec2(1));return environmentMass(i.y*p.counts.z+i.x)/environmentSolid(i.y);}
+vec3 sampleEnvironment(out float pdf){float q=randomValue();uint low=0u,high=p.counts.z*p.counts.w;while(low<high){uint mid=(low+high)/2u;if(environment[mid].w<=q)low=mid+1u;else high=mid;}uint i=min(low,p.counts.z*p.counts.w-1u),x=i%p.counts.z,y=i/p.counts.z;
+    vec2 uv=randomPair();float phi=(float(x)+uv.x)/float(p.counts.z)*2*PI,cosine=mix(cos(PI*float(y)/float(p.counts.w)),cos(PI*float(y+1u)/float(p.counts.w)),uv.y),sine=sqrt(max(0,1-cosine*cosine));pdf=environmentMass(i)/environmentSolid(y);return vec3(sine*sin(phi),cosine,-sine*cos(phi));}
+vec3 offsetOrigin(Surface s,vec3 d){return s.position+s.gn*((dot(d,s.gn)>=0?1:-1)*max(rayEpsilon,8*1.1920929e-7*max(abs(s.position.x),max(abs(s.position.y),abs(s.position.z)))));}
+vec3 visibility(vec3 o,vec3 d,float maximum,float exteriorIor){
+    if((p.acceleration.w&2u)!=0u)return intersectsAny(o,d,maximum)?vec3(0):vec3(1);
+    vec3 transmission=vec3(1);Hit hit;
+    for(int i=0;i<128;++i){bool opaque=false;bool found=p.acceleration.w!=0u?intersectSceneMode(o,d,maximum,hit,2u,opaque):intersectScene(o,d,maximum,hit);if(opaque)return vec3(0);if(!found)return transmission;Surface s=makeSurface(hit,o,d);
+        vec3 sheet=s.thinDielectric?s.albedo*(1-thinDielectricReflectance(dot(s.gn,d),exteriorIor,s.ior)):vec3(0);
+        transmission*=vec3(1-s.opacity)+s.opacity*sheet;if(max(transmission.x,max(transmission.y,transmission.z))<1e-5)return vec3(0);
+        if(maximum<INF){maximum-=hit.distance+rayEpsilon;if(maximum<=rayEpsilon)return transmission;}o=s.position+d*rayEpsilon;
+    }return vec3(0);
+}
+#include "pt-learning.glsl"
+vec3 mediumAbsorption,mediumScattering,phaseForward;
+float mediumG;bool volumeVertex;uint currentMedium,outerMedium;
+vec3 mediumTransmission(float distance){
+    vec3 extinction=mediumAbsorption+mediumScattering;
+    if(distance>=INF)return vec3(extinction.x>0?0:1,extinction.y>0?0:1,extinction.z>0?0:1);
+    return exp(-min(extinction*distance,vec3(80)));
+}
+float phaseHG(float cosine,float g){float d=max(1e-8,1+g*g-2*g*cosine);return (1-g*g)/(4*PI*d*sqrt(d));}
+vec3 samplePhaseHG(vec3 forward,float g){vec2 uv=randomPair();float cosine=2*uv.x-1;if(abs(g)>.001){float q=(1-g*g)/(1-g+2*g*uv.x);cosine=clamp((1+g*g-q*q)/(2*g),-1,1);}else{float x=cosine;cosine=clamp((2*x+g*(x*x+3)+2*g*g*x+g*g*g*(x*x-1))/(2*(1+g*x)*(1+g*x)),-1,1);}float sine=sqrt(max(0,1-cosine*cosine)),phi=2*PI*uv.y;return localVector(vec3(sine*cos(phi),sine*sin(phi),cosine),forward);}
+float pointBias(vec3 point){return max(rayEpsilon,8*1.1920929e-7*max(abs(point.x),max(abs(point.y),abs(point.z))));}
+vec3 waterSunCenter;float waterSunCos;bool waterSunEnabled;
+void prepareWaterInterfaceSun(Surface s){
+    waterSunEnabled=false;
+    bool waterExit=currentMedium>0u&&materials[currentMedium-1u].optics.y>0;
+    bool reflection=currentMedium==0u&&!volumeVertex&&s.ior==0&&p.acceleration.y>0u;
+    if((p.learning.y&4u)!=0u||(!waterExit&&!reflection)||p.sunDirectionRadius.w<=0||p.sunDirectionRadius.y<=0||(!volumeVertex&&s.ior>0))return;
+    waterSunCenter=waterExit?-refract(-p.sunDirectionRadius.xyz,vec3(0,1,0),1/materials[currentMedium-1u].optics.x):reflect(p.sunDirectionRadius.xyz,vec3(0,1,0));
+    bool found=false;float residual=0,width=0;
+    for(int i=0;i<4;++i){Hit hit;
+        vec3 origin=volumeVertex?s.position+waterSunCenter*rayEpsilon:offsetOrigin(s,waterSunCenter);
+        if(!intersectScene(origin,waterSunCenter,INF,hit))break;Surface boundary=makeSurface(hit,origin,waterSunCenter);
+        if(waterExit&&!boundary.water)break;
+        if(waterExit&&(boundary.mediumId!=currentMedium||boundary.frontFace))break;
+        if(reflection&&(boundary.ior<=0||boundary.thinDielectric||!boundary.frontFace||dot(boundary.gn,vec3(0,1,0))<.5))break;
+        vec3 desired=waterExit?-refract(-p.sunDirectionRadius.xyz,-boundary.n,1/boundary.ior):reflect(p.sunDirectionRadius.xyz,boundary.n);if(dot(desired,desired)<1e-12)break;
+        desired=unit(desired,waterSunCenter);residual=length(desired-waterSunCenter);waterSunCenter=desired;found=true;
+        if(reflection)width=4*boundary.transmissionRoughness*boundary.transmissionRoughness;
+        if(residual<.001)break;
+    }
+    if(found){waterSunCos=cos(clamp(max(2*p.sunDirectionRadius.w,.01)+residual+width,.01,.15));waterSunEnabled=true;}
+}
+vec4 solarCones[9];float solarConeWeights[9],solarBaseWeight;uint solarConeCount,waterConeCount,thinConeCount;
+void prepareWaterSun(Surface s){
+    prepareWaterInterfaceSun(s);solarConeCount=0u;
+    if(waterSunEnabled)solarCones[solarConeCount++]=vec4(waterSunCenter,waterSunCos);
+    waterConeCount=solarConeCount;
+    if((p.learning.y&12u)==0u&&currentMedium==0u&&!volumeVertex&&s.ior==0&&p.sunDirectionRadius.w>0){
+        float edge=cos(max(p.sunDirectionRadius.w+2e-4,.001));
+        for(uint i=0u;i<p.acceleration.z;++i){vec3 center=reflect(p.sunDirectionRadius.xyz,p.thinSolarNormals[i].xyz);
+            if(luminance(bsdf(s,-phaseForward,center))>0)solarCones[solarConeCount++]=vec4(center,edge);
+        }
+    }
+    thinConeCount=solarConeCount-waterConeCount;float thinMix=thinConeCount>0u?.1:0;
+    solarBaseWeight=(waterConeCount>0u?.5:1)*(1-thinMix);
+    if(waterConeCount>0u)solarConeWeights[0]=.5*(1-thinMix);
+    for(uint i=waterConeCount;i<solarConeCount;++i)solarConeWeights[i]=thinMix/float(thinConeCount);
+    waterSunEnabled=solarConeCount>0u;
+}
+float waterContinuationPdf(Surface s,vec3 view,vec3 l){
+    float base=volumeVertex?phaseHG(dot(phaseForward,l),mediumG):continuationPdf(s,view,l);
+    if(thinConeCount==0u)return waterConeCount>0u?.5*(base+(dot(l,waterSunCenter)>=waterSunCos?1/(2*PI*(1-waterSunCos)):0)):base;
+    float cone=0;for(uint i=0u;i<solarConeCount;++i)if(dot(l,solarCones[i].xyz)>=solarCones[i].w)cone+=solarConeWeights[i]/(2*PI*(1-solarCones[i].w));
+    return solarBaseWeight*base+cone;
+}
+// Alpha coverage occupies offsets 20..148; use disjoint proposal dimensions.
+bool selectWaterCone(uint base){if(!waterSunEnabled)return false;dimension=base+192u;return randomValue()<1-solarBaseWeight;}
+vec3 sampleWaterCone(uint base){uint index=0u;if(solarConeCount>1u){dimension=base+193u;float selected=randomValue()*(1-solarBaseWeight),mass=solarConeWeights[0];while(index+1u<solarConeCount&&selected>=mass){++index;mass+=solarConeWeights[index];}}vec4 cone=solarCones[index];dimension=base+194u;vec2 uv=randomPair();float c=mix(1,cone.w,uv.x),r=sqrt(max(0,1-c*c)),phi=2*PI*uv.y;return localVector(vec3(r*cos(phi),r*sin(phi),c),cone.xyz);}
+vec3 directLight(Surface s,vec3 view,vec3 l,vec3 energy,float pdf,float distance,bool delta){
+    if(pdf<=0)return vec3(0);float cosine=volumeVertex?1:surfaceCosine(s,l);if(cosine==0)return vec3(0);
+    float phase=phaseHG(dot(phaseForward,l),mediumG);vec3 f=volumeVertex?vec3(phase):bsdf(s,view,l);if(luminance(f)<=0)return vec3(0);
+    float weight=delta||photonMerge?1:mis(pdf,waterContinuationPdf(s,view,l));
+    float maximum=distance<INF?max(rayEpsilon,distance-2*max(pointBias(s.position),pointBias(s.position+l*distance))):distance;
+    uint shadowMedium=currentMedium;if(!volumeVertex&&s.ior>0&&dot(l,s.gn)<0)shadowMedium=s.frontFace?s.mediumId:outerMedium;
+    vec3 extinction=shadowMedium>0u?materials[shadowMedium-1u].absorption.xyz+materials[shadowMedium-1u].scattering.xyz:vec3(0);
+    vec3 attenuation=distance>=INF?vec3(extinction.x>0?0:1,extinction.y>0?0:1,extinction.z>0?0:1):exp(-min(extinction*distance,vec3(80)));
+    return f*energy*attenuation*(cosine*visibility(volumeVertex?s.position+l*pointBias(s.position):offsetOrigin(s,l),l,maximum,shadowMedium>0u?materials[shadowMedium-1u].optics.x:1)*weight/pdf);
+}
+vec3 sampleSun(float sunCos){float cosine=mix(1,sunCos,randomValue()),sine=sqrt(max(0,1-cosine*cosine)),phi=2*PI*randomValue();return localVector(vec3(sine*cos(phi),sine*sin(phi),cosine),p.sunDirectionRadius.xyz);}
+vec3 tracePath(vec3 origin,vec3 direction){
+    pathCaustics=vec3(0);photonMerge=false;
+    uint media[8],winding[8];uint mediaCount=0u;for(uint i=0u;i<8u;++i){media[i]=p.cameraMedia[i/4u][i%4u];winding[i]=p.cameraWinding[i/4u][i%4u];if(media[i]!=0u)++mediaCount;}
+    vec3 throughput=vec3(1),radiance=vec3(0),previousPoint=vec3(0);float previousPdf=0,previousEnvironmentPdf=0,radius=p.sunDirectionRadius.w,sunCos=cos(radius),sunPdf=radius>0?1/(2*PI*(1-sunCos)):0;uint bounce=0u,transparent=0u;
+    bool recorded=false;Surface record;vec3 prefix=vec3(1),before=vec3(0),recordDirection=vec3(0,1,0);float recordEnvironmentWeight=0;vec3 recordEnvironmentDirection=vec3(0,1,0);
+    while(true){Hit hit;uint base=2u+bounce*256u;
+        uint mediumId=mediaCount>0u?media[mediaCount-1u]:0u;currentMedium=mediumId;outerMedium=mediaCount>1u?media[mediaCount-2u]:0u;
+        mediumAbsorption=mediumId>0u?materials[mediumId-1u].absorption.xyz:vec3(0);
+        mediumScattering=mediumId>0u?materials[mediumId-1u].scattering.xyz:vec3(0);
+        mediumG=mediumId>0u?materials[mediumId-1u].scattering.w:0;
+        bool hasSurface=intersectScene(origin,direction,INF,hit);float maximum=hasSurface?hit.distance:INF;volumeVertex=false;phaseForward=direction;
+        if(any(greaterThan(mediumScattering,vec3(0)))){
+            dimension=base+32u+transparent*65536u;uint channel=min(uint(randomValue()*3),2u);float u=randomValue(),sigma=(mediumAbsorption+mediumScattering)[channel];float flight=sigma>0?-log(max(1e-7,1-u))/sigma:INF;
+            volumeVertex=flight<maximum;vec3 T=mediumTransmission(min(flight,maximum)),density=volumeVertex?T*(mediumAbsorption+mediumScattering):T;float pdf=(density.x+density.y+density.z)/3;
+            throughput*=pdf>0?(volumeVertex?T*mediumScattering:T)/pdf:vec3(0);if(volumeVertex)maximum=flight;
+        }else throughput*=mediumTransmission(maximum);
+        if(any(isnan(throughput))||any(isinf(throughput)))return vec3(uintBitsToFloat(0x7fc00000u));if(luminance(throughput)<=0)break;
+        if(!hasSurface&&!volumeVertex){
+            radiance+=throughput*environmentValue(direction)*(previousPdf>0?mis(previousPdf,previousEnvironmentPdf):1);
+            if((PT_PROBE_ENTRY==0||bounce>0u)&&radius>0&&dot(direction,p.sunDirectionRadius.xyz)>=sunCos)radiance+=throughput*p.sunIrradiance.xyz*cloudSolarTransmission(origin)/(PI*sin(radius)*sin(radius))*(previousPdf>0?mis(previousPdf,sunPdf):1);break;
+        }
+        Surface s;
+        if(volumeVertex){if(bounce>=p.control.x)break;++volumeEvents;s=Surface(origin+direction*maximum,vec3(0,1,0),vec3(0,1,0),vec3(1),vec3(0),1,0,1,0,0,1,0,vec3(0),0xffffffffu,0u,true,false,false,0u,vec3(0),vec3(0),vec3(0),0,vec4(0),vec4(0),vec4(0),vec4(0),vec4(0),0,vec4(1,1,0,0));}
+        else {
+            s=makeSurface(hit,origin,direction);
+            if((s.water&&mediumId>0u&&materials[mediumId-1u].optics.y==0)||(s.mediumId==mediumId&&mediumId>0u&&(s.frontFace||winding[mediaCount-1u]>1u))){
+                if(!transitionMedium(media,winding,mediaCount,s))return vec3(uintBitsToFloat(0x7fc00000u));
+                if(++transparent>128u)break;origin=offsetOrigin(s,direction);continue;
+            }
+            dimension=base+20u+transparent;
+            if(s.opacity<1&&randomValue()>=s.opacity){if(++transparent>128u)break;origin=offsetOrigin(s,direction);continue;}
+            float emissionWeight=1;
+            if(previousPdf>0&&p.settings.x>0){Material m=materials[instances[findInstance(s.primitive)].info.y];float energy=luminance(m.emission.xyz),cosine=abs(dot(s.gn,-direction));float pdf=cosine>0?energy/p.settings.x*dot(s.position-previousPoint,s.position-previousPoint)/cosine:0;emissionWeight=mis(previousPdf,pdf);}
+            radiance+=throughput*s.emission*emissionWeight;if(bounce>=p.control.x)break;
+            s.exteriorIor=s.frontFace?(mediumId>0u?materials[mediumId-1u].optics.x:1):(mediaCount>1u&&mediumId==s.mediumId?materials[media[mediaCount-2u]-1u].optics.x:mediumId!=s.mediumId&&mediumId>0u?materials[mediumId-1u].optics.x:1);
+        }
+        if(s.ior>0&&!s.thinDielectric){float eta=s.frontFace?s.exteriorIor/s.ior:s.ior/s.exteriorIor;vec3 refracted=refract(direction,s.n,eta);if(dot(reflect(direction,s.n),s.gn)<=0||(dot(refracted,refracted)>0&&dot(refracted,s.gn)>=0))s.n=s.gn;}
+        vec3 view=-direction,direct=vec3(0);activeGuide=volumeVertex?0xffffffffu:guideSlot(s);
+        bool cached=!volumeVertex&&p.control.z!=3u&&(p.learning.y&2u)!=0u&&bounce>=p.learning.w&&s.ior==0&&s.bsdfModel==0u&&s.specularAnisotropy==0&&s.metallic<.05&&s.roughness>=.5&&activeGuide!=0xffffffffu&&guide[activeGuide].meta.y>=p.learning.z;
+        guideFraction=p.control.z!=3u&&!cached&&(p.learning.y&1u)!=0u&&activeGuide!=0xffffffffu&&guide[activeGuide].meta.z!=0u&&guide[activeGuide].meta.y>=128u&&s.ior==0&&s.metallic<.2&&s.roughness>=.5?p.guideSettings.y:0;
+        environmentFraction=p.control.z!=3u&&!cached&&(p.learning.y&1u)!=0u&&activeGuide!=0xffffffffu&&guide[activeGuide].meta.w!=0u&&guide[activeGuide].meta.y>=128u&&s.ior==0&&s.metallic<.2&&s.roughness>=.5?p.guideSettings.z:0;
+        photonMerge=p.photonControl.x!=0u&&!volumeVertex&&s.ior==0;
+        if(photonMerge){vec3 caustic;radiance+=throughput*photonEstimate(s,view,p.control.x-bounce,caustic);pathCaustics+=throughput*caustic;}
+        if(!photonMerge)prepareWaterSun(s);else{waterSunEnabled=false;solarConeCount=0u;waterConeCount=0u;thinConeCount=0u;solarBaseWeight=1;}
+        dimension=base;if(p.counts.z>0u){float pdf;vec3 l=guidedEnvironment(pdf),e=directLight(s,view,l,environmentValue(l),pdf,INF,false);direct+=e;
+            if(p.control.z==3u&&bounce==sampleIndex%min(p.control.x,8u)){recordEnvironmentDirection=l;recordEnvironmentWeight=luminance(e/max(s.albedo,vec3(.01)));}
+        }
+        dimension=base+4u;bool atmosphericSun=false;
+        for(uint i=0u;i<p.counts.y;++i){Light light=lights[i];vec3 color=light.colorInner.xyz;int type=int(light.positionType.w);
+            if(type==0){if(radius>0&&!atmosphericSun){atmosphericSun=true;vec3 l=sampleSun(sunCos);direct+=directLight(s,view,l,p.sunIrradiance.xyz*cloudSolarTransmission(s.position)/(PI*sin(radius)*sin(radius)),sunPdf,INF,false);}else direct+=directLight(s,view,unit(-light.directionOuter.xyz,vec3(0,1,0)),color*cloudSolarTransmission(s.position),1,INF,true);}
+            else {vec3 to=light.positionType.xyz-s.position;float distance=length(to);if(distance<rayEpsilon)continue;vec3 l=to/distance;if(type==2){float angle=dot(-l,unit(light.directionOuter.xyz,vec3(0,1,0)));color*=clamp((angle-light.directionOuter.w)/max(1e-6,light.colorInner.w-light.directionOuter.w),0,1);}if(p.settings.w>0)color/=max(distance*distance,1e-6);direct+=directLight(s,view,l,color,1,max(rayEpsilon,distance),true);}
+        }
+        if(radius>0&&!atmosphericSun){vec3 l=sampleSun(sunCos);direct+=directLight(s,view,l,p.sunIrradiance.xyz*cloudSolarTransmission(s.position)/(PI*sin(radius)*sin(radius)),sunPdf,INF,false);}
+        dimension=base+8u;
+        if(p.control.w>0u){float selected=randomValue();uint low=0u,high=p.control.w;while(low<high){uint mid=(low+high)/2u;if(emitters[mid].primitiveAreaCDF.z<=selected)low=mid+1u;else high=mid;}
+            uint i=min(low,p.control.w-1u);Emitter e=emitters[i];uint primitive=floatBitsToUint(e.primitiveAreaCDF.x);Hit emitterHit=primitiveHit(primitive,0,vec2(0));uvec4 index=triangleIndex(emitterHit.instance,emitterHit.triangle);Instance transform=instances[emitterHit.instance];vec2 uv=randomPair();float a=sqrt(uv.x),b=uv.y;vec2 bary=vec2(a*(1-b),a*b);vec3 point=worldVertex(index.x,transform).positionU.xyz*(1-a)+worldVertex(index.y,transform).positionU.xyz*bary.x+worldVertex(index.z,transform).positionU.xyz*bary.y,to=point-s.position;float distance=length(to);vec3 l=unit(to,vec3(0,1,0));float cosine=abs(dot(e.normal.xyz,-l));
+            if(cosine>1e-8&&distance>2*rayEpsilon){Surface emitter=makeSurface(primitiveHit(primitive,distance,bary),s.position,l);float mass=e.primitiveAreaCDF.z-(i>0u?emitters[i-1u].primitiveAreaCDF.z:0);direct+=directLight(s,view,l,emitter.emission*emitter.opacity,mass*distance*distance/(e.primitiveAreaCDF.y*cosine),distance,false);}
+        }
+        radiance+=throughput*direct;
+        if(photonMerge)break;
+        if(volumeVertex){vec3 l;if(selectWaterCone(base))l=sampleWaterCone(base);else{dimension=base+36u;l=samplePhaseHG(direction,mediumG);}previousPdf=waterContinuationPdf(s,view,l);throughput*=phaseHG(dot(direction,l),mediumG)/previousPdf;previousEnvironmentPdf=environmentPdf(l);previousPoint=s.position;origin=s.position;direction=l;++bounce;dimension=base+16u;if(bounce>=3u){float survive=clamp(max(throughput.x,max(throughput.y,throughput.z)),.05,.95);if(randomValue()>=survive)break;throughput/=survive;}continue;}
+        if(s.thinDielectric){
+            dimension=base+12u;float f=thinDielectricReflectance(dot(s.gn,view),s.exteriorIor,s.ior);vec3 l;
+            if(randomValue()<f){l=reflect(-view,s.gn);previousPdf=0;previousPoint=s.position;}
+            else{l=-view;throughput*=s.albedo;} // No eta scaling or medium transition; retain MIS for straight transmission.
+            origin=offsetOrigin(s,l);direction=l;++bounce;continue;
+        }
+        if(s.ior>0&&s.transmissionRoughness>=.02&&s.ior!=s.exteriorIor){
+            dimension=base+12u;float choice=randomValue();vec2 uv=randomPair();vec3 l;bool transmission=false;
+            if(s.water&&choice<s.foam){float radius=sqrt(uv.x),phi=2*PI*uv.y;l=localVector(vec3(radius*cos(phi),radius*sin(phi),sqrt(1-uv.x)),s.n);}
+            else{vec3 h=visibleNormal(view,s.n,s.transmissionRoughness,uv);float etaI=s.frontFace?s.exteriorIor:s.ior,etaT=s.frontFace?s.ior:s.exteriorIor,F=dielectricFresnel(dot(view,h),etaI,etaT);if(randomValue()<F)l=reflect(-view,h);else{l=refract(-view,h,etaI/etaT);transmission=true;}}
+            if(dot(l,l)<1e-12||(dot(l,s.n)>0)==transmission||(dot(l,s.gn)>0)==transmission)break;
+            float pdf=bsdfPdf(s,view,l);if(pdf<=1e-20)break;throughput*=bsdf(s,view,l)*(abs(dot(s.n,l))/pdf);
+            if(transmission&&!transitionMedium(media,winding,mediaCount,s))return vec3(uintBitsToFloat(0x7fc00000u));
+            previousPdf=pdf;previousEnvironmentPdf=environmentPdf(l);previousPoint=s.position;origin=offsetOrigin(s,l);direction=l;++bounce;continue;
+        }
+        if(s.ior>0){float etaI=s.frontFace?s.exteriorIor:s.ior,etaT=s.frontFace?s.ior:s.exteriorIor,eta=etaI/etaT,c=abs(dot(s.n,view)),st=eta*sqrt(max(0,1-c*c)),f=1;
+            if(st<1){float ct=sqrt(1-st*st),a=(etaT*c-etaI*ct)/(etaT*c+etaI*ct),b=(etaI*c-etaT*ct)/(etaI*c+etaT*ct);f=.5*(a*a+b*b);}
+            dimension=base+12u;vec3 l;float foam=s.water?s.foam:0;
+            if(foam>0&&randomValue()<foam){vec2 uv=randomPair();float r=sqrt(uv.x),phi=2*PI*uv.y;l=localVector(vec3(r*cos(phi),r*sin(phi),sqrt(1-uv.x)),s.n);if(dot(s.gn,l)<=0)break;throughput*=s.albedo;previousPdf=foam*max(0,dot(s.n,l))/PI;previousEnvironmentPdf=environmentPdf(l);previousPoint=s.position;origin=offsetOrigin(s,l);direction=l;++bounce;continue;}
+            if(randomValue()<f)l=reflect(-view,s.n);else{l=refract(-view,s.n,eta);throughput*=s.albedo*eta*eta;if(!transitionMedium(media,winding,mediaCount,s))return vec3(uintBitsToFloat(0x7fc00000u));}
+
+            previousPdf=0;previousPoint=s.position;origin=offsetOrigin(s,l);direction=l;++bounce;continue;
+        }
+
+        if(cached){radiance+=throughput*s.albedo*guide[activeGuide].tail.xyz;++cacheEvents;break;}
+        if(guideFraction>0)++guideEvents;
+        if(p.control.z==3u&&bounce==sampleIndex%min(p.control.x,8u)){recorded=true;record=s;prefix=throughput;before=radiance;}
+        vec3 l;if(selectWaterCone(base))l=sampleWaterCone(base);else{dimension=base+12u;l=guidedDirection(s,view);}float pdf=waterContinuationPdf(s,view,l);vec3 f=bsdf(s,view,l);
+        if(recorded&&bounce==sampleIndex%min(p.control.x,8u)){recordDirection=l;}
+        if(pdf<=1e-20||luminance(f)<=0)break;
+        throughput*=f*(surfaceCosine(s,l)/pdf);if(any(isnan(throughput))||any(isinf(throughput)))return vec3(uintBitsToFloat(0x7fc00000u));previousPdf=pdf;previousEnvironmentPdf=environmentProposalPdf(l);previousPoint=s.position;origin=offsetOrigin(s,l);direction=l;++bounce;
+        dimension=base+16u;if(bounce>=3u){float survive=clamp(max(throughput.x,max(throughput.y,throughput.z)),.05,.95);if(randomValue()>=survive)break;throughput/=survive;}
+    }
+    if(p.control.z==3u&&recorded){vec3 tail=max((radiance-before)/max(prefix,vec3(1e-12)),vec3(0));if(!any(isnan(tail))&&!any(isinf(tail)))trainCell(record,recordDirection,tail,recordEnvironmentDirection,recordEnvironmentWeight);}
+    return radiance;
+}

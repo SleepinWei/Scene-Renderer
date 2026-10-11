@@ -39,9 +39,10 @@ void main(){
         for(int j=0;j<4;++j){vec2 at=sourceXZ+(j==0?dx:j==1?-dx:j==2?dx.yx:-dx.yx);vec3 d=textureLod(causticDetailNormal,waterWaveUV(at,waves.z,causticDetailNormal),0).xyz;filtered+=d.xz/max(d.y,.1);}fine=filtered/6.;
     }
     vec2 slope=N.xz/max(N.y,.1)+fine;
-    if(coastFeatures.z>.5){vec2 dx=vec2(coastPatch.w,0);float a=coastElevation(causticShore,xz-dx,coastPatch,waves.x),b=coastElevation(causticShore,xz+dx,coastPatch,waves.x);
+    if(coastFeatures.z>.5&&abs(coastFeatures.z-2.)>.5){vec2 dx=vec2(coastPatch.w,0);float a=coastElevation(causticShore,xz-dx,coastPatch,waves.x),b=coastElevation(causticShore,xz+dx,coastPatch,waves.x);
         float c=coastElevation(causticShore,xz-dx.yx,coastPatch,waves.x),d=coastElevation(causticShore,xz+dx.yx,coastPatch,waves.x);
         slope=mix(slope,-vec2(b-a,d-c)/(2.*coastPatch.w)+fine*coastDetailWeight(xz,causticShore,coastPatch,waves.x,1.),coastBlend(xz,state,coastPatch,waves.x));}
+    slope+=coastParticleSlope(causticShore,xz,coastPatch,coastFeatures.z);
     N=normalize(vec3(slope.x,1,slope.y));float cosine=dot(N,sun.xyz);if(cosine<=0.)return;
     vec3 ray=refract(-sun.xyz,N,1./1.333),origin=vec3(xz.x,height,xz.y);
     if(ray.y>=-.05)return;

@@ -1,4 +1,5 @@
 #include "engine/JobSystem.h"
+#include "engine/RuntimeTrace.h"
 #include <algorithm>
 #include <stdexcept>
 namespace engine {
@@ -27,14 +28,14 @@ void JobSystem::enqueue(std::function<void()> task) {
     space_.wait(lock, [this] { return stopping_ || queue_.size() < capacity_; });
     if (stopping_)
         throw std::logic_error("Job pool stopped");
-    queue_.push_back(std::move(task));
+    queue_.push_back(RuntimeTrace::instance().task(std::move(task)));
     ready_.notify_one();
 }
 bool JobSystem::tryEnqueue(std::function<void()> task) {
     std::lock_guard<std::mutex> lock(mutex_);
     if (stopping_ || queue_.size() >= capacity_)
         return false;
-    queue_.push_back(std::move(task));
+    queue_.push_back(RuntimeTrace::instance().task(std::move(task)));
     ready_.notify_one();
     return true;
 }

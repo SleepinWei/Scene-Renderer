@@ -7,7 +7,7 @@ struct OceanSamples {uint32_t size=0;std::vector<float> displacement,normal,foam
 // CPU-only complete terrain surface from source VT pages, independent of raster LOD/frustum.
 render::SnapshotDraw freezeTerrain(const render::SnapshotTerrain &,const CaptureOptions & = {});
 render::SnapshotDraw freezeOcean(const render::OceanSurfaceSettings &,const OceanSamples &large,
-                                  const OceanSamples &detail,const CaptureOptions & = {});
+                                  const OceanSamples &detail,const CaptureOptions & = {},glm::vec2 cameraXZ=glm::vec2(0));
 // Must run on the RHI device owner thread. Returns CPU payloads; no GPU handles escape.
 render::RenderWorldSnapshot captureProcedural(const render::RenderWorldSnapshot &,
                                              std::shared_ptr<rhi::GraphicsDevice>,const CaptureOptions & = {});

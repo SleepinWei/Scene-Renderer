@@ -7,6 +7,8 @@ layout(set=0,binding=0,std140) uniform CloudParameters {
     vec4 cloudSun,cloudSunColor;
     vec4 cloudPlanet; // planet radius, sea level, unused, unused
     vec4 cloudVolumeCenterMode,cloudVolumeSize,cloudVolumeQuality;
+    vec4 cloudAdvection; // accumulated XZ metres, actual displacement since previous submitted frame
+    vec4 cloudCoverageControl; // x: runtime coverage envelope mode
     ivec4 cloudGrid; // width,height,tile columns,frame sample
     ivec4 cloudQuality; // march steps,light steps,seed,downsample
 };

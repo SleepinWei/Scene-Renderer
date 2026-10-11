@@ -1,0 +1,41 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#include "cluster-batch-parameters.glsl"
+layout(local_size_x=64) in;
+layout(set=0,binding=1) uniform sampler2D clusterDepth;
+layout(set=1,binding=0,std430) readonly buffer Nodes {ClusterNode nodes[];};
+layout(set=1,binding=1,std430) readonly buffer Clusters {GeometryCluster clusters[];};
+layout(set=1,binding=3,std430) buffer Offsets {uvec4 offsets[];};
+layout(set=1,binding=4,std430) writeonly buffer Groups {uvec2 groups[];};
+#include "cluster-batch-cull.glsl"
+#include "cluster-batch-occlusion.glsl"
+shared uint sums[64];shared uint counts[64];
+void main(){
+    uint id=gl_GlobalInvocationID.x,lane=gl_LocalInvocationIndex,n=0u;GeometryCluster c=clusters[id];ClusterMesh mesh=meshes[c.range.w];
+    if(id-mesh.ranges.x<mesh.counts.x&&c.range.y>0u){
+        bool selected;uint mode=batchStage.x;
+        if(mode==1u||mode==3u)selected=offsets[id].z!=0u; // Exact current-frame cut.
+        else{ClusterNode node=nodes[c.range.z];bool leaf=node.links.y==0xffffffffu;
+            selected=mesh.guard.w==0.0?leaf:((leaf||screenError(mesh,node)<=mesh.projection.w)&&
+                (node.links.x==0xffffffffu||screenError(mesh,nodes[node.links.x])>mesh.projection.w));
+            selected=selected&&visible(mesh,c);
+        }
+        if(mode==2u){
+            ClusterMesh previous=mesh;previous.vp=mesh.historyVP;previous.rounding=mesh.historyRounding;
+            if(selected&&(batchCounts.w==0u||unoccluded(previous,c)))n=c.range.y;
+            offsets[id].z=selected?1u:0u;offsets[id].w=n;
+        }else if(mode==3u){
+            // Early survivors were already rasterized. Recheck every speculative
+            // reject against current early depth, and append only late survivors.
+            if(selected&&offsets[id].w==0u&&unoccluded(mesh,c))n=c.range.y;
+        }else{
+            if(selected&&(mode==0u||unoccluded(mesh,c)))n=c.range.y;
+            offsets[id].z=selected?1u:0u;offsets[id].w=n;
+        }
+    }else{offsets[id].z=0u;offsets[id].w=0u;}
+
+    sums[lane]=n;counts[lane]=n!=0u?1u:0u;barrier();
+    for(uint step=1u;step<64u;step<<=1u){uint add=lane>=step?sums[lane-step]:0u,number=lane>=step?counts[lane-step]:0u;barrier();sums[lane]+=add;counts[lane]+=number;barrier();}
+    offsets[id].xy=uvec2(sums[lane]-n,n);
+    if(lane==63u)groups[gl_WorkGroupID.x]=uvec2(sums[lane],counts[lane]);
+}

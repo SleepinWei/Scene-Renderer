@@ -1,0 +1,113 @@
+{
+  "reference": "img/diagnostics/ddgi/metal/gt/sponza",
+  "capture": "img/diagnostics/ddgi/pt-capture/metal/sponza-full",
+  "hash_scope": "PFM hashes refer to decompressed bytes; files may be stored as .gz",
+  "scope": "AOV-aligned eroded fixed core; complete real-time shading, not isolated probe error",
+  "backend": "shared-gpu-pt",
+  "probe_path_samples": 4,
+  "probe_path_depth": 16,
+  "probe_frames": 960,
+  "probe_bake_wall_seconds": 29.703387875,
+  "surface": {
+    "raster_probe_hq": {
+      "pixels": 120872,
+      "linear_rgb_mae": 0.008069690252125658,
+      "linear_rgb_rmse": 0.015596905290552793,
+      "normalized_l1": 0.4192794604616358,
+      "relative_mean_rgb_bias": 0.31337121751511876,
+      "reference_mean_rgb": 0.019246567058736324
+    },
+    "pt_probe_hq": {
+      "pixels": 120872,
+      "linear_rgb_mae": 0.0072059002881582415,
+      "linear_rgb_rmse": 0.01522806930677396,
+      "normalized_l1": 0.3743992508465227,
+      "relative_mean_rgb_bias": 0.25725885036220836,
+      "reference_mean_rgb": 0.019246567058736324
+    },
+    "pt_probe_hq_no_sky_specular": {
+      "pixels": 120872,
+      "linear_rgb_mae": 0.0038949373789438973,
+      "linear_rgb_rmse": 0.010929252012416967,
+      "normalized_l1": 0.20237049896001702,
+      "relative_mean_rgb_bias": -0.03893159911242799,
+      "reference_mean_rgb": 0.019246567058736324
+    }
+  },
+  "irradiance": {
+    "points": 47,
+    "normalized_l1": 0.1979325279928762,
+    "relative_mean_rgb_bias": 0.03695291985917658
+  },
+  "hashes": {
+    "img/diagnostics/ddgi/pt-capture/metal/sponza-full.pfm": "11d962744f1969510f0afb15f029c3e178a75a26f8ad3664f67d95fd08f21de3",
+    "img/diagnostics/ddgi/pt-capture/metal/sponza-full-raster-ddgi-taa.pfm": "79a83ef1e98a41f91b2f83876b68ada94a89e3734502c8272ec7be64d7adc981",
+    "img/diagnostics/ddgi/pt-capture/metal/sponza-full-ddgi-reference.json": "8f079729b438b19944e64287ecb8a7068cd32deaa3d1638b4221fc866567c815",
+    "img/diagnostics/ddgi/pt-capture/metal/sponza-lod.pfm": "64131372ec81ba4357353b2338889441e3c49b7165d784c8b49f491613cdf8d8",
+    "img/diagnostics/ddgi/pt-capture/metal/sponza-lod-raster-ddgi-taa.pfm": "a6a8d35b57a20f6257130bb2f3d15e8fbb3495d01b49f2f3a9b3e157564d8ed0",
+    "img/diagnostics/ddgi/pt-capture/metal/sponza-lod-ddgi-reference.json": "97c8b88c047d635d4d20f73a4ee7847c45f40452d16d2ded2a4e7371dd2d5920"
+  },
+  "world_lod": {
+    "source_unique_triangles": 262267,
+    "selected_unique_triangles": 222635,
+    "build_seconds": 1.453741291,
+    "fixed_spp_lod_vs_full": {
+      "pixels": 120872,
+      "linear_rgb_mae": 0.0007153672184884473,
+      "linear_rgb_rmse": 0.002615859848780438,
+      "normalized_l1": 0.037175017724642566,
+      "relative_mean_rgb_bias": 0.0028972733663740254,
+      "reference_mean_rgb": 0.019243224678121538
+    },
+    "full_vs_2048spp": {
+      "pixels": 120872,
+      "linear_rgb_mae": 0.0019624654251873585,
+      "linear_rgb_rmse": 0.004792219422623505,
+      "normalized_l1": 0.10196443964257844,
+      "relative_mean_rgb_bias": -0.00017366113159745174,
+      "reference_mean_rgb": 0.019246567058736324
+    },
+    "lod_vs_2048spp": {
+      "pixels": 120872,
+      "linear_rgb_mae": 0.002076093319739937,
+      "linear_rgb_rmse": 0.004999892418124928,
+      "normalized_l1": 0.10786824026353131,
+      "relative_mean_rgb_bias": 0.0027231090910052225,
+      "reference_mean_rgb": 0.019246567058736324
+    },
+    "full_render_seconds": 3.1135745,
+    "lod_render_seconds": 3.140771167,
+    "full_native_acceleration": {
+      "native_acceleration_build_seconds": 0.078907541,
+      "native_acceleration_bytes": 28482104,
+      "native_acceleration_cache_hit": false,
+      "native_blas_builds": 25,
+      "native_blas_count": 25,
+      "native_instance_count": 25,
+      "native_ray_tracing": true
+    },
+    "lod_native_acceleration": {
+      "native_acceleration_build_seconds": 0.046171792,
+      "native_acceleration_bytes": 24179768,
+      "native_acceleration_cache_hit": false,
+      "native_blas_builds": 25,
+      "native_blas_count": 25,
+      "native_instance_count": 25,
+      "native_ray_tracing": true
+    },
+    "timing_scope": "single capture run per variant; render_seconds includes checkpoint IO; repeated alternating benchmark is in benchmark.json. CPU wall time includes GPU waits, not GPU timestamps",
+    "image_difference_scope": "LOD/full fixed-64-spp difference includes geometric changes and changed Monte Carlo paths; not a pure geometry-error estimate",
+    "probe_irradiance": {
+      "normalized_l1": 0.1961534603680901,
+      "relative_mean_rgb_bias": 0.03859529081435607
+    },
+    "probe_surface": {
+      "pixels": 120872,
+      "linear_rgb_mae": 0.007212071023978862,
+      "linear_rgb_rmse": 0.01523047265531443,
+      "normalized_l1": 0.37471986572822025,
+      "relative_mean_rgb_bias": 0.2580201101645874,
+      "reference_mean_rgb": 0.019246567058736324
+    }
+  }
+}

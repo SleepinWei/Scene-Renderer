@@ -26,6 +26,8 @@ public:
     GpuAtmosphere(std::shared_ptr<rhi::GraphicsDevice>,const std::string& directory);
     void update(const AtmosphereSettings&,const SunState&);
     void update(const AtmosphereSettings&,float sunAngle);
+    rhi::TextureViewHandle transmittance() const{return views_[0];}
+    rhi::TextureViewHandle multiple() const{return views_[2];}
     rhi::TextureViewHandle sky() const{return views_[1];}
     rhi::TextureViewHandle irradiance() const{return views_[3];}
     std::vector<float> read(uint32_t i){return resources_.device->readTextureFloat(textures_.at(i));}

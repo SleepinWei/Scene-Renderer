@@ -1,0 +1,63 @@
+{
+  "scene": "dragon",
+  "cases": {
+    "single_scan": {
+      "round_medians_ms": {
+        "no_occlusion": {
+          "0": 1.2495834976434708,
+          "1": 1.2337920032441616,
+          "2": 1.099167000502348
+        },
+        "two_stage_fused": {
+          "0": 1.2284790016710758,
+          "1": 1.163562498986721,
+          "2": 1.1148330010473728
+        },
+        "two_stage_original": {
+          "0": 1.3404789976775646,
+          "1": 1.2953955009579659,
+          "2": 1.1710834987461567
+        }
+      },
+      "paired_optimized_vs_no_occlusion": {
+        "pairs": 72,
+        "median_change_percent": -4.729342908415496,
+        "p10_p90_change_percent": [
+          -11.81484882526005,
+          5.121998568927627
+        ],
+        "optimized_faster_pairs": 56,
+        "scope": "Adjacent rotated-mode frames at identical round/sample; descriptive, not a confidence interval."
+      }
+    },
+    "three_scan_overlap": {
+      "round_medians_ms": {
+        "no_occlusion": {
+          "0": 2.1770000010728836,
+          "1": 2.103625498712063,
+          "2": 2.115124501287937
+        },
+        "two_stage_fused": {
+          "0": 1.7194164991378784,
+          "1": 1.6619165018200874,
+          "2": 1.688374999910593
+        },
+        "two_stage_original": {
+          "0": 2.0026044994592667,
+          "1": 1.9291044995188713,
+          "2": 1.9618330039083958
+        }
+      },
+      "paired_optimized_vs_no_occlusion": {
+        "pairs": 72,
+        "median_change_percent": -21.071366718792895,
+        "p10_p90_change_percent": [
+          -24.84980194541043,
+          -16.73686139786825
+        ],
+        "optimized_faster_pairs": 72,
+        "scope": "Adjacent rotated-mode frames at identical round/sample; descriptive, not a confidence interval."
+      }
+    }
+  }
+}

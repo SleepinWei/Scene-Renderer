@@ -65,7 +65,7 @@ float waterMediumHeight(vec2 xz,sampler2D large,sampler2D shore,vec4 waves) {
 bool waterEyeInside(vec3 eye,sampler2D large,sampler2D shore,sampler2D mask,vec4 waves,float halfExtent) {
     if(max(abs(eye.x),abs(eye.z))>halfExtent)return false;
     vec4 state=coastSample(shore,eye.xz,coastPatch);
-    float blend=coastFeatures.z>.5?coastBlend(eye.xz,state,coastPatch,waves.x):0.;
+    float blend=coastFeatures.z>.5&&abs(coastFeatures.z-2.)>.5?coastBlend(eye.xz,state,coastPatch,waves.x):0.;
     bool wet=textureLod(mask,eye.xz/(halfExtent*2.)*vec2(1,-1)+.5,0).r>=.5;
     if(blend>.01){if(state.x<=.005||eye.y<state.w)return false;wet=true;}
     return wet&&eye.y<waterMediumHeight(eye.xz,large,shore,waves)-.002;
@@ -78,6 +78,15 @@ float waterDielectricFresnel(float cosine,float eta) {
     float rp=(cosine-eta*transmitted)/max(cosine+eta*transmitted,1e-7);
     return .5*(rs*rs+rp*rp);
 }
+vec3 waterMediumParticles(vec3 origin,vec3 ray,float distance,vec3 L,vec3 solar,vec3 sky,vec3 sigma,
+                         sampler2D large,sampler2D shore,vec4 waves) {
+    if(WATER_PARTICLE_DENSITY<=0.)return vec3(0);
+    vec3 towardSun=-refract(-L,vec3(0,1,0),1./1.333);
+    towardSun=dot(towardSun,towardSun)>1e-8?normalize(towardSun):vec3(0,1,0);
+    float originDepth=max(waterMediumHeight(origin.xz,large,shore,waves)-origin.y,0.);
+    vec3 light=(sky*.25+(L.y>0.?solar*.08:vec3(0)))*exp(-sigma*originDepth/max(towardSun.y,.05));
+    return waterSuspendedParticles(origin,ray,distance,sigma,light);
+}
 vec3 waterMediumTransport(vec3 background,vec3 origin,vec3 ray,float distance,
                          vec3 L,vec3 solar,vec3 sky,vec3 sigmaA,vec3 sigmaS,float g,float strength,
                          sampler2D large,sampler2D shore,vec4 waves) {
@@ -89,20 +98,16 @@ vec3 waterMediumTransport(vec3 background,vec3 origin,vec3 ray,float distance,
     float phase=(1.-g*g)/(12.5663706144*pow(max(1.+g*g-2.*g*cosine,1e-4),1.5));
     float sunF=waterDielectricFresnel(max(L.y,0.),1./1.333);
     int steps=clamp(WATER_MEDIUM_STEPS,4,32);
-    float ds=distance/float(steps);vec3 weight=sigmaS/max(sigma,vec3(1e-7))*(1.-exp(-sigma*ds));
+    float ds=distance/float(steps);vec3 stepT=exp(-sigma*ds);
+    vec3 weight=sigmaS/max(sigma,vec3(1e-7))*(1.-stepT),frontT=vec3(1);
     vec3 accumulated=vec3(0);
     for(int i=0;i<steps;++i){
         float t=(float(i)+.5)*ds;vec3 point=origin+ray*t;
         float depth=max(waterMediumHeight(point.xz,large,shore,waves)-point.y,0.);
         vec3 source=sky*.25*exp(-sigma*depth*1.5);
         if(L.y>0.)source+=solar*phase*(1.-sunF)*exp(-sigma*depth/max(towardSun.y,.05))*WATER_MEDIUM_VISIBILITY(point)*WATER_MEDIUM_SOLAR_FLUX(point);
-        accumulated+=exp(-sigma*(float(i)*ds))*weight*source;
+        accumulated+=frontT*weight*source;frontT*=stepT;
     }
-    vec3 particles=vec3(0);
-    if(WATER_PARTICLE_DENSITY>0.) {
-        float originDepth=max(waterMediumHeight(origin.xz,large,shore,waves)-origin.y,0.);
-        vec3 particleLight=(sky*.25+(L.y>0.?solar*.08:vec3(0)))*exp(-sigma*originDepth/max(towardSun.y,.05));
-        particles=waterSuspendedParticles(origin,ray,distance,sigma,particleLight);
-    }
+    vec3 particles=waterMediumParticles(origin,ray,distance,L,solar,sky,sigma,large,shore,waves);
     return background*T+strength*accumulated+particles;
 }

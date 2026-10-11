@@ -25,7 +25,7 @@ void Connector::LaunchPathTracingWithSnapshot(std::shared_ptr<const render::Rend
     pt::CpuScene cpu(*snapshot);
     if(!baked.radiance.empty()) {
         cpu.environment=std::make_shared<pt::Environment>(baked.width,baked.height,baked.radiance);
-        cpu.sunDirection=baked.sunDirection;cpu.sunIrradiance=baked.sunIrradiance;cpu.sunRadius=baked.sunRadius;
+        cpu.sunDirection=baked.sunDirection;cpu.sunIrradiance=baked.sunIrradiance;cpu.sunRadius=baked.sunRadius;cpu.cloudShadow=baked.cloudShadow;
     }
     const auto config=PTConfig::GetInstance();pt::Options options;
     options.width=std::max(1u,snapshot->frame.viewportWidth/2);options.height=std::max(1u,snapshot->frame.viewportHeight/2);

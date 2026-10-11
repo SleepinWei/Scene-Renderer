@@ -2,6 +2,7 @@
 #include <mutex>
 #include <algorithm>
 #include <map>
+#include <cstring>
 namespace render {
 namespace {
 void validate(const ImageRGBA8 &image) {
@@ -9,27 +10,34 @@ void validate(const ImageRGBA8 &image) {
         image.pixels.size() != size_t(image.width) * image.height * 4)
         throw std::invalid_argument("GPU image cache requires complete RGBA8 data");
 }
-uint64_t hashImage(const ImageRGBA8 &image) {
+ImageMipPolicy canonical(const ImageRGBA8& image,ImageMipPolicy policy,bool subresources){
+    if(!subresources||(image.width==1&&image.height==1))return {};
+    if(!std::isfinite(policy.alphaCutoff)||policy.alphaCutoff<0||policy.alphaCutoff>1)throw std::invalid_argument("Invalid image alpha mip cutoff");
+    return policy;
+}
+size_t mipBytes(const ImageRGBA8& image,ImageMipPolicy policy){size_t bytes=0;uint32_t w=image.width,h=image.height;
+    do{bytes+=size_t(w)*h*4;if(policy.filter==ImageMipFilter::None||(w==1&&h==1))break;w=std::max(1u,w/2);h=std::max(1u,h/2);}while(true);return bytes;
+}
+uint64_t hashImage(const ImageRGBA8 &image,ImageMipPolicy policy={}) {
     uint64_t hash = 14695981039346656037ull;
     for (auto byte : image.pixels) {
         hash ^= byte;
         hash *= 1099511628211ull;
     }
-    return hash ^ (uint64_t(image.width) << 32) ^ image.height;
+    uint32_t bits;std::memcpy(&bits,&policy.alphaCutoff,4);return hash ^ (uint64_t(image.width) << 32) ^ image.height ^ (uint64_t(bits)<<13) ^ (uint64_t(policy.filter)*0x9e3779b97f4a7c15ull);
 }
 bool equalImage(const ImageRGBA8 &a, const ImageRGBA8 &b) {
     return a.width == b.width && a.height == b.height && a.pixels == b.pixels;
 }
 } // namespace
-GpuImage::GpuImage(std::shared_ptr<rhi::GraphicsDevice> device, std::shared_ptr<const ImageRGBA8> source,bool deferred)
-    : source_(std::move(source)), resources_(std::move(device)) {
-    validate(*source_);
-    texture_ = resources_.texture(
-        {source_->width, source_->height, rhi::Format::RGBA8UNorm,
-         rhi::TextureUsage::Sampled | rhi::TextureUsage::CopyDestination | rhi::TextureUsage::CopySource,
-         "Shared PBR image"});
-    if(!deferred){resources_.device->writeTexture(texture_,source_->pixels.data(),source_->pixels.size());nextRow_=source_->height;}
-    view_ = resources_.view(texture_);
+GpuImage::GpuImage(std::shared_ptr<rhi::GraphicsDevice> device,std::shared_ptr<const ImageRGBA8> source,bool deferred,ImageMipPolicy policy)
+    :source_(std::move(source)),resources_(std::move(device)){
+    validate(*source_);policy_=canonical(*source_,policy,resources_.device->supportsTextureSubresources());
+    mips_=buildImageMipChain(*source_,policy_);bytes_=mipBytes(*source_,policy_);
+    texture_=resources_.texture({source_->width,source_->height,rhi::Format::RGBA8UNorm,
+        rhi::TextureUsage::Sampled|rhi::TextureUsage::CopyDestination|rhi::TextureUsage::CopySource,"Shared PBR mip image",mipLevels()});
+    view_=resources_.view(texture_,{0,mipLevels(),0,1});
+    if(!deferred)while(!ready())uploadRows(SIZE_MAX);
 }
 GpuImageCache::GpuImageCache(std::shared_ptr<rhi::GraphicsDevice> device) : device_(std::move(device)) {}
 std::shared_ptr<GpuImageCache> GpuImageCache::forDevice(std::shared_ptr<rhi::GraphicsDevice> device) {
@@ -61,22 +69,22 @@ std::shared_ptr<GpuImageCache> GpuImageCache::forDevice(std::shared_ptr<rhi::Gra
     }
     return result;
 }
-const GpuImageCache::Entry *GpuImageCache::find(const ImageRGBA8 &image) const {
-    auto range = entries_.equal_range(hashImage(image));
+const GpuImageCache::Entry *GpuImageCache::find(const ImageRGBA8 &image,ImageMipPolicy policy) const {
+    auto range = entries_.equal_range(hashImage(image,policy));
     for (auto it = range.first; it != range.second; ++it)
-        if (equalImage(it->second.gpu->source(), image))
+        if (it->second.gpu->policy()==policy && equalImage(it->second.gpu->source(), image))
             return &it->second;
     return nullptr;
 }
-std::shared_ptr<GpuImage> GpuImageCache::acquire(std::shared_ptr<const ImageRGBA8> image,bool deferred) {
+std::shared_ptr<GpuImage> GpuImageCache::acquire(std::shared_ptr<const ImageRGBA8> image,bool deferred,ImageMipPolicy policy) {
     device_->checkThread();
     if (!image)
         throw std::invalid_argument("Null GPU image source");
-    validate(*image);
+    validate(*image);policy=canonical(*image,policy,device_->supportsTextureSubresources());
     // Fast path requires a still-live immutable source, not just a reused address.
     auto identity = identities_.find(image.get());
     if (identity != identities_.end() && identity->second.source.lock() == image)
-        if (auto gpu = identity->second.gpu.lock()) {
+        if (auto gpu = identity->second.gpu.lock();gpu && gpu->policy()==policy) {
             auto range = entries_.equal_range(identity->second.hash);
             for (auto it = range.first; it != range.second; ++it)
                 if (it->second.gpu == gpu) {
@@ -86,44 +94,35 @@ std::shared_ptr<GpuImage> GpuImageCache::acquire(std::shared_ptr<const ImageRGBA
                     return gpu;
                 }
         }
-    if (auto found = find(*image)) {
+    if (auto found = find(*image,policy)) {
         auto gpu = found->gpu;
         const_cast<Entry *>(found)->touched = ++clock_;
-        identities_[image.get()] = {image, gpu, hashImage(*image)};
+        identities_[image.get()] = {image, gpu, hashImage(*image,policy)};
         ++hits_;
         if(!deferred && !gpu->ready())upload(gpu,SIZE_MAX);
         return gpu;
     }
     if(deferred && stats().pendingEntries>=4)return {};
-    auto gpu = std::make_shared<GpuImage>(device_, image,deferred);
-    const auto hash = hashImage(*image);
+    auto gpu = std::make_shared<GpuImage>(device_, image,deferred,policy);
+    const auto hash = hashImage(*image,policy);
     entries_.emplace(hash, Entry{gpu, ++clock_});
     identities_[image.get()] = {image, gpu, hash};
-    if(!deferred){++uploads_;uploadedBytes_+=image->pixels.size();}
+    if(!deferred){++uploads_;uploadedBytes_+=gpu->bytes();}
     trim();
     return gpu;
 }
-size_t GpuImageCache::missingBytes(const std::vector<std::shared_ptr<const ImageRGBA8>> &images) const {
-    device_->checkThread();
-    size_t bytes = 0;
-    std::vector<std::shared_ptr<const ImageRGBA8>> missing;
-    for (const auto &image : images) {
-        if (!image)
-            throw std::invalid_argument("Null GPU image source");
-        validate(*image);
-        auto identity = identities_.find(image.get());
-        if (identity != identities_.end() && identity->second.source.lock() == image &&
-            !identity->second.gpu.expired())
-            continue;
-        if (find(*image))
-            continue;
-        if (std::any_of(missing.begin(), missing.end(),
-                        [&](const auto &other) { return equalImage(*image, *other); }))
-            continue;
-        missing.push_back(image);
-        bytes += image->pixels.size();
-    }
-    return bytes;
+size_t GpuImageCache::missingBytes(const std::vector<std::shared_ptr<const ImageRGBA8>>& images)const{
+    std::vector<GpuImageSource> sources;for(const auto& image:images)sources.push_back({image,{}});return missingFilteredBytes(sources);
+}
+size_t GpuImageCache::missingFilteredBytes(const std::vector<GpuImageSource>& sources)const{
+    device_->checkThread();size_t bytes=0;std::vector<GpuImageSource> missing;
+    for(auto source:sources){
+        if(!source.image)throw std::invalid_argument("Null GPU image source");validate(*source.image);
+        source.policy=canonical(*source.image,source.policy,device_->supportsTextureSubresources());
+        if(find(*source.image,source.policy))continue;
+        if(std::any_of(missing.begin(),missing.end(),[&](const auto& other){return other.policy==source.policy&&equalImage(*other.image,*source.image);}))continue;
+        bytes+=mipBytes(*source.image,source.policy);missing.push_back(source);
+    }return bytes;
 }
 void GpuImageCache::setIdleBudget(size_t bytes) {
     device_->checkThread();
@@ -189,12 +188,15 @@ GpuImageCacheStats GpuImageCache::stats() const {
 } // namespace render
 
 namespace render {
-size_t GpuImage::uploadRows(size_t maxBytes) {
-    const size_t rowBytes=size_t(source_->width)*4;
-    const uint32_t rows=uint32_t(std::min(size_t(source_->height-nextRow_),maxBytes/rowBytes));
-    if(!rows)return 0;
-    resources_.device->writeTextureRegion(texture_,{0,nextRow_,source_->width,rows},source_->pixels.data()+size_t(nextRow_)*rowBytes,size_t(rows)*rowBytes);
-    nextRow_+=rows;return size_t(rows)*rowBytes;
+size_t GpuImage::uploadRows(size_t maxBytes){
+    size_t total=0;
+    while(!ready()){
+        const auto& level=uploadMip_?mips_[uploadMip_-1]:*source_;const size_t rowBytes=size_t(level.width)*4;
+        const auto rows=uint32_t(std::min(size_t(level.height-nextRow_),(maxBytes-total)/rowBytes));if(!rows)break;
+        resources_.device->writeTextureRegion(texture_,{0,nextRow_,level.width,rows,uploadMip_,0},level.pixels.data()+size_t(nextRow_)*rowBytes,size_t(rows)*rowBytes);
+        nextRow_+=rows;total+=size_t(rows)*rowBytes;
+        if(nextRow_==level.height){nextRow_=0;++uploadMip_;}
+    }return total;
 }
 size_t GpuImageCache::upload(const std::shared_ptr<GpuImage>& image,size_t maxBytes) {
     device_->checkThread();if(!image)throw std::invalid_argument("Null deferred GPU image");

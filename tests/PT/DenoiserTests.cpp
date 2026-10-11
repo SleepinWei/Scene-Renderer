@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iostream>
 #include <random>
+#include <future>
 #include <stdexcept>
 namespace {
 void check(bool value,const char *message){if(!value)throw std::runtime_error(message);}
@@ -29,6 +30,13 @@ void filter() {
     for(uint32_t y=8;y<88;++y)for(uint32_t x=8;x<120;++x){if(x>=56&&x<72)continue;size_t i=size_t(y)*128+x;auto c=image.denoised[i];check(std::isfinite(c.x)&&std::isfinite(c.y)&&std::isfinite(c.z),"Non-finite denoised pixel");before+=glm::dot(raw[i]-reference[i],raw[i]-reference[i]);after+=glm::dot(c-reference[i],c-reference[i]);if(x<56)left+=c;else right+=c;++n;}
     left/=float(n/2);right/=float(n/2);std::cout<<"OIDN MSE ratio "<<after/before<<", left "<<left.x<<", HDR right "<<right.z<<'\n';check(after<before*.4,"OIDN did not reduce noise");check(glm::length(left-glm::vec3(.4f,.6f,.8f))<.1f&&glm::length(right-glm::vec3(2,3,4))<.15f,"OIDN lost edge-separated HDR energy");
     pt::denoise(image,{"cpu",false});check(!image.denoiseAuxiliary&&image.denoised.size()==count,"Color-only denoising failed");
+    pt::DenoiserContext context;context.execute(image,{"cpu",true});auto first=context.statistics();auto filtered=image.denoised;
+    context.execute(image,{"cpu",true});auto hot=context.statistics();check(first.deviceBuilds==1&&first.filterBuilds==3&&hot.deviceBuilds==1&&hot.filterBuilds==3&&hot.executions==2,"OIDN warm context rebuilt filters / device");
+    for(size_t i=0;i<count;++i)check(glm::length(filtered[i]-image.denoised[i])<1e-5f,"OIDN warm filter changed unchanged input");
+    check(image.radiance==raw&&image.albedo==albedo&&image.normal==normal,"Persistent OIDN mutated source AOVs");
+    auto wrongThread=std::async(std::launch::async,[&]{try{context.execute(image,{"cpu",true});return false;}catch(const std::logic_error &){return true;}});check(wrongThread.get(),"OIDN cross-thread context use accepted");
+    context.execute(image,{"cpu",false});check(context.statistics().deviceBuilds==1&&context.statistics().filterBuilds==4&&context.statistics().bufferBytes==count*3*sizeof(float)*2,"Auxiliary mode change did not replace filters / buffers");
+    pt::Image resized;resized.width=32;resized.height=24;resized.radiance.assign(32*24,glm::vec3(.5f));context.execute(resized,{"cpu",false});check(context.statistics().deviceBuilds==1&&context.statistics().filterBuilds==5&&context.statistics().bufferBytes==32*24*3*sizeof(float)*2,"OIDN resize did not retain device / release old extent");
     image.radiance[0].x=std::numeric_limits<float>::quiet_NaN();bool rejected=false;try{pt::denoise(image,{"cpu",false});}catch(const std::invalid_argument &){rejected=true;}check(rejected,"NaN input accepted");
     image.radiance=raw;image.albedo.pop_back();rejected=false;try{pt::denoise(image,{"cpu",true});}catch(const std::invalid_argument &){rejected=true;}check(rejected,"Truncated auxiliary input accepted");
 }

@@ -1,0 +1,351 @@
+{
+  "alpha_protected": true,
+  "batch_dispatches_after": 3,
+  "batch_dispatches_before": 9,
+  "batch_indices_and_pixels_equal": true,
+  "cluster_frustum_reference": true,
+  "cluster_hiz": {
+    "comparisons": 11,
+    "display_equal": true,
+    "hdr_max_error": 0.0,
+    "hidden_triangles_removed": 512,
+    "same_frame_lod_depth": true
+  },
+  "grid": [
+    {
+      "cpu_gpu_indices_equal": true,
+      "pixel_budget": 0.0,
+      "selected_triangles": 4608,
+      "source_triangles": 4608
+    },
+    {
+      "cpu_gpu_indices_equal": true,
+      "pixel_budget": 0.25,
+      "selected_triangles": 4608,
+      "source_triangles": 4608
+    },
+    {
+      "cpu_gpu_indices_equal": true,
+      "pixel_budget": 1.0,
+      "selected_triangles": 4608,
+      "source_triangles": 4608
+    },
+    {
+      "cpu_gpu_indices_equal": true,
+      "pixel_budget": 4.0,
+      "selected_triangles": 3842,
+      "source_triangles": 4608
+    },
+    {
+      "cpu_gpu_indices_equal": true,
+      "pixel_budget": 64.0,
+      "selected_triangles": 2820,
+      "source_triangles": 4608
+    }
+  ],
+  "orthographic_reference": true,
+  "pyramid_oracle": {
+    "base_mips": [
+      0,
+      2
+    ],
+    "builders": [
+      "single_level",
+      "three_level_fused"
+    ],
+    "checked_texels": 1569260,
+    "exact": true,
+    "sizes": 8
+  },
+  "scatter_2d": {
+    "clusters": 65537,
+    "indices_exact": true
+  },
+  "scope": "actual GPU indices compared byte-for-byte with independent CPU hierarchical cut",
+  "seam_split_gpu_exact": true,
+  "shear_mirror_scale": true,
+  "two_stage": {
+    "cases": [
+      {
+        "case": "cold",
+        "cut_triangles": 1536,
+        "early_triangles": 1536,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": false,
+        "late_triangles": 0,
+        "rejected_triangles": 0
+      },
+      {
+        "case": "warm",
+        "cut_triangles": 1536,
+        "early_triangles": 1024,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": true,
+        "late_triangles": 0,
+        "rejected_triangles": 512
+      },
+      {
+        "case": "occluder-moves",
+        "cut_triangles": 1536,
+        "early_triangles": 1024,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": true,
+        "late_triangles": 512,
+        "rejected_triangles": 0
+      },
+      {
+        "case": "occluder-returns",
+        "cut_triangles": 1536,
+        "early_triangles": 1536,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": true,
+        "late_triangles": 0,
+        "rejected_triangles": 0
+      },
+      {
+        "case": "alpha-hole-opens",
+        "cut_triangles": 1536,
+        "early_triangles": 1024,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": true,
+        "late_triangles": 512,
+        "rejected_triangles": 0
+      },
+      {
+        "case": "equal-depth",
+        "cut_triangles": 1536,
+        "early_triangles": 1536,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": true,
+        "late_triangles": 0,
+        "rejected_triangles": 0
+      },
+      {
+        "case": "mirror-shear",
+        "cut_triangles": 1536,
+        "early_triangles": 1024,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": true,
+        "late_triangles": 0,
+        "rejected_triangles": 512
+      },
+      {
+        "case": "coarse-current-cut",
+        "cut_triangles": 1536,
+        "early_triangles": 1024,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": true,
+        "late_triangles": 0,
+        "rejected_triangles": 512
+      },
+      {
+        "case": "fine-current-cut",
+        "cut_triangles": 1536,
+        "early_triangles": 1024,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": true,
+        "late_triangles": 0,
+        "rejected_triangles": 512
+      },
+      {
+        "case": "camera-pan",
+        "cut_triangles": 1536,
+        "early_triangles": 1024,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": true,
+        "late_triangles": 0,
+        "rejected_triangles": 512
+      },
+      {
+        "case": "camera-return",
+        "cut_triangles": 1536,
+        "early_triangles": 1024,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": true,
+        "late_triangles": 0,
+        "rejected_triangles": 512
+      },
+      {
+        "case": "camera-cut-perspective",
+        "cut_triangles": 1536,
+        "early_triangles": 1536,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": true,
+        "late_triangles": 0,
+        "rejected_triangles": 0
+      },
+      {
+        "case": "near-plane",
+        "cut_triangles": 1536,
+        "early_triangles": 1536,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": true,
+        "late_triangles": 0,
+        "rejected_triangles": 0
+      },
+      {
+        "case": "occluder-removal",
+        "cut_triangles": 1024,
+        "early_triangles": 512,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": true,
+        "late_triangles": 512,
+        "rejected_triangles": 0
+      },
+      {
+        "case": "mesh-return",
+        "cut_triangles": 1536,
+        "early_triangles": 1536,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": true,
+        "late_triangles": 0,
+        "rejected_triangles": 0
+      },
+      {
+        "case": "odd-resize",
+        "cut_triangles": 1536,
+        "early_triangles": 1536,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": false,
+        "late_triangles": 0,
+        "rejected_triangles": 0
+      },
+      {
+        "case": "odd-resize-warm",
+        "cut_triangles": 1536,
+        "early_triangles": 1024,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": true,
+        "late_triangles": 0,
+        "rejected_triangles": 512
+      },
+      {
+        "case": "explicit-reset",
+        "cut_triangles": 1536,
+        "early_triangles": 1536,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": false,
+        "late_triangles": 0,
+        "rejected_triangles": 0
+      },
+      {
+        "case": "duplicate-ids",
+        "cut_triangles": 1536,
+        "early_triangles": 1024,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": true,
+        "late_triangles": 0,
+        "rejected_triangles": 512
+      },
+      {
+        "case": "duplicate-ids-warm",
+        "cut_triangles": 1536,
+        "early_triangles": 1024,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": true,
+        "late_triangles": 0,
+        "rejected_triangles": 512
+      },
+      {
+        "case": "geometry-revision",
+        "cut_triangles": 1536,
+        "early_triangles": 1024,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": true,
+        "late_triangles": 0,
+        "rejected_triangles": 512
+      },
+      {
+        "case": "toggle-reenable",
+        "cut_triangles": 1536,
+        "early_triangles": 1536,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": false,
+        "late_triangles": 0,
+        "rejected_triangles": 0
+      },
+      {
+        "case": "legacy-reenable",
+        "cut_triangles": 1536,
+        "early_triangles": 1536,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": false,
+        "late_triangles": 0,
+        "rejected_triangles": 0
+      },
+      {
+        "case": "hierarchy-ready",
+        "cut_triangles": 1536,
+        "early_triangles": 1536,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": false,
+        "late_triangles": 0,
+        "rejected_triangles": 0
+      },
+      {
+        "case": "unsupported-packet-fallback",
+        "display_equal": true,
+        "no_unused_hiz": true
+      },
+      {
+        "case": "taa-jitter-0",
+        "cut_triangles": 1536,
+        "early_triangles": 1536,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": false,
+        "late_triangles": 0,
+        "rejected_triangles": 0
+      },
+      {
+        "case": "taa-jitter-1",
+        "cut_triangles": 1536,
+        "early_triangles": 1024,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": true,
+        "late_triangles": 0,
+        "rejected_triangles": 512
+      },
+      {
+        "case": "taa-jitter-2",
+        "cut_triangles": 1536,
+        "early_triangles": 1024,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": true,
+        "late_triangles": 0,
+        "rejected_triangles": 512
+      },
+      {
+        "case": "taa-jitter-3",
+        "cut_triangles": 1536,
+        "early_triangles": 1024,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": true,
+        "late_triangles": 0,
+        "rejected_triangles": 512
+      },
+      {
+        "case": "taa-jitter-4",
+        "cut_triangles": 1536,
+        "early_triangles": 1024,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": true,
+        "late_triangles": 0,
+        "rejected_triangles": 512
+      },
+      {
+        "case": "taa-jitter-5",
+        "cut_triangles": 1536,
+        "early_triangles": 1024,
+        "hdr_display_gbuffer_equal": true,
+        "history_used": true,
+        "late_triangles": 0,
+        "rejected_triangles": 512
+      }
+    ],
+    "hdr_max_error": 0.0,
+    "recovered_triangles": 1536,
+    "six_gbuffer_attachments_compared": true
+  },
+  "visibility_recovery": true,
+  "zero_error_pixels_equal": true
+}

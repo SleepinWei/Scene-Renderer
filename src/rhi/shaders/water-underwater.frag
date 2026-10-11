@@ -6,9 +6,10 @@ layout(location=0) out vec4 color;
 layout(set=0,binding=0,std140) uniform UnderwaterParameters {
     mat4 inverseVP;mat4 coastInverse;mat4 coastModel;
     vec4 coastPatch;vec4 coastPreviousPatch;vec4 coastFeatures;vec4 coastBedInfo;
-    vec4 camera;vec4 waves;vec4 absorb;vec4 scatter;vec4 direction;vec4 diffuse;vec4 controls;vec4 diving;vec4 shaftPatch;vec4 shaftProjection;
+    vec4 camera;vec4 waves;vec4 absorb;vec4 scatter;vec4 direction;vec4 diffuse;vec4 controls;vec4 diving;vec4 shaftPatch;vec4 shaftProjection;mat4 eyeVP;
 };
 layout(set=0,binding=1) uniform sampler2D sunShaftField;
+layout(set=0,binding=2) uniform sampler2D eyeSurfaceDepth;
 layout(set=1,binding=0) uniform sampler2D eyeScene;
 layout(set=1,binding=1) uniform sampler2D eyePosition;
 layout(set=1,binding=2) uniform sampler2D eyeNormal;
@@ -34,6 +35,11 @@ void main() {
     vec2 capturedUV=camera.w>.5?vec2(uv.x/camera.w,uv.y):uv;
     vec3 position=texture(eyePosition,uv).xyz,N=texture(eyeNormal,uv).xyz;
     bool geometry=dot(N,N)>.25;
+    // Surface shading has already integrated the eye leg. Early depth rejection
+    // avoids computing a second volume which would then cover that interface.
+    vec4 opaqueClip=eyeVP*vec4(position,1);
+    float opaqueDepth=geometry?opaqueClip.z/max(opaqueClip.w,1e-7):1.;
+    if(texture(eyeSurfaceDepth,uv).r<opaqueDepth-2e-7)discard;
     float distance=geometry?min(length(position-camera.xyz),absorb.w):absorb.w;
     // Clip the view segment at the first wave-surface exit. Surface shading
     // later replaces these pixels and integrates its own eye leg once.

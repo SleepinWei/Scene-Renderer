@@ -1,0 +1,42 @@
+{
+  "alpha_protected": true,
+  "cluster_frustum_reference": true,
+  "grid": [
+    {
+      "cpu_gpu_indices_equal": true,
+      "pixel_budget": 0.0,
+      "selected_triangles": 4608,
+      "source_triangles": 4608
+    },
+    {
+      "cpu_gpu_indices_equal": true,
+      "pixel_budget": 0.25,
+      "selected_triangles": 4608,
+      "source_triangles": 4608
+    },
+    {
+      "cpu_gpu_indices_equal": true,
+      "pixel_budget": 1.0,
+      "selected_triangles": 4608,
+      "source_triangles": 4608
+    },
+    {
+      "cpu_gpu_indices_equal": true,
+      "pixel_budget": 4.0,
+      "selected_triangles": 3952,
+      "source_triangles": 4608
+    },
+    {
+      "cpu_gpu_indices_equal": true,
+      "pixel_budget": 64.0,
+      "selected_triangles": 2788,
+      "source_triangles": 4608
+    }
+  ],
+  "orthographic_reference": true,
+  "scope": "actual GPU indices compared byte-for-byte with independent CPU hierarchical cut",
+  "shear_mirror_scale": true,
+  "visibility_recovery": true,
+  "zero_error_pixels_equal": true,
+  "backend_scope": "Vulkan via MoltenVK on Apple M4; functional validation, not Khronos validation-layer or independent Vulkan hardware coverage"
+}

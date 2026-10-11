@@ -21,7 +21,7 @@ public:
     bool supportsTextureSubresources() const override {return true;}
     rhi::Backend backend() const override { return rhi::Backend::OpenGL; }
     bool supportsTexture(rhi::Format f, rhi::TextureUsage u) const override {
-        return ((f == rhi::Format::RGBA8UNorm || f==rhi::Format::RGBA16Float || f==rhi::Format::RGBA32Float) && !rhi::hasUsage(u, rhi::TextureUsage::DepthAttachment) && uint32_t(u) && !(uint32_t(u) & ~31u)) ||
+        return ((f == rhi::Format::RGBA8UNorm || f==rhi::Format::RGBA16Float || f==rhi::Format::RGBA32Float || f==rhi::Format::R16Float || f==rhi::Format::R32Float) && !rhi::hasUsage(u, rhi::TextureUsage::DepthAttachment) && uint32_t(u) && !(uint32_t(u) & ~31u)) ||
             (f == rhi::Format::RGBA32Float && u == rhi::TextureUsage::Storage) ||
             (f == rhi::Format::Depth32Float && u == rhi::TextureUsage::DepthAttachment);
     }
@@ -68,9 +68,20 @@ int main() {
     using namespace rhi;
     try {
         {
+            TestDevice d;
+            auto half=d.createTexture({7,5,Format::R16Float,TextureUsage::Sampled,"Scalar half mip budget",3,2});
+            auto full=d.createTexture({7,5,Format::R32Float,TextureUsage::Sampled,"Scalar float mip budget",3,2});
+            check(d.resourceMemory().textureBytes==(35+6+1)*2*6,"Scalar mip/layer budget differs from native texel sizes");
+            d.destroyTexture(half);d.destroyTexture(full);check(!d.resourceMemory().usedBytes(),"Scalar texture budget was not released");d.close();
+        }
+        {
             auto d=std::make_shared<TestDevice>();auto t=d->createTexture({8,8,Format::RGBA8UNorm,TextureUsage::ColorAttachment,"Subresource hazards",4,2});
             auto a=d->createTextureView({t,{0,1,0,1}}),b=d->createTextureView({t,{2,1,1,1}});
             check(d->resourceMemory().textureBytes==680,"Mip/layer payload was not budgeted");
+            auto array=d->createTextureView({t,{0,1,0,2}});
+            rejects([&]{d->createTextureView({t,{0,1,1,2}});});
+            auto invalid=d->createCommandList();RenderPassDesc layered;layered.color=array;invalid.beginRenderPass(layered);invalid.endRenderPass();
+            rejects([&]{d->submit(invalid);});d->destroyTextureView(array);
             auto commands=d->createCommandList();RenderPassDesc pass;pass.color=a;commands.beginRenderPass(pass);commands.endRenderPass();
             pass.color=b;commands.beginRenderPass(pass);commands.endRenderPass();
             pass.color=a;commands.beginRenderPass(pass);commands.endRenderPass();d->submit(commands);
@@ -195,6 +206,10 @@ int main() {
         auto target = d->createTexture({32, 32, Format::RGBA8UNorm, usage});auto view = d->createTextureView({target});
         auto sampled = d->createTexture({32, 32, Format::RGBA8UNorm, TextureUsage::Sampled | TextureUsage::CopyDestination});auto sampledView = d->createTextureView({sampled});
         auto sampler = d->createSampler({});
+        rejects([&]{d->createSampler({Filter::Linear,AddressMode::Repeat,true,0});});
+        rejects([&]{d->createSampler({Filter::Linear,AddressMode::Repeat,true,17});});
+        rejects([&]{d->createSampler({Filter::Nearest,AddressMode::Repeat,true,8});});
+        rejects([&]{d->createSampler({Filter::Linear,AddressMode::Repeat,false,8});});
         rejects([&] { d->createTexture({0, 32, Format::RGBA8UNorm, usage}); });
         rejects([&] { d->createTexture({129, 32, Format::RGBA8UNorm, usage}); });
         rejects([&] { foreign->createTextureView({target}); });
@@ -283,6 +298,21 @@ int main() {
         auto sampledTarget=d->createBindingSet({layout,{{1,{},0,0,view,sampler}}});auto textureDependencies=d->createCommandList();textureDependencies.beginRenderPass({view});textureDependencies.endRenderPass();textureDependencies.beginRenderPass({secondView});textureDependencies.bindPipeline(pipeline);textureDependencies.bindVertexBuffer(newVertices);textureDependencies.bindBindingSet(sampledTarget);for(unsigned repeat=0;repeat<64;++repeat)textureDependencies.draw(3);textureDependencies.endRenderPass();d->submit(textureDependencies);
         check(d->recorded[1].dependencies.size()==1 && d->recorded[1].dependencies[0].texture.value==target.value && d->recorded[1].dependencies[0].after==ResourceAccess::ShaderRead,"attachment -> sampled dependency missing");
 
+
+        // DDGI composes compute-produced irradiance through a read-only
+        // fragment SSBO. Verify the actual dependency stage, and keep writes
+        // forbidden in graphics even when the backend supports compute.
+        auto probeDesc=p;
+        BindingLayout probeLayout{0,{{0,BindingType::StorageRead,ShaderStage::Fragment,"ProbeIrradiance",16}}};
+        probeDesc.bindings.push_back(probeLayout);
+        auto probePipeline=d->createGraphicsPipeline(probeDesc);
+        auto probeSet=d->createBindingSet({probeLayout,{{0,generatedBuffer,0,64,{},{}}}});
+        auto mutableProbe=probeDesc;mutableProbe.bindings.back().entries[0].type=BindingType::StorageReadWrite;
+        rejects([&]{d->createGraphicsPipeline(mutableProbe);});
+        auto probeCommands=d->createCommandList();probeCommands.dispatch(computePipeline,{computeSet},{1,1,1});
+        probeCommands.beginRenderPass({view});probeCommands.bindPipeline(probePipeline);probeCommands.bindVertexBuffer(newVertices);
+        probeCommands.bindBindingSet(fresh);probeCommands.bindBindingSet(probeSet);probeCommands.draw(3);probeCommands.endRenderPass();d->submit(probeCommands);
+        check(d->recorded[1].dependencies.size()==1 && d->recorded[1].dependencies[0].afterStages==ResourceStage::Fragment && d->recorded[1].dependencies[0].after==ResourceAccess::ShaderRead,"compute -> fragment probe cache dependency missing");
 
         d->close();foreign->close();check(d->allocations() == 0, "graphics close leaked native resources");
         d->destroyTexture(target);d->destroyTextureView(view);d->destroySampler(sampler);d->destroyPipeline(pipeline);

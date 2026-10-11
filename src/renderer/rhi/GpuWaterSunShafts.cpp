@@ -29,7 +29,7 @@ void GpuWaterSunShafts::record(Resources& frame,rhi::CommandList& c,const OceanS
     constexpr float length=48,margin=16,cell=(length+margin*2)/256;
     auto coordinate=glm::vec2(camera.x,camera.z)-glm::vec2(projection_)*(camera.y-s.seaLevel);auto center=glm::floor(coordinate/cell)*cell;
     patch_={center.x-length*.5f,center.y-length*.5f,length,length/256};
-    Parameters p{glm::inverse(s.bathymetryModel),s.bathymetryModel,shorePatch,shorePatch,{0,0,s.shore.enabled?1.f:0.f,0},{0,0,0,0},patch_,{s.seaLevel,s.spectrum.length,32,s.detailWaves?1.f:0.f},glm::vec4(L,0),projection_,{(s.surfaceLength>0?s.surfaceLength:s.spectrum.length)*.5f,margin,cell,0},{257,256,0,0}};
+    Parameters p{glm::inverse(s.bathymetryModel),s.bathymetryModel,shorePatch,shorePatch,{0,0,(s.shore.enabled&&s.bathymetry?1.f:0.f)+(s.waveParticles.enabled?2.f:0.f),0},{0,0,0,0},patch_,{s.seaLevel,s.spectrum.length,32,s.detailWaves?1.f:0.f},glm::vec4(L,0),projection_,{(s.surfaceLength>0?s.surfaceLength:s.spectrum.length)*.5f,margin,cell,0},{257,256,0,0}};
     auto buffer=frame.buffer({sizeof(p),BufferUsage::Uniform,"Sun shaft photon settings"},&p);
     const TextureViewHandle textures[]={fft[0],fft[3],fft[1],fft[4],shore,mask};std::vector<BindingEntry> entries={{0,buffer,0,sizeof(p),{},{}}};
     for(uint32_t i=0;i<6;++i)entries.push_back({i+1,{},0,0,textures[i],i<4?repeat_:clamp_});

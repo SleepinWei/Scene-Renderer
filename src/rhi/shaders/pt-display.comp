@@ -1,0 +1,27 @@
+#version 450
+layout(local_size_x=8,local_size_y=8,local_size_z=1) in;
+layout(set=0,binding=0,std140) uniform DisplayParameters {
+    vec4 film; // film width, height, exposure
+    uvec4 target; // output width, height, letterbox x, y
+    uvec4 region; // letterbox width, height
+} p;
+struct Pixel {vec4 mean,m2;uvec4 stats;vec4 albedo,normal;};
+layout(set=0,binding=1,std430) readonly buffer Pixels {Pixel pixels[];};
+layout(set=0,binding=3,std430) readonly buffer Denoised {vec4 filteredPixels[];};
+layout(set=0,binding=2,rgba8) uniform writeonly image2D outputImage;
+void main() {
+    uvec2 xy=gl_GlobalInvocationID.xy;
+    if(any(greaterThanEqual(xy,p.target.xy)))return;
+    vec4 color=vec4(0,0,0,1);
+    if(all(greaterThanEqual(xy,p.target.zw))&&all(lessThan(xy-p.target.zw,p.region.xy))) {
+        uvec2 extent=uvec2(p.film.xy);
+        vec2 uv=(vec2(xy-p.target.zw)+.5)/vec2(p.region.xy);
+        uvec2 pixelXY=min(uvec2(uv*vec2(extent)),extent-1u);
+        Pixel pixel=pixels[pixelXY.y*extent.x+pixelXY.x];
+        vec3 radiance=max(pixel.mean.xyz,vec3(0));
+        if(p.region.z!=0u)radiance=max(filteredPixels[pixelXY.y*extent.x+pixelXY.x].xyz,vec3(0));
+        color=vec4(pow(1.0-exp(-radiance*p.film.z),vec3(1.0/2.2)),1);
+        if(pixel.stats.w!=0u)color=vec4(1,0,1,1);
+    }
+    imageStore(outputImage,ivec2(xy),color);
+}

@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-11",
+  "build": "Scene-Renderer native build passed",
+  "tests": [
+    "cluster-hierarchy",
+    "pt-clustered-world-lod",
+    "geometry-culling-native",
+    "cluster-rendering-native",
+    "hiz-culling-native",
+    "cluster-rendering-vulkan"
+  ],
+  "passed": 6,
+  "failed": 0,
+  "metal_validation": {
+    "api": true,
+    "shader": true
+  },
+  "vulkan_scope": "MoltenVK on Apple M4; no claim of Khronos validation-layer or independent Vulkan hardware coverage",
+  "old_build_vs_batch_4px_display_changed_pixels": 0,
+  "cluster_hiz_comparisons": 11,
+  "scope": "ctest final build/cluster-performance-final-ctest.log; source captures stored alongside"
+}

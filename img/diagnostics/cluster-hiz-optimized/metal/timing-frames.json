@@ -1,0 +1,242 @@
+[
+  {
+    "mode": "batch_4px",
+    "round": 0,
+    "sample": 12,
+    "window_ms": 1.3988749980926514,
+    "spans": [
+      {
+        "end_ms": 59063844.92725,
+        "kind": "compute",
+        "ms": 0.1352500021457672,
+        "round": 0,
+        "sample": 12,
+        "stage": "clusters/batch-mark-batch/3",
+        "start_ms": 59063844.791999996
+      },
+      {
+        "end_ms": 59063846.190874994,
+        "kind": "render",
+        "ms": 1.2634999975562096,
+        "round": 0,
+        "sample": 12,
+        "stage": "geometry",
+        "start_ms": 59063844.927374996
+      }
+    ]
+  },
+  {
+    "mode": "two_stage_separate",
+    "round": 0,
+    "sample": 13,
+    "window_ms": 1.6022090017795563,
+    "spans": [
+      {
+        "end_ms": 59063897.881333,
+        "kind": "compute",
+        "ms": 0.033292002975940704,
+        "round": 0,
+        "sample": 13,
+        "stage": "clusters/early-mark",
+        "start_ms": 59063897.848041
+      },
+      {
+        "end_ms": 59063897.884875,
+        "kind": "compute",
+        "ms": 0.0033340007066726685,
+        "round": 0,
+        "sample": 13,
+        "stage": "clusters/early-scan",
+        "start_ms": 59063897.881541
+      },
+      {
+        "end_ms": 59063897.925749995,
+        "kind": "compute",
+        "ms": 0.0407089963555336,
+        "round": 0,
+        "sample": 13,
+        "stage": "clusters/early-scatter",
+        "start_ms": 59063897.885041
+      },
+      {
+        "end_ms": 59063899.252832994,
+        "kind": "render",
+        "ms": 1.1991669982671738,
+        "round": 0,
+        "sample": 13,
+        "stage": "geometry-early",
+        "start_ms": 59063898.053665996
+      },
+      {
+        "end_ms": 59063899.27575,
+        "kind": "compute",
+        "ms": 0.022666998207569122,
+        "round": 0,
+        "sample": 13,
+        "stage": "hiz/current-0",
+        "start_ms": 59063899.253083
+      },
+      {
+        "end_ms": 59063899.300583,
+        "kind": "compute",
+        "ms": 0.024667002260684967,
+        "round": 0,
+        "sample": 13,
+        "stage": "hiz/current-1",
+        "start_ms": 59063899.275915995
+      },
+      {
+        "end_ms": 59063899.30925,
+        "kind": "compute",
+        "ms": 0.008500002324581146,
+        "round": 0,
+        "sample": 13,
+        "stage": "hiz/current-2",
+        "start_ms": 59063899.300749995
+      },
+      {
+        "end_ms": 59063899.337749995,
+        "kind": "compute",
+        "ms": 0.004124999046325684,
+        "round": 0,
+        "sample": 13,
+        "stage": "hiz/current-3",
+        "start_ms": 59063899.333624996
+      },
+      {
+        "end_ms": 59063899.349166,
+        "kind": "compute",
+        "ms": 0.0033750012516975403,
+        "round": 0,
+        "sample": 13,
+        "stage": "hiz/current-4",
+        "start_ms": 59063899.345791
+      },
+      {
+        "end_ms": 59063899.352874994,
+        "kind": "compute",
+        "ms": 0.0032089948654174805,
+        "round": 0,
+        "sample": 13,
+        "stage": "hiz/current-5",
+        "start_ms": 59063899.349666
+      },
+      {
+        "end_ms": 59063899.363541,
+        "kind": "compute",
+        "ms": 0.0028330013155937195,
+        "round": 0,
+        "sample": 13,
+        "stage": "hiz/current-6",
+        "start_ms": 59063899.360708
+      },
+      {
+        "end_ms": 59063899.3675,
+        "kind": "compute",
+        "ms": 0.0030840039253234863,
+        "round": 0,
+        "sample": 13,
+        "stage": "hiz/current-7",
+        "start_ms": 59063899.364415996
+      },
+      {
+        "end_ms": 59063899.378708,
+        "kind": "compute",
+        "ms": 0.00299999862909317,
+        "round": 0,
+        "sample": 13,
+        "stage": "hiz/current-8",
+        "start_ms": 59063899.375708
+      },
+      {
+        "end_ms": 59063899.383457996,
+        "kind": "compute",
+        "ms": 0.0029579997062683105,
+        "round": 0,
+        "sample": 13,
+        "stage": "hiz/current-9",
+        "start_ms": 59063899.380499996
+      },
+      {
+        "end_ms": 59063899.419791,
+        "kind": "compute",
+        "ms": 0.02779100090265274,
+        "round": 0,
+        "sample": 13,
+        "stage": "clusters/late-mark",
+        "start_ms": 59063899.392
+      },
+      {
+        "end_ms": 59063899.423333,
+        "kind": "compute",
+        "ms": 0.003292001783847809,
+        "round": 0,
+        "sample": 13,
+        "stage": "clusters/late-scan",
+        "start_ms": 59063899.420040995
+      },
+      {
+        "end_ms": 59063899.445999995,
+        "kind": "compute",
+        "ms": 0.0224590003490448,
+        "round": 0,
+        "sample": 13,
+        "stage": "clusters/late-scatter",
+        "start_ms": 59063899.423540995
+      },
+      {
+        "end_ms": 59063899.45025,
+        "kind": "render",
+        "ms": 0.004124999046325684,
+        "round": 0,
+        "sample": 13,
+        "stage": "geometry-late",
+        "start_ms": 59063899.446125
+      }
+    ]
+  },
+  {
+    "mode": "two_stage_4px",
+    "round": 1,
+    "sample": 20,
+    "window_ms": 1.4456669986248016,
+    "spans": [
+      {
+        "end_ms": 59067079.563499995,
+        "kind": "compute",
+        "ms": 0.1361669972538948,
+        "round": 1,
+        "sample": 20,
+        "stage": "clusters/early-mark-batch/3",
+        "start_ms": 59067079.427333
+      },
+      {
+        "end_ms": 59067080.811041,
+        "kind": "render",
+        "ms": 1.2473749965429306,
+        "round": 1,
+        "sample": 20,
+        "stage": "geometry-early",
+        "start_ms": 59067079.563666
+      },
+      {
+        "end_ms": 59067080.868499994,
+        "kind": "compute",
+        "ms": 0.05720899999141693,
+        "round": 1,
+        "sample": 20,
+        "stage": "hiz/current-0-coarse-batch/6",
+        "start_ms": 59067080.811290994
+      },
+      {
+        "end_ms": 59067080.872999996,
+        "kind": "render",
+        "ms": 0.004333995282649994,
+        "round": 1,
+        "sample": 20,
+        "stage": "geometry-late",
+        "start_ms": 59067080.868666
+      }
+    ]
+  }
+]

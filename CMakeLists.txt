@@ -115,7 +115,7 @@ file(GLOB RHI_SHADER_SOURCES CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/src/rhi/sh
 add_custom_command(OUTPUT "${RHI_SHADER_DIR}/complete.stamp"
     COMMAND ${Python3_EXECUTABLE} "${PROJECT_SOURCE_DIR}/tools/compile_rhi_shaders.py" --output "${RHI_SHADER_DIR}" ${RHI_SHADER_FLAGS}
     COMMAND ${CMAKE_COMMAND} -E touch "${RHI_SHADER_DIR}/complete.stamp"
-    DEPENDS ${RHI_SHADER_SOURCES} "${PROJECT_SOURCE_DIR}/tools/compile_rhi_shaders.py" VERBATIM)
+    DEPENDS ${RHI_SHADER_SOURCES} "${PROJECT_SOURCE_DIR}/tools/compile_rhi_shaders.py" "${PROJECT_SOURCE_DIR}/tools/metal_pt_native.py" VERBATIM)
 add_custom_target(rhi-shaders DEPENDS "${RHI_SHADER_DIR}/complete.stamp")
 add_dependencies(${PROJECT_NAME} rhi-shaders)
 target_compile_definitions(${PROJECT_NAME} PRIVATE SR_RHI_SHADER_DIR="${RHI_SHADER_DIR}")
@@ -192,9 +192,17 @@ endif()
 if(BUILD_TESTING)
     find_package(Threads REQUIRED)
     add_executable(pt-cpu-tests tests/PT/CpuPathTracerTests.cpp src/PT/CpuPathTracer.cpp src/PT/Sampler.cpp src/PT/BidirectionalPathTracer.cpp src/PT/PhotonMap.cpp src/PT/ValidationScenes.cpp src/PT/ProceduralGeometry.cpp)
+    add_test(NAME cluster-hierarchy COMMAND ${PROJECT_NAME} --cluster-hierarchy-self-test)
+    add_test(NAME pt-clustered-world-lod COMMAND ${PROJECT_NAME} --pt-world-lod-self-test)
     target_include_directories(pt-cpu-tests PRIVATE include external)
     target_link_libraries(pt-cpu-tests PRIVATE Threads::Threads)
+    add_test(NAME ao-reference COMMAND ${PROJECT_NAME} --ao-reference-self-test)
+    set_tests_properties(ao-reference PROPERTIES TIMEOUT 20 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
     add_test(NAME pt-cpu COMMAND pt-cpu-tests)
+    add_test(NAME pt-groom COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tests/PT/GroomTests.py)
+    set_tests_properties(pt-groom PROPERTIES ENVIRONMENT "PYTHONDONTWRITEBYTECODE=1" TIMEOUT 30)
+    add_test(NAME pt-knit-patterns COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tests/PT/KnitPatternsTests.py)
+    set_tests_properties(pt-knit-patterns PROPERTIES ENVIRONMENT "PYTHONDONTWRITEBYTECODE=1" TIMEOUT 30)
     add_executable(pt-photon-tests tests/PT/PhotonMapTests.cpp src/PT/CpuPathTracer.cpp src/PT/Sampler.cpp src/PT/BidirectionalPathTracer.cpp src/PT/PhotonMap.cpp src/PT/ValidationScenes.cpp src/PT/ProceduralGeometry.cpp)
     target_include_directories(pt-photon-tests PRIVATE include external)
     target_link_libraries(pt-photon-tests PRIVATE Threads::Threads)
@@ -216,8 +224,17 @@ if(BUILD_TESTING)
     add_executable(pt-denoiser-tests tests/PT/DenoiserTests.cpp src/PT/Denoiser.cpp)
     target_include_directories(pt-denoiser-tests PRIVATE include external)
     configure_pt_denoiser(pt-denoiser-tests)
+    target_link_libraries(pt-denoiser-tests PRIVATE Threads::Threads)
     add_test(NAME pt-denoiser COMMAND pt-denoiser-tests)
     set_tests_properties(pt-denoiser PROPERTIES TIMEOUT 60)
+    add_executable(pt-viewport-postprocess-tests tests/PT/ViewportPostprocessTests.cpp
+        src/PT/ViewportPostprocess.cpp src/PT/Denoiser.cpp src/PT/CpuPathTracer.cpp
+        src/PT/Sampler.cpp src/PT/BidirectionalPathTracer.cpp src/PT/PhotonMap.cpp src/PT/ProceduralGeometry.cpp)
+    target_include_directories(pt-viewport-postprocess-tests PRIVATE include external)
+    target_link_libraries(pt-viewport-postprocess-tests PRIVATE Threads::Threads)
+    configure_pt_denoiser(pt-viewport-postprocess-tests)
+    add_test(NAME pt-viewport-postprocess COMMAND pt-viewport-postprocess-tests)
+    set_tests_properties(pt-viewport-postprocess PROPERTIES TIMEOUT 60)
     add_executable(pt-procedural-tests tests/PT/ProceduralTests.cpp src/PT/CpuPathTracer.cpp src/PT/Sampler.cpp src/PT/BidirectionalPathTracer.cpp src/PT/PhotonMap.cpp src/PT/ProceduralGeometry.cpp)
     target_include_directories(pt-procedural-tests PRIVATE include external)
     target_link_libraries(pt-procedural-tests PRIVATE Threads::Threads)
@@ -231,18 +248,63 @@ if(BUILD_TESTING)
     add_test(NAME pt-cornell-scene COMMAND ${PROJECT_NAME} --path-trace cornell --pt-no-sky --pt-size 64x64 --pt-samples 4 --pt-bounces 4 --pt-output "${CMAKE_BINARY_DIR}/pt/cornell")
     set_tests_properties(pt-cornell-scene PROPERTIES TIMEOUT 60 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
     if(SCENERENDERER_METAL OR SCENERENDERER_DEFAULT_VULKAN)
+        add_test(NAME rhi-temporal COMMAND ${PROJECT_NAME} --temporal-self-test)
+        set_tests_properties(rhi-temporal PROPERTIES LABELS "gpu" TIMEOUT 60 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
         add_test(NAME pt-native-sky COMMAND ${PROJECT_NAME} --pt-self-test)
+        add_test(NAME raster-preview-native COMMAND ${PROJECT_NAME} --raster-preview-self-test)
+        set_tests_properties(raster-preview-native PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 90 LABELS gpu)
         add_test(NAME water-native COMMAND ${PROJECT_NAME} --water-self-test)
+        add_test(NAME geometry-culling-native COMMAND ${PROJECT_NAME} --geometry-culling-self-test)
+        add_test(NAME cluster-rendering-native COMMAND ${PROJECT_NAME} --cluster-rendering-self-test)
+        set_tests_properties(cluster-rendering-native PROPERTIES LABELS "gpu" TIMEOUT 120 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+        add_test(NAME environment-rain-native COMMAND ${PROJECT_NAME} --rain-self-test)
+        set_tests_properties(environment-rain-native PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 120 LABELS gpu)
+        add_test(NAME hiz-culling-native COMMAND ${PROJECT_NAME} --hiz-culling-self-test)
+        set_tests_properties(hiz-culling-native PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 120 LABELS gpu)
+        set_tests_properties(geometry-culling-native PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 120 LABELS gpu)
         add_test(NAME post-process-native COMMAND ${PROJECT_NAME} --post-process-self-test)
         set_tests_properties(post-process-native PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 120 LABELS gpu)
         set_tests_properties(water-native PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 120 LABELS gpu)
-        set_tests_properties(pt-native-sky PROPERTIES LABELS "gpu" TIMEOUT 60 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+        # Includes shared material, viewport and probe transport regressions;
+        # a cold native PT shader compile can exceed the old 150-second limit.
+        set_tests_properties(pt-native-sky PROPERTIES LABELS "gpu" TIMEOUT 600 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
     endif()
     add_executable(engine-concurrency-tests tests/engine/ConcurrencyTests.cpp src/engine/JobSystem.cpp)
     target_include_directories(engine-concurrency-tests PRIVATE include)
     target_link_libraries(engine-concurrency-tests PRIVATE Threads::Threads)
     add_test(NAME engine-concurrency COMMAND engine-concurrency-tests)
     set_tests_properties(engine-concurrency PROPERTIES TIMEOUT 20)
+    add_executable(engine-environment-tests tests/engine/EnvironmentTests.cpp
+        src/engine/Environment.cpp src/renderer/rhi/EnvironmentBridge.cpp)
+    target_include_directories(engine-environment-tests PRIVATE include external)
+    target_link_libraries(engine-environment-tests PRIVATE Threads::Threads)
+    add_executable(environment-water-benchmark EXCLUDE_FROM_ALL tools/benchmark_surface_water.cpp src/engine/Environment.cpp)
+    target_include_directories(environment-water-benchmark PRIVATE include external)
+    target_link_libraries(environment-water-benchmark PRIVATE Threads::Threads)
+    add_test(NAME engine-environment COMMAND engine-environment-tests)
+    set_tests_properties(engine-environment PROPERTIES TIMEOUT 20)
+    if(SCENERENDERER_METAL OR SCENERENDERER_DEFAULT_VULKAN)
+        if(SCENERENDERER_METAL)
+            set(ENVIRONMENT_TEST_BACKEND Metal)
+        else()
+            set(ENVIRONMENT_TEST_BACKEND Vulkan)
+        endif()
+        add_test(NAME rhi-nature COMMAND ${PROJECT_NAME} --nature-self-test --backend ${ENVIRONMENT_TEST_BACKEND})
+        set_tests_properties(rhi-nature PROPERTIES WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}" TIMEOUT 120 LABELS gpu)
+        add_test(NAME engine-environment-editor COMMAND ${Python3_EXECUTABLE}
+            "${PROJECT_SOURCE_DIR}/tools/validate_environment_editor.py"
+            --executable $<TARGET_FILE:${PROJECT_NAME}> --backend ${ENVIRONMENT_TEST_BACKEND}
+            --output "${CMAKE_BINARY_DIR}/environment/editor-ctest")
+        set_tests_properties(engine-environment-editor PROPERTIES WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}" TIMEOUT 150 LABELS gpu)
+    endif()
+    add_executable(nature-system-tests tests/engine/NatureTests.cpp src/engine/WaveParticles.cpp src/renderer/rhi/VegetationGeometry.cpp src/renderer/rhi/TreeGeometry.cpp src/renderer/rhi/ProceduralSand.cpp)
+    target_include_directories(nature-system-tests PRIVATE include external)
+    add_test(NAME nature-system COMMAND nature-system-tests)
+    add_executable(engine-render-graph-tests tests/engine/RenderGraphTests.cpp)
+    target_include_directories(engine-render-graph-tests PRIVATE include)
+    target_link_libraries(engine-render-graph-tests PRIVATE Threads::Threads)
+    add_test(NAME engine-render-graph COMMAND engine-render-graph-tests)
+    set_tests_properties(engine-render-graph PROPERTIES TIMEOUT 20)
     add_executable(rhi-image-decoder-tests tests/rhi/ImageDecoderTests.cpp src/renderer/rhi/DdsDecoder.cpp)
     target_include_directories(rhi-image-decoder-tests PRIVATE include external)
     add_test(NAME rhi-image-decoder COMMAND rhi-image-decoder-tests)
@@ -257,8 +319,10 @@ if(BUILD_TESTING)
     add_test(NAME rhi-deferred-scene COMMAND ${PROJECT_NAME} --rhi-deferred --hidden --frames 3 --screenshot "${CMAKE_BINARY_DIR}/rhi/deferred-scene.ppm")
     set_tests_properties(rhi-deferred-scene PROPERTIES LABELS "gpu" TIMEOUT 60 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
     add_test(NAME rhi-gpu COMMAND ${PROJECT_NAME} --rhi-self-test)
-    set_tests_properties(rhi-gpu PROPERTIES WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} LABELS "gpu" TIMEOUT 60)
+    set_tests_properties(rhi-gpu PROPERTIES WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} LABELS "gpu" TIMEOUT 600)
     if(SCENERENDERER_METAL OR SCENERENDERER_DEFAULT_VULKAN)
+        add_test(NAME rhi-ddgi COMMAND ${PROJECT_NAME} --ddgi-self-test)
+        set_tests_properties(rhi-ddgi PROPERTIES LABELS "gpu" TIMEOUT 180 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
         add_test(NAME rhi-editor-resize COMMAND ${PROJECT_NAME} --demo --hidden --size 800x450 --frames 20 --time 8 --resize 640x360 --screenshot "${CMAKE_BINARY_DIR}/rhi/editor-resize.ppm")
         add_test(NAME rhi-editor-terrain COMMAND ${PROJECT_NAME} --classic terrain --hidden --size 640x360 --frames 40 --time 8 --resize 480x270 --screenshot "${CMAKE_BINARY_DIR}/rhi/editor-terrain.ppm")
         add_test(NAME rhi-editor-single-thread COMMAND ${PROJECT_NAME} --classic cornell --single-thread --hidden --size 640x360 --frames 8 --time 8)
@@ -292,14 +356,23 @@ if(SCENERENDERER_VULKAN_PROTOTYPE)
     add_executable(rhi-vulkan-validation tests/rhi/VulkanValidation.cpp src/engine/JobSystem.cpp
         src/rhi/Device.cpp src/rhi/GraphicsDevice.cpp src/rhi/ShaderAssets.cpp
         src/rhi/Validation.cpp src/rhi/FrameValidation.cpp src/rhi/GraphicsValidation.cpp src/rhi/ComputeValidation.cpp src/rhi/VulkanDevice.cpp
-        src/renderer/rhi/GpuMesh.cpp src/renderer/rhi/GpuMaterial.cpp src/renderer/rhi/GpuImageCache.cpp src/renderer/rhi/ImageDecoder.cpp src/renderer/rhi/DdsDecoder.cpp
+        src/renderer/rhi/GpuMesh.cpp src/renderer/rhi/GpuMaterial.cpp src/renderer/rhi/GpuImageCache.cpp src/renderer/rhi/ImageMipChain.cpp src/renderer/rhi/ImageDecoder.cpp src/renderer/rhi/DdsDecoder.cpp
         src/renderer/rhi/ForwardPbrRenderer.cpp src/renderer/rhi/ForwardValidation.cpp
-        src/renderer/rhi/GpuClouds.cpp src/renderer/rhi/CloudValidation.cpp src/component/Cloud.cpp src/component/Component.cpp
-        src/renderer/rhi/GpuOcean.cpp src/renderer/rhi/OceanValidation.cpp src/renderer/rhi/ShadowRenderer.cpp src/renderer/rhi/SceneEffectsValidation.cpp
+        src/renderer/rhi/ClusterGeometry.cpp src/renderer/rhi/GpuClusterCuller.cpp src/renderer/rhi/GpuClusterBatch.cpp src/renderer/rhi/ClusterValidation.cpp
+        src/renderer/rhi/GpuGeometryCuller.cpp src/renderer/rhi/GeometryCullingValidation.cpp
+        src/renderer/rhi/GpuHiZCuller.cpp src/renderer/rhi/HiZCullingValidation.cpp
+        src/renderer/rhi/HiZVisualization.cpp
+        # DDGI validation also exercises the shared PT probe transport.
+        src/PT/CpuPathTracer.cpp src/PT/Sampler.cpp src/PT/BidirectionalPathTracer.cpp
+        src/PT/PhotonMap.cpp src/PT/ProgressivePhotonMap.cpp src/PT/ProceduralGeometry.cpp
+        src/PT/GpuPathTracer.cpp src/PT/ValidationScenes.cpp
+        src/renderer/rhi/GpuRain.cpp src/renderer/rhi/RainValidation.cpp
+        src/renderer/rhi/GpuClouds.cpp src/renderer/rhi/WeatherLighting.cpp src/renderer/rhi/GpuAirFog.cpp src/renderer/rhi/GpuDdgi.cpp src/renderer/rhi/DdgiValidation.cpp src/renderer/rhi/AtmosphereBake.cpp src/renderer/rhi/CloudValidation.cpp src/component/Cloud.cpp src/component/Component.cpp
+        src/renderer/rhi/GpuOcean.cpp src/renderer/rhi/OceanValidation.cpp src/renderer/rhi/ShadowRenderer.cpp src/renderer/rhi/GpuInstanceCuller.cpp src/renderer/rhi/SceneEffectsValidation.cpp
         src/renderer/rhi/GpuAtmosphere.cpp src/renderer/rhi/OceanSurface.cpp src/renderer/rhi/WaterValidation.cpp
         src/renderer/rhi/GpuPostProcessor.cpp src/renderer/rhi/PostProcessValidation.cpp
         src/renderer/rhi/GpuWaterCaustics.cpp src/renderer/rhi/GpuWaterSunShafts.cpp src/renderer/rhi/GpuShoreWater.cpp src/renderer/rhi/WaterBathymetry.cpp src/renderer/rhi/WaterTransport.cpp
-        src/renderer/rhi/AtmosphereValidation.cpp src/renderer/rhi/GpuSubdivision.cpp src/renderer/rhi/SubdivisionValidation.cpp src/renderer/rhi/GpuTerrain.cpp src/renderer/rhi/GpuVirtualTexture.cpp src/renderer/rhi/VirtualTextureValidation.cpp src/renderer/rhi/TerrainValidation.cpp src/renderer/rhi/GpuGrass.cpp src/renderer/rhi/GrassGeometry.cpp src/renderer/rhi/GpuTemporal.cpp src/renderer/rhi/TemporalValidation.cpp)
+        src/renderer/rhi/AtmosphereValidation.cpp src/renderer/rhi/GpuSubdivision.cpp src/renderer/rhi/SubdivisionValidation.cpp src/renderer/rhi/GpuTerrain.cpp src/renderer/rhi/GpuVirtualTexture.cpp src/renderer/rhi/VirtualTextureValidation.cpp src/renderer/rhi/TerrainValidation.cpp src/renderer/rhi/GpuGrass.cpp src/renderer/rhi/GrassGeometry.cpp src/renderer/rhi/GpuVegetation.cpp src/renderer/rhi/VegetationGeometry.cpp src/renderer/rhi/TreeGeometry.cpp src/renderer/rhi/GpuTreeWind.cpp src/renderer/rhi/GpuWaveParticles.cpp src/engine/WaveParticles.cpp src/renderer/rhi/GpuTemporal.cpp src/renderer/rhi/TemporalValidation.cpp)
     target_include_directories(rhi-vulkan-validation BEFORE PRIVATE "$<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>")
     target_include_directories(rhi-vulkan-validation PRIVATE include external)
     target_link_libraries(rhi-vulkan-validation PRIVATE Vulkan::Vulkan glfw)
@@ -311,8 +384,18 @@ if(SCENERENDERER_VULKAN_PROTOTYPE)
     add_dependencies(rhi-vulkan-validation rhi-shaders)
     if(BUILD_TESTING)
         if(NOT SCENERENDERER_DEFAULT_VULKAN)
+            add_test(NAME geometry-culling-vulkan COMMAND ${PROJECT_NAME} --geometry-culling-self-test --backend Vulkan)
+            add_test(NAME cluster-rendering-vulkan COMMAND ${PROJECT_NAME} --cluster-rendering-self-test --backend Vulkan)
+            set_tests_properties(cluster-rendering-vulkan PROPERTIES LABELS "gpu" TIMEOUT 120 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+            add_test(NAME environment-rain-vulkan COMMAND ${PROJECT_NAME} --rain-self-test --backend Vulkan)
+            set_tests_properties(environment-rain-vulkan PROPERTIES LABELS "gpu" TIMEOUT 120 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+            add_test(NAME hiz-culling-vulkan COMMAND ${PROJECT_NAME} --hiz-culling-self-test --backend Vulkan)
+            set_tests_properties(hiz-culling-vulkan PROPERTIES LABELS "gpu" TIMEOUT 120 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+            set_tests_properties(geometry-culling-vulkan PROPERTIES LABELS "gpu" TIMEOUT 120 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
             add_test(NAME pt-vulkan-sky COMMAND ${PROJECT_NAME} --pt-self-test --backend Vulkan)
-            set_tests_properties(pt-vulkan-sky PROPERTIES LABELS "gpu" TIMEOUT 90 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+            add_test(NAME raster-preview-vulkan COMMAND ${PROJECT_NAME} --raster-preview-self-test --backend Vulkan)
+            set_tests_properties(raster-preview-vulkan PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 90 LABELS gpu)
+            set_tests_properties(pt-vulkan-sky PROPERTIES LABELS "gpu" TIMEOUT 600 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
         endif()
         add_test(NAME rhi-vulkan-gpu COMMAND rhi-vulkan-validation)
         set_tests_properties(rhi-vulkan-gpu PROPERTIES LABELS "gpu" TIMEOUT 60 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
@@ -335,12 +418,15 @@ target_link_libraries(pt-package-render PRIVATE Threads::Threads)
 configure_pt_denoiser(pt-package-render)
 set(PT_PACKAGE_SHADER_DIR "${CMAKE_BINARY_DIR}/pt-package/shaders")
 file(GLOB PT_PACKAGE_SHADER_SOURCES CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/src/rhi/shaders/pt-*.glsl")
-add_custom_command(OUTPUT "${PT_PACKAGE_SHADER_DIR}/path-trace.comp.sha256"
+add_custom_command(OUTPUT "${PT_PACKAGE_SHADER_DIR}/complete.stamp"
     COMMAND ${Python3_EXECUTABLE} "${PROJECT_SOURCE_DIR}/tools/compile_rhi_shaders.py"
-        --output "${PT_PACKAGE_SHADER_DIR}" --shader path-trace.comp ${RHI_SHADER_FLAGS}
-    DEPENDS "${PROJECT_SOURCE_DIR}/src/rhi/shaders/path-trace.comp" ${PT_PACKAGE_SHADER_SOURCES}
-        "${PROJECT_SOURCE_DIR}/tools/compile_rhi_shaders.py" VERBATIM)
-add_custom_target(pt-package-shaders DEPENDS "${PT_PACKAGE_SHADER_DIR}/path-trace.comp.sha256")
+        --output "${PT_PACKAGE_SHADER_DIR}" --shader path-trace.comp --shader pt-display.comp ${RHI_SHADER_FLAGS}
+    COMMAND ${CMAKE_COMMAND} -E touch "${PT_PACKAGE_SHADER_DIR}/complete.stamp"
+    DEPENDS "${PROJECT_SOURCE_DIR}/src/rhi/shaders/path-trace.comp" "${PROJECT_SOURCE_DIR}/src/rhi/shaders/pt-integrator.glsl"
+        "${PROJECT_SOURCE_DIR}/src/rhi/shaders/pt-display.comp" ${PT_PACKAGE_SHADER_SOURCES}
+        "${PROJECT_SOURCE_DIR}/src/rhi/shaders/dielectric-fresnel.glsl"
+        "${PROJECT_SOURCE_DIR}/tools/compile_rhi_shaders.py" "${PROJECT_SOURCE_DIR}/tools/metal_pt_native.py" VERBATIM)
+add_custom_target(pt-package-shaders DEPENDS "${PT_PACKAGE_SHADER_DIR}/complete.stamp")
 target_compile_definitions(pt-package-render PRIVATE GLFW_INCLUDE_NONE SR_RHI_SHADER_DIR="${PT_PACKAGE_SHADER_DIR}")
 add_dependencies(pt-package-render pt-package-shaders)
 if(SCENERENDERER_METAL)
@@ -356,4 +442,20 @@ endif()
 if(SCENERENDERER_METAL OR SCENERENDERER_VULKAN_PROTOTYPE)
     set_property(TARGET pt-package-render PROPERTY NO_SYSTEM_FROM_IMPORTED TRUE)
     target_include_directories(pt-package-render BEFORE PRIVATE "$<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>")
+endif()
+
+# Shared camera integrator dependencies for CPU-only PT and GPU validation.
+foreach(PT_WEATHER_TARGET pt-cpu-tests pt-photon-tests pt-scene-package-tests pt-transport-benchmark pt-medium-tests pt-fiber-tests pt-procedural-tests pt-viewport-postprocess-tests pt-package-render)
+    if(TARGET ${PT_WEATHER_TARGET})
+        target_sources(${PT_WEATHER_TARGET} PRIVATE src/renderer/rhi/WeatherLighting.cpp src/PT/ProgressivePhotonMap.cpp)
+    endif()
+endforeach()
+if(BUILD_TESTING AND SCENERENDERER_METAL)
+    add_test(NAME environment-weather-native COMMAND ${PROJECT_NAME} --weather-lighting-self-test --backend Metal)
+    set_tests_properties(environment-weather-native PROPERTIES LABELS gpu TIMEOUT 600 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+endif()
+
+if(BUILD_TESTING AND (SCENERENDERER_VULKAN_PROTOTYPE OR SCENERENDERER_DEFAULT_VULKAN))
+    add_test(NAME environment-weather-vulkan COMMAND ${PROJECT_NAME} --weather-lighting-self-test --backend Vulkan)
+    set_tests_properties(environment-weather-vulkan PROPERTIES LABELS gpu TIMEOUT 600 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} ENVIRONMENT "MTL_DEBUG_LAYER=0;MTL_SHADER_VALIDATION=0")
 endif()

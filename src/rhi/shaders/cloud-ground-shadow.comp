@@ -1,0 +1,22 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+layout(local_size_x=8,local_size_y=8) in;
+#include "cloud-parameters.glsl"
+#include "cloud-intersection.glsl"
+#include "cloud-volume-sampling.glsl"
+layout(set=0,binding=2,std140) uniform GroundShadowParameters {vec4 groundPatch;vec4 groundProjection;};
+layout(set=1,binding=0) uniform sampler2D cloudNoiseAtlas;
+layout(set=1,binding=1) uniform sampler2D cloudWeather;
+layout(set=1,binding=2) uniform sampler2D cloudVoxels;
+layout(set=1,binding=3,rgba16f) writeonly uniform image2D groundTransmission;
+#include "cloud-density.glsl"
+void main(){
+    ivec2 p=ivec2(gl_GlobalInvocationID.xy),size=imageSize(groundTransmission);if(any(greaterThanEqual(p,size)))return;
+    vec2 xz=groundPatch.xy+(vec2(p)+.5)/vec2(size)*groundPatch.zw;vec3 origin=vec3(xz.x,groundProjection.z+.01,xz.y);
+    vec2 interval=cloudIntervalFrom(origin,cloudSun.xyz,2000000.);float tau=0.;
+    if(groundProjection.w>.5 && interval.y>interval.x){float ds=(interval.y-interval.x)/64.;
+        for(int i=0;i<64;++i){vec3 point=origin+cloudSun.xyz*(interval.x+(float(i)+.5)*ds);
+            float density=cloudVolumeCenterMode.w>.5?cloudCachedDensity(cloudVolumeSample(cloudVoxels,cloudVolumeUV(point),int(cloudVolumeQuality.x))):cloudDensity(point);
+            tau+=density*cloudLayer.w*ds;if(tau>16.)break;}}
+    imageStore(groundTransmission,p,vec4(exp(-tau),tau,0,1));
+}

@@ -1,0 +1,101 @@
+{
+  "scene": "sponza",
+  "mesh_count": 22,
+  "source_triangles": 262195,
+  "protected_leaf_triangles": 34908,
+  "resident_bytes": 3553740,
+  "budget_limited_meshes": 0,
+  "frames": [
+    {
+      "camera_distance": 8.481904983520508,
+      "clusters": 1913,
+      "cpu_cut_indices_exact": null,
+      "distance_scale": 1.0,
+      "lod_reduction_percent": 0.0,
+      "name": "0",
+      "pixel_error": 0.0,
+      "same_view_zero_error_triangles": 224887,
+      "triangles": 224887,
+      "triangles_by_level": {
+        "0": 224887
+      }
+    },
+    {
+      "camera_distance": 8.481904983520508,
+      "clusters": 1913,
+      "cpu_cut_indices_exact": null,
+      "distance_scale": 1.0,
+      "lod_reduction_percent": 0.5496093593671536,
+      "name": "1",
+      "pixel_error": 4.0,
+      "same_view_zero_error_triangles": 224887,
+      "triangles": 223651,
+      "triangles_by_level": {
+        "0": 216458,
+        "1": 7193
+      }
+    },
+    {
+      "camera_distance": 3.816857099533081,
+      "clusters": 1147,
+      "cpu_cut_indices_exact": null,
+      "distance_scale": 0.44999998807907104,
+      "lod_reduction_percent": 0.3027586308255281,
+      "name": "2",
+      "pixel_error": 4.0,
+      "same_view_zero_error_triangles": 136082,
+      "triangles": 135670,
+      "triangles_by_level": {
+        "0": 133156,
+        "1": 2514
+      }
+    },
+    {
+      "camera_distance": 8.481904983520508,
+      "clusters": 1809,
+      "cpu_cut_indices_exact": null,
+      "distance_scale": 1.0,
+      "lod_reduction_percent": 0.39079522611299433,
+      "name": "3",
+      "pixel_error": 4.0,
+      "same_view_zero_error_triangles": 213411,
+      "triangles": 212577,
+      "triangles_by_level": {
+        "0": 206902,
+        "1": 5675
+      }
+    },
+    {
+      "camera_distance": 16.963809967041016,
+      "clusters": 2176,
+      "cpu_cut_indices_exact": null,
+      "distance_scale": 2.0,
+      "lod_reduction_percent": 0.8858283244198351,
+      "name": "4",
+      "pixel_error": 4.0,
+      "same_view_zero_error_triangles": 253548,
+      "triangles": 251302,
+      "triangles_by_level": {
+        "0": 238858,
+        "1": 11590,
+        "2": 854
+      }
+    },
+    {
+      "camera_distance": 33.92761993408203,
+      "clusters": 2255,
+      "cpu_cut_indices_exact": null,
+      "distance_scale": 4.0,
+      "lod_reduction_percent": 1.0145120997730683,
+      "name": "5",
+      "pixel_error": 4.0,
+      "same_view_zero_error_triangles": 262195,
+      "triangles": 259535,
+      "triangles_by_level": {
+        "0": 245073,
+        "1": 13608,
+        "2": 854
+      }
+    }
+  ]
+}

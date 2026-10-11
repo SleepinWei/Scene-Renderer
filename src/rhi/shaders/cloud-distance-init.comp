@@ -13,8 +13,8 @@ void main(){
     for(int z=-1;z<=span;z++)for(int y=-1;y<=span;y++)for(int x=-1;x<=span;x++){
         ivec3 p=brick*span+ivec3(x,y,z);
         if(all(greaterThanEqual(p,ivec3(0))) && all(lessThan(p,ivec3(n)))){
-            float density=texelFetch(cloudVoxels,cloudVoxelTexel(p,n),0).r;
-            occupied=occupied || density>0.;core=core && density==1.;
+            vec4 sampleValue=texelFetch(cloudVoxels,cloudVoxelTexel(p,n),0);
+            occupied=occupied || sampleValue.r>0.;core=core && (cloudCoverageControl.x>.5?sampleValue.g:sampleValue.r)==1.;
         }else core=false;
     }
     imageStore(cloudDistance,at,vec4(occupied?0.:127./255.,occupied?127./255.:0.,occupied?1.:0.,core?127./255.:0.));

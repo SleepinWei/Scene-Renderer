@@ -1,4 +1,8 @@
+#include "renderer/rhi/MaterialWetness.h"
 #include "PT/CpuPathTracer.h"
+#include "renderer/rhi/FoliageMaterial.h"
+#include "FiberScattering.h"
+#include "PT/FiberSettings.h"
 #include "PT/PhotonMap.h"
 #include "PT/ProceduralCapture.h"
 #include <stb/stb_image_write.h>
@@ -66,6 +70,34 @@ glm::vec3 visibleNormal(glm::vec3 v,glm::vec3 n,float roughness,std::array<float
     auto nh=t1*x+t2*y+vh*std::sqrt(std::max(0.f,1-x*x-y*y));auto ne=unit(glm::vec3(a*nh.x,a*nh.y,std::max(0.f,nh.z)),{0,0,1});
     return t*ne.x+b*ne.y+n*ne.z;
 }
+// Elliptical GGX with visible-normal sampling. Keep the isotropic branches
+// verbatim so old fixed-seed films retain their sampling and arithmetic.
+struct SpecularFrame {glm::vec3 t,b,n;glm::vec2 alpha;};
+SpecularFrame specularFrame(const Surface& s){
+    const auto n=s.normal;auto t=glm::vec3(s.specularTangent);t-=n*glm::dot(n,t);
+    if(glm::dot(t,t)<1e-12f)t=glm::cross(std::abs(n.y)<.99f?glm::vec3(0,1,0):glm::vec3(1,0,0),n);
+    t=unit(t);auto b=glm::cross(n,t)*(s.specularTangent.w<0?-1.f:1.f);const float c=std::cos(s.specularRotation),q=std::sin(s.specularRotation);
+    const float a=s.roughness*s.roughness,aspect=std::sqrt(1-.9f*std::abs(s.specularAnisotropy));glm::vec2 alpha(a/aspect,a*aspect);if(s.specularAnisotropy<0)std::swap(alpha.x,alpha.y);
+    return {t*c+b*q,b*c-t*q,n,alpha};
+}
+float specularD(const Surface& s,glm::vec3 h){
+    if(s.specularAnisotropy==0)return distribution(std::max(0.f,glm::dot(s.normal,h)),s.roughness);
+    auto f=specularFrame(s);const float x=glm::dot(h,f.t)/f.alpha.x,y=glm::dot(h,f.b)/f.alpha.y,z=glm::dot(h,f.n),q=x*x+y*y+z*z;
+    return z>0?1/(pi*f.alpha.x*f.alpha.y*q*q):0;
+}
+float specularG1(const Surface& s,glm::vec3 v){
+    if(s.specularAnisotropy==0)return smith(glm::dot(s.normal,v),s.roughness);
+    auto f=specularFrame(s);const float z=glm::dot(v,f.n),x=glm::dot(v,f.t)*f.alpha.x,y=glm::dot(v,f.b)*f.alpha.y;
+    return z>0?2*z/(z+std::sqrt(z*z+x*x+y*y)):0;
+}
+glm::vec3 specularVisibleNormal(const Surface& s,glm::vec3 v,std::array<float,2> uv){
+    if(s.specularAnisotropy==0)return visibleNormal(v,s.normal,s.roughness,uv);
+    auto f=specularFrame(s);auto vh=unit(glm::vec3(f.alpha.x*glm::dot(v,f.t),f.alpha.y*glm::dot(v,f.b),glm::dot(v,f.n)),{0,0,1});
+    const float length=vh.x*vh.x+vh.y*vh.y;auto t1=length>0?glm::vec3(-vh.y,vh.x,0)/std::sqrt(length):glm::vec3(1,0,0),t2=glm::cross(vh,t1);
+    const float radius=std::sqrt(uv[0]),phi=2*pi*uv[1],x=radius*std::cos(phi),blend=.5f*(1+vh.z),y=glm::mix(std::sqrt(std::max(0.f,1-x*x)),radius*std::sin(phi),blend);
+    auto nh=t1*x+t2*y+vh*std::sqrt(std::max(0.f,1-x*x-y*y));auto ne=unit(glm::vec3(f.alpha.x*nh.x,f.alpha.y*nh.y,std::max(0.f,nh.z)),{0,0,1});
+    return f.t*ne.x+f.b*ne.y+f.n*ne.z;
+}
 struct RoughDielectric {float value=0,pdf=0;bool transmission=false;};
 RoughDielectric roughDielectric(const Surface &s,glm::vec3 v,glm::vec3 l,TransportMode mode){
     const float nv=glm::dot(s.normal,v),nl=glm::dot(s.normal,l);if(nv<=0||nl==0||glm::dot(v,s.geometricNormal)<=0)return {};
@@ -94,6 +126,16 @@ glm::vec4 texel(const std::shared_ptr<const render::ImageRGBA8> &image, glm::vec
     };
     return glm::mix(glm::mix(pixel(ix,iy),pixel(ix+1,iy),x-ix),
                     glm::mix(pixel(ix,iy+1),pixel(ix+1,iy+1),x-ix),y-iy);
+}
+glm::vec3 oceanNormal(const render::OceanNormalFields &fields,glm::vec2 uv) {
+    auto sample=[&](int slot){const auto &image=*fields.images[slot];
+        // Water vertex UVs are pre-displacement material coordinates, V flipped.
+        // FFT samples lie at grid points; adding half a texel matches waterWaveUV.
+        auto p=glm::fract((glm::vec2(uv.x,1-uv.y)-.5f)*fields.scales[slot]+.5f)*glm::vec2(image.width,image.height);
+        const int x=int(std::floor(p.x)),y=int(std::floor(p.y));
+        auto at=[&](int a,int b){size_t i=(size_t((b%int(image.height)+image.height)%image.height)*image.width+(a%int(image.width)+image.width)%image.width)*4;return glm::vec3(image.pixels[i],image.pixels[i+1],image.pixels[i+2]);};
+        return unit(glm::mix(glm::mix(at(x,y),at(x+1,y),p.x-x),glm::mix(at(x,y+1),at(x+1,y+1),p.x-x),p.y-y));};
+    auto n=sample(0);if(fields.images[1]){auto d=sample(1);auto slope=glm::vec2(n.x,n.z)/std::max(n.y,.1f)+glm::vec2(d.x,d.z)/std::max(d.y,.1f);n=unit(glm::vec3(slope.x,1,slope.y));}return n;
 }
 struct Bounds {
     glm::vec3 low{std::numeric_limits<float>::infinity()}, high{-std::numeric_limits<float>::infinity()};
@@ -165,12 +207,17 @@ glm::vec3 correctedReflectionNormal(glm::vec3 geometric,glm::vec3 view,glm::vec3
     const float angle=.5f*(std::atan2(vx,z)+std::acos(glm::clamp(threshold/radius,-1.f,1.f)));
     return unit(x*std::sin(angle)+geometric*std::cos(angle),geometric);
 }
+struct FiberFrame {glm::vec3 x,y,z;glm::vec3 toLocal(glm::vec3 v)const{return {glm::dot(v,x),glm::dot(v,y),glm::dot(v,z)};}glm::vec3 toWorld(glm::vec3 v)const{return x*v.x+y*v.y+z*v.z;}};
+FiberFrame fiberFrame(const Surface& s){auto n=s.geometricNormal;auto t=glm::vec3(s.specularTangent);t-=n*glm::dot(t,n);if(glm::dot(t,t)<1e-12f)t=glm::cross(std::abs(n.y)<.99f?glm::vec3(0,1,0):glm::vec3(1,0,0),n);t=unit(t);return {t,glm::cross(n,t),n};}
+fiber::FiberHair hairClosure(const Surface& s,glm::vec3 v){return fiber::fiberHair(fiberFrame(s).toLocal(v),s.albedo,s.fiber,s.hairOffset,s.absorption);}
 float surfaceCosine(const Surface &s,glm::vec3 l) {
     if(s.ior>0)return std::abs(glm::dot(s.normal,l));
     const float cosine=glm::dot(s.bsdfModel>0?s.geometricNormal:s.normal,l);
-    return s.bsdfModel==3?std::abs(cosine):std::max(0.f,cosine);
+    return s.bsdfModel>=3?std::abs(cosine):std::max(0.f,cosine);
 }
 glm::vec3 evaluateBsdf(const Surface &s,glm::vec3 v,glm::vec3 l,TransportMode mode) {
+    if(s.bsdfModel==5)return fiber::fiberHairKernel(hairClosure(s,v),fiberFrame(s).toLocal(l))/std::max(surfaceCosine(s,l),1e-8f);
+    if(s.bsdfModel==4){auto f=fiberFrame(s);return fiber::fiberCloth(s.albedo,s.sheenColor,s.sheen,s.roughness,f.toLocal(v),f.toLocal(l),s.knitSurface);}
     if(s.thinDielectric)return glm::vec3(0); // Two discrete delta directions.
     if(s.ior>0){const float foam=s.water?s.foam:0;auto f=s.transmissionRoughness>=.02f?roughDielectric(s,v,l,mode):RoughDielectric{};
         return (1-foam)*f.value*(f.transmission?s.albedo:glm::vec3(1))+(foam>0&&glm::dot(s.normal,v)>0&&glm::dot(s.normal,l)>0&&glm::dot(s.geometricNormal,l)>0?foam*s.albedo/pi:glm::vec3(0));}
@@ -186,29 +233,31 @@ glm::vec3 evaluateBsdf(const Surface &s,glm::vec3 v,glm::vec3 l,TransportMode mo
     if(s.bsdfModel==2){
         if(ngl<=0)return glm::vec3(0);
         auto result=.96f*s.albedo*(1-s.metallic)*(dl/std::max(ngl,1e-20f)*bumpShadowing(s,dn,l)/pi);
-        if(nv>0&&nl>0){auto h=unit(v+l,s.normal);const float gv=smith(nv,s.roughness),gl=smith(nl,s.roughness);auto f0=glm::mix(glm::vec3(.04f),s.albedo,s.metallic);result+=f0*(distribution(std::max(0.f,glm::dot(s.normal,h)),s.roughness)*gv*gl/((gv+gl-gv*gl)*4*nv*ngl));}
+        if(nv>0&&nl>0){auto h=unit(v+l,s.normal);const float gv=specularG1(s,v),gl=specularG1(s,l);auto f0=glm::mix(glm::vec3(.04f),s.albedo,s.metallic);result+=f0*(specularD(s,h)*gv*gl/((gv+gl-gv*gl)*4*nv*ngl));}
         return result;
     }
     if(nv<=0||nl<=0||ngl<=0)return glm::vec3(0);
     auto h=unit(v+l,s.normal);float nh=std::max(0.f,glm::dot(s.normal,h)),vh=std::max(0.f,glm::dot(v,h));
     auto f0=glm::mix(glm::vec3(.04f),s.albedo,s.metallic);
     auto f=f0+(1.f-f0)*std::pow(1-vh,5.f);
-    return (1.f-f)*s.albedo*(1-s.metallic)/pi+f*(distribution(nh,s.roughness)*smith(nv,s.roughness)*smith(nl,s.roughness)/(4*nv*nl));
+    return (1.f-f)*s.albedo*(1-s.metallic)/pi+f*(specularD(s,h)*specularG1(s,v)*specularG1(s,l)/(4*nv*nl));
 }
 float bsdfPdf(const Surface &s,glm::vec3 v,glm::vec3 l) {
+    if(s.bsdfModel==5)return fiber::fiberHairPdf(hairClosure(s,v),fiberFrame(s).toLocal(l));
+    if(s.bsdfModel==4){float transmit=fiber::fiberClothTransmission(s.sheen);return (glm::dot(s.geometricNormal,l)>0?1-transmit:transmit)*surfaceCosine(s,l)/pi;}
     if(s.thinDielectric)return 0;
     if(s.ior>0){const float foam=s.water?s.foam:0;return (1-foam)*(s.transmissionRoughness>=.02f?roughDielectric(s,v,l,TransportMode::Radiance).pdf:0)+(glm::dot(s.normal,v)>0?foam*std::max(0.f,glm::dot(s.normal,l))/pi:0);}
     const float nl=glm::dot(s.normal,l),dl=std::max(0.f,glm::dot(diffuseNormal(s),l));
     if(s.bsdfModel==3){const float r=luminance(s.albedo),t=luminance(s.diffuseTransmission),sum=r+t;if(sum<=0)return 0;return glm::dot(s.geometricNormal,l)>0?r/sum*dl/pi:glm::dot(s.geometricNormal,l)<0?t/sum*std::max(0.f,-nl)/pi:0;}
     if(s.bsdfModel==1)return dl/pi;
     if(s.bsdfModel==2){const float p=specularChance(s),nv=glm::dot(s.normal,v);float pdf=(1-p)*dl/pi;
-        if(nl>0&&nv>0){auto h=unit(v+l,s.normal);if(glm::dot(v,h)>0)pdf+=p*distribution(std::max(0.f,glm::dot(s.normal,h)),s.roughness)*smith(nv,s.roughness)/(4*nv);}
+        if(nl>0&&nv>0){auto h=unit(v+l,s.normal);if(glm::dot(v,h)>0)pdf+=p*specularD(s,h)*specularG1(s,v)/(4*nv);}
         return pdf;
     }
     if(nl<=0 || glm::dot(s.normal,v)<=0)return 0;
     auto h=unit(v+l,s.normal);const float vh=glm::dot(v,h);if(vh<=0)return 0;
     const float p=specularChance(s);
-    return (1-p)*nl/pi+p*distribution(std::max(0.f,glm::dot(s.normal,h)),s.roughness)*smith(glm::dot(s.normal,v),s.roughness)/(4*glm::dot(s.normal,v));
+    return (1-p)*nl/pi+p*specularD(s,h)*specularG1(s,v)/(4*glm::dot(s.normal,v));
 }
 float dielectricFresnel(float cosine,float etaI,float etaT) {
     cosine=glm::clamp(std::abs(cosine),0.f,1.f);const float sineT=etaI/etaT*std::sqrt(std::max(0.f,1-cosine*cosine));
@@ -222,6 +271,12 @@ float thinDielectricReflectance(float cosine,float exteriorIor,float sheetIor) {
     return 2*f/(1+f);
 }
 BsdfSample sampleBsdf(const Surface &s,glm::vec3 v,Random &r,TransportMode mode) {
+    if(s.bsdfModel==4||s.bsdfModel==5){
+        float choice=r.uniform();auto u=r.uniform2();auto frame=fiberFrame(s);glm::vec3 direction;
+        if(s.bsdfModel==5)direction=frame.toWorld(fiber::fiberHairSample(hairClosure(s,v),choice,{u[0],u[1]}));
+        else {float radius=std::sqrt(u[0]),phi=2*pi*u[1],sign=choice<fiber::fiberClothTransmission(s.sheen)?-1.f:1.f;direction=frame.toWorld({radius*std::cos(phi),radius*std::sin(phi),sign*std::sqrt(1-u[0])});}
+        return {direction,evaluateBsdf(s,v,direction,mode),bsdfPdf(s,v,direction),false,glm::dot(s.geometricNormal,direction)<0};
+    }
     if(s.thinDielectric){
         const float f=thinDielectricReflectance(glm::dot(s.geometricNormal,v),s.exteriorIor,s.ior);
         const bool transmission=r.uniform()>=f;const auto l=transmission?-v:glm::reflect(-v,s.geometricNormal);
@@ -246,7 +301,7 @@ BsdfSample sampleBsdf(const Surface &s,glm::vec3 v,Random &r,TransportMode mode)
     const float selection=r.uniform();const auto uv=r.uniform2();
     if(s.bsdfModel==3){float total=luminance(s.albedo+s.diffuseTransmission),chance=total>0?luminance(s.diffuseTransmission)/total:0;const bool transmit=selection<chance;float q=uv[0],phi=2*pi*uv[1];l=local({std::sqrt(q)*std::cos(phi),std::sqrt(q)*std::sin(phi),(transmit?-1.f:1.f)*std::sqrt(1-q)},transmit?s.normal:diffuseNormal(s));if((glm::dot(s.geometricNormal,l)<0)!=transmit)return {};return {l,evaluateBsdf(s,v,l),bsdfPdf(s,v,l),false,transmit};}
     if(s.bsdfModel!=1&&selection<specularChance(s)) {
-        const auto half=visibleNormal(v,s.normal,s.roughness,uv);l=glm::reflect(-v,half);
+        const auto half=specularVisibleNormal(s,v,uv);l=glm::reflect(-v,half);
         if(glm::dot(v,half)<=0 || glm::dot(l,s.normal)<=0)return {};
     }else {
         const float q=uv[0],phi=2*pi*uv[1];l=local({std::sqrt(q)*std::cos(phi),std::sqrt(q)*std::sin(phi),std::sqrt(1-q)},s.bsdfModel==1||s.bsdfModel==2?diffuseNormal(s):s.normal);
@@ -255,7 +310,7 @@ BsdfSample sampleBsdf(const Surface &s,glm::vec3 v,Random &r,TransportMode mode)
 }
 struct CpuScene::State {
     bool shadowOpaque=true;
-    struct Mesh {std::array<std::shared_ptr<const render::ImageRGBA8>,4> shoreline;uint32_t geometry=0,primitiveBase=0;glm::mat4 model{1},inverse{1};glm::mat3 normal{1};bool mirrored=false,shadowOpaque=true;std::shared_ptr<const render::MaterialPayload> material;render::MaterialParameters parameters;render::MaterialExtension extension;float ior=0,normalScale=1,transmissionRoughness=0;glm::vec3 absorption{0},scattering{0};float g=0;uint32_t kind=0,bsdfModel=0;bool roughnessTexture=false;glm::vec3 diffuseTransmission{0};std::shared_ptr<const render::ImageRGBA8> transmissionTexture;};
+    struct Mesh {Bounds worldBounds;uint64_t objectId=0;std::array<std::shared_ptr<const render::ImageRGBA8>,4> shoreline;uint32_t geometry=0,primitiveBase=0;glm::mat4 model{1},inverse{1};glm::mat3 normal{1};bool mirrored=false,shadowOpaque=true;std::shared_ptr<const render::MaterialPayload> material;render::MaterialParameters parameters;render::MaterialExtension extension;float ior=0,normalScale=1,transmissionRoughness=0;glm::vec3 absorption{0},scattering{0};float g=0,specularAnisotropy=0,specularRotation=0;uint32_t kind=0,bsdfModel=0;bool roughnessTexture=false;glm::vec4 fiber{0},sheen{0},knit{0,24,32,.12f};glm::vec3 sheenColor{1};glm::vec3 diffuseTransmission{0};std::shared_ptr<const render::ImageRGBA8> transmissionTexture,rainWetnessImage;};
     struct Primitive {uint32_t mesh,offset;};
     struct Node {glm::vec3 low;uint32_t first;glm::vec3 high;uint32_t count;};
     struct AreaLight {uint32_t primitive;float area;double cumulative;glm::vec3 normal;};
@@ -285,6 +340,22 @@ struct CpuScene::State {
         const uint32_t child=uint32_t(nodes.size());nodes.resize(nodes.size()+2);nodes[node].first=child;nodes[node].count=0;
         build(child,start,mid,bounds,centers,depth+1);build(child+1,mid,end,bounds,centers,depth+1);return node;
     }
+    void refit(const std::vector<Bounds> &bounds) {
+        // Children are always allocated after their parent, so reverse order
+        // updates every child before the internal node that encloses it.
+        for(size_t i=nodes.size();i-->0;){auto &node=nodes[i];Bounds total;
+            if(node.count){for(uint32_t j=0;j<node.count;++j)total.add(bounds[order[node.first+j]]);}
+            else{const auto &a=nodes[node.first],&b=nodes[node.first+1];total.add(Bounds{a.low,a.high});total.add(Bounds{b.low,b.high});}
+            node.low=total.low;node.high=total.high;
+        }
+    }
+    double cost()const {
+        if(nodes.empty())return 0;
+        auto area=[](const Node &node){const double x=std::max(double(node.high.x)-node.low.x,0.0),y=std::max(double(node.high.y)-node.low.y,0.0),z=std::max(double(node.high.z)-node.low.z,0.0);return 2*(x*y+x*z+y*z);};
+        const double root=area(nodes[0]);if(root<=0)return 0;
+        double cost=0;for(const auto &node:nodes)cost+=area(node)*(node.count?node.count:1);
+        return cost/root;
+    }
     void construct(std::vector<Bounds> &bounds) {
         order.resize(bounds.size());std::iota(order.begin(),order.end(),0u);if(bounds.empty())return;
         std::vector<glm::vec3> centers;centers.reserve(bounds.size());for(const auto &b:bounds)centers.push_back((b.low+b.high)*.5f);
@@ -292,10 +363,13 @@ struct CpuScene::State {
     }
     };
     struct Geometry {std::shared_ptr<const render::MeshPayload> source;std::vector<uint32_t> offsets;Tree blas;Bounds bounds;};
-    std::vector<Mesh> meshes;std::unordered_map<uint32_t,size_t> kindCounts;size_t scatteringMeshes=0,dielectricMeshes=0,reflectionInterfaces=0;std::vector<Geometry> geometries;Tree tlas;uint32_t primitiveCount=0;
+    std::vector<Mesh> meshes;std::unordered_map<uint32_t,size_t> kindCounts;size_t scatteringMeshes=0,dielectricMeshes=0,reflectionInterfaces=0;std::vector<std::shared_ptr<const Geometry>> geometries;Tree tlas;double tlasBuildCost=0;uint32_t tlasRefitAge=0,primitiveCount=0;
     std::vector<glm::vec3> thinSolarNormals;
     std::vector<AreaLight> emitters;std::unordered_map<uint32_t,uint32_t> emitterIndex;double emitterWeight=0;
     AccelerationStats statistics;
+    mutable std::mutex exportMutex;
+    mutable std::shared_ptr<const PackedGeometry> packedGeometry;
+    mutable std::shared_ptr<const PackedTextures> packedTextures;
     std::vector<render::LightData> lights;glm::mat4 inverseProjection;glm::vec3 camera;
     bool inverseSquare=true;glm::vec3 cameraForward{0,0,-1};std::array<uint32_t,8> cameraMedia{},cameraWinding{};float filmArea=1,time=0;glm::mat4 projection{1};
     Primitive primitive(uint32_t id) const {
@@ -303,13 +377,13 @@ struct CpuScene::State {
         const uint32_t instance=uint32_t(it-meshes.begin()-1);const auto &m=meshes[instance];return {instance,id-m.primitiveBase};
     }
     std::array<render::MeshVertex,3> localVertices(uint32_t instance,uint32_t triangle) const {
-        const auto &m=meshes[instance];const auto &g=geometries[m.geometry];const auto &source=*g.source;const uint32_t offset=g.offsets[triangle];
+        const auto &m=meshes[instance];const auto &g=*geometries[m.geometry];const auto &source=*g.source;const uint32_t offset=g.offsets[triangle];
         std::array<render::MeshVertex,3> v={source.vertices[source.indices[offset]],source.vertices[source.indices[offset+1]],source.vertices[source.indices[offset+2]]};
         if(m.mirrored)std::swap(v[1],v[2]);return v;
     }
     std::array<render::MeshVertex,3> vertices(uint32_t id) const {
         auto p=primitive(id);auto v=localVertices(p.mesh,p.offset);const auto &m=meshes[p.mesh];
-        for(auto &a:v){a.position=glm::vec3(m.model*glm::vec4(a.position,1));a.normal=m.normal*a.normal;if(geometries[m.geometry].source->pathTracingTangents.empty())a.normal=unit(a.normal);}return v;
+        for(auto &a:v){a.position=glm::vec3(m.model*glm::vec4(a.position,1));a.normal=m.normal*a.normal;if(geometries[m.geometry]->source->pathTracingTangents.empty())a.normal=unit(a.normal);}return v;
     }
     bool triangle(uint32_t id,glm::vec3 o,glm::vec3 d,float minimum,float maximum,float &distance,glm::vec2 &bary,bool localSpace=false,uint32_t instance=UINT32_MAX) const {
         const auto ref=instance==UINT32_MAX?primitive(id):Primitive{instance,id-meshes[instance].primitiveBase};auto v=localSpace?localVertices(ref.mesh,ref.offset):vertices(id);const auto e1=v[1].position-v[0].position,e2=v[2].position-v[0].position;
@@ -327,17 +401,18 @@ struct CpuScene::State {
     }
     void surface(uint32_t id,glm::vec2 bary,float t,glm::vec3 o,glm::vec3 d,Surface &out) const {
         auto v=vertices(id);const auto ref=primitive(id);const auto &m=meshes[ref.mesh];auto image=[&](size_t i){return m.material?m.material->images[i]:std::shared_ptr<const render::ImageRGBA8>{};};
-        out=Surface{};out.bsdfModel=m.bsdfModel;out.thinDielectric=m.kind==5;out.mediumId=m.ior>0&&!out.thinDielectric?ref.mesh+1:0;out.ior=m.ior;out.transmissionRoughness=m.transmissionRoughness;out.water=m.kind==3;out.absorption=m.absorption;out.twoSided=m.extension.settings.w>0;out.distance=t;out.primitive=id;out.position=o+d*t;
-        out.uv=v[0].uv*(1-bary.x-bary.y)+v[1].uv*bary.x+v[2].uv*bary.y;
+        out=Surface{};out.fiber=m.fiber;out.sheen=m.sheen;out.sheenColor=m.sheenColor;out.specularAnisotropy=m.specularAnisotropy;out.specularRotation=m.specularRotation;out.bsdfModel=m.bsdfModel;out.thinDielectric=m.kind==5;out.mediumId=m.ior>0&&!out.thinDielectric?ref.mesh+1:0;out.ior=m.ior;out.transmissionRoughness=m.transmissionRoughness;out.water=m.kind==3;out.absorption=m.absorption;out.twoSided=m.extension.settings.w>0;out.distance=t;out.primitive=id;out.position=o+d*t;
+        out.uv=v[0].uv*(1-bary.x-bary.y)+v[1].uv*bary.x+v[2].uv*bary.y;out.hairOffset=glm::clamp(out.uv.y*2-1,-.999f,.999f);
         const auto e1=v[1].position-v[0].position,e2=v[2].position-v[0].position;
         auto n=unit(v[0].normal*(1-bary.x-bary.y)+v[1].normal*bary.x+v[2].normal*bary.y);
         auto gn=unit(glm::cross(e1,e2),n);if(glm::dot(gn,n)<0){if(m.kind==4||m.kind==3)n=-n;else gn=-gn;}
         out.frontFace=glm::dot(gn,d)<0;if(!out.frontFace){gn=-gn;n=-n;}
         out.geometricNormal=gn;out.normal=n;
-        if(image(1) && m.parameters.emissiveNormal.w>0) {
+        if(out.water&&m.material&&m.material->oceanNormals){auto mapped=oceanNormal(*m.material->oceanNormals,out.uv);if(!out.frontFace)mapped=-mapped;if(glm::dot(mapped,gn)>.05f)out.normal=mapped;}
+        else if(image(1) && m.parameters.emissiveNormal.w>0) {
             if(out.water){auto map=glm::vec3(texel(image(1),out.uv*m.normalScale))*2.f-1.f;auto mapped=unit(glm::vec3(map.x,map.z,-map.y));if(!out.frontFace)mapped=-mapped;if(glm::dot(mapped,gn)>.05f)out.normal=mapped;}
             else {
-            const auto &g=geometries[m.geometry];const auto &source=*g.source;bool explicitFrame=false;
+            const auto &g=*geometries[m.geometry];const auto &source=*g.source;bool explicitFrame=false;
             if(!source.pathTracingTangents.empty()){
                 const uint32_t at=g.offsets[ref.offset];glm::vec4 frame(0);glm::vec3 localNormal(0);
                 const float weights[]={1-bary.x-bary.y,bary.x,bary.y};
@@ -374,11 +449,13 @@ struct CpuScene::State {
         out.foam=out.water&&image(2)?glm::clamp(texel(image(2),out.uv*m.normalScale).r,0.f,1.f):0;
         out.metallic=glm::clamp(texel(image(2),out.uv).b*m.parameters.factors.x,0.f,1.f);
         out.roughness=glm::clamp(texel(image(3),out.uv).g*m.parameters.factors.y,.045f,1.f);
+        const float rainWet=render::rainWetness(m.extension,out.uv);
+        out.albedo*=glm::mix(1.f,.45f,rainWet);out.roughness=glm::clamp(out.roughness*glm::mix(1.f,.5f,rainWet),.045f,1.f);
         if(m.shoreline[0]){
             const auto H=m.extension.shoreHeight,S=m.extension.shoreSurface;
             const float altitude=out.position.y-H.x;
             const float weight=texel(m.shoreline[3],out.uv,glm::vec4(1),false).r*(1-glm::smoothstep(H.y*.55f,H.y,altitude))*glm::smoothstep(S.y,S.z,std::abs(n.y))*glm::smoothstep(-4.f,-.5f,altitude);
-            const float wet=1-glm::smoothstep(-H.z,H.w,altitude);const glm::vec2 beachUV=glm::vec2(out.position.x,-out.position.z)/S.x;
+            const float wet=std::max(rainWet,1-glm::smoothstep(-H.z,H.w,altitude));const glm::vec2 beachUV=glm::vec2(out.position.x,-out.position.z)/S.x;
             const auto sand=texel(m.shoreline[0],beachUV),orm=texel(m.shoreline[2],beachUV);
             out.albedo=glm::mix(out.albedo,glm::pow(glm::vec3(sand),glm::vec3(2.2f))*glm::mix(1.f,.45f,wet),weight);
             out.roughness=glm::clamp(glm::mix(out.roughness,glm::mix(orm.g,std::max(.28f,orm.g*.5f),wet),weight),.045f,1.f);
@@ -392,13 +469,36 @@ struct CpuScene::State {
         }
         if(out.ior==0&&out.bsdfModel>0){out.diffuseNormal=out.normal;out.smoothNormal=n;
             if(out.bsdfModel==2||out.bsdfModel==3)out.normal=correctedReflectionNormal(gn,-d,out.normal);}
+        if(out.bsdfModel>=4)out.normal=out.geometricNormal;
+        if(out.specularAnisotropy!=0||out.bsdfModel>=4){
+            const auto& g=*geometries[m.geometry];const auto& source=*g.source;glm::vec3 tangent(0),bitangent(0);
+            if(!source.pathTracingTangents.empty()){
+                const auto at=g.offsets[ref.offset];glm::vec4 frame(0);glm::vec3 localNormal(0);const float weights[]={1-bary.x-bary.y,bary.x,bary.y};
+                for(int i=0;i<3;++i){const int slot=m.mirrored&&i>0?3-i:i;const auto index=source.indices[at+slot];frame+=source.pathTracingTangents[index]*weights[i];localNormal+=source.vertices[index].normal*weights[i];}
+                if(glm::dot(glm::vec3(frame),glm::vec3(frame))>1e-12f&&std::abs(frame.w)>.5f){tangent=glm::mat3(m.model)*glm::vec3(frame);bitangent=glm::mat3(m.model)*(glm::cross(localNormal,glm::vec3(frame))*frame.w);}
+            }
+            const auto a=v[1].uv-v[0].uv,b=v[2].uv-v[0].uv;const float det=a.x*b.y-a.y*b.x;
+            if(glm::dot(tangent,tangent)<1e-12f&&std::abs(det)>1e-10f){tangent=(e1*b.y-e2*a.y)/det;bitangent=(-e1*b.x+e2*a.x)/det;}
+            tangent-=out.normal*glm::dot(out.normal,tangent);
+            if(glm::dot(tangent,tangent)>1e-12f)out.specularTangent=glm::vec4(unit(tangent),glm::dot(glm::cross(out.normal,tangent),bitangent)<0?-1.f:1.f);
+        }
         if(m.roughnessTexture&&image(3))out.transmissionRoughness=glm::clamp(texel(image(3),out.uv).g,0.f,1.f);
+        out.knitSurface=fiber::fiberKnit(out.uv,m.knit);out.knitSurface.z*=out.specularTangent.w<0?-1.f:1.f;
         out.opacity=m.parameters.factors.w>0?(base.a<m.parameters.factors.w?0.f:1.f):glm::clamp(base.a,0.f,1.f);
         out.emission=(out.frontFace || m.extension.settings.w>0)?glm::vec3(m.parameters.emissiveNormal):glm::vec3(0);
         if(m.extension.settings.z>0 && luminance(out.emission)==0)out.emission=out.albedo;
     }
 };
-CpuScene::CpuScene(const render::RenderWorldSnapshot &input,const std::vector<DielectricMaterial> &dielectrics):state_(std::make_unique<State>()) {
+struct GeometryCache::Impl {
+    struct Entry {std::shared_ptr<const CpuScene::State::Geometry> geometry;uint64_t revision=0,used=0;size_t bytes=0;};
+    mutable std::mutex mutex;
+    std::map<const render::MeshPayload *,Entry> entries;
+    size_t budget=0,bytes=0;uint64_t clock=0;
+};
+GeometryCache::GeometryCache(size_t bytes):impl_(std::make_unique<Impl>()){impl_->budget=bytes;}
+GeometryCache::~GeometryCache()=default;
+size_t GeometryCache::retainedBytes()const{std::lock_guard<std::mutex> lock(impl_->mutex);return impl_->bytes;}
+CpuScene::CpuScene(const render::RenderWorldSnapshot &input,const std::vector<DielectricMaterial> &dielectrics,std::shared_ptr<GeometryCache> cache,const CpuScene *previous):state_(std::make_unique<State>()) {
     const auto totalStarted=std::chrono::steady_clock::now();
     auto snapshot=input;if(snapshot.terrain){snapshot.draws.push_back(freezeTerrain(*snapshot.terrain));snapshot.terrain.reset();}
     if(!snapshot.frame.oceans.empty())throw std::invalid_argument("PT: ocean FFT must be frozen with captureProcedural before constructing CpuScene");
@@ -407,20 +507,36 @@ CpuScene::CpuScene(const render::RenderWorldSnapshot &input,const std::vector<Di
     s.cameraForward=ray(.5f,.5f);auto a=ray(0,0),b=ray(1,0),c=ray(0,1);a/=glm::dot(a,s.cameraForward);b/=glm::dot(b,s.cameraForward);c/=glm::dot(c,s.cameraForward);s.filmArea=glm::length(glm::cross(b-a,c-a));
     if(!snapshot.frame.directionalEnabled)for(auto &light:s.lights)if(light.positionType.w==0)light.colorInner=glm::vec4(0);
     s.time=snapshot.frame.timeSeconds;
+    if(snapshot.environment){weatherEpoch=snapshot.environment->epoch;weatherTick=snapshot.environment->tick;}
     const auto geometryStarted=std::chrono::steady_clock::now();std::unordered_map<const render::MeshPayload*,uint32_t> geometryIds;std::vector<Bounds> instanceBounds;
-    for(const auto &draw:snapshot.draws) {
+    std::unordered_map<const render::MeshPayload*,std::shared_ptr<const State::Geometry>> previousGeometry;
+    if(previous)for(const auto &geometry:previous->state_->geometries)previousGeometry.emplace(geometry->source.get(),geometry);
+    for(const auto &sourceDraw:snapshot.draws) {
+        auto draw=sourceDraw;render::configureFoliagePathTracing(draw);
         if(!draw.mesh || draw.mesh->indices.empty())continue;
         if(draw.mesh->indices.size()>UINT32_MAX || draw.mesh->indices.size()%3)throw std::invalid_argument("PT: non-triangle mesh indices");
         const float determinant=glm::determinant(glm::mat3(draw.model));if(!std::isfinite(determinant) || std::abs(determinant)<1e-15f)throw std::invalid_argument("PT: singular mesh transform");
         if(draw.material)for(const auto &image:draw.material->images)if(image && !image->pixels.empty() && (!image->width || !image->height || image->width>INT32_MAX || image->height>INT32_MAX || uint64_t(image->width)*image->height*4!=image->pixels.size()))throw std::invalid_argument("PT: invalid material image extent");
+        if(draw.material&&draw.material->oceanNormals){const auto &fields=*draw.material->oceanNormals;
+            if(draw.pathTracingKind!=3||!fields.images[0]||!std::isfinite(fields.scales.x)||!std::isfinite(fields.scales.y)||fields.scales.x<=0||fields.scales.y<=0)throw std::invalid_argument("PT: invalid ocean normal fields");
+            for(const auto &image:fields.images)if(image){if(!image->width||!image->height||image->width>INT32_MAX||image->height>INT32_MAX||uint64_t(image->width)*image->height*4!=image->pixels.size())throw std::invalid_argument("PT: invalid float image extent");for(auto v:image->pixels)if(!std::isfinite(v))throw std::invalid_argument("PT: nonfinite float image");}
+        }
         if(draw.pathTracingShoreline[0]){
             for(const auto &image:draw.pathTracingShoreline)if(!image||!image->width||!image->height||uint64_t(image->width)*image->height*4!=image->pixels.size())throw std::invalid_argument("PT: invalid shoreline image");
             const auto H=draw.extension.shoreHeight,S=draw.extension.shoreSurface;
             if(!finite(glm::vec3(H))||!std::isfinite(H.w)||!finite(glm::vec3(S))||!std::isfinite(S.w)||S.x<=0||H.y<=0||H.z+H.w<=0||S.y>=S.z)throw std::invalid_argument("PT: invalid shoreline parameters");
         }
-        State::Mesh mesh;mesh.material=draw.material;mesh.parameters=draw.parameters;mesh.extension=draw.extension;mesh.shoreline=draw.pathTracingShoreline;
+        validateFiberSettings(draw);State::Mesh mesh;mesh.objectId=draw.objectId;mesh.material=draw.material;mesh.parameters=draw.parameters;mesh.extension=draw.extension;mesh.rainWetnessImage=render::rainWetImage(draw.extension);mesh.shoreline=draw.pathTracingShoreline;
         mesh.ior=draw.pathTracingIor;mesh.absorption=draw.pathTracingAbsorption;mesh.scattering=draw.pathTracingScattering;mesh.g=draw.pathTracingAnisotropy;mesh.normalScale=draw.pathTracingNormalScale;mesh.kind=draw.pathTracingKind;
-        mesh.bsdfModel=draw.pathTracingBsdfModel;if(mesh.bsdfModel>3)throw std::invalid_argument("PT: unsupported BSDF model");mesh.transmissionRoughness=draw.pathTracingRoughness;mesh.roughnessTexture=draw.pathTracingRoughnessTexture;mesh.diffuseTransmission=draw.pathTracingDiffuseTransmission;mesh.transmissionTexture=draw.pathTracingTransmissionTexture;
+        mesh.specularAnisotropy=draw.pathTracingSpecularAnisotropy;mesh.specularRotation=draw.pathTracingSpecularRotation;
+        const auto shape=draw.extension.specularShape;
+        for(int c=0;c<4;++c)if(!std::isfinite(shape[c]))throw std::invalid_argument("PT: nonfinite common GGX shape");
+        if(shape.z<0 || shape.z>2 || std::floor(shape.z)!=shape.z || (shape.z>0 && (draw.pathTracingIor>0 || draw.pathTracingBsdfModel==1 || draw.pathTracingBsdfModel==3)))
+            throw std::invalid_argument("PT: unsupported common GGX model");
+        if(shape.z>0){mesh.specularAnisotropy=shape.x;mesh.specularRotation=shape.y;}
+        if(!std::isfinite(mesh.specularAnisotropy)||std::abs(mesh.specularAnisotropy)>.9f||!std::isfinite(mesh.specularRotation)||std::abs(mesh.specularRotation)>2*pi||(mesh.specularAnisotropy!=0&&(mesh.ior>0||draw.pathTracingBsdfModel==1||draw.pathTracingBsdfModel==3)))throw std::invalid_argument("PT: unsupported specular anisotropy / rotation");
+        mesh.bsdfModel=shape.z>0?(shape.z==2?2u:0u):draw.pathTracingBsdfModel;if(mesh.bsdfModel>5)throw std::invalid_argument("PT: unsupported BSDF model");mesh.fiber=draw.pathTracingFiber;mesh.sheen=draw.pathTracingSheen;mesh.sheenColor=draw.pathTracingSheenColor;mesh.knit=draw.pathTracingKnit;
+        mesh.transmissionRoughness=draw.pathTracingRoughness;mesh.roughnessTexture=draw.pathTracingRoughnessTexture;mesh.diffuseTransmission=draw.pathTracingDiffuseTransmission;mesh.transmissionTexture=draw.pathTracingTransmissionTexture;
         if(!finite(mesh.diffuseTransmission)||glm::any(glm::lessThan(mesh.diffuseTransmission,glm::vec3(0)))||glm::any(glm::greaterThan(mesh.diffuseTransmission,glm::vec3(1)))||(mesh.bsdfModel==3&&(mesh.ior>0||mesh.kind==5)))throw std::invalid_argument("PT: invalid thin diffuse transmission");
         if(mesh.transmissionTexture&&(!mesh.transmissionTexture->width||!mesh.transmissionTexture->height||uint64_t(mesh.transmissionTexture->width)*mesh.transmissionTexture->height*4!=mesh.transmissionTexture->pixels.size()))throw std::invalid_argument("PT: invalid transmission texture");
         if(mesh.kind==5&&(mesh.ior<=1||mesh.transmissionRoughness!=0||glm::any(glm::notEqual(mesh.absorption,glm::vec3(0)))||glm::any(glm::notEqual(mesh.scattering,glm::vec3(0)))))throw std::invalid_argument("PT: thin dielectric requires smooth sheet and no volume coefficients");
@@ -429,14 +545,28 @@ CpuScene::CpuScene(const render::RenderWorldSnapshot &input,const std::vector<Di
         if(!finite(mesh.scattering)||glm::any(glm::lessThan(mesh.scattering,glm::vec3(0)))||!std::isfinite(mesh.g)||std::abs(mesh.g)>=.99f)throw std::invalid_argument("PT: invalid scattering coefficient/anisotropy");
         if(!finite(mesh.absorption)||glm::any(glm::lessThan(mesh.absorption,glm::vec3(0)))||!std::isfinite(mesh.normalScale)||mesh.normalScale<=0)throw std::invalid_argument("PT: invalid procedural absorption/normal scale");
         for(const auto &material:dielectrics)if(material.objectId==draw.objectId){if(!std::isfinite(material.ior)||material.ior<=1||material.ior>4)throw std::invalid_argument("PT: invalid dielectric IOR");mesh.ior=material.ior;}
+        if(mesh.bsdfModel>=4&&mesh.ior>0)throw std::invalid_argument("PT: fiber closure cannot be replaced with dielectric");
+        if(mesh.specularAnisotropy!=0&&mesh.ior>0)throw std::invalid_argument("PT: anisotropic dielectric is not supported yet");
         if((mesh.kind==4||glm::any(glm::greaterThan(mesh.scattering,glm::vec3(0))))&&mesh.ior<=0)throw std::invalid_argument("PT: scattering/subsurface material requires a dielectric boundary");
         for(int column=0;column<4;++column)for(int row=0;row<4;++row)if(!std::isfinite(draw.model[column][row]))throw std::invalid_argument("PT: non-finite instance transform");
         if(draw.model[0][3]!=0||draw.model[1][3]!=0||draw.model[2][3]!=0||draw.model[3][3]!=1)throw std::invalid_argument("PT: instance transform must be affine");
-        mesh.model=draw.model;mesh.inverse=glm::inverse(draw.model);mesh.normal=glm::transpose(glm::mat3(mesh.inverse));mesh.mirrored=determinant<0;
+        const State::Mesh *oldInstance=nullptr;
+        if(previous&&s.meshes.size()<previous->state_->meshes.size()){
+            const auto &prior=previous->state_->meshes[s.meshes.size()];
+            if(prior.objectId==draw.objectId&&prior.model==draw.model&&previous->state_->geometries[prior.geometry]->source==draw.mesh)oldInstance=&prior;
+        }
+        mesh.model=draw.model;mesh.mirrored=determinant<0;
+        if(oldInstance){mesh.inverse=oldInstance->inverse;mesh.normal=oldInstance->normal;++s.statistics.transformReuses;}
+        else{mesh.inverse=glm::inverse(draw.model);mesh.normal=glm::transpose(glm::mat3(mesh.inverse));}
         for(int column=0;column<4;++column)for(int row=0;row<4;++row)if(!std::isfinite(mesh.inverse[column][row]))throw std::invalid_argument("PT: non-finite inverse instance transform");
         auto found=geometryIds.find(draw.mesh.get());
         if(found==geometryIds.end()){
-            State::Geometry geometry;geometry.source=draw.mesh;const auto &source=*draw.mesh;
+            std::shared_ptr<const State::Geometry> retained;
+            if(cache){std::lock_guard<std::mutex> lock(cache->impl_->mutex);auto found=cache->impl_->entries.find(draw.mesh.get());
+                if(found!=cache->impl_->entries.end()&&found->second.revision==draw.mesh->revision){retained=found->second.geometry;found->second.used=++cache->impl_->clock;++s.statistics.blasCacheHits;}}
+            if(!retained){auto found=previousGeometry.find(draw.mesh.get());if(found!=previousGeometry.end()){retained=found->second;++s.statistics.blasSceneReuses;}}
+            if(!retained){
+            auto built=std::make_shared<State::Geometry>();auto &geometry=*built;geometry.source=draw.mesh;const auto &source=*draw.mesh;
             if(!source.pathTracingTangents.empty()&&source.pathTracingTangents.size()!=source.vertices.size())throw std::invalid_argument("PT: tangent count differs from vertices");
             for(const auto &t:source.pathTracingTangents)if(!finite(glm::vec3(t))||!std::isfinite(t.w)||(t.w!=0&&t.w!=1&&t.w!=-1))throw std::invalid_argument("PT: invalid tangent frame");
             for(const auto &v:source.vertices)if(!finite(v.position)||!finite(v.normal)||!std::isfinite(v.uv.x)||!std::isfinite(v.uv.y))throw std::invalid_argument("PT: invalid mesh vertex");
@@ -444,26 +574,58 @@ CpuScene::CpuScene(const render::RenderWorldSnapshot &input,const std::vector<Di
             std::vector<Bounds> bounds;bounds.reserve(source.indices.size()/3);
             for(uint32_t i=0;i<source.indices.size();i+=3){const auto a=source.vertices[source.indices[i]].position,b=source.vertices[source.indices[i+1]].position,c=source.vertices[source.indices[i+2]].position;auto cross=glm::cross(b-a,c-a);if(glm::dot(cross,cross)<=1e-24f)continue;
                 Bounds box;box.add(a);box.add(b);box.add(c);bounds.push_back(box);geometry.bounds.add(box);geometry.offsets.push_back(i);}
-            const auto blasStarted=std::chrono::steady_clock::now();geometry.blas.construct(bounds);s.statistics.blasSeconds+=std::chrono::duration<double>(std::chrono::steady_clock::now()-blasStarted).count();
+            const auto blasStarted=std::chrono::steady_clock::now();geometry.blas.construct(bounds);++s.statistics.blasBuilds;s.statistics.blasSeconds+=std::chrono::duration<double>(std::chrono::steady_clock::now()-blasStarted).count();
             auto offsets=geometry.offsets;for(size_t i=0;i<offsets.size();++i)geometry.offsets[i]=offsets[geometry.blas.order[i]];
-            geometry.blas.order.clear();geometry.blas.order.shrink_to_fit();mesh.geometry=uint32_t(s.geometries.size());geometryIds[draw.mesh.get()]=mesh.geometry;s.geometries.push_back(std::move(geometry));
+            geometry.blas.order.clear();geometry.blas.order.shrink_to_fit();
+                retained=built;
+                if(cache){auto &c=*cache->impl_;std::lock_guard<std::mutex> lock(c.mutex);
+                    const size_t bytes=geometry.source->vertices.capacity()*sizeof(render::MeshVertex)+geometry.source->indices.capacity()*4+geometry.source->pathTracingTangents.capacity()*sizeof(glm::vec4)+geometry.offsets.capacity()*4+geometry.blas.nodes.capacity()*sizeof(State::Node);
+                    auto prior=c.entries.find(draw.mesh.get());if(prior!=c.entries.end()){c.bytes-=prior->second.bytes;c.entries.erase(prior);}
+                    while(!c.entries.empty()&&bytes<=c.budget&&c.bytes>c.budget-bytes){auto oldest=std::min_element(c.entries.begin(),c.entries.end(),[](const auto &a,const auto &b){return a.second.used<b.second.used;});c.bytes-=oldest->second.bytes;c.entries.erase(oldest);}
+                    if(bytes<=c.budget){c.entries[draw.mesh.get()]={retained,draw.mesh->revision,++c.clock,bytes};c.bytes+=bytes;}
+                }
+            }
+            mesh.geometry=uint32_t(s.geometries.size());geometryIds[draw.mesh.get()]=mesh.geometry;s.geometries.push_back(std::move(retained));
         }else mesh.geometry=found->second;
-        const auto &geometry=s.geometries[mesh.geometry];if(geometry.offsets.empty())continue;
+        const auto &geometry=*s.geometries[mesh.geometry];if(geometry.offsets.empty())continue;
         if(uint64_t(s.primitiveCount)+geometry.offsets.size()>=UINT32_MAX)throw std::length_error("PT: too many instanced triangles");
         mesh.primitiveBase=s.primitiveCount;s.primitiveCount+=uint32_t(geometry.offsets.size());Bounds world;
-        for(int corner=0;corner<8;++corner){glm::vec3 p;for(int axis=0;axis<3;++axis)p[axis]=(corner&(1<<axis))?geometry.bounds.high[axis]:geometry.bounds.low[axis];p=glm::vec3(mesh.model*glm::vec4(p,1));if(!finite(p))throw std::invalid_argument("PT: invalid transformed bounds");world.add(p);}
-        instanceBounds.push_back(world);++s.kindCounts[mesh.kind];s.scatteringMeshes+=glm::any(glm::greaterThan(mesh.scattering,glm::vec3(0)));s.dielectricMeshes+=mesh.ior>0;s.reflectionInterfaces+=mesh.ior>0&&mesh.kind!=5;s.meshes.push_back(std::move(mesh));
+        if(oldInstance){world=oldInstance->worldBounds;++s.statistics.instanceBoundsReuses;}
+        else for(int corner=0;corner<8;++corner){glm::vec3 p;for(int axis=0;axis<3;++axis)p[axis]=(corner&(1<<axis))?geometry.bounds.high[axis]:geometry.bounds.low[axis];p=glm::vec3(mesh.model*glm::vec4(p,1));if(!finite(p))throw std::invalid_argument("PT: invalid transformed bounds");world.add(p);}
+        mesh.worldBounds=world;instanceBounds.push_back(world);++s.kindCounts[mesh.kind];s.scatteringMeshes+=glm::any(glm::greaterThan(mesh.scattering,glm::vec3(0)));s.dielectricMeshes+=mesh.ior>0;s.reflectionInterfaces+=mesh.ior>0&&mesh.kind!=5;s.meshes.push_back(std::move(mesh));
     }
+    std::unordered_map<const render::ImageRGBA8*,bool> alphaOpaque;
     for(auto &m:s.meshes){m.shadowOpaque=m.kind!=5&&(m.parameters.factors.w>0||m.parameters.albedoAlpha.a>=1);
-        if(m.parameters.factors.w==0&&m.material&&m.material->images[0]){const auto &pixels=m.material->images[0]->pixels;for(size_t i=3;i<pixels.size();i+=4)if(pixels[i]<255){m.shadowOpaque=false;break;}}
+        if(m.parameters.factors.w==0&&m.material&&m.material->images[0]){
+            const auto &image=*m.material->images[0];auto found=alphaOpaque.find(&image);
+            if(found==alphaOpaque.end()){bool opaque=true;++s.statistics.alphaImageScans;
+                for(size_t i=3;i<image.pixels.size();i+=4){++s.statistics.alphaPixelsScanned;if(image.pixels[i]<255){opaque=false;break;}}
+                found=alphaOpaque.emplace(&image,opaque).first;
+            }
+            m.shadowOpaque&=found->second;
+        }
         s.shadowOpaque&=m.shadowOpaque;
     }
+    const auto *old=previous?previous->state_.get():nullptr;
+    bool sameTopology=old&&s.meshes.size()==old->meshes.size()&&s.geometries.size()==old->geometries.size();
+    if(sameTopology)for(size_t i=0;i<s.geometries.size();++i){const auto &a=s.geometries[i],&b=old->geometries[i];if(a->source!=b->source||(a!=b&&a->offsets!=b->offsets)){sameTopology=false;break;}}
+    bool sameTransforms=sameTopology,sameEmission=sameTopology,sameSheets=sameTopology,sameMedia=sameTopology;
+    if(sameTopology)for(size_t i=0;i<s.meshes.size();++i){const auto &a=s.meshes[i],&b=old->meshes[i];
+        if(a.objectId!=b.objectId||a.geometry!=b.geometry||a.primitiveBase!=b.primitiveBase){sameTopology=false;break;}
+        sameTransforms&=a.model==b.model;sameEmission&=glm::vec3(a.parameters.emissiveNormal)==glm::vec3(b.parameters.emissiveNormal);
+        sameSheets&=(a.kind==5&&a.ior>0)==(b.kind==5&&b.ior>0);
+        sameMedia&=a.ior==b.ior&&a.kind==b.kind&&a.parameters.albedoAlpha.w==b.parameters.albedoAlpha.w&&a.parameters.factors.w==b.parameters.factors.w;
+        sameMedia&=(a.material?a.material->images[0]:nullptr)==(b.material?b.material->images[0]:nullptr);
+    }
+    sameTransforms&=sameTopology;sameEmission&=sameTopology;sameSheets&=sameTopology;sameMedia&=sameTopology;
+    if(sameTransforms&&sameSheets){s.thinSolarNormals=old->thinSolarNormals;++s.statistics.thinNormalReuses;}
+    else {
     // Mirror reflection is invariant under normal sign. Group near-identical
     // world-space orientations, then keep the largest eight by transformed area.
     // Omitted/curved sheets retain support through the original BSDF proposal.
     std::map<std::array<int,3>,std::pair<glm::vec3,double>> sheetOrientations;
     for(const auto &m:s.meshes)if(m.kind==5&&m.ior>0){
-        const auto &g=s.geometries[m.geometry];
+        const auto &g=*s.geometries[m.geometry];
         for(uint32_t i=0;i<g.offsets.size();++i){auto v=s.vertices(m.primitiveBase+i);auto cross=glm::cross(v[1].position-v[0].position,v[2].position-v[0].position);float length=glm::length(cross);if(length<=1e-12f)continue;auto n=cross/length;
             int axis=0;if(std::abs(n.y)>std::abs(n.x))axis=1;if(std::abs(n.z)>std::abs(n[axis]))axis=2;if(n[axis]<0)n=-n;
             std::array<int,3> key{int(std::round(n.x*10000)),int(std::round(n.y*10000)),int(std::round(n.z*10000))};auto &group=sheetOrientations[key];if(group.second==0)group.first=n;group.second+=length*.5;
@@ -472,19 +634,65 @@ CpuScene::CpuScene(const render::RenderWorldSnapshot &input,const std::vector<Di
     std::vector<std::pair<glm::vec3,double>> ranked;for(const auto &entry:sheetOrientations)ranked.push_back(entry.second);
     std::stable_sort(ranked.begin(),ranked.end(),[](const auto &a,const auto &b){return a.second>b.second;});
     for(size_t i=0;i<std::min(size_t(8),ranked.size());++i)s.thinSolarNormals.push_back(ranked[i].first);
+    }
     s.statistics.geometrySeconds=std::chrono::duration<double>(std::chrono::steady_clock::now()-geometryStarted).count()-s.statistics.blasSeconds;
-    auto stage=std::chrono::steady_clock::now();s.tlas.construct(instanceBounds);s.statistics.tlasSeconds=std::chrono::duration<double>(std::chrono::steady_clock::now()-stage).count();
+    auto stage=std::chrono::steady_clock::now();bool build=true;
+    if(sameTopology){
+        s.tlas=old->tlas;s.tlasBuildCost=old->tlasBuildCost;s.tlasRefitAge=old->tlasRefitAge;
+        if(sameTransforms){build=false;++s.statistics.tlasReuses;}
+        else {
+            const auto refitStarted=std::chrono::steady_clock::now();s.tlas.refit(instanceBounds);
+            s.statistics.tlasRefitSeconds=std::chrono::duration<double>(std::chrono::steady_clock::now()-refitStarted).count();
+            // Refit preserves topology but may degrade traversal. Rebuild after
+            // 32 refits or a 50% rise in normalized SAH cost relative to its build.
+            const double cost=s.tlas.cost();s.statistics.tlasRefitCost=cost;
+            if(s.tlasRefitAge<32&&std::isfinite(cost)&&cost<=s.tlasBuildCost*1.5){build=false;++s.tlasRefitAge;++s.statistics.tlasRefits;}
+            else ++s.statistics.refitRebuilds;
+        }
+    }
+    if(build){s.tlas={};const auto buildStarted=std::chrono::steady_clock::now();s.tlas.construct(instanceBounds);s.statistics.tlasBuildSeconds=std::chrono::duration<double>(std::chrono::steady_clock::now()-buildStarted).count();s.tlasBuildCost=s.tlas.cost();s.tlasRefitAge=0;++s.statistics.tlasBuilds;}
+    s.statistics.tlasCost=s.tlas.cost();s.statistics.tlasBuildCost=s.tlasBuildCost;s.statistics.tlasRefitAge=s.tlasRefitAge;
+    s.statistics.tlasSeconds=std::chrono::duration<double>(std::chrono::steady_clock::now()-stage).count();
     stage=std::chrono::steady_clock::now();
+    if(sameTransforms&&sameEmission){s.emitters=old->emitters;s.emitterIndex=old->emitterIndex;s.emitterWeight=old->emitterWeight;++s.statistics.emitterReuses;}
+    else {++s.statistics.emitterBuilds;
     for(const auto &m:s.meshes){const float energy=luminance(glm::vec3(m.parameters.emissiveNormal));if(energy<=0)continue;
-        const auto &g=s.geometries[m.geometry];std::vector<uint32_t> sourceOrder(g.offsets.size());std::iota(sourceOrder.begin(),sourceOrder.end(),0u);std::sort(sourceOrder.begin(),sourceOrder.end(),[&](uint32_t a,uint32_t b){return g.offsets[a]<g.offsets[b];});
+        const auto &g=*s.geometries[m.geometry];std::vector<uint32_t> sourceOrder(g.offsets.size());std::iota(sourceOrder.begin(),sourceOrder.end(),0u);std::sort(sourceOrder.begin(),sourceOrder.end(),[&](uint32_t a,uint32_t b){return g.offsets[a]<g.offsets[b];});
         for(uint32_t i:sourceOrder){const uint32_t id=m.primitiveBase+i;auto v=s.vertices(id);auto cross=glm::cross(v[1].position-v[0].position,v[2].position-v[0].position);const float area=glm::length(cross)*.5f;auto normal=unit(cross);if(glm::dot(normal,v[0].normal)<0)normal=-normal;
             s.emitterWeight+=double(area)*energy;s.emitterIndex[id]=uint32_t(s.emitters.size());s.emitters.push_back({id,area,s.emitterWeight,normal});}}
+    }
     s.statistics.emitterSeconds=std::chrono::duration<double>(std::chrono::steady_clock::now()-stage).count();
-    stage=std::chrono::steady_clock::now();s.cameraMedia=initialMedia(s.camera,&s.cameraWinding);s.statistics.cameraMediaSeconds=std::chrono::duration<double>(std::chrono::steady_clock::now()-stage).count();
+    stage=std::chrono::steady_clock::now();
+    if(sameTransforms&&sameMedia&&s.camera==old->camera){s.cameraMedia=old->cameraMedia;s.cameraWinding=old->cameraWinding;++s.statistics.cameraMediaReuses;}
+    else s.cameraMedia=initialMedia(s.camera,&s.cameraWinding);s.statistics.cameraMediaSeconds=std::chrono::duration<double>(std::chrono::steady_clock::now()-stage).count();
+    if(old){
+        bool sameGeometry=s.geometries.size()==old->geometries.size();
+        if(sameGeometry)for(size_t i=0;i<s.geometries.size();++i)if(s.geometries[i]!=old->geometries[i]){sameGeometry=false;break;}
+        // The previous scene may be read by another worker. Export publication
+        // is synchronized; no mesh/texture contents are mutated here.
+        std::lock_guard<std::mutex> lock(old->exportMutex);
+        if(sameGeometry)s.packedGeometry=old->packedGeometry;
+        s.packedTextures=old->packedTextures; // export compares ordered image owners.
+    }
     s.statistics.totalSeconds=std::chrono::duration<double>(std::chrono::steady_clock::now()-totalStarted).count();
     std::cout<<"CPU PT: "<<s.geometries.size()<<" unique meshes, "<<s.meshes.size()<<" instances, "<<s.primitiveCount<<" instanced triangles, "<<nodeCount()<<" BLAS/TLAS nodes; "<<memoryBytes()/1048576.0<<" MiB geometry/BVH; build "<<s.statistics.totalSeconds<<" s\n"<<std::flush;
 }
 CpuScene::~CpuScene()=default;
+SceneCamera CpuScene::cameraData()const {
+    SceneCamera result;const auto &s=*state_;result.inverseProjection=s.inverseProjection;result.position=s.camera;
+    for(int i=0;i<8;++i){result.media[i/4][i%4]=s.cameraMedia[i];result.winding[i/4][i%4]=s.cameraWinding[i];}return result;
+}
+void CpuScene::updateCamera(const render::FrameData &frame) {
+    if(!finite(frame.cameraPosition))throw std::invalid_argument("PT: non-finite camera position");
+    const auto inverse=glm::inverse(frame.viewProjection);
+    for(int c=0;c<4;++c)for(int r=0;r<4;++r)if(!std::isfinite(inverse[c][r]))throw std::invalid_argument("PT: invalid camera projection");
+    auto ray=[&](float x,float y){auto p=inverse*glm::vec4(2*x-1,1-2*y,1,1);if(!std::isfinite(p.w)||std::abs(p.w)<1e-20f)throw std::invalid_argument("PT: invalid camera ray");auto d=glm::vec3(p)/p.w-frame.cameraPosition;if(!finite(d)||glm::dot(d,d)<1e-20f)throw std::invalid_argument("PT: invalid camera direction");return glm::normalize(d);};
+    const auto forward=ray(.5f,.5f);auto a=ray(0,0),b=ray(1,0),c=ray(0,1);a/=glm::dot(a,forward);b/=glm::dot(b,forward);c/=glm::dot(c,forward);const float area=glm::length(glm::cross(b-a,c-a));
+    if(!std::isfinite(area)||area<=0)throw std::invalid_argument("PT: invalid camera film area");
+    std::array<uint32_t,8> winding{};const auto media=initialMedia(frame.cameraPosition,&winding);
+    auto &s=*state_;s.camera=frame.cameraPosition;s.inverseProjection=inverse;s.projection=frame.viewProjection;s.cameraForward=forward;s.filmArea=area;s.cameraMedia=media;s.cameraWinding=winding;
+}
+
 size_t CpuScene::triangles() const{return state_->primitiveCount;}
 size_t CpuScene::meshCount() const{return state_->meshes.size();}
 size_t CpuScene::dielectricCount() const{return state_->dielectricMeshes;}
@@ -508,41 +716,72 @@ AccelerationStats CpuScene::accelerationStats() const {
     const auto &s=*state_;auto a=s.statistics;a.uniqueMeshes=s.geometries.size();a.instances=s.meshes.size();a.expandedTriangles=s.primitiveCount;a.tlasNodes=s.tlas.nodes.size();
     a.tlasBytes=s.tlas.nodes.capacity()*sizeof(State::Node)+s.tlas.order.capacity()*4;a.instanceBytes=s.meshes.capacity()*sizeof(State::Mesh);
     a.emitterBytes=s.emitters.capacity()*sizeof(State::AreaLight)+s.emitterIndex.size()*sizeof(std::pair<const uint32_t,uint32_t>)+s.emitterIndex.bucket_count()*sizeof(void*);
-    for(const auto &g:s.geometries){a.uniqueTriangles+=g.offsets.size();a.blasNodes+=g.blas.nodes.size();a.blasBytes+=g.blas.nodes.capacity()*sizeof(State::Node)+g.offsets.capacity()*4;a.geometryBytes+=g.source->vertices.capacity()*sizeof(render::MeshVertex)+g.source->indices.capacity()*4+g.source->pathTracingTangents.capacity()*sizeof(glm::vec4);}
+    for(const auto &owner:s.geometries){const auto &g=*owner;a.uniqueTriangles+=g.offsets.size();a.blasNodes+=g.blas.nodes.size();a.blasBytes+=g.blas.nodes.capacity()*sizeof(State::Node)+g.offsets.capacity()*4;a.geometryBytes+=g.source->vertices.capacity()*sizeof(render::MeshVertex)+g.source->indices.capacity()*4+g.source->pathTracingTangents.capacity()*sizeof(glm::vec4);}
     return a;
 }
 size_t CpuScene::nodeCount() const{auto a=accelerationStats();return a.blasNodes+a.tlasNodes;}
 size_t CpuScene::memoryBytes() const {auto a=accelerationStats();return a.geometryBytes+a.blasBytes+a.tlasBytes+a.instanceBytes+a.emitterBytes;}
 SceneData CpuScene::exportData() const {
     const auto &s=*state_;SceneData data;data.inverseProjection=s.inverseProjection;data.camera=s.camera;for(int i=0;i<8;++i){data.cameraMedia[i/4][i%4]=s.cameraMedia[i];data.cameraWinding[i/4][i%4]=s.cameraWinding[i];}data.lights=s.lights;data.inverseSquare=s.inverseSquare;data.emitterWeight=s.emitterWeight;
-    static_assert(sizeof(PackedVertex)==48 && sizeof(PackedNode)==32 && sizeof(PackedInstance)==160 && sizeof(PackedMaterial)==192 && sizeof(PackedEmitter)==32,"GPU scene ABI");
+    static_assert(sizeof(PackedVertex)==48 && sizeof(PackedNode)==32 && sizeof(PackedInstance)==160 && sizeof(PackedMaterial)==288 && sizeof(PackedEmitter)==32,"GPU scene ABI");
     auto bits=[](uint32_t n){float f;std::memcpy(&f,&n,4);return f;};
-    data.nodes.reserve(nodeCount());data.instanceOrder=s.tlas.order;
-    for(const auto &node:s.tlas.nodes)data.nodes.push_back({glm::vec4(node.low,bits(node.first)),glm::vec4(node.high,bits(node.count))});
-    std::vector<uint32_t> roots,triangleBases;
-    for(const auto &geometry:s.geometries){
-        const auto nodeBase=uint32_t(data.nodes.size()),triangleBase=uint32_t(data.triangles.size()),vertexBase=uint32_t(data.vertices.size());roots.push_back(nodeBase);triangleBases.push_back(triangleBase);
-        if(uint64_t(vertexBase)+geometry.source->vertices.size()>=UINT32_MAX)throw std::length_error("PT: GPU vertex addressing overflow");
-        for(size_t i=0;i<geometry.source->vertices.size();++i){const auto &v=geometry.source->vertices[i];data.vertices.push_back({glm::vec4(v.position,v.uv.x),glm::vec4(v.normal,v.uv.y),geometry.source->pathTracingTangents.empty()?glm::vec4(0):geometry.source->pathTracingTangents[i]});}
-        for(const auto offset:geometry.offsets){const auto &indices=geometry.source->indices;data.triangles.push_back({vertexBase+indices[offset],vertexBase+indices[offset+1],vertexBase+indices[offset+2],0});}
-        for(const auto &node:geometry.blas.nodes){const auto first=node.first+(node.count?triangleBase:nodeBase);data.nodes.push_back({glm::vec4(node.low,bits(first)),glm::vec4(node.high,bits(node.count))});}
+    std::lock_guard<std::mutex> lock(s.exportMutex);
+    data.tlasNodes.reserve(s.tlas.nodes.size());data.instanceOrder=s.tlas.order;
+    for(const auto &node:s.tlas.nodes)data.tlasNodes.push_back({glm::vec4(node.low,bits(node.first)),glm::vec4(node.high,bits(node.count))});
+    data.geometryReused=bool(s.packedGeometry);
+    if(!s.packedGeometry){
+        auto packed=std::make_shared<PackedGeometry>();
+        size_t vertexCount=0,triangleCount=0,blasCount=0;
+        for(const auto &owner:s.geometries){vertexCount+=owner->source->vertices.size();triangleCount+=owner->offsets.size();blasCount+=owner->blas.nodes.size();}
+        if(vertexCount>=UINT32_MAX||triangleCount>=UINT32_MAX||blasCount>=UINT32_MAX)throw std::length_error("PT: GPU geometry addressing overflow");
+        packed->vertices.reserve(vertexCount);packed->triangles.reserve(triangleCount);packed->blasNodes.reserve(blasCount);
+        for(const auto &owner:s.geometries){const auto &geometry=*owner;
+            const auto nodeBase=uint32_t(packed->blasNodes.size()),triangleBase=uint32_t(packed->triangles.size()),vertexBase=uint32_t(packed->vertices.size());
+            packed->roots.push_back(nodeBase);packed->triangleBases.push_back(triangleBase);
+            for(size_t i=0;i<geometry.source->vertices.size();++i){const auto &v=geometry.source->vertices[i];packed->vertices.push_back({glm::vec4(v.position,v.uv.x),glm::vec4(v.normal,v.uv.y),geometry.source->pathTracingTangents.empty()?glm::vec4(0):geometry.source->pathTracingTangents[i]});}
+            for(const auto offset:geometry.offsets){const auto &indices=geometry.source->indices;packed->triangles.push_back({vertexBase+indices[offset],vertexBase+indices[offset+1],vertexBase+indices[offset+2],0});}
+            for(const auto &node:geometry.blas.nodes){const auto first=node.first+(node.count?triangleBase:nodeBase);packed->blasNodes.push_back({glm::vec4(node.low,bits(first)),glm::vec4(node.high,bits(node.count))});}
+        }
+        s.packedGeometry=std::move(packed);
     }
-    std::unordered_map<const render::ImageRGBA8*,uint32_t> imageIds;
+    data.geometry=s.packedGeometry;
+    const auto &roots=data.geometry->roots,&triangleBases=data.geometry->triangleBases;
+    std::unordered_map<const void*,uint32_t> imageIds;
+    std::vector<std::shared_ptr<const render::ImageRGBA8>> sources;
+    std::vector<std::shared_ptr<const render::ImageRGBA32F>> floatSources;
+    std::vector<glm::uvec4> descriptors;uint64_t texelCount=0;
     auto image=[&](const std::shared_ptr<const render::ImageRGBA8> &value){
         if(!value || value->pixels.empty())return UINT32_MAX;
         auto it=imageIds.find(value.get());if(it!=imageIds.end())return it->second;
-        if(data.texels.size()+value->pixels.size()/4>=UINT32_MAX)throw std::length_error("PT: GPU texel addressing overflow");
-        const uint32_t id=uint32_t(data.images.size());imageIds[value.get()]=id;data.images.push_back({uint32_t(data.texels.size()),value->width,value->height,0});
-        for(size_t i=0;i<value->pixels.size();i+=4)data.texels.push_back(uint32_t(value->pixels[i])|(uint32_t(value->pixels[i+1])<<8)|(uint32_t(value->pixels[i+2])<<16)|(uint32_t(value->pixels[i+3])<<24));return id;
+        if(texelCount+value->pixels.size()/4>=UINT32_MAX)throw std::length_error("PT: GPU texel addressing overflow");
+        const uint32_t id=uint32_t(sources.size());imageIds[value.get()]=id;sources.push_back(value);floatSources.push_back(nullptr);
+        descriptors.push_back({uint32_t(texelCount),value->width,value->height,0});texelCount+=value->pixels.size()/4;return id;
     };
+    auto floatImage=[&](const std::shared_ptr<const render::ImageRGBA32F> &value){
+        if(!value)return UINT32_MAX;auto it=imageIds.find(value.get());if(it!=imageIds.end())return it->second;
+        if(texelCount+value->pixels.size()>=UINT32_MAX)throw std::length_error("PT: GPU float texel addressing overflow");
+        const uint32_t id=uint32_t(sources.size());imageIds[value.get()]=id;sources.push_back(nullptr);floatSources.push_back(value);
+        descriptors.push_back({uint32_t(texelCount),value->width,value->height,1});texelCount+=value->pixels.size();return id;
+    };
+    auto floatBits=[](float f){uint32_t n;std::memcpy(&n,&f,4);return n;};
+    data.instances.reserve(s.meshes.size());data.materials.reserve(s.meshes.size());
     for(const auto &mesh:s.meshes){
-        data.instances.push_back({mesh.model,mesh.inverse,{roots[mesh.geometry],uint32_t(data.materials.size()),mesh.primitiveBase,triangleBases[mesh.geometry]},{uint32_t(s.geometries[mesh.geometry].offsets.size()),mesh.mirrored?1u:0u,mesh.geometry,s.geometries[mesh.geometry].source->pathTracingTangents.empty()?0u:1u}});
+        data.instances.push_back({mesh.model,mesh.inverse,{roots[mesh.geometry],uint32_t(data.materials.size()),mesh.primitiveBase,triangleBases[mesh.geometry]},{uint32_t(s.geometries[mesh.geometry]->offsets.size()),mesh.mirrored?1u:0u,mesh.geometry,s.geometries[mesh.geometry]->source->pathTracingTangents.empty()?0u:1u}});
         PackedMaterial material{mesh.parameters.albedoAlpha,mesh.parameters.emissiveNormal,mesh.parameters.factors,glm::vec4(mesh.ior,mesh.kind==3?1:0,mesh.normalScale,float((mesh.kind==4?1u:0u)|(mesh.roughnessTexture?2u:0u)|(mesh.shadowOpaque?4u:0u))),glm::vec4(mesh.absorption,mesh.transmissionRoughness),glm::vec4(mesh.scattering,mesh.g),glm::uvec4(UINT32_MAX),glm::uvec4(UINT32_MAX,mesh.extension.settings.w>0?1:0,mesh.extension.settings.z>0?1:0,(mesh.kind==5?1u:0u)|(mesh.bsdfModel<<1u))};
-        if(mesh.material){for(int i=0;i<4;++i)material.textures[i]=image(mesh.material->images[i]);material.extra.x=image(mesh.material->images[4]);}if(mesh.shoreline[0]){material.shoreHeight=mesh.extension.shoreHeight;material.shoreSurface=mesh.extension.shoreSurface;for(int i=0;i<4;++i)material.shoreTextures[i]=image(mesh.shoreline[i]);}material.diffuseTransmission=glm::vec4(mesh.diffuseTransmission,bits(image(mesh.transmissionTexture)));data.materials.push_back(material);
+        if(mesh.material){for(int i=0;i<4;++i)material.textures[i]=image(mesh.material->images[i]);material.extra.x=image(mesh.material->images[4]);}if(mesh.shoreline[0]){material.shoreHeight=mesh.extension.shoreHeight;material.shoreSurface=mesh.extension.shoreSurface;for(int i=0;i<4;++i)material.shoreTextures[i]=image(mesh.shoreline[i]);}material.fiber=mesh.fiber;material.sheen=mesh.sheen;material.sheenColor=glm::vec4(mesh.sheenColor,0);material.knit=mesh.knit;material.specularShape={mesh.specularAnisotropy,mesh.specularRotation,0,(mesh.extension.features.x&int(render::MaterialFeature::RainWetness))?float(mesh.extension.features.y)/65535.f:0.f};if(mesh.rainWetnessImage){const uint32_t wetImage=image(mesh.rainWetnessImage);if(wetImage>=16777215)throw std::length_error("PT: rain image index exceeds float addressing");material.specularShape.z=float(wetImage+1u);}material.diffuseTransmission=glm::vec4(mesh.diffuseTransmission,bits(image(mesh.transmissionTexture)));if(mesh.material&&mesh.material->oceanNormals){const auto &fields=*mesh.material->oceanNormals;material.oceanNormals={floatImage(fields.images[0]),floatImage(fields.images[1]),floatBits(fields.scales.x),floatBits(fields.scales.y)};}data.materials.push_back(material);
     }
+    data.texturesReused=s.packedTextures&&s.packedTextures->sources==sources&&s.packedTextures->floatSources==floatSources;
+    if(!data.texturesReused){
+        auto packed=std::make_shared<PackedTextures>();packed->sources=std::move(sources);packed->floatSources=std::move(floatSources);packed->images=std::move(descriptors);packed->texels.reserve(size_t(texelCount));
+        for(size_t id=0;id<packed->sources.size();++id){if(const auto &source=packed->sources[id]){for(size_t i=0;i<source->pixels.size();i+=4)packed->texels.push_back(uint32_t(source->pixels[i])|(uint32_t(source->pixels[i+1])<<8)|(uint32_t(source->pixels[i+2])<<16)|(uint32_t(source->pixels[i+3])<<24));}
+            else for(float f:packed->floatSources[id]->pixels)packed->texels.push_back(floatBits(f));}
+        s.packedTextures=std::move(packed);
+    }
+    data.textures=s.packedTextures;
     for(const auto &light:s.emitters)data.emitters.push_back({{bits(light.primitive),light.area,float(light.cumulative/s.emitterWeight),0},glm::vec4(light.normal,0)});
     return data;
 }
+bool CpuScene::hasHair() const{return std::any_of(state_->meshes.begin(),state_->meshes.end(),[](const auto& m){return m.bsdfModel==5;});}
 void CpuScene::cameraRay(float u,float v,glm::vec3 &o,glm::vec3 &d) const {
     auto far=state_->inverseProjection*glm::vec4(u*2-1,1-v*2,1,1);o=state_->camera;d=unit(glm::vec3(far)/far.w-o,{0,0,-1});
 }
@@ -559,6 +798,7 @@ bool CpuScene::project(glm::vec3 point,glm::vec2 &uv,float &pdf) const {
     const auto &s=*state_;auto clip=s.projection*glm::vec4(point,1);if(clip.w<=0)return false;auto ndc=glm::vec3(clip)/clip.w;uv={ndc.x*.5f+.5f,.5f-ndc.y*.5f};pdf=cameraPdf(glm::normalize(point-s.camera));return uv.x>=0&&uv.x<1&&uv.y>=0&&uv.y<1;
 }
 void CpuScene::validateBidirectional() const {
+    if(cloudShadow)throw std::invalid_argument("BDPT projected cloud solar visibility is not implemented; use unidirectional PT");
     for(const auto &mesh:state_->meshes)if(mesh.bsdfModel==3)throw std::invalid_argument("BDPT thin diffuse strategy densities are not yet validated; use CPU/GPU unidirectional PT");
     for(const auto &mesh:state_->meshes)if(mesh.ior==0&&(mesh.bsdfModel==1||mesh.bsdfModel==2))throw std::invalid_argument("BDPT bump-corrected closure adjoints are not yet validated; use CPU/GPU unidirectional PT");
     if(proceduralCount(5))throw std::invalid_argument("BDPT thin dielectric strategy densities are not implemented; use CPU/GPU unidirectional PT");
@@ -583,7 +823,7 @@ bool CpuScene::intersectsAny(glm::vec3 o,glm::vec3 d,float minimum,float maximum
         }return false;
     };
     return traverse(s.tlas,o,d,[&](uint32_t ordered){auto instance=s.tlas.order[ordered];const auto &m=s.meshes[instance];auto origin=glm::vec3(m.inverse*glm::vec4(o,1)),direction=glm::vec3(m.inverse*glm::vec4(d,0));
-        return traverse(s.geometries[m.geometry].blas,origin,direction,[&](uint32_t local){float t;glm::vec2 bary;return s.triangle(m.primitiveBase+local,origin,direction,minimum,maximum,t,bary,true,instance);});
+        return traverse(s.geometries[m.geometry]->blas,origin,direction,[&](uint32_t local){float t;glm::vec2 bary;return s.triangle(m.primitiveBase+local,origin,direction,minimum,maximum,t,bary,true,instance);});
     });
 }
 bool CpuScene::intersectShadow(glm::vec3 o,glm::vec3 d,float minimum,float maximum,Surface &transparent,bool &opaque) const {
@@ -598,10 +838,10 @@ bool CpuScene::intersectShadow(glm::vec3 o,glm::vec3 d,float minimum,float maxim
         }return false;
     };
     opaque=traverse(s.tlas,o,d,[&](uint32_t ordered){auto instance=s.tlas.order[ordered];const auto &m=s.meshes[instance];auto origin=glm::vec3(m.inverse*glm::vec4(o,1)),direction=glm::vec3(m.inverse*glm::vec4(d,0));
-        return traverse(s.geometries[m.geometry].blas,origin,direction,[&](uint32_t local){float t;glm::vec2 bary;auto id=m.primitiveBase+local;if(!s.triangle(id,origin,direction,minimum,maximum,t,bary,true,instance))return false;
+        return traverse(s.geometries[m.geometry]->blas,origin,direction,[&](uint32_t local){float t;glm::vec2 bary;auto id=m.primitiveBase+local;if(!s.triangle(id,origin,direction,minimum,maximum,t,bary,true,instance))return false;
             if(m.shadowOpaque)return true;
             if(m.kind!=5){auto v=s.vertices(id);auto uv=v[0].uv*(1-bary.x-bary.y)+v[1].uv*bary.x+v[2].uv*bary.y;if(texel(m.material?m.material->images[0]:nullptr,uv).a*m.parameters.albedoAlpha.a>=1)return true;}
-            if(t<closest||closestId==UINT32_MAX){closest=t;closestId=id;closestBary=bary;}return false;
+            if(t<closest||(t==closest&&id<closestId)){closest=t;closestId=id;closestBary=bary;}return false;
         });
     });
     if(opaque)return true;if(closestId==UINT32_MAX)return false;s.surface(closestId,closestBary,closest,o,d,transparent);return true;
@@ -611,6 +851,7 @@ std::pair<glm::vec3,glm::vec3> CpuScene::bounds() const {
     return {state_->tlas.nodes[0].low,state_->tlas.nodes[0].high};
 }
 void CpuScene::validatePhotonMapping() const {
+    if(cloudShadow)throw std::invalid_argument("Photon emission with a projected cloud solar field is not implemented; use unidirectional PT");
     if(scatteringCount())throw std::invalid_argument("Photon mapping currently supports absorption-only media; volume photon gathering is not implemented");
     for(const auto &mesh:state_->meshes){
         if(mesh.bsdfModel>0||mesh.kind==5)throw std::invalid_argument("Photon mapping reference requires default PBR/solid dielectric closures; thin and controlled closure adjoints are not implemented");
@@ -621,7 +862,7 @@ void CpuScene::validatePhotonMapping() const {
 }
 bool CpuScene::intersect(glm::vec3 o,glm::vec3 d,float minimum,float maximum,Surface &out,bool brute) const {
     const auto &s=*state_;uint32_t id=UINT32_MAX;glm::vec2 bestBary;float closest=maximum;
-    auto test=[&](uint32_t primitive){float t;glm::vec2 bary;if(s.triangle(primitive,o,d,minimum,closest,t,bary)){if(t<closest || id==UINT32_MAX){closest=t;id=primitive;bestBary=bary;}}};
+    auto test=[&](uint32_t primitive){float t;glm::vec2 bary;if(s.triangle(primitive,o,d,minimum,closest,t,bary)){if(t<closest || (t==closest&&primitive<id)){closest=t;id=primitive;bestBary=bary;}}};
     if(brute)for(uint32_t i=0;i<s.primitiveCount;++i)test(i);
     else {
         auto traverse=[&](const State::Tree &tree,glm::vec3 origin,glm::vec3 direction,const auto &leaf){
@@ -633,12 +874,13 @@ bool CpuScene::intersect(glm::vec3 o,glm::vec3 d,float minimum,float maximum,Sur
         };
         traverse(s.tlas,o,d,[&](uint32_t ordered){const auto instance=s.tlas.order[ordered];const auto &m=s.meshes[instance];const auto localOrigin=glm::vec3(m.inverse*glm::vec4(o,1)),localDirection=glm::vec3(m.inverse*glm::vec4(d,0));
             // Do not normalize: the local ray parameter remains world-space t.
-            traverse(s.geometries[m.geometry].blas,localOrigin,localDirection,[&](uint32_t local){const uint32_t primitive=m.primitiveBase+local;float t;glm::vec2 bary;if(s.triangle(primitive,localOrigin,localDirection,minimum,closest,t,bary,true,instance)&&(t<closest||id==UINT32_MAX)){closest=t;id=primitive;bestBary=bary;}});
+            traverse(s.geometries[m.geometry]->blas,localOrigin,localDirection,[&](uint32_t local){const uint32_t primitive=m.primitiveBase+local;float t;glm::vec2 bary;if(s.triangle(primitive,localOrigin,localDirection,minimum,closest,t,bary,true,instance)&&(t<closest||(t==closest&&primitive<id))){closest=t;id=primitive;bestBary=bary;}});
         });
     }
     if(id==UINT32_MAX)return false;s.surface(id,bestBary,closest,o,d,out);return true;
 }
-glm::vec3 CpuScene::trace(glm::vec3 origin,glm::vec3 direction,Random &rng,uint32_t depth,uint64_t &rays,uint64_t *volumeEvents,bool waterSunProposal,bool thinSunProposal,const PhotonMap *photons,bool shadowAnyHit,glm::vec3 *caustics) const {
+glm::vec3 CpuScene::trace(glm::vec3 origin,glm::vec3 direction,Random &rng,uint32_t depth,uint64_t &rays,uint64_t *volumeEvents,bool waterSunProposal,bool thinSunProposal,const PhotonMap *photons,bool shadowAnyHit,glm::vec3 *caustics,VisiblePoint *visiblePoint) const {
+    if(visiblePoint)*visiblePoint=VisiblePoint{};
     const auto &s=*state_;glm::vec3 throughput(1),radiance(0),previousPoint(0);float previousPdf=0;
     std::array<uint32_t,8> winding{};auto media=origin==s.camera?s.cameraMedia:initialMedia(origin,&winding);if(origin==s.camera)winding=s.cameraWinding;uint32_t mediaCount=0;while(mediaCount<8&&media[mediaCount])++mediaCount;
     auto transition=[&](const Surface &h){
@@ -667,7 +909,7 @@ glm::vec3 CpuScene::trace(glm::vec3 origin,glm::vec3 direction,Random &rng,uint3
         const bool volume=flight.scattered;
         if(!volume&&!hasSurface){
             if(environment){auto e=environment->evaluate(direction);const float weight=previousPdf>0?power(previousPdf,environment->pdf(direction)):1;radiance+=throughput*e*weight;}
-            if(sunRadius>0 && glm::dot(direction,sunDirection)>=sunCos){const float weight=previousPdf>0?power(previousPdf,sunPdf):1;radiance+=throughput*sunIrradiance/(pi*std::sin(sunRadius)*std::sin(sunRadius))*weight;}break;
+            if(sunRadius>0 && glm::dot(direction,sunDirection)>=sunCos){const float weight=previousPdf>0?power(previousPdf,sunPdf):1;radiance+=throughput*sunIrradiance*(cloudShadow?cloudShadow->sample(origin):1.f)/(pi*std::sin(sunRadius)*std::sin(sunRadius))*weight;}break;
         }
         if(volume){if(bounce>=depth)break;if(volumeEvents)++*volumeEvents;hit=Surface{};hit.position=origin+direction*flight.distance;}
         else {
@@ -685,8 +927,9 @@ glm::vec3 CpuScene::trace(glm::vec3 origin,glm::vec3 direction,Random &rng,uint3
                 if(!hit.thinDielectric||!sample.transmission){previousPdf=0;previousPoint=hit.position;}origin=offset(hit,sample.direction);direction=sample.direction;++bounce;continue;}
         }
         const auto view=-direction;
-        const bool photonMerge=photons&&!volume&&hit.ior==0;
-        if(photonMerge){auto estimate=photons->estimate(hit,view,depth-bounce);radiance+=throughput*estimate.radiance;if(caustics)*caustics+=throughput*estimate.caustics;}
+        const bool photonMerge=(photons||visiblePoint)&&!volume&&hit.ior==0;
+        if(photonMerge&&visiblePoint)*visiblePoint={hit,view,throughput,depth-bounce,true};
+        if(photonMerge&&photons){auto estimate=photons->estimate(hit,view,depth-bounce);radiance+=throughput*estimate.radiance;if(caustics)*caustics+=throughput*estimate.caustics;}
         // A continuation proposal, not a straight shadow connection through a refractive boundary.
         // Retaining the original BSDF/phase component gives full support and unchanged expectation.
         glm::vec3 sunCenter(0);float coneCos=0;bool sunProposal=false;
@@ -747,8 +990,8 @@ glm::vec3 CpuScene::trace(glm::vec3 origin,glm::vec3 direction,Random &rng,uint3
         for(const auto &light:s.lights) {
             glm::vec3 color(light.colorInner);const int type=int(light.positionType.w);
             if(type==0) {
-                if(sunRadius>0 && !atmosphericSun){atmosphericSun=true;float cosine=glm::mix(1.f,sunCos,rng.uniform()),sine=std::sqrt(std::max(0.f,1-cosine*cosine)),phi=2*pi*rng.uniform();auto l=local({sine*std::cos(phi),sine*std::sin(phi),cosine},sunDirection);direct(l,sunIrradiance/(pi*std::sin(sunRadius)*std::sin(sunRadius)),sunPdf,std::numeric_limits<float>::infinity(),false);}
-                else direct(unit(-glm::vec3(light.directionOuter)),color,1,std::numeric_limits<float>::infinity(),true);
+                if(sunRadius>0 && !atmosphericSun){atmosphericSun=true;float cosine=glm::mix(1.f,sunCos,rng.uniform()),sine=std::sqrt(std::max(0.f,1-cosine*cosine)),phi=2*pi*rng.uniform();auto l=local({sine*std::cos(phi),sine*std::sin(phi),cosine},sunDirection);direct(l,sunIrradiance*(cloudShadow?cloudShadow->sample(hit.position):1.f)/(pi*std::sin(sunRadius)*std::sin(sunRadius)),sunPdf,std::numeric_limits<float>::infinity(),false);}
+                else direct(unit(-glm::vec3(light.directionOuter)),color*(cloudShadow?cloudShadow->sample(hit.position):1.f),1,std::numeric_limits<float>::infinity(),true);
             } else {
                 auto to=glm::vec3(light.positionType)-hit.position;const float distance=glm::length(to);if(distance<epsilon)continue;auto l=to/distance;
                 if(type==2){float angle=glm::dot(-l,unit(glm::vec3(light.directionOuter)));color*=glm::clamp((angle-light.directionOuter.w)/std::max(1e-6f,light.colorInner.w-light.directionOuter.w),0.f,1.f);}
@@ -756,7 +999,7 @@ glm::vec3 CpuScene::trace(glm::vec3 origin,glm::vec3 direction,Random &rng,uint3
                 direct(l,color,1,std::max(epsilon,distance),true);
             }
         }
-        if(sunRadius>0 && !atmosphericSun){float cosine=glm::mix(1.f,sunCos,rng.uniform()),sine=std::sqrt(std::max(0.f,1-cosine*cosine)),phi=2*pi*rng.uniform();direct(local({sine*std::cos(phi),sine*std::sin(phi),cosine},sunDirection),sunIrradiance/(pi*std::sin(sunRadius)*std::sin(sunRadius)),sunPdf,std::numeric_limits<float>::infinity(),false);}
+        if(sunRadius>0 && !atmosphericSun){float cosine=glm::mix(1.f,sunCos,rng.uniform()),sine=std::sqrt(std::max(0.f,1-cosine*cosine)),phi=2*pi*rng.uniform();direct(local({sine*std::cos(phi),sine*std::sin(phi),cosine},sunDirection),sunIrradiance*(cloudShadow?cloudShadow->sample(hit.position):1.f)/(pi*std::sin(sunRadius)*std::sin(sunRadius)),sunPdf,std::numeric_limits<float>::infinity(),false);}
         rng.dimension(dimension+8);
         if(!s.emitters.empty()) {
             const double selected=double(rng.uniform())*s.emitterWeight;const auto it=std::upper_bound(s.emitters.begin(),s.emitters.end(),selected,[](double value,const auto &light){return value<light.cumulative;});const size_t index=std::min(size_t(it-s.emitters.begin()),s.emitters.size()-1);const auto &light=s.emitters[index];
@@ -779,18 +1022,23 @@ glm::vec3 CpuScene::trace(glm::vec3 origin,glm::vec3 direction,Random &rng,uint3
     return radiance;
 }
 void validateOptions(const Options &options) {
+    if(options.gpuTraversal!=GpuTraversal::Auto&&options.gpuTraversal!=GpuTraversal::Software&&options.gpuTraversal!=GpuTraversal::Native)throw std::invalid_argument("PT: invalid GPU traversal mode");
     if(!options.checkpointSamples||options.checkpointSamples>1048576)throw std::invalid_argument("PT: invalid checkpoint interval");
     if(!options.width || !options.height || options.width>16384 || options.height>16384 || !options.samples || options.samples>1048576 || !options.maxDepth || options.maxDepth>128 || options.threads>256 || !std::isfinite(options.exposure) || options.exposure<=0 || !options.minimumSamples || !std::isfinite(options.relativeError) || options.relativeError<=0 || !std::isfinite(options.absoluteError) || options.absoluteError<0)throw std::invalid_argument("PT: invalid render options");
     if(!options.trainingSamples || options.trainingSamples>512 || !options.cacheMinimum || options.cacheMinimum>8192 || !options.cacheDepth || options.cacheDepth>128 || !std::isfinite(options.guideCellSize) || options.guideCellSize<0)throw std::invalid_argument("PT: invalid learning options");
     if(!options.gpuBatchSamples||options.gpuBatchSamples>64)throw std::invalid_argument("PT: GPU batch must be 1..64 samples");
     if(!options.photonPaths||options.photonPaths>4000000||!std::isfinite(options.photonRadius)||options.photonRadius<1e-5f)throw std::invalid_argument("PT: invalid photon options");
+    if(!std::isfinite(options.sppmAlpha)||options.sppmAlpha<=0||options.sppmAlpha>=1)throw std::invalid_argument("SPPM alpha must be in (0,1)");
+    if(options.sppm&&(options.photonMapping||options.bdpt||options.guiding||options.radianceCache||options.adaptive))throw std::invalid_argument("SPPM requires fixed iterations without fixed photon mapping/BDPT/guiding/cache");
     if(options.photonMapping&&(options.bdpt||options.guiding||options.radianceCache||options.adaptive))throw std::invalid_argument("Photon mapping requires fixed spp without BDPT/guiding/cache");
     if(options.bdpt&&(options.adaptive||options.guiding||options.radianceCache||options.maxDepth>32))throw std::invalid_argument("BDPT requires fixed spp, depth <=32, without guiding/cache");
     if((options.guiding||options.radianceCache)&&uint64_t(options.width)*options.height*options.trainingSamples>268435456)throw std::invalid_argument("PT: training path budget exceeds atomic counter limit");
     if(uint64_t(options.width)*options.height>67108864)throw std::invalid_argument("PT: image exceeds CPU allocation limit");
 }
 Image render(const CpuScene &scene,const Options &options,const std::function<void(const Image &)> &progress) {
+    if(scene.cloudShadow)scene.cloudShadow->validate();
     if(options.bdpt)return renderBdpt(scene,options,progress);
+    if(options.sppm)return renderSppm(scene,options,progress);
     if(options.guiding||options.radianceCache)throw std::invalid_argument("Guiding/cache require GPU PT");
     validateOptions(options);const size_t pixels=size_t(options.width)*options.height;
     Image image;image.width=options.width;image.height=options.height;image.radiance.resize(pixels,glm::vec3(0));image.albedo.resize(pixels,glm::vec3(0));image.normal.resize(pixels,glm::vec3(0));image.sampleCounts.resize(pixels,0);
@@ -839,6 +1087,13 @@ void png(const std::vector<glm::vec3> &pixels,uint32_t width,uint32_t height,flo
 }
 }
 void writeImage(const Image &image,float exposure,const std::string &prefix) {
+    const size_t count=size_t(image.width)*image.height;
+    if(!image.width||!image.height||image.width>16384||image.height>16384||!std::isfinite(exposure)||exposure<=0||image.radiance.size()!=count)throw std::invalid_argument("PT: invalid image export dimensions / exposure / beauty");
+    for(const auto *pixels:{&image.radiance,&image.albedo,&image.normal,&image.denoised,&image.caustics}){
+        if(!pixels->empty()&&pixels->size()!=count)throw std::invalid_argument("PT: invalid export AOV size");
+        for(auto c:*pixels)if(!finite(c))throw std::invalid_argument("PT: non-finite export pixel");
+    }
+    if(!image.sampleCounts.empty()&&image.sampleCounts.size()!=count)throw std::invalid_argument("PT: invalid export sample count size");
     const auto parent=std::filesystem::path(prefix).parent_path();if(!parent.empty())std::filesystem::create_directories(parent);
     png(image.radiance,image.width,image.height,exposure,prefix+".png",true);
     if(!image.caustics.empty())png(image.caustics,image.width,image.height,exposure,prefix+"-caustics.png",true);
@@ -857,7 +1112,8 @@ void writeImage(const Image &image,float exposure,const std::string &prefix) {
     if(!image.denoised.empty())writePfm(image.denoised,prefix+"-denoised.pfm");
 }
 void writeReport(const Image &image,const CpuScene &scene,const Options &options,const std::string &prefix,const std::string &name) {
-    nlohmann::json data={{"scene",name},{"width",image.width},{"height",image.height},{"samples",image.samples},{"max_depth",options.maxDepth},{"seed",options.seed},{"requested_threads",options.threads},{"exposure",options.exposure},{"triangles",scene.triangles()},{"meshes",scene.meshCount()},{"bvh_nodes",scene.nodeCount()},{"geometry_bvh_bytes",scene.memoryBytes()},{"render_seconds",image.seconds},{"rays",image.rays},{"non_finite_samples",image.nonFiniteSamples},{"integrator","Lambert + GGX VNDF, environment/sun/emitter NEE, power MIS, Russian roulette"},{"terrain_ocean","frozen procedural meshes"}};
+    nlohmann::json data={{"scene",name},{"width",image.width},{"height",image.height},{"samples",image.samples},{"max_depth",options.maxDepth},{"seed",options.seed},{"requested_threads",options.threads},{"exposure",options.exposure},{"triangles",scene.triangles()},{"meshes",scene.meshCount()},{"bvh_nodes",scene.nodeCount()},{"geometry_bvh_bytes",scene.memoryBytes()},{"render_seconds",image.seconds},{"rays",image.rays},{"non_finite_samples",image.nonFiniteSamples},{"integrator","Surface BSDFs (PBR/diffuse/thin/cloth/hair), environment/sun/emitter NEE, power MIS, Russian roulette"},{"terrain_ocean","frozen procedural meshes"}};
+    data["world_lod"]={{"enabled",options.worldLod.enabled},{"max_world_vertex_displacement",options.worldLod.maxError},{"target_ratio",options.worldLod.targetRatio},{"max_uv_displacement",options.worldLod.maxUvError},{"affects_primary_and_secondary_rays",true}};
     if(options.bdpt)data["integrator"]="BDPT: finite area endpoints, pinhole camera, connection MIS, camera splats, smooth dielectric radiance/importance";
     if(scene.scatteringCount())data["integrator"]="RGB homogeneous random walk BSSRDF/volume, HG phase, dielectric boundaries, environment/sun/emitter NEE + MIS, Russian roulette";
     data["water_sun_proposal"]=options.waterSunProposal;data["volume_scattering_events"]=image.volumeEvents;data["scattering_meshes"]=scene.scatteringCount();data["subsurface_meshes"]=scene.proceduralCount(4);data["dielectric_meshes"]=scene.dielectricCount();data["terrain_meshes"]=scene.proceduralCount(1);data["grass_meshes"]=scene.proceduralCount(2);data["ocean_interfaces"]=scene.proceduralCount(3);data["frozen_time_seconds"]=scene.capturedTime();
@@ -869,15 +1125,27 @@ void writeReport(const Image &image,const CpuScene &scene,const Options &options
     data["guiding"]=options.guiding;data["radiance_cache"]=options.radianceCache;data["bdpt"]=options.bdpt;data["training_spp"]=options.guiding||options.radianceCache?options.trainingSamples:0;data["training_seconds"]=image.trainingSeconds;data["training_rays"]=image.trainingRays;data["guide_hits"]=image.guideHits;data["cache_hits"]=image.cacheHits;data["trained_cells"]=image.trainedCells;data["guide_cell_size"]=image.guideCellSize;data["trace_and_training_seconds"]=image.seconds+image.trainingSeconds;data["cache_minimum"]=options.cacheMinimum;data["cache_depth"]=options.cacheDepth;
     data["photon_mapping"]=options.photonMapping;data["photon_paths"]=options.photonMapping?options.photonPaths:0;data["photon_radius"]=options.photonRadius;data["photon_seconds"]=image.photonSeconds;data["photon_rays"]=image.photonRays;data["stored_photons"]=image.storedPhotons;data["caustic_photons"]=image.causticPhotons;data["photon_bytes"]=image.photonBytes;data["shadow_any_hit"]=options.shadowAnyHit;data["opaque_shadow_scene"]=scene.opaqueShadows();data["biased_indirect"]=options.photonMapping;data["trace_photon_training_seconds"]=image.seconds+image.photonSeconds+image.trainingSeconds;
     if(options.photonMapping)data["integrator"]="PT delta camera paths + direct NEE + fixed-radius photon density indirect; biased, no volume gathering";
+    data["sppm"]=options.sppm;
+    if(options.sppm){
+        data["integrator"]="SPPM: stochastic camera endpoints + direct NEE + independent per-iteration photon batches + progressive uniform disk indirect density; finite-budget bias, no volume gathering";
+        data["biased_indirect"]=true;data["photon_paths"]=options.photonPaths;
+        data["sppm_statistics"]={{"iterations",image.progressiveIterations},{"alpha",options.sppmAlpha},{"photon_paths_per_iteration",options.photonPaths},{"total_launched_photon_paths",image.emittedPhotonPaths},{"merged_photons",image.photonMerges},{"stored_vertices_across_batches",image.storedPhotons},{"caustic_vertices_across_batches",image.causticPhotons},{"radius_min",image.progressiveRadiusMin},{"radius_mean",image.progressiveRadiusMean},{"radius_max",image.progressiveRadiusMax},{"pixel_and_film_bytes",image.progressiveStateBytes},{"largest_retained_photon_batch_bytes",image.photonBytes},{"wall_seconds_including_photons",image.seconds+image.photonSeconds},{"kernel","uniform disk; normal/plane rejection"}};
+    }
+    data["scene_buffers"]={{"uploads",image.sceneBufferUploads},{"cache_hits",image.sceneBufferCacheHits},{"uploaded_bytes",image.sceneUploadBytes},{"cache_retained_bytes",image.sceneCacheBytes},{"geometry_export_reused",image.sceneGeometryExportReused},{"texture_export_reused",image.sceneTextureExportReused}};
     data["setup_seconds"]=image.setupSeconds;data["gpu_buffer_bytes"]=image.gpuBufferBytes;
+    data["native_ray_tracing"]=image.nativeRayTracing;data["native_acceleration_cache_hit"]=image.nativeAccelerationCacheHit;data["native_blas_builds"]=image.nativeBlasBuilds;data["native_acceleration_bytes"]=image.nativeAccelerationBytes;data["native_acceleration_build_seconds"]=image.nativeAccelerationBuildSeconds;data["native_blas_count"]=image.nativeBlasCount;data["native_instance_count"]=image.nativeInstanceCount;
     const auto acceleration=scene.accelerationStats();
-    data["acceleration"]={{"type","software BLAS/TLAS"},{"unique_meshes",acceleration.uniqueMeshes},{"unique_triangles",acceleration.uniqueTriangles},{"instances",acceleration.instances},{"instanced_triangles",acceleration.expandedTriangles},{"blas_nodes",acceleration.blasNodes},{"tlas_nodes",acceleration.tlasNodes},{"geometry_bytes",acceleration.geometryBytes},{"blas_bytes",acceleration.blasBytes},{"tlas_bytes",acceleration.tlasBytes},{"instance_bytes",acceleration.instanceBytes},{"emitter_bytes_estimate",acceleration.emitterBytes}};
-    data["timings"]={{"domain","CPU wall time; submit/readback may include GPU waits; no hardware GPU timestamps"},{"scene_geometry_prepare_seconds",acceleration.geometrySeconds},{"blas_build_seconds",acceleration.blasSeconds},{"tlas_build_seconds",acceleration.tlasSeconds},{"emitter_prepare_seconds",acceleration.emitterSeconds},{"camera_media_seconds",acceleration.cameraMediaSeconds},{"scene_construct_seconds",acceleration.totalSeconds},{"scene_export_seconds",image.sceneExportSeconds},{"gpu_setup_including_export_seconds",image.setupSeconds},{"dispatch_submit_seconds",image.dispatchSeconds},{"readback_including_wait_seconds",image.readbackSeconds},{"cpu_film_update_seconds",image.filmUpdateSeconds},{"checkpoint_io_seconds",image.checkpointSeconds}};
+    data["acceleration"]={{"type","software BLAS/TLAS"},{"unique_meshes",acceleration.uniqueMeshes},{"unique_triangles",acceleration.uniqueTriangles},{"instances",acceleration.instances},{"instanced_triangles",acceleration.expandedTriangles},{"blas_builds",acceleration.blasBuilds},{"blas_cache_hits",acceleration.blasCacheHits},{"blas_scene_reuses",acceleration.blasSceneReuses},{"tlas_builds",acceleration.tlasBuilds},{"tlas_refits",acceleration.tlasRefits},{"tlas_reuses",acceleration.tlasReuses},{"refit_rebuilds",acceleration.refitRebuilds},{"tlas_cost",acceleration.tlasCost},{"tlas_build_cost",acceleration.tlasBuildCost},{"tlas_refit_cost",acceleration.tlasRefitCost},{"tlas_refit_age",acceleration.tlasRefitAge},{"transform_reuses",acceleration.transformReuses},{"instance_bounds_reuses",acceleration.instanceBoundsReuses},{"alpha_image_scans",acceleration.alphaImageScans},{"alpha_pixels_scanned",acceleration.alphaPixelsScanned},{"emitter_builds",acceleration.emitterBuilds},{"emitter_reuses",acceleration.emitterReuses},{"thin_normal_reuses",acceleration.thinNormalReuses},{"camera_media_reuses",acceleration.cameraMediaReuses},{"blas_nodes",acceleration.blasNodes},{"tlas_nodes",acceleration.tlasNodes},{"geometry_bytes",acceleration.geometryBytes},{"blas_bytes",acceleration.blasBytes},{"tlas_bytes",acceleration.tlasBytes},{"instance_bytes",acceleration.instanceBytes},{"emitter_bytes_estimate",acceleration.emitterBytes}};
+    data["gpu_preparation"]={{"transferred_bytes_including_film",image.gpuPreparationBytes},{"gpu_cloned_bytes",image.gpuCloneBytes},{"gpu_clone_seconds",image.gpuCloneSeconds},{"patch_bytes",image.gpuPatchBytes},{"patch_buffers",image.gpuPatchBuffers},{"patch_ranges",image.gpuPatchRanges},{"steps",image.gpuPreparationSteps},{"immutable_identity_hits",image.gpuIdentityCacheHits},{"immutable_identity_bytes",image.gpuIdentityCacheBytes},{"pipeline_seconds",image.gpuPipelineSeconds},{"allocation_seconds",image.gpuAllocationSeconds},{"cache_compare_seconds",image.gpuCacheCompareSeconds},{"upload_seconds",image.gpuUploadSeconds},{"bindings_finalize_seconds",image.gpuFinalizeSeconds},{"time_budget","cooperative; pipeline, allocation, individual copies / staging writes and optional guiding training are indivisible"}};
+    data["timings"]={{"domain","CPU wall time; submit/readback may include GPU waits; no hardware GPU timestamps"},{"scene_geometry_prepare_seconds",acceleration.geometrySeconds},{"blas_build_seconds",acceleration.blasSeconds},{"tlas_prepare_seconds",acceleration.tlasSeconds},{"tlas_build_seconds",acceleration.tlasBuildSeconds},{"tlas_refit_seconds",acceleration.tlasRefitSeconds},{"emitter_prepare_seconds",acceleration.emitterSeconds},{"camera_media_seconds",acceleration.cameraMediaSeconds},{"scene_construct_seconds",acceleration.totalSeconds},{"scene_export_seconds",image.sceneExportSeconds},{"gpu_setup_including_export_seconds",image.setupSeconds},{"dispatch_submit_seconds",image.dispatchSeconds},{"readback_including_wait_seconds",image.readbackSeconds},{"cpu_film_update_seconds",image.filmUpdateSeconds},{"checkpoint_io_seconds",image.checkpointSeconds}};
     data["gpu_dispatches"]=image.dispatches;data["film_readbacks"]=image.readbacks;data["film_readback_bytes"]=image.readbackBytes;data["checkpoint_samples"]=options.checkpointSamples;data["gpu_batch_samples"]=options.gpuBatchSamples;
     data["denoiser"]=image.denoiser;data["denoise_device"]=image.denoiseDevice;data["denoise_seconds"]=image.denoiseSeconds;data["denoise_auxiliary"]=image.denoiseAuxiliary;
     data["trace_training_denoise_seconds"]=image.seconds+image.trainingSeconds+image.denoiseSeconds;
     if(!image.caustics.empty()){double caustic=0,total=0;for(auto value:image.caustics)caustic+=luminance(value);for(auto value:image.radiance)total+=luminance(value);data["caustic_mean_luminance"]=caustic/image.caustics.size();data["caustic_energy_fraction"]=total>0?caustic/total:0;}
     data["execution"]=image.execution;data["sampler"]=options.sobol?"dyadic-permuted padded 2D Sobol":"PCG";data["adaptive"]=options.adaptive;data["sample_budget"]=options.samples;data["total_samples"]=image.totalSamples;data["average_spp"]=image.sampleCounts.empty()?double(image.samples):double(image.totalSamples)/image.sampleCounts.size();data["converged_pixels"]=image.convergedPixels;data["minimum_samples"]=options.minimumSamples;data["relative_error"]=options.relativeError;data["absolute_error"]=options.absoluteError;
+    data["weather_reference"]={{"level",scene.cloudShadow?"P1 approximate":"P0"},{"cloud_sky_panorama",bool(scene.cloudShadow)},{"spatial_cloud_solar_transmission",bool(scene.cloudShadow)},{"approximation","camera-centred panorama and projected below-cloud 2.5D solar field"},{"omitted",{"spatial cloud scattering/parallax","air fog and precipitation media","runtime shallow-water/foam history"}}};
+    if(scene.cloudShadow){std::ofstream field(prefix+"-cloud-shadow.json");field<<render::serializeCloudShadow(*scene.cloudShadow)<<'\n';if(!field)throw std::runtime_error("PT: cannot save cloud solar field");data["weather_reference"]["solar_field_file"]=prefix+"-cloud-shadow.json";}
+    data["weather_reference"]["epoch"]=scene.weatherEpoch;data["weather_reference"]["tick"]=scene.weatherTick;
     data["sun_radius_degrees"]=glm::degrees(scene.sunRadius);data["sun_irradiance"]={scene.sunIrradiance.x,scene.sunIrradiance.y,scene.sunIrradiance.z};
     if(scene.environment)data["environment"]={{"width",scene.environment->width()},{"height",scene.environment->height()},{"type","linear HDR equirectangular, importance sampled"}};
     std::ofstream file(prefix+".json");file<<data.dump(2)<<'\n';if(!file)throw std::runtime_error("PT: cannot write render report");

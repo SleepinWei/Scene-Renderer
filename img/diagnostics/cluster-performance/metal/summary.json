@@ -1,0 +1,356 @@
+{
+  "scope": "GPU geometry + every clusters/ and hiz/ span (including prepass and pyramid); same build/camera/LOD/materials; 3 rounds with rotated order, each 5 warmup + 8 measured; profiler overhead included; excludes shadows, lighting, tone mapping and CPU construction; CPU render call and first-cull-to-geometry-end GPU window (includes inter-encoder gaps) reported separately, not display latency",
+  "modes": {
+    "batch_1px": {
+      "actual_prepass_triangles": 0,
+      "batched": true,
+      "cluster_buffer_bytes": 20839364,
+      "cluster_dispatches": 3,
+      "cluster_occlusion": false,
+      "cpu_render_median_ms": 5.8201665,
+      "gpu_window_median_ms": 1.4837704971432686,
+      "median_ms": 1.4625420086085796,
+      "occluder_triangle_budget": 250000,
+      "prepass_source_triangle_budget_used": 0,
+      "pyramid_levels": 0,
+      "selected_clusters": 6992,
+      "selected_triangles": 218050,
+      "supported": true,
+      "sample_count": 24,
+      "phase_medians_ms": {
+        "cluster": 0.14379200339317322,
+        "geometry": 1.321958500891924
+      },
+      "inter_scope_gap_median_ms": 0.0006255097687244415,
+      "compute_encoder_counts": [
+        3
+      ],
+      "pass_sum_p10_p90_ms": [
+        1.390312699228525,
+        1.6528835050761699
+      ],
+      "gpu_window_p10_p90_ms": [
+        1.3927874997258187,
+        1.6535957008600235
+      ]
+    },
+    "batch_4px": {
+      "actual_prepass_triangles": 0,
+      "batched": true,
+      "cluster_buffer_bytes": 20839364,
+      "cluster_dispatches": 3,
+      "cluster_occlusion": false,
+      "cpu_render_median_ms": 5.682021,
+      "gpu_window_median_ms": 1.4048749953508377,
+      "median_ms": 1.401875488460064,
+      "occluder_triangle_budget": 250000,
+      "prepass_source_triangle_budget_used": 0,
+      "pyramid_levels": 0,
+      "selected_clusters": 6928,
+      "selected_triangles": 204022,
+      "supported": true,
+      "sample_count": 24,
+      "phase_medians_ms": {
+        "cluster": 0.13208400085568428,
+        "geometry": 1.2659789957106113
+      },
+      "inter_scope_gap_median_ms": 0.0006249994039535522,
+      "compute_encoder_counts": [
+        3
+      ],
+      "pass_sum_p10_p90_ms": [
+        1.371775408834219,
+        1.4866494975984097
+      ],
+      "gpu_window_p10_p90_ms": [
+        1.3838333025574685,
+        1.4933579966425896
+      ]
+    },
+    "batch_hiz_1px": {
+      "actual_prepass_triangles": 203746,
+      "batched": true,
+      "cluster_buffer_bytes": 20839364,
+      "cluster_dispatches": 6,
+      "cluster_occlusion": true,
+      "cpu_render_median_ms": 6.6480415,
+      "gpu_window_median_ms": 2.045312501490116,
+      "median_ms": 1.9902090020477772,
+      "occluder_triangle_budget": 250000,
+      "prepass_source_triangle_budget_used": 247892,
+      "pyramid_levels": 10,
+      "selected_clusters": 5493,
+      "selected_triangles": 204103,
+      "supported": true,
+      "sample_count": 24,
+      "phase_medians_ms": {
+        "cluster": 0.15360350534319878,
+        "prepass": 0.4736874997615814,
+        "pyramid": 0.10316748917102814,
+        "object_tests": 0.010042000561952591,
+        "geometry": 1.2401874996721745
+      },
+      "inter_scope_gap_median_ms": 0.06364549696445465,
+      "compute_encoder_counts": [
+        17
+      ],
+      "pass_sum_p10_p90_ms": [
+        1.9597326077520847,
+        2.033800198882818
+      ],
+      "gpu_window_p10_p90_ms": [
+        2.0146375045180323,
+        2.092587696760893
+      ]
+    },
+    "batch_hiz_4px": {
+      "actual_prepass_triangles": 191378,
+      "batched": true,
+      "cluster_buffer_bytes": 20839364,
+      "cluster_dispatches": 6,
+      "cluster_occlusion": true,
+      "cpu_render_median_ms": 6.748021,
+      "gpu_window_median_ms": 2.0086250007152557,
+      "median_ms": 1.954708993434906,
+      "occluder_triangle_budget": 250000,
+      "prepass_source_triangle_budget_used": 247892,
+      "pyramid_levels": 10,
+      "selected_clusters": 5416,
+      "selected_triangles": 190984,
+      "supported": true,
+      "sample_count": 24,
+      "phase_medians_ms": {
+        "cluster": 0.1769154965877533,
+        "prepass": 0.4465624988079071,
+        "pyramid": 0.08316700533032417,
+        "object_tests": 0.010125000029802322,
+        "geometry": 1.2264995016157627
+      },
+      "inter_scope_gap_median_ms": 0.06450000405311584,
+      "compute_encoder_counts": [
+        17
+      ],
+      "pass_sum_p10_p90_ms": [
+        1.9373272150754928,
+        2.013897501677275
+      ],
+      "gpu_window_p10_p90_ms": [
+        1.9725296027958392,
+        2.064283201098442
+      ]
+    },
+    "batch_hiz_4px_16k": {
+      "actual_prepass_triangles": 8003,
+      "batched": true,
+      "cluster_buffer_bytes": 20839364,
+      "cluster_dispatches": 6,
+      "cluster_occlusion": true,
+      "cpu_render_median_ms": 6.2209579999999995,
+      "gpu_window_median_ms": 1.7735204994678497,
+      "median_ms": 1.725561000406742,
+      "occluder_triangle_budget": 16000,
+      "prepass_source_triangle_budget_used": 14712,
+      "pyramid_levels": 10,
+      "selected_clusters": 6739,
+      "selected_triangles": 202420,
+      "supported": true,
+      "sample_count": 24,
+      "phase_medians_ms": {
+        "cluster": 0.14979199692606926,
+        "prepass": 0.15922899916768074,
+        "pyramid": 0.15216650813817978,
+        "object_tests": 0.00712449848651886,
+        "geometry": 1.2601250000298023
+      },
+      "inter_scope_gap_median_ms": 0.04058501496911049,
+      "compute_encoder_counts": [
+        17
+      ],
+      "pass_sum_p10_p90_ms": [
+        1.6977577060461044,
+        1.8204473838210107
+      ],
+      "gpu_window_p10_p90_ms": [
+        1.7328203968703746,
+        1.8530588008463382
+      ]
+    },
+    "batch_hiz_4px_32k": {
+      "actual_prepass_triangles": 15559,
+      "batched": true,
+      "cluster_buffer_bytes": 20839364,
+      "cluster_dispatches": 6,
+      "cluster_occlusion": true,
+      "cpu_render_median_ms": 6.4957709999999995,
+      "gpu_window_median_ms": 1.8666664995253086,
+      "median_ms": 1.7863519862294197,
+      "occluder_triangle_budget": 32000,
+      "prepass_source_triangle_budget_used": 30984,
+      "pyramid_levels": 10,
+      "selected_clusters": 6600,
+      "selected_triangles": 201832,
+      "supported": true,
+      "sample_count": 24,
+      "phase_medians_ms": {
+        "cluster": 0.1579579971730709,
+        "prepass": 0.17366649955511093,
+        "pyramid": 0.15372900292277336,
+        "object_tests": 0.007000003010034561,
+        "geometry": 1.2910620011389256
+      },
+      "inter_scope_gap_median_ms": 0.039291009306907654,
+      "compute_encoder_counts": [
+        17
+      ],
+      "pass_sum_p10_p90_ms": [
+        1.7143407948315144,
+        2.197313293814659
+      ],
+      "gpu_window_p10_p90_ms": [
+        1.7550830982625485,
+        2.2110455989837643
+      ]
+    },
+    "batch_hiz_4px_64k": {
+      "actual_prepass_triangles": 32790,
+      "batched": true,
+      "cluster_buffer_bytes": 20839364,
+      "cluster_dispatches": 6,
+      "cluster_occlusion": true,
+      "cpu_render_median_ms": 6.403187,
+      "gpu_window_median_ms": 1.8117289990186691,
+      "median_ms": 1.7768940068781376,
+      "occluder_triangle_budget": 64000,
+      "prepass_source_triangle_budget_used": 61924,
+      "pyramid_levels": 10,
+      "selected_clusters": 5906,
+      "selected_triangles": 195980,
+      "supported": true,
+      "sample_count": 24,
+      "phase_medians_ms": {
+        "cluster": 0.15049899742007256,
+        "prepass": 0.2388955019414425,
+        "pyramid": 0.12895798683166504,
+        "object_tests": 0.007374998182058334,
+        "geometry": 1.2556875012814999
+      },
+      "inter_scope_gap_median_ms": 0.03006250411272049,
+      "compute_encoder_counts": [
+        17
+      ],
+      "pass_sum_p10_p90_ms": [
+        1.7498593024909497,
+        1.9124485068023205
+      ],
+      "gpu_window_p10_p90_ms": [
+        1.7724543012678624,
+        1.9477170996367932
+      ]
+    },
+    "full": {
+      "actual_prepass_triangles": 0,
+      "batched": false,
+      "cluster_buffer_bytes": 0,
+      "cluster_dispatches": 0,
+      "cluster_occlusion": false,
+      "cpu_render_median_ms": 5.581083,
+      "gpu_window_median_ms": 1.3578539974987507,
+      "median_ms": 1.3578539974987507,
+      "occluder_triangle_budget": 250000,
+      "prepass_source_triangle_budget_used": 0,
+      "pyramid_levels": 0,
+      "selected_clusters": 0,
+      "selected_triangles": null,
+      "supported": true,
+      "sample_count": 24,
+      "phase_medians_ms": {
+        "geometry": 1.3578539974987507
+      },
+      "inter_scope_gap_median_ms": 0.0,
+      "compute_encoder_counts": [
+        0
+      ],
+      "pass_sum_p10_p90_ms": [
+        1.3436542958021165,
+        1.3978997997939586
+      ],
+      "gpu_window_p10_p90_ms": [
+        1.3436542958021165,
+        1.3978997997939586
+      ]
+    },
+    "legacy_1px": {
+      "actual_prepass_triangles": 0,
+      "batched": false,
+      "cluster_buffer_bytes": 3338420,
+      "cluster_dispatches": 66,
+      "cluster_occlusion": false,
+      "cpu_render_median_ms": 8.021104000000001,
+      "gpu_window_median_ms": 2.755396004766226,
+      "median_ms": 1.9257069900631905,
+      "occluder_triangle_budget": 250000,
+      "prepass_source_triangle_budget_used": 0,
+      "pyramid_levels": 0,
+      "selected_clusters": 6992,
+      "selected_triangles": 218050,
+      "supported": true,
+      "sample_count": 24,
+      "phase_medians_ms": {
+        "cluster": 0.3995649963617325,
+        "geometry": 1.5084374994039536
+      },
+      "inter_scope_gap_median_ms": 0.8872689865529537,
+      "compute_encoder_counts": [
+        66
+      ],
+      "pass_sum_p10_p90_ms": [
+        1.644157225638628,
+        2.677260433137417
+      ],
+      "gpu_window_p10_p90_ms": [
+        2.465904501080513,
+        3.3780463002622128
+      ]
+    },
+    "legacy_4px": {
+      "actual_prepass_triangles": 0,
+      "batched": false,
+      "cluster_buffer_bytes": 3338420,
+      "cluster_dispatches": 66,
+      "cluster_occlusion": false,
+      "cpu_render_median_ms": 7.3346455,
+      "gpu_window_median_ms": 2.452520500868559,
+      "median_ms": 1.6226249784231186,
+      "occluder_triangle_budget": 250000,
+      "prepass_source_triangle_budget_used": 0,
+      "pyramid_levels": 0,
+      "selected_clusters": 6928,
+      "selected_triangles": 204022,
+      "supported": true,
+      "sample_count": 24,
+      "phase_medians_ms": {
+        "cluster": 0.35097750648856163,
+        "geometry": 1.266874998807907
+      },
+      "inter_scope_gap_median_ms": 0.8811449967324734,
+      "compute_encoder_counts": [
+        66
+      ],
+      "pass_sum_p10_p90_ms": [
+        1.5866895951330662,
+        1.8901331216096877
+      ],
+      "gpu_window_p10_p90_ms": [
+        2.371841901540756,
+        2.787128699570894
+      ]
+    }
+  },
+  "changes_4px": {
+    "gpu_pass_sum_reduction_percent": 13.604467631059213,
+    "gpu_window_reduction_percent": 42.7170947254752,
+    "cpu_render_call_reduction_percent": 22.53175698811892,
+    "hiz_triangle_reduction_percent": 6.39048730038917,
+    "hiz_gpu_window_increase_percent": 42.97535420321466
+  }
+}

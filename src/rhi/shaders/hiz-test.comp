@@ -1,0 +1,30 @@
+#version 450
+layout(local_size_x=64) in;
+layout(set=0,binding=0,std140) uniform HiZParameters {uvec4 hizCounts;}; // objects, width, height, levels
+layout(set=1,binding=0) uniform sampler2D hizDepth;
+struct ObjectBounds {vec4 rectangle;vec4 depth;uvec4 counts;};
+layout(set=1,binding=1,std430) readonly buffer HiZBounds {ObjectBounds bounds[];};
+layout(set=1,binding=2,std430) writeonly buffer HiZArguments {uint arguments[];};
+void main(){
+    uint id=gl_GlobalInvocationID.x;if(id>=hizCounts.x)return;
+    ObjectBounds object=bounds[id];bool visible=true;
+    if(object.depth.w>0.){
+        float size=max(object.rectangle.z-object.rectangle.x+1.,object.rectangle.w-object.rectangle.y+1.);
+        // Floor keeps at most three cells per axis while avoiding excessive
+        // inclusion of sky just outside a small projected rectangle.
+        int mip=clamp(int(floor(log2(max(size,1.)))),0,int(hizCounts.w)-1);
+        ivec2 extent=textureSize(hizDepth,mip);
+        // Mips use floor extents with the final cell absorbing odd pixels.
+        // Division plus clamp follows that exact partition recursively.
+        ivec2 first=clamp(ivec2(floor(object.rectangle.xy/exp2(float(mip)))),ivec2(0),extent-1);
+        ivec2 last=clamp(ivec2(floor(object.rectangle.zw/exp2(float(mip)))),ivec2(0),extent-1);
+        float farthest=0.;
+        for(int y=first.y;y<=last.y;++y)for(int x=first.x;x<=last.x;++x)
+            farthest=max(farthest,texelFetch(hizDepth,ivec2(x,y),mip).r);
+        // Standard depth 0..1: the entire bound must be strictly behind the
+        // farthest covered depth. Clear=1 therefore always prevents culling.
+        visible=!(object.depth.x>farthest+object.depth.y);
+    }
+    uint offset=id*5;arguments[offset]=visible?object.counts.x:0;
+    arguments[offset+1]=1;arguments[offset+2]=0;arguments[offset+3]=0;arguments[offset+4]=0;
+}

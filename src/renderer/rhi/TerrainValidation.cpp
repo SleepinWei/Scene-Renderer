@@ -39,6 +39,15 @@ void validateTerrainRhi(std::shared_ptr<rhi::GraphicsDevice> d,const std::string
     // Resolution/FOV are part of the LOD criterion; validity and coverage are
     // tested independently of the GPU formula instead of mirroring it.
     terrain.update(f,model);check(terrain.geometryStable(),"Unchanged terrain never enables temporal history");
+    auto tiny=f;tiny.cameraPosition.x+=.00001f;
+    tiny.view=glm::lookAt(tiny.cameraPosition,glm::vec3(.00001f,0,0),glm::vec3(0,1,0));
+    tiny.viewProjection=correction*glm::perspective(glm::radians(65.f),1.f,.1f,100.f)*tiny.view;
+    terrain.update(tiny,model);check(terrain.geometryStable(),"Subpixel camera motion unnecessarily rebuilt terrain / rejected history");
+    auto moved=tiny;moved.cameraPosition.x+=1;
+    moved.view=glm::lookAt(moved.cameraPosition,glm::vec3(1,0,0),glm::vec3(0,1,0));
+    moved.viewProjection=correction*glm::perspective(glm::radians(65.f),1.f,.1f,100.f)*moved.view;
+    terrain.update(moved,model);check(!terrain.geometryStable(),"Accumulated camera motion retained stale terrain LOD");
+    terrain.update(f,model);
     auto fineLeaves=terrain.readNodes().size()/4;
     auto low=f;low.viewportWidth=128;low.viewportHeight=72;terrain.update(low,model);
     check(terrain.readNodes().size()/4<=fineLeaves,"Lower resolution increased terrain refinement");
@@ -77,6 +86,18 @@ void validateTerrainRhi(std::shared_ptr<rhi::GraphicsDevice> d,const std::string
         std::sort(result.begin(),result.end(),[](auto a,auto b){return a.x!=b.x?a.x<b.x:a.z<b.z;});return result;};
     auto roots0=roots(poses),roots1=roots(wind);check(roots0.size()==roots1.size(),"Wind changed vegetation population");
     for(size_t i=0;i<roots0.size();++i)check(glm::length(roots0[i]-roots1[i])<1e-5f,"Wind moved vegetation roots");
+    {
+        VegetationSettings driven;driven.capacity=4096;driven.environmentWind=true;
+        driven.windX=0;driven.windZ=20;driven.windPhase=.7f;
+        grass.update(model,1,driven);auto shared=grass.readPoses(grass.readArguments().instanceCount);
+        auto sharedRoots=roots(shared);check(sharedRoots.size()==roots0.size(),"Shared wind changed grass population");
+        bool tiltedZ=false;for(const auto& p:shared){check(p[1].x==0,"Shared Z wind bent grass along X");tiltedZ|=p[1].z>.001f;}
+        check(tiltedZ,"Shared wind did not bend along Z");
+        for(size_t i=0;i<roots0.size();++i)check(glm::length(sharedRoots[i]-roots0[i])<1e-5f,"Shared wind moved grass roots");
+        driven.windZ=0;grass.update(model,300,driven);
+        for(const auto& p:grass.readPoses(grass.readArguments().instanceCount))check(p[1].x==0&&p[1].z==0,"Zero shared wind retained legacy time bend");
+        std::cout<<"RHI shared grass wind: frozen phase, XZ direction, zero wind and root stability passed\n";
+    }
     {
         auto center=f;center.cameraPosition={0,6,0};center.view=glm::lookAt(center.cameraPosition,glm::vec3(0,0,-1),glm::vec3(0,1,0));
         center.viewProjection=correction*glm::perspective(glm::radians(65.f),1.f,.1f,100.f)*center.view;

@@ -1,0 +1,29 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#include "aerial-parameters.glsl"
+layout(set=0,binding=1,std140) uniform WaterAirParameters {vec4 captureAirEye;vec4 captureAirSettings;vec4 captureAirColour;ivec4 captureAirLayout;};
+layout(set=0,binding=2) uniform sampler2D capturePosition;
+layout(set=0,binding=3) uniform sampler2D aerialTransmittance;
+layout(set=0,binding=4) uniform sampler2D aerialMultiple;
+layout(set=0,binding=5,rgba16f) uniform image2D captureColour;
+#define SHADOW_SET 0
+#define SHADOW_BINDING 6
+#include "shadow-data.glsl"
+layout(set=0,binding=7) uniform sampler2D aerialShadowAtlas;
+#include "aerial-shadow.glsl"
+#include "aerial-integrate.glsl"
+#include "air-segment.glsl"
+layout(local_size_x=8,local_size_y=8) in;
+void main(){
+    ivec2 pixel=ivec2(gl_GlobalInvocationID.xy);
+    if(pixel.x>=captureAirLayout.x*captureAirLayout.z||pixel.y>=captureAirLayout.y||pixel.x<captureAirLayout.x)return;
+    vec4 position=texelFetch(capturePosition,pixel,0);if(position.w<.5)return;
+    vec3 origin=captureAirEye.xyz;
+    if(captureAirLayout.w>0&&pixel.x/captureAirLayout.x==captureAirLayout.w)origin.y=2.*captureAirEye.w-origin.y;
+    vec3 delta=position.xyz-origin;float distanceMeters=length(delta);vec3 L,T,solarLoss;
+    integrateAerial(origin,delta/max(distanceMeters,1e-6),distanceMeters,captureAirEye.w,L,T,solarLoss);
+    // Each invocation reads and writes only its own texel; no feedback filtering.
+    vec4 colour=imageLoad(captureColour,pixel);vec3 radiance=colour.rgb*T+L;
+    float airT=exp(-min(airOpticalDepth(origin,position.xyz,captureAirSettings),16.));
+    imageStore(captureColour,pixel,vec4(radiance*airT+captureAirColour.rgb*(1.-airT),colour.a));
+}

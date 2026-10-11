@@ -95,6 +95,7 @@ Result sample(const CpuScene &scene,const Options &options,uint32_t pixel,uint32
 }
 }
 Image renderBdpt(const CpuScene &scene,const Options &options,const std::function<void(const Image &)> &progress){
+    if(scene.hasHair())throw std::invalid_argument("BDPT hair ribbon reverse transport is not supported yet");
     if(options.adaptive||options.guiding||options.radianceCache||options.maxDepth>32)throw std::invalid_argument("BDPT requires fixed spp, depth <=32, without guiding/cache");
     validateOptions(options);scene.validateBidirectional();const size_t count=size_t(options.width)*options.height;
     Image image;image.width=options.width;image.height=options.height;image.execution="CPU BDPT area lights + pinhole";image.radiance.resize(count);image.caustics.resize(count);image.albedo.resize(count);image.normal.resize(count);image.sampleCounts.resize(count);

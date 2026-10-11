@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include "rhi/ShaderAssets.h"
 #include <cstring>
 #include <optional>
@@ -480,7 +481,7 @@ struct GpuVirtualTexture::Feedback {
     Resources resources;
     rhi::TextureHandle texture;rhi::TextureViewHandle view;
     rhi::ComputePipelineHandle pipeline;rhi::BindingLayout layout;
-    std::optional<rhi::ReadbackTicket> readback;
+    std::optional<rhi::FrameReadbackTicket> readback;
     uint32_t width,height;
     Feedback(std::shared_ptr<rhi::GraphicsDevice> device,uint32_t w,uint32_t h):resources(device),width(w),height(h) {
         using namespace rhi;
@@ -494,7 +495,8 @@ struct GpuVirtualTexture::Feedback {
 };
 GpuVirtualTexture::~GpuVirtualTexture()=default;
 void GpuVirtualTexture::collectFeedback() {
-    if(!feedback_ || !feedback_->readback || !resources_.device->isComplete(feedback_->readback->completion))return;
+    if(feedback_&&feedback_->readback)resources_.device->pollCompletions();
+    if(!feedback_ || !feedback_->readback || !feedback_->readback->ready->load(std::memory_order_acquire))return;
     const auto& bytes=*feedback_->readback->bytes;
     std::set<PageId> unique;
     for(size_t offset=0;offset+16<=bytes.size();offset+=16) {
@@ -524,7 +526,7 @@ void GpuVirtualTexture::recordFeedback(rhi::TextureViewHandle depth,const glm::m
     auto sampler=frame.sampler({Filter::Nearest,AddressMode::ClampToEdge});
     auto binding=frame.bindings({feedback_->layout,{{0,buffer,0,sizeof(parameters),{},{}},{1,{},0,0,depth,sampler},{2,{},0,0,feedback_->view,{}}}});
     auto commands=resources_.device->createCommandList();commands.dispatch(feedback_->pipeline,{binding},{(w+7)/8,(h+7)/8,1});resources_.device->submit(commands);
-    feedback_->readback=resources_.device->requestTextureReadback(feedback_->texture);
+    feedback_->readback=resources_.device->requestFrameTextureReadback(feedback_->texture,{},std::getenv("SCENERENDERER_RUNTIME_SPLIT_READBACK")!=nullptr);
 }
 std::vector<GpuVirtualTexture::PageId> GpuVirtualTexture::predict(const glm::mat4 &vp,const glm::mat4 &model,uint32_t width,uint32_t height,bool flipV) const {
     if (!width || !height)

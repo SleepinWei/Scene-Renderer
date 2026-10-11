@@ -1,0 +1,327 @@
+{
+  "alpha_protected": true,
+  "batch_dispatches_after": 3,
+  "batch_dispatches_before": 9,
+  "batch_indices_and_pixels_equal": true,
+  "cluster_frustum_reference": true,
+  "cluster_hiz": {
+    "comparisons": 11,
+    "display_equal": true,
+    "hdr_max_error": 0.0,
+    "hidden_triangles_removed": 512,
+    "same_frame_lod_depth": true
+  },
+  "cluster_hiz_sponza": {
+    "active": true,
+    "actual_prepass_triangles": 191378,
+    "changed_display_pixels": 0,
+    "cluster_dispatches": 6,
+    "hdr_max_error": 0.0,
+    "prepass_source_triangle_budget_used": 247892,
+    "pyramid_levels": 10,
+    "selected_clusters": 5416,
+    "selected_triangles": 190984
+  },
+  "grid": [
+    {
+      "cpu_gpu_indices_equal": true,
+      "pixel_budget": 0.0,
+      "selected_triangles": 4608,
+      "source_triangles": 4608
+    },
+    {
+      "cpu_gpu_indices_equal": true,
+      "pixel_budget": 0.25,
+      "selected_triangles": 4608,
+      "source_triangles": 4608
+    },
+    {
+      "cpu_gpu_indices_equal": true,
+      "pixel_budget": 1.0,
+      "selected_triangles": 4608,
+      "source_triangles": 4608
+    },
+    {
+      "cpu_gpu_indices_equal": true,
+      "pixel_budget": 4.0,
+      "selected_triangles": 3952,
+      "source_triangles": 4608
+    },
+    {
+      "cpu_gpu_indices_equal": true,
+      "pixel_budget": 64.0,
+      "selected_triangles": 2788,
+      "source_triangles": 4608
+    }
+  ],
+  "orthographic_reference": true,
+  "scope": "actual GPU indices compared byte-for-byte with independent CPU hierarchical cut",
+  "shear_mirror_scale": true,
+  "sponza": {
+    "background_build_wall_seconds": 0.193627542,
+    "cuts": [
+      {
+        "dispatches": 3,
+        "display_pixels_equal_full": false,
+        "pixel_error": 0.0,
+        "source_triangles": 262195,
+        "visible_clusters": 7031,
+        "visible_triangles": 222398
+      },
+      {
+        "dispatches": 3,
+        "display_pixels_equal_full": false,
+        "pixel_error": 1.0,
+        "source_triangles": 262195,
+        "visible_clusters": 6992,
+        "visible_triangles": 218050
+      },
+      {
+        "dispatches": 3,
+        "display_pixels_equal_full": false,
+        "pixel_error": 4.0,
+        "source_triangles": 262195,
+        "visible_clusters": 6928,
+        "visible_triangles": 204022
+      },
+      {
+        "dispatches": 3,
+        "display_pixels_equal_full": false,
+        "pixel_error": 16.0,
+        "source_triangles": 262195,
+        "visible_clusters": 6898,
+        "visible_triangles": 195607
+      }
+    ],
+    "meshes": [
+      {
+        "all_clusters": 1208,
+        "build_seconds": 0.102666666,
+        "leaf_clusters": 1048,
+        "mesh_id": 107,
+        "nodes": 1099,
+        "resident_bytes": 568896,
+        "roots": 997,
+        "source_triangles": 31436
+      },
+      {
+        "all_clusters": 1952,
+        "build_seconds": 0.164547584,
+        "leaf_clusters": 232,
+        "mesh_id": 108,
+        "nodes": 424,
+        "resident_bytes": 1799808,
+        "roots": 40,
+        "source_triangles": 17688
+      },
+      {
+        "all_clusters": 436,
+        "build_seconds": 0.005619833,
+        "leaf_clusters": 436,
+        "mesh_id": 109,
+        "nodes": 436,
+        "resident_bytes": 83520,
+        "roots": 436,
+        "source_triangles": 3472
+      },
+      {
+        "all_clusters": 531,
+        "build_seconds": 0.039532958,
+        "leaf_clusters": 72,
+        "mesh_id": 110,
+        "nodes": 129,
+        "resident_bytes": 485604,
+        "roots": 15,
+        "source_triangles": 4086
+      },
+      {
+        "all_clusters": 147,
+        "build_seconds": 0.000876042,
+        "leaf_clusters": 147,
+        "mesh_id": 111,
+        "nodes": 147,
+        "resident_bytes": 23664,
+        "roots": 147,
+        "source_triangles": 796
+      },
+      {
+        "all_clusters": 441,
+        "build_seconds": 0.034618292,
+        "leaf_clusters": 341,
+        "mesh_id": 112,
+        "nodes": 371,
+        "resident_bytes": 271236,
+        "roots": 311,
+        "source_triangles": 10168
+      },
+      {
+        "all_clusters": 1370,
+        "build_seconds": 0.050970417,
+        "leaf_clusters": 248,
+        "mesh_id": 113,
+        "nodes": 296,
+        "resident_bytes": 540504,
+        "roots": 200,
+        "source_triangles": 5876
+      },
+      {
+        "all_clusters": 330,
+        "build_seconds": 0.002807084,
+        "leaf_clusters": 330,
+        "mesh_id": 114,
+        "nodes": 330,
+        "resident_bytes": 65472,
+        "roots": 330,
+        "source_triangles": 2816
+      },
+      {
+        "all_clusters": 2388,
+        "build_seconds": 0.007876167,
+        "leaf_clusters": 2388,
+        "mesh_id": 116,
+        "nodes": 2388,
+        "resident_bytes": 314304,
+        "roots": 2388,
+        "source_triangles": 7088
+      },
+      {
+        "all_clusters": 126,
+        "build_seconds": 0.001013041,
+        "leaf_clusters": 126,
+        "mesh_id": 117,
+        "nodes": 126,
+        "resident_bytes": 22656,
+        "roots": 126,
+        "source_triangles": 880
+      },
+      {
+        "all_clusters": 1528,
+        "build_seconds": 0.046213833,
+        "leaf_clusters": 1468,
+        "mesh_id": 118,
+        "nodes": 1516,
+        "resident_bytes": 505092,
+        "roots": 1420,
+        "source_triangles": 23207
+      },
+      {
+        "all_clusters": 470,
+        "build_seconds": 0.030833125,
+        "leaf_clusters": 286,
+        "mesh_id": 120,
+        "nodes": 350,
+        "resident_bytes": 409392,
+        "roots": 222,
+        "source_triangles": 16496
+      },
+      {
+        "all_clusters": 1401,
+        "build_seconds": 0.161657,
+        "leaf_clusters": 222,
+        "mesh_id": 121,
+        "nodes": 396,
+        "resident_bytes": 1676988,
+        "roots": 48,
+        "source_triangles": 16512
+      },
+      {
+        "all_clusters": 1401,
+        "build_seconds": 0.163592875,
+        "leaf_clusters": 222,
+        "mesh_id": 122,
+        "nodes": 396,
+        "resident_bytes": 1676988,
+        "roots": 48,
+        "source_triangles": 16512
+      },
+      {
+        "all_clusters": 934,
+        "build_seconds": 0.107927084,
+        "leaf_clusters": 148,
+        "mesh_id": 123,
+        "nodes": 264,
+        "resident_bytes": 1117992,
+        "roots": 32,
+        "source_triangles": 11008
+      },
+      {
+        "all_clusters": 1712,
+        "build_seconds": 0.137447167,
+        "leaf_clusters": 203,
+        "mesh_id": 124,
+        "nodes": 347,
+        "resident_bytes": 1476708,
+        "roots": 59,
+        "source_triangles": 14336
+      },
+      {
+        "all_clusters": 2264,
+        "build_seconds": 0.181797667,
+        "leaf_clusters": 264,
+        "mesh_id": 125,
+        "nodes": 456,
+        "resident_bytes": 1945704,
+        "roots": 72,
+        "source_triangles": 18944
+      },
+      {
+        "all_clusters": 1712,
+        "build_seconds": 0.137891083,
+        "leaf_clusters": 203,
+        "mesh_id": 126,
+        "nodes": 347,
+        "resident_bytes": 1476708,
+        "roots": 59,
+        "source_triangles": 14336
+      },
+      {
+        "all_clusters": 1585,
+        "build_seconds": 0.130178875,
+        "leaf_clusters": 236,
+        "mesh_id": 128,
+        "nodes": 428,
+        "resident_bytes": 1454496,
+        "roots": 44,
+        "source_triangles": 19828
+      },
+      {
+        "all_clusters": 452,
+        "build_seconds": 0.039848333,
+        "leaf_clusters": 120,
+        "mesh_id": 129,
+        "nodes": 208,
+        "resident_bytes": 394704,
+        "roots": 32,
+        "source_triangles": 9184
+      },
+      {
+        "all_clusters": 546,
+        "build_seconds": 0.03161025,
+        "leaf_clusters": 62,
+        "mesh_id": 130,
+        "nodes": 102,
+        "resident_bytes": 385440,
+        "roots": 22,
+        "source_triangles": 3042
+      },
+      {
+        "all_clusters": 633,
+        "build_seconds": 0.079884333,
+        "leaf_clusters": 138,
+        "mesh_id": 131,
+        "nodes": 253,
+        "resident_bytes": 773652,
+        "roots": 23,
+        "source_triangles": 14484
+      }
+    ],
+    "nonblocking_resolve_polls": 76,
+    "scope": "native realtime PBR; same camera/exposure; TAA/AO/DDGI off; cluster selection and frustum culling on",
+    "size": [
+      960,
+      540
+    ]
+  },
+  "visibility_recovery": true,
+  "zero_error_pixels_equal": true
+}

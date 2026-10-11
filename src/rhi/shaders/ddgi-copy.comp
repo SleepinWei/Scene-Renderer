@@ -1,0 +1,8 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#define DDGI_BINDING 2
+#include "ddgi-parameters.glsl"
+layout(local_size_x=64) in;
+layout(set=0,binding=0,std430) readonly buffer DdgiField {vec4 sourceField[];};
+layout(set=0,binding=1,std430) buffer DdgiNext {vec4 nextField[];};
+void main(){uint i=gl_GlobalInvocationID.x;if(i<uint(ddgiCounts.w)*321u)nextField[i]=sourceField[i];}

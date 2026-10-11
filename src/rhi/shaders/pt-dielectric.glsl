@@ -1,8 +1,5 @@
 // CPU counterpart: roughDielectric / visibleNormal in PT/CpuPathTracer.cpp.
-float dielectricFresnel(float cosine,float etaI,float etaT){
-    cosine=clamp(abs(cosine),0,1);float st=etaI/etaT*sqrt(max(0,1-cosine*cosine));if(st>=1)return 1;
-    float ct=sqrt(max(0,1-st*st)),a=(etaT*cosine-etaI*ct)/(etaT*cosine+etaI*ct),b=(etaI*cosine-etaT*ct)/(etaI*cosine+etaT*ct);return .5*(a*a+b*b);
-}
+#include "dielectric-fresnel.glsl"
 float thinDielectricReflectance(float cosine,float exteriorIor,float sheetIor){float f=dielectricFresnel(cosine,exteriorIor,sheetIor);return 2*f/(1+f);}
 vec3 visibleNormal(vec3 v,vec3 n,float roughness,vec2 uv){
     float a=roughness*roughness;vec3 t=unit(cross(abs(n.y)<.99?vec3(0,1,0):vec3(1,0,0),n),vec3(1,0,0)),b=cross(n,t);

@@ -30,8 +30,30 @@ void GpuTerrain::update(const FrameData& f,const glm::mat4& model){
     using namespace rhi;const size_t QueueBytes=16+size_t(capacity_)*8,FinalBytes=16+size_t(capacity_)*16;const uint32_t Patches=capacity_*64;
     for(const auto& matrix:{f.viewProjection,f.view,model})for(int c=0;c<4;c++)for(int r=0;r<4;r++)if(!std::isfinite(matrix[c][r]))throw std::invalid_argument("Terrain nonfinite transform");
     heightTexture_->prepare(f.viewProjection,model,f.viewportWidth,f.viewportHeight);
-    geometryStable_=updated_ && f.viewProjection==previousVP_ && f.view==previousView_ && model==previousModel_ &&
-        f.viewportWidth==previousWidth_ && f.viewportHeight==previousHeight_ && previousHeightVersion_==heightTexture_->version();
+    geometryStable_=updated_ && model==previousModel_ && f.viewportWidth==previousWidth_ &&
+        f.viewportHeight==previousHeight_ && previousHeightVersion_==heightTexture_->version();
+    if(geometryStable_ && (f.viewProjection!=previousVP_ || f.view!=previousView_)){
+        // Freeze the exact published mesh during subpixel camera motion. Bound
+        // homogeneous reprojection over the entire height prism, not just a
+        // few projected corners. The last rebuild remains the anchor, so many
+        // small moves eventually exceed the bound and trigger a rebuild.
+        float minOldW=1e30f,minNewW=1e30f,maxOldXY=0,maxDeltaXY=0,maxDeltaW=0;
+        const auto lo=mesh_->boundsMin(),hi=mesh_->boundsMax();
+        for(int i=0;i<8;++i){
+            glm::vec4 point(i&1?hi.x:lo.x,i&2?hi.y:lo.y,i&4?hi.z:lo.z,1);
+            auto old=previousVP_*model*point,now=f.viewProjection*model*point,delta=now-old;
+            minOldW=std::min(minOldW,old.w);minNewW=std::min(minNewW,now.w);
+            maxOldXY=std::max(maxOldXY,std::max(std::abs(old.x),std::abs(old.y)));
+            maxDeltaXY=std::max(maxDeltaXY,std::max(std::abs(delta.x),std::abs(delta.y)));
+            maxDeltaW=std::max(maxDeltaW,std::abs(delta.w));
+        }
+        geometryStable_=minOldW>f.nearPlane && minNewW>f.nearPlane;
+        if(geometryStable_){
+            float drift=.5f*std::max(f.viewportWidth,f.viewportHeight)*
+                (maxDeltaXY/minNewW+maxOldXY*maxDeltaW/(minOldW*minNewW));
+            geometryStable_=std::isfinite(drift)&&drift<=.5f;
+        }
+    }
     if(geometryStable_)return; // Keep the exact published geometry, including budget-limited split decisions.
     updated_=false;
     struct alignas(16) Params{glm::mat4 vp,view,model;glm::ivec4 counts,dimensions;glm::vec4 screen;};static_assert(sizeof(Params)==240,"Terrain parameter ABI");

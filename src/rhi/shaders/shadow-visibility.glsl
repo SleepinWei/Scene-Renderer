@@ -72,15 +72,24 @@ float shadowTileVisibility(int light,int tile,vec3 position,vec3 planeNormal){
     for(int i=0;i<32;i++)visibility+=shadowCompare(center,shadowDisk(i,32)*radius*pixel,p.z,bias,gradient,rect);
     return visibility/32.;
 }
+float cloudSolarVisibility(int light,vec3 p){
+    if(cloudShadowProjection.w==0.||p.y>=cloudShadowProjection.w||lights[light].positionType.w!=0.)return 1.;
+    vec2 uv=(p.xz-cloudShadowProjection.xy*(p.y-cloudShadowProjection.z)-cloudShadowPatch.xy)/cloudShadowPatch.zw;
+    if(any(lessThan(uv,vec2(0)))||any(greaterThan(uv,vec2(1))))return 1.;
+    vec2 size=vec2(textureSize(shadowAtlas,0)),at=(cloudShadowRect.xy+uv*cloudShadowRect.zw)*size-.5;
+    ivec2 lo=ivec2(round(cloudShadowRect.xy*size)),hi=lo+ivec2(round(cloudShadowRect.zw*size))-1,b=ivec2(floor(at));vec2 f=fract(at);
+    return mix(1.,mix(mix(texelFetch(shadowAtlas,clamp(b,lo,hi),0).r,texelFetch(shadowAtlas,clamp(b+ivec2(1,0),lo,hi),0).r,f.x),mix(texelFetch(shadowAtlas,clamp(b+ivec2(0,1),lo,hi),0).r,texelFetch(shadowAtlas,clamp(b+ivec2(1),lo,hi),0).r,f.x),f.y),cloudShadowControls.x);
+}
 float lightVisibility(int light,vec3 position,vec3 N,vec3 L){
-    if(shadowSettings.y==0. || shadowLights[light].y==0)return 1.;
+    float cloudVisibility=cloudSolarVisibility(light,position);
+    if(shadowSettings.y==0. || shadowLights[light].y==0)return cloudVisibility;
 #ifndef SHADOW_COMPUTE
     vec3 geometry=cross(dFdx(position),dFdy(position));
     if(dot(geometry,geometry)>1e-16)N=normalize(geometry);
 #endif
     int tile=shadowTile(light,position),type=shadowLights[light].z;
     float depth=-(shadowCameraView*vec4(position,1)).z;
-    if(type==0 && (depth<0. || depth>=shadowCascades.y))return 1.;
+    if(type==0 && (depth<0. || depth>=shadowCascades.y))return cloudVisibility;
     float result=shadowTileVisibility(light,tile,position,N);
     if(type==0){
         int cascade=tile-shadowLights[light].x;
@@ -92,6 +101,6 @@ float lightVisibility(int light,vec3 position,vec3 N,vec3 L){
         float start=mix(shadowSplits[light].w,shadowCascades.y,1.-shadowCascades.w);
         result=mix(result,1.,smoothstep(start,shadowCascades.y,depth));
     }
-    return result;
+    return result*cloudVisibility;
 }
 #define RHI_VISIBILITY lightVisibility

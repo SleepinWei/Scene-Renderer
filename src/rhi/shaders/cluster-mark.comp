@@ -1,0 +1,50 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#include "cluster-parameters.glsl"
+layout(local_size_x=64) in;
+layout(set=1,binding=0,std430) readonly buffer Nodes {ClusterNode nodes[];};
+layout(set=1,binding=1,std430) readonly buffer Clusters {GeometryCluster clusters[];};
+layout(set=1,binding=3,std430) writeonly buffer Offsets {uvec2 offsets[];};
+layout(set=1,binding=4,std430) writeonly buffer Groups {uvec2 groups[];};
+shared uint sums[64];shared uint counts[64];
+float screenError(ClusterNode n){
+    if(n.lowError.w==0.0)return 0.0;
+    vec3 center=(n.lowError.xyz+n.high.xyz)*0.5,extent=(n.high.xyz-n.lowError.xyz)*0.5;
+    float depth=-(clusterView*vec4(center,1)).z-dot(abs(vec3(clusterView[0].z,clusterView[1].z,clusterView[2].z)),extent);
+    return n.lowError.w*clusterProjection.x*clusterProjection.y/(clusterGuard.z!=0.0?1.0:max(depth,clusterProjection.z));
+}
+bool visible(GeometryCluster c){
+    if(clusterCounts.w==0u)return true;
+    vec3 center=(c.low.xyz+c.high.xyz)*0.5,extent=(c.high.xyz-c.low.xyz)*0.5;
+    vec4 p=clusterVP*vec4(center,1);
+    vec4 ex=abs(clusterVP[0])*extent.x+abs(clusterVP[1])*extent.y+abs(clusterVP[2])*extent.z;
+    // Support function of all 8 box corners; retain near/eye intersections.
+    for(uint plane=0u;plane<6u;++plane){
+        vec4 row=plane==0u?vec4(clusterVP[0].w*clusterGuard.x+clusterVP[0].x,clusterVP[1].w*clusterGuard.x+clusterVP[1].x,clusterVP[2].w*clusterGuard.x+clusterVP[2].x,clusterVP[3].w*clusterGuard.x+clusterVP[3].x):
+          plane==1u?vec4(clusterVP[0].w*clusterGuard.x-clusterVP[0].x,clusterVP[1].w*clusterGuard.x-clusterVP[1].x,clusterVP[2].w*clusterGuard.x-clusterVP[2].x,clusterVP[3].w*clusterGuard.x-clusterVP[3].x):
+          plane==2u?vec4(clusterVP[0].w*clusterGuard.y+clusterVP[0].y,clusterVP[1].w*clusterGuard.y+clusterVP[1].y,clusterVP[2].w*clusterGuard.y+clusterVP[2].y,clusterVP[3].w*clusterGuard.y+clusterVP[3].y):
+          plane==3u?vec4(clusterVP[0].w*clusterGuard.y-clusterVP[0].y,clusterVP[1].w*clusterGuard.y-clusterVP[1].y,clusterVP[2].w*clusterGuard.y-clusterVP[2].y,clusterVP[3].w*clusterGuard.y-clusterVP[3].y):
+          plane==4u?vec4(clusterVP[0].z,clusterVP[1].z,clusterVP[2].z,clusterVP[3].z):
+          vec4(clusterVP[0].w-clusterVP[0].z,clusterVP[1].w-clusterVP[1].z,clusterVP[2].w-clusterVP[2].z,clusterVP[3].w-clusterVP[3].z);
+        float upper=dot(row,vec4(center,1))+dot(abs(row.xyz),extent);
+        float margin=2e-5*(dot(abs(row.xyz),abs(center)+extent)+abs(row.w)+1.0);
+        margin+=plane<2u?clusterRounding.x+clusterGuard.x*clusterRounding.w:
+            plane<4u?clusterRounding.y+clusterGuard.y*clusterRounding.w:
+            plane==4u?clusterRounding.z:clusterRounding.z+clusterRounding.w;
+        if(upper < -margin)return false;
+    }
+    return true;
+}
+void main(){
+    uint id=gl_GlobalInvocationID.x,lane=gl_LocalInvocationIndex,n=0u;
+    if(id<clusterCounts.x){GeometryCluster c=clusters[id];ClusterNode node=nodes[c.range.z];
+        bool leaf=node.links.y==0xffffffffu;
+        bool selected=clusterGuard.w==0.0?leaf:((leaf||screenError(node)<=clusterProjection.w)&&
+             (node.links.x==0xffffffffu||screenError(nodes[node.links.x])>clusterProjection.w));
+        if(selected&&visible(c))n=c.range.y;
+    }
+    sums[lane]=n;counts[lane]=n!=0u?1u:0u;barrier();
+    for(uint step=1u;step<64u;step<<=1u){uint add=lane>=step?sums[lane-step]:0u;uint count=lane>=step?counts[lane-step]:0u;barrier();sums[lane]+=add;counts[lane]+=count;barrier();}
+    if(id<clusterCounts.x)offsets[id]=uvec2(sums[lane]-n,n);
+    if(lane==63u)groups[gl_WorkGroupID.x]=uvec2(sums[lane],counts[lane]);
+}

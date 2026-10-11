@@ -13,8 +13,7 @@ void main(){
     ivec2 p=ivec2(gl_GlobalInvocationID.xy);if(any(greaterThanEqual(p,cloudGrid.xy)))return;
     vec4 current=texelFetch(cloudRaw,p,0),meta=texelFetch(cloudRawDepth,p,0),result=current;
     vec2 uv=(vec2(p)+.5)/vec2(cloudGrid.xy);vec3 ray=cloudRay(uv);
-    float dt=cloudCameraTime.w-cloudPreviousCameraTime.w;
-    vec3 previousPoint=cloudCameraTime.xyz+ray*(meta.x>0.?meta.x:cloudShape.w)-vec3(cloudWindHistory.x,0,cloudWindHistory.y)*dt;
+    vec3 previousPoint=cloudCameraTime.xyz+ray*(meta.x>0.?meta.x:cloudShape.w)-vec3(cloudAdvection.z,0,cloudAdvection.w);
     vec4 clip=cloudPreviousVP*vec4(previousPoint,1);vec2 oldUV=clip.xy/max(clip.w,1e-6)*vec2(.5,-.5)+.5;
     if(cloudWindHistory.z>.5 && clip.w>0. && all(greaterThanEqual(oldUV,vec2(0))) && all(lessThanEqual(oldUV,vec2(1)))) {
         vec4 oldMeta=textureLod(cloudHistoryDepth,oldUV,0),history=textureLod(cloudHistory,oldUV,0);

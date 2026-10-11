@@ -5,10 +5,12 @@
 bool render::CloudSettings::operator==(const CloudSettings& v) const {
     auto fields=[](const CloudSettings& s){return std::tie(s.enabled,s.temporal,s.baseHeight,s.thickness,s.coverage,s.density,
         s.shapeScale,s.weatherScale,s.erosion,s.maxDistance,s.wind.x,s.wind.y,s.steps,s.lightSteps,s.downsample,s.seed,s.voxel,s.distanceSkipping,s.coreIntegration,s.volumeCenter.x,s.volumeCenter.y,s.volumeCenter.z,
-        s.volumeSize.x,s.volumeSize.y,s.volumeSize.z,s.voxelResolution,s.storm,s.lightning);};
-    return fields(*this)==fields(v);
+        s.volumeSize.x,s.volumeSize.y,s.volumeSize.z,s.voxelResolution,s.storm,s.lightning,s.dynamicCoverage);};
+    return fields(*this)==fields(v)&&advection==v.advection;
 }
 void render::CloudSettings::validate() const {
+    if(advection&&(!std::isfinite(advection->x)||!std::isfinite(advection->y)||glm::any(glm::greaterThan(glm::abs(*advection),glm::dvec2(1e10)))))
+        throw std::invalid_argument("Cloud nonfinite/unbounded advection");
     for(float v:{baseHeight,thickness,coverage,density,shapeScale,weatherScale,erosion,maxDistance,wind.x,wind.y,volumeCenter.x,volumeCenter.y,volumeCenter.z,volumeSize.x,volumeSize.y,volumeSize.z,storm,lightning})
         if(!std::isfinite(v))throw std::invalid_argument("Cloud nonfinite setting");
     if(baseHeight<100 || baseHeight>15000 || thickness<100 || thickness>10000 || coverage<0 || coverage>1 ||

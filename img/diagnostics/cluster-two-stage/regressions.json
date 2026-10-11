@@ -1,0 +1,152 @@
+{
+  "ctest": {
+    "passed": 6,
+    "failed": 0,
+    "tests": [
+      "cluster-hierarchy",
+      "pt-clustered-world-lod",
+      "cluster-rendering-native",
+      "cluster-rendering-vulkan",
+      "geometry-culling-native",
+      "hiz-culling-native"
+    ]
+  },
+  "metal_api_and_shader_validation": true,
+  "scope": "native Metal and Vulkan/MoltenVK on Apple M4; Khronos layer not enabled",
+  "metal": {
+    "temporal_fixture_cases": 30,
+    "single_stage_fixture_cases": 11,
+    "temporal_hdr_max_error": 0.0,
+    "sponza_cases": 7,
+    "all_sponza_display_changes": 0,
+    "proofs": [
+      {
+        "case": "camera-return",
+        "mip_levels_checked": {
+          "current": 10,
+          "history": 10
+        },
+        "cut_triangles": 204022,
+        "early_triangles": 38782,
+        "late_triangles": 161050,
+        "final_rejected_clusters_proven_from_current_base_depth": 770,
+        "minimum_occlusion_margin": 0.00015159221128313582,
+        "pixels_restored_late": 227389,
+        "display_exact": true,
+        "final_depth_exact": true
+      },
+      {
+        "case": "camera-strafe",
+        "mip_levels_checked": {
+          "current": 10,
+          "history": 10
+        },
+        "cut_triangles": 198918,
+        "early_triangles": 183320,
+        "late_triangles": 2639,
+        "final_rejected_clusters_proven_from_current_base_depth": 1341,
+        "minimum_occlusion_margin": 0.00011969666809896751,
+        "pixels_restored_late": 12505,
+        "display_exact": true,
+        "final_depth_exact": true
+      },
+      {
+        "case": "cold",
+        "mip_levels_checked": {
+          "current": 10
+        },
+        "cut_triangles": 204022,
+        "early_triangles": 204022,
+        "late_triangles": 0,
+        "final_rejected_clusters_proven_from_current_base_depth": 0,
+        "minimum_occlusion_margin": null,
+        "pixels_restored_late": 0,
+        "display_exact": true,
+        "final_depth_exact": true
+      },
+      {
+        "case": "warm",
+        "mip_levels_checked": {
+          "current": 10,
+          "history": 10
+        },
+        "cut_triangles": 204022,
+        "early_triangles": 188422,
+        "late_triangles": 0,
+        "final_rejected_clusters_proven_from_current_base_depth": 1651,
+        "minimum_occlusion_margin": 0.0001539889213036938,
+        "pixels_restored_late": 0,
+        "display_exact": true,
+        "final_depth_exact": true
+      }
+    ]
+  },
+  "vulkan": {
+    "temporal_fixture_cases": 30,
+    "single_stage_fixture_cases": 11,
+    "temporal_hdr_max_error": 0.0,
+    "sponza_cases": 7,
+    "all_sponza_display_changes": 0,
+    "proofs": [
+      {
+        "case": "camera-return",
+        "mip_levels_checked": {
+          "current": 10,
+          "history": 10
+        },
+        "cut_triangles": 204022,
+        "early_triangles": 38782,
+        "late_triangles": 161050,
+        "final_rejected_clusters_proven_from_current_base_depth": 770,
+        "minimum_occlusion_margin": 0.00015159221128313582,
+        "pixels_restored_late": 227389,
+        "display_exact": true,
+        "final_depth_exact": true
+      },
+      {
+        "case": "camera-strafe",
+        "mip_levels_checked": {
+          "current": 10,
+          "history": 10
+        },
+        "cut_triangles": 198918,
+        "early_triangles": 183320,
+        "late_triangles": 2639,
+        "final_rejected_clusters_proven_from_current_base_depth": 1341,
+        "minimum_occlusion_margin": 0.00011969666809896751,
+        "pixels_restored_late": 12505,
+        "display_exact": true,
+        "final_depth_exact": true
+      },
+      {
+        "case": "cold",
+        "mip_levels_checked": {
+          "current": 10
+        },
+        "cut_triangles": 204022,
+        "early_triangles": 204022,
+        "late_triangles": 0,
+        "final_rejected_clusters_proven_from_current_base_depth": 0,
+        "minimum_occlusion_margin": null,
+        "pixels_restored_late": 0,
+        "display_exact": true,
+        "final_depth_exact": true
+      },
+      {
+        "case": "warm",
+        "mip_levels_checked": {
+          "current": 10,
+          "history": 10
+        },
+        "cut_triangles": 204022,
+        "early_triangles": 188422,
+        "late_triangles": 0,
+        "final_rejected_clusters_proven_from_current_base_depth": 1651,
+        "minimum_occlusion_margin": 0.0001539889213036938,
+        "pixels_restored_late": 0,
+        "display_exact": true,
+        "final_depth_exact": true
+      }
+    ]
+  }
+}

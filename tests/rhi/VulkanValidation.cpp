@@ -6,10 +6,14 @@
 #include "renderer/rhi/GpuTerrain.h"
 #include "renderer/rhi/GpuClouds.h"
 #include "renderer/rhi/GpuSubdivision.h"
+#include "renderer/rhi/GpuDdgi.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb/stb_image_write.h>
 #include <iostream>
-int main() {
+int main(int argc,char** argv) {
     try {
         auto device = rhi::makeVulkanDevice();rhi::installDevice(device);
+        if(argc>1 && std::string(argv[1])=="--ddgi-self-test"){render::validateDdgi(device,SR_RHI_SHADER_DIR);rhi::shutdown();return 0;}
         rhi::validateBufferTransfers(*device, false);rhi::validateTexturedRendering(*device);
         render::validateForwardRendering(device, SR_RHI_SHADER_DIR);
         render::validateSceneEffects(device,SR_RHI_SHADER_DIR);

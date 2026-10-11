@@ -1,8 +1,11 @@
 #pragma once
+#include "component/WaterSurfaceModel.h"
 #include "component/Component.h"
 #include "buffer/ImageTexture.h"
 #include "utils/Shader.h"
 #include "component/ShoreWaterSettings.h"
+#include "component/WaveParticleSettings.h"
+#include "component/OceanSeaState.h"
 #include <memory>
 #include <vector>
 
@@ -10,6 +13,8 @@ class Texture;
 class FrameBuffer;
 
 struct OceanConfiguration {
+    WaterSurfaceModel surfaceModel;
+    OceanSeaState seaState;
     int FFTPow=10, fft_size=1024, MeshSize=513;
     float MeshLength=512, TimeScale=1;
     float SpectrumLength=0; // Zero follows MeshLength; otherwise tile this FFT domain across the grid.
@@ -19,10 +24,12 @@ struct OceanConfiguration {
     bool cameraGrid=true, underwaterCapture=true, volumeIntegration=true;
     bool robustRefraction=false,multipleScattering=false;
     bool underwaterView=true,underwaterFog=true;
+    bool sceneReflection=true; // Mirrored scene capture for above-water reflections.
     bool underwaterWideRefraction=true; // Recover refracted air geometry outside the camera frustum.
     bool underwaterParticles=false;
     bool underwaterSunShafts=false;
     float sunShaftStrength=1; // Contrast of refracted solar flux in the volume, 0..3.
+    int underwaterVolumeDownsample=1; // 1: full resolution, 2: adaptive guided half-resolution interface scattering.
     int underwaterVolumeSteps=4; // Eye and submerged surface paths, 4..32.
     float particleDensity=.35f; // Occupancy of world-space suspended sediment cells.
     bool shortWaveRipples=false;
@@ -32,6 +39,7 @@ struct OceanConfiguration {
     float rippleRmsHeight=.025f; // Metres, before Small wave detail multiplier.
     uint32_t opticalDebug=0;
     ShoreWaterSettings shore;
+    WaveParticleSettings waveParticles;
     float gridFocus=8; // Metres: concentrates grid samples around the camera.
     float detailStrength=1;
     float A=0.0005f, Lambda=0.8f, HeightScale=1;

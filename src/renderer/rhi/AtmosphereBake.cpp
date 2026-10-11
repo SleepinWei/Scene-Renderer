@@ -1,5 +1,7 @@
 #include "renderer/rhi/AtmosphereBake.h"
 #include "rhi/ShaderAssets.h"
+#include "renderer/rhi/GpuClouds.h"
+#include "renderer/rhi/ShadowRenderer.h"
 #include <algorithm>
 #include <cmath>
 namespace render {
@@ -26,6 +28,13 @@ BakedAtmosphere bakeAtmosphere(std::shared_ptr<rhi::GraphicsDevice> device,const
     result.radiance.reserve(size_t(result.width)*result.height);
     constexpr double pi=3.14159265358979323846;
     for(uint32_t y=0;y<result.height;++y)for(uint32_t x=0;x<result.width;++x){const double theta=(y+.5)/result.height*pi,phi=(x+.5)/result.width*2*pi;result.radiance.push_back(glm::max(sample({float(std::sin(theta)*std::sin(phi)),float(std::cos(theta)),float(-std::sin(theta)*std::cos(phi))}),glm::vec3(0)));}
+    if(frame.clouds.enabled){
+        auto capture=frame;capture.viewportWidth=result.width;capture.viewportHeight=result.height;capture.clouds.downsample=1;capture.clouds.temporal=false;capture.weather.shadowInterval=0;capture.shadows=capture.rsm=false;
+        GpuClouds clouds(device,rhi::defaultShaderDirectory());ShadowRenderer shadow(device,rhi::defaultShaderDirectory(),128,atmosphere.irradiance());shadow.render(capture,{});
+        Resources transient(device);auto commands=device->createCommandList();auto field=clouds.recordGroundShadow(transient,commands,capture,solar,atmosphere.irradiance(),shadow.view(),shadow.cloudViewport());device->submit(commands);field.transmission=clouds.readGroundShadow();clouds.commit(capture);
+        result.cloudShadow=std::make_shared<const CloudShadowField>(std::move(field));
+        result.radiance=clouds.bakePanorama(capture,solar,atmosphere.irradiance(),atmosphere.sky(),result.width,result.height);result.cloudsIncluded=true;
+    }
     result.sunDirection=solar.direction;result.sunIrradiance=solar.irradiance*solarTransmittance(frame.atmosphere,solar);result.sunRadius=frame.atmosphere.radii.y;
     if(!frame.directionalEnabled)result.sunIrradiance=glm::vec3(0);
     return result;

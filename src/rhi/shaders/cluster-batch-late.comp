@@ -1,0 +1,41 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#include "cluster-batch-parameters.glsl"
+layout(local_size_x=128) in;
+layout(set=1,binding=1,std430) readonly buffer Clusters {GeometryCluster clusters[];};
+layout(set=1,binding=2,std430) readonly buffer SourceIndices {uint sourceIndices[];};
+layout(set=1,binding=3,std430) buffer Offsets {uvec4 offsets[];};
+layout(set=1,binding=4,std430) buffer Groups {uvec2 groups[];};
+layout(set=1,binding=5,std430) writeonly buffer OutputIndices {uint outputIndices[];};
+layout(set=1,binding=6,std430) buffer Arguments {uint args[];};
+shared uvec2 sums[128];shared uint early;
+// Pending tests remain parallel across meshlets. Fuse only the small segmented
+// prefix and late append: no dispatch of empty per-cluster scatter workgroups.
+void main(){
+    ClusterMesh mesh=meshes[gl_WorkGroupID.x];uint lane=gl_LocalInvocationIndex;
+    uint chunk=(mesh.counts.y+127u)/128u,first=lane*chunk,last=min(first+chunk,mesh.counts.y);
+    if(lane==0u)early=args[mesh.ranges.w];
+    uvec2 sum=uvec2(0);for(uint i=first;i<last;++i)sum+=groups[mesh.ranges.y+i];
+    sums[lane]=sum;barrier();
+    for(uint step=1u;step<128u;step<<=1u){uvec2 add=lane>=step?sums[lane-step]:uvec2(0);barrier();sums[lane]+=add;barrier();}
+    uvec2 base=sums[lane]-sum;
+    if(lane==127u){uint a=mesh.ranges.w;uint count=min(sums[127].x,mesh.counts.z-early);
+        args[a+6]=count;args[a+7]=1u;args[a+8]=mesh.ranges.z+early;args[a+9]=0u;args[a+10]=0u;args[a+11]=sums[127].y;
+        args[a]=early+count;args[a+5]+=sums[127].y;
+    }
+    // The common steady-camera case has no recovery: neither prefix stores nor
+    // scatter loads are needed. Every lane observes the same shared total.
+    if(sums[127].x==0u)return;
+    for(uint i=first;i<last;++i){uint group=mesh.ranges.y+i;uvec2 old=groups[group];groups[group]=base;base+=old;}
+    memoryBarrierBuffer();barrier();
+    // Cooperatively copy recovered clusters. A prefix lane copying its entire
+    // chunk serially caused uncoalesced traffic and a long tail during motion.
+    for(uint i=0u;i<mesh.counts.y;++i){uint start=mesh.ranges.x+i*64u;
+        uvec2 tail=offsets[start+63u].xy;if(tail.x+tail.y==0u)continue;
+        uint groupBase=early+groups[mesh.ranges.y+i].x;
+        for(uint k=0u;k<64u;++k){uint id=start+k;uvec2 o=offsets[id].xy;if(o.y==0u)continue;
+            uint at=groupBase+o.x,source=clusters[id].range.x;
+            for(uint j=lane;j<o.y&&at+j<mesh.counts.z;j+=128u)outputIndices[mesh.ranges.z+at+j]=sourceIndices[source+j];
+        }
+    }
+}

@@ -281,6 +281,24 @@ Per-lobe normals and bump shadowing reduce small-scene raw Metal/Cycles RGB L1 f
 
 ![Full Barcelona with normal maps: Metal raw, Cycles raw, linear absolute error](img/path-tracing/blender-barcelona-thin-matched.png)
 
+### Hierarchical cluster geometry
+
+Enable **Hierarchical cluster geometry** in realtime settings; adjust **Cluster LOD error (pixels)** and optionally enable **Cluster Hi-Z occlusion**. Both cluster geometry and occlusion default to off. Construction runs on bounded CPU workers, with GPU group-cut selection and batched indexed indirect draws.
+
+Cluster construction now separates exact position topology from original attribute addresses, combines Morton ordering with bounded spatial fill, and retains parents only when they remove at least 12.5% of their children's triangles. UV / tangent seams remain protected, with a cumulative normal error limit. [Construction methods, native comparisons, raw timings and limitations](docs/cluster-partition-and-hierarchy.md).
+
+| Scene | Leaf utilization: before → after | Hierarchy memory: before → after |
+| --- | ---: | ---: |
+| Sponza | 22.9% → 91.0% | 16.66 → 3.39 MiB |
+| Stanford Dragon | 63.9% → 95.7% | 42.64 → 17.34 MiB |
+| Happy Buddha | 62.8% → 96.2% | 53.42 → 21.96 MiB |
+
+At 4 px, paired cluster / geometry GPU windows improve by **3.4%, 2.6% and 3.4%** respectively across 72 samples per mode; these are partial GPU timings. The new cuts retain more triangles and match independent CPU cuts; Hi-Z matches the same cuts in depth, HDR, display and all six G-buffer attachments. Dragon still has **21.2%** HDR LOD error against full geometry, and Sponza's 0 px render differs at six display pixels. Hi-Z remains slower than no occlusion on Sponza and stays off by default.
+
+![Sponza: meshlet construction before and after, GPU LOD and source-image comparison](img/diagnostics/cluster-partition/sponza/comparison.png)
+
+![Dragon: native meshlet and PBR details before and after](img/diagnostics/cluster-partition/dragon/detail.png)
+
 ## System overview
 
 The main logic thread owns the world, input, and editor, publishing immutable scene snapshots to a dedicated render thread. The render thread prepares GPU resources and schedules effects; the RHI unifies resources, pipelines, commands, and presentation. Metal and Vulkan reuse shaders generated from shared GLSL. See [system design](docs/system-design.md) for the frame flow, resource management, and platform boundaries.

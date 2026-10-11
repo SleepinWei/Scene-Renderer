@@ -5,7 +5,7 @@
 #include <cstring>
 #include <stdexcept>
 namespace render {
-static_assert(sizeof(MaterialExtension) == 80, "Material extension std140 ABI");
+static_assert(sizeof(MaterialExtension) == 352 && offsetof(MaterialExtension, specularShape) == 80, "Material extension std140 ABI");
 static_assert(sizeof(MaterialParameters) == 48 && offsetof(MaterialParameters, factors) == 16 &&
                   offsetof(MaterialParameters, emissiveNormal) == 32,
               "Material std140 ABI changed");
@@ -56,7 +56,7 @@ rhi::BindingLayout GpuMaterial::layout() {
              {3, BindingType::SampledTexture, ShaderStage::Fragment, "metallicMap", 0},
              {4, BindingType::SampledTexture, ShaderStage::Fragment, "roughnessMap", 0},
              {5, BindingType::SampledTexture, ShaderStage::Fragment, "aoMap", 0},
-             {6, BindingType::UniformBuffer, ShaderStage::Fragment, "MaterialExtension", 80},
+             {6, BindingType::UniformBuffer, ShaderStage::Fragment, "MaterialExtension", sizeof(MaterialExtension)},
              {7, BindingType::SampledTexture, ShaderStage::Fragment, "specialMap", 0}}};
 }
 GpuMaterial::GpuMaterial(std::shared_ptr<rhi::GraphicsDevice> device, const MaterialDesc &desc,
@@ -69,7 +69,9 @@ GpuMaterial::GpuMaterial(std::shared_ptr<rhi::GraphicsDevice> device, const Mate
                                      rhi::BufferUsage::Uniform | rhi::BufferUsage::CopyDestination,
                                      "PBR material parameters"},
                                     &desc.parameters);
-    auto sampler = resources_.sampler({desc.filter, rhi::AddressMode::Repeat});
+    const bool filtered=resources_.device->supportsTextureSubresources()&&!virtualTexture_;
+    const bool mipSampling=filtered&&desc.filter==rhi::Filter::Linear;
+    auto sampler = resources_.sampler({desc.filter, rhi::AddressMode::Repeat,mipSampling,mipSampling?8u:1u});
     std::vector<rhi::BindingEntry> entries{{0, parameters_, 0, sizeof(MaterialParameters), {}, {}}};
     imageCache_ = GpuImageCache::forDevice(resources_.device);
     shoreline_=bool(desc.shorelineImages[0]);
@@ -84,8 +86,10 @@ GpuMaterial::GpuMaterial(std::shared_ptr<rhi::GraphicsDevice> device, const Mate
         }
     }
     if (!virtualTexture_) {
-        for (const auto &source : materialImages(desc))
-            images_.push_back(imageCache_->acquire(source));
+        const auto sources=materialImages(desc);
+        for(size_t i=0;i<sources.size();++i)
+            images_.push_back(imageCache_->acquire(sources[i],false,materialMipPolicy(i,desc.parameters)));
+        filteredNormals_=images_[1]->mipLevels()>1;
     }
     for (unsigned i = 0; i < 5; ++i) {
         if(virtualTexture_ && shoreline_ && i>0) {
@@ -100,9 +104,9 @@ GpuMaterial::GpuMaterial(std::shared_ptr<rhi::GraphicsDevice> device, const Mate
     parameterData_ = desc.parameters;
     transparent_ = desc.transparent;
     extension_ = resources_.buffer(
-        {80, rhi::BufferUsage::Uniform | rhi::BufferUsage::CopyDestination, "Material extended lobes"});
+        {sizeof(MaterialExtension), rhi::BufferUsage::Uniform | rhi::BufferUsage::CopyDestination, "Material extended lobes"});
     updateExtension(desc.extension);
-    entries.push_back({6, extension_, 0, 80, {}, {}});
+    entries.push_back({6, extension_, 0, sizeof(MaterialExtension), {}, {}});
     if (virtualTexture_)
         entries.push_back({7, {}, 0, 0, virtualTexture_->pageTable(), virtualTexture_->sampler()});
     else
@@ -115,14 +119,16 @@ GpuMaterial::GpuMaterial(std::shared_ptr<rhi::GraphicsDevice> device, const Mate
 size_t GpuMaterial::imageUploadBytes(std::shared_ptr<rhi::GraphicsDevice> device, const MaterialDesc &desc) {
     auto cache=GpuImageCache::forDevice(std::move(device));
     if(desc.shorelineImages[0])return cache->missingBytes({desc.shorelineImages.begin(),desc.shorelineImages.end()});
-    return cache->missingBytes(materialImages(desc));
+    const auto images=materialImages(desc);std::vector<GpuImageSource> sources;
+    for(size_t i=0;i<images.size();++i)sources.push_back({images[i],materialMipPolicy(i,desc.parameters)});
+    return cache->missingFilteredBytes(sources);
 }
 rhi::BindingLayout GpuMaterial::shadowLayout() {
     using namespace rhi;
     return {1,
             {{0, BindingType::UniformBuffer, ShaderStage::Fragment, "MaterialData", 48},
              {1, BindingType::SampledTexture, ShaderStage::Fragment, "albedoMap", 0},
-             {6, BindingType::UniformBuffer, ShaderStage::Fragment, "MaterialExtension", 80},
+             {6, BindingType::UniformBuffer, ShaderStage::Fragment, "MaterialExtension", sizeof(MaterialExtension)},
              {7, BindingType::SampledTexture, ShaderStage::Fragment, "specialMap", 0}}};
 }
 rhi::BindingLayout GpuMaterial::rsmLayout() {
@@ -143,20 +149,25 @@ void GpuMaterial::update(const MaterialParameters &p) {
     resources_.device->writeBuffer(parameters_, 0, sizeof(p), &p);
 }
 void GpuMaterial::updateExtension(const MaterialExtension &e) {
-    for (const auto &v : {e.lobes, e.settings,e.shoreHeight,e.shoreSurface})
+    for (const auto &v : {e.lobes, e.settings,e.shoreHeight,e.shoreSurface,e.specularShape})
         for (int i = 0; i < 4; ++i)
             if (!std::isfinite(v[i]))
                 throw std::invalid_argument("Material nonfinite extended parameter");
     if (e.lobes.x < 0 || e.lobes.x > 1 || e.lobes.y < 0 || e.lobes.y > 1 || std::abs(e.lobes.z) > .95f ||
         e.lobes.w < 0 || e.settings.x < 0)
         throw std::invalid_argument("Material extended lobe outside domain");
+    if (std::abs(e.specularShape.x) > .9f || std::abs(e.specularShape.y) > 6.28318530718f ||
+        e.specularShape.z < 0 || e.specularShape.z > 2 || std::floor(e.specularShape.z) != e.specularShape.z ||
+        (e.specularShape.z == 0 && (e.specularShape.x != 0 || e.specularShape.y != 0)))
+        throw std::invalid_argument("Material invalid matched GGX shape / model");
     if(shoreline_ && (e.shoreHeight.y<=0 || e.shoreHeight.z<0 || e.shoreHeight.w<=0 ||
         e.shoreSurface.x<=0 || e.shoreSurface.y<0 || e.shoreSurface.z>1 ||
         e.shoreSurface.y>=e.shoreSurface.z || e.shoreSurface.w<0))
         throw std::invalid_argument("Invalid shoreline material parameters");
+    if(e.features.y<0||e.features.y>65535)throw std::invalid_argument("Rain wetness outside UNORM16 range");
     extensionData_ = e;
-    extensionData_.features = {(virtualTexture_ ? int(MaterialFeature::VirtualTexture) : 0) | (shoreline_ ? int(MaterialFeature::Shoreline) : 0), 0, 0, 0};
-    resources_.device->writeBuffer(extension_, 0, 80, &extensionData_);
+    extensionData_.features = {(e.features.x & (int(MaterialFeature::RainWetness)|int(MaterialFeature::SpatialRainWetness)|int(MaterialFeature::Foliage))) | (virtualTexture_ ? int(MaterialFeature::VirtualTexture) : 0) | (shoreline_ ? int(MaterialFeature::Shoreline) : 0) | (filteredNormals_ ? int(MaterialFeature::FilteredNormals) : 0), e.features.y, 0, 0};
+    resources_.device->writeBuffer(extension_, 0, sizeof(MaterialExtension), &extensionData_);
 }
 void GpuMaterial::bind(rhi::CommandList &list) const { list.bindBindingSet(bindings_); }
 } // namespace render

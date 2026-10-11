@@ -7,7 +7,7 @@ layout(set=1,binding=3) uniform sampler2D currentDepth;
 layout(set=1,binding=4) uniform sampler2D historyColor;
 layout(set=1,binding=5) uniform sampler2D historyDepth;
 layout(set=1,binding=6) uniform sampler2D surfaceMotion;
-layout(set=0,binding=0,std140) uniform TemporalParameters {mat4 inverseVP;mat4 currentView;mat4 previousVP;mat4 previousView;vec4 temporalCamera;vec4 temporalSettings;};
+layout(set=0,binding=0,std140) uniform TemporalParameters {mat4 inverseVP;mat4 currentView;mat4 previousVP;mat4 previousView;vec4 temporalCamera;vec4 temporalSettings;vec4 temporalJitter;};
 #define cameraPosition temporalCamera.xyz
 #define historyWeight temporalSettings.x
 #define historyValid int(temporalSettings.y)
@@ -16,46 +16,107 @@ vec3 expandHDR(vec3 c){return c/max(1.0-dot(c,vec3(.2126,.7152,.0722)),1e-4);}
 vec3 toYCoCg(vec3 c){return vec3(dot(c,vec3(.25,.5,.25)),.5*(c.r-c.b),.5*c.g-.25*(c.r+c.b));}
 vec3 fromYCoCg(vec3 c){return vec3(c.x+c.y-c.z,c.x+c.z,c.x-c.y-c.z);}
 bool finite3(vec3 c){return !any(isnan(c)) && !any(isinf(c));}
+// Catmull-Rom uses nine bilinear fetches instead of repeatedly blurring the
+// history. The later neighbourhood clip bounds its negative-lobe overshoot.
+vec3 bicubicSample(sampler2D source,vec2 uv,ivec2 size){
+    vec2 p=uv*vec2(size),center=floor(p-.5)+.5,f=p-center;
+    vec2 w0=f*(-.5+f*(1.-.5*f)),w1=1.+f*f*(-2.5+1.5*f);
+    vec2 w2=f*(.5+f*(2.-1.5*f)),w3=f*f*(-.5+.5*f),middle=w1+w2;
+    vec2 positions[3];positions[0]=center-1.;positions[1]=center+w2/middle;positions[2]=center+2.;
+    vec2 weights[3];weights[0]=w0;weights[1]=middle;weights[2]=w3;
+    vec3 value=vec3(0);for(int y=0;y<3;y++)for(int x=0;x<3;x++)
+        value+=textureLod(source,vec2(positions[x].x,positions[y].y)/vec2(size),0.).rgb*weights[x].x*weights[y].y;
+    return max(value,vec3(0));
+}
+vec3 clipHistory(vec3 value,vec3 lo,vec3 hi){
+    vec3 center=(lo+hi)*.5,extent=max((hi-lo)*.5,vec3(1e-6)),delta=value-center;
+    float distance=max(max(abs(delta.x)/extent.x,abs(delta.y)/extent.y),abs(delta.z)/extent.z);
+    return distance>1.?center+delta/distance:value;
+}
+bool validHistoryDepth(vec2 uv,ivec2 size,bool sky,float expected){
+    // Depth is categorical at an edge: never interpolate a foreground depth
+    // with a background/sky depth into a non-existent surface.
+    ivec2 at=ivec2(floor(uv*vec2(size)-.5));
+    for(int i=0;i<4;i++){
+        float depth=texelFetch(historyDepth,clamp(at+ivec2(i&1,i>>1),ivec2(0),size-1),0).r;
+        if(sky?depth==0.:depth>0.&&abs(depth-expected)<=max(.015,.01*expected))return true;
+    }return false;
+}
 void main() {
     ivec2 p=ivec2(gl_GlobalInvocationID.xy),size=imageSize(resolvedColor);
     if(any(greaterThanEqual(p,size)))return;
     vec2 uv=(vec2(p)+.5)/vec2(size);
-    vec3 current=texelFetch(currentColor,p,0).rgb;
+    bool quality=temporalSettings.z>.5;
+    vec2 currentUV=uv+(quality?temporalJitter.xy/vec2(size):vec2(0));
+    vec4 motion=texelFetch(surfaceMotion,p,0);
+    bool physicalWater=motion.w>3.&&motion.w<=4.;
+    bool water=physicalWater&&temporalSettings.w>.5;
+    bool fixedWaterFilm=water&&temporalSettings.w>2.5;
+    // Frozen water jitter samples belong to the same output pixel footprint.
+    // Reconstructing current and history every iteration shifts / diffuses
+    // narrow glints. Moving water retains the reprojected reconstruction path.
+    // Spatially integrated glints still need sharp history reconstruction;
+    // repeated bilinear filtering diffuses their energy into nearby pixels.
+    vec3 current=quality&&!fixedWaterFilm?bicubicSample(currentColor,currentUV,size):texelFetch(currentColor,p,0).rgb;
     float z=texelFetch(currentDepth,p,0).r;
-    vec4 world=inverseVP*vec4(uv*vec2(2,-2)+vec2(-1,1),z,1);
+    vec4 world=inverseVP*vec4(currentUV*vec2(2,-2)+vec2(-1,1),z,1);
     world/=world.w;
     bool sky=z>=.999999;
     float linearDepth=sky?0.0:max(-(currentView*world).z,0.0);
     vec4 oldClip=previousVP*(sky?vec4(normalize(world.xyz-cameraPosition),0):world);
     vec2 previousUV=oldClip.xy/max(oldClip.w,1e-6)*vec2(.5,-.5)+.5;
     float expectedDepth=sky?0.0:max(-(previousView*world).z,0.0);
-    vec4 motion=texelFetch(surfaceMotion,p,0);
-    if(motion.w>0.5){previousUV=uv+motion.xy;expectedDepth=motion.z;}
+    if(motion.w>0.){previousUV=currentUV+motion.xy;expectedDepth=motion.z;}
+    if(quality)previousUV-=temporalJitter.zw/vec2(size);
     bool inside=all(greaterThanEqual(previousUV,vec2(0))) && all(lessThanEqual(previousUV,vec2(1)));
-    bool accept=historyValid!=0 && motion.w>=-.5 && inside && (oldClip.w>0.0 || motion.w>.5);
+    bool accept=historyValid!=0 && motion.w>=-.5 && inside && (oldClip.w>0.0 || motion.w>0.);
+    // Keep the original motion/onscreen rejection, even for a fixed film.
+    if(fixedWaterFilm)previousUV=uv;
     vec3 result=current;
     if(accept) {
         float oldDepth=texture(historyDepth,previousUV).r;
-        bool depthValid=sky?oldDepth==0.0:oldDepth>0.0 && abs(oldDepth-expectedDepth)<=max(.03,.02*expectedDepth);
-        vec3 history=texture(historyColor,previousUV).rgb;
+        bool depthValid=quality?validHistoryDepth(previousUV,size,sky,expectedDepth):
+            (sky?oldDepth==0.0:oldDepth>0.0 && abs(oldDepth-expectedDepth)<=max(.03,.02*expectedDepth));
+        vec3 history=fixedWaterFilm?texelFetch(historyColor,p,0).rgb:quality?bicubicSample(historyColor,previousUV,size):texture(historyColor,previousUV).rgb;
         if(depthValid && finite3(history)) {
+            if(water){
+                float confidence=clamp(motion.w-3.,0.,1.);
+                bool stationary=temporalSettings.w>1.5;
+                float weight=stationary?min(temporalCamera.w/(temporalCamera.w+1.),.97):min(historyWeight,.85);
+                weight*=confidence;
+                if(!stationary){
+                    vec3 lo=vec3(1e30),hi=vec3(0);
+                    for(int y=-1;y<=1;++y)for(int x=-1;x<=1;++x){vec3 c=texelFetch(currentColor,clamp(p+ivec2(x,y),ivec2(0),size-1),0).rgb;lo=min(lo,c);hi=max(hi,c);}
+                    history=clamp(history,lo,hi);
+                    float a=dot(history,vec3(.2126,.7152,.0722)),b=dot(current,vec3(.2126,.7152,.0722));
+                    weight*=1.-.5*clamp(abs(a-b)/max(max(a,b),.05),0.,1.);
+                }
+                result=mix(current,history,weight);
+            }else{
             vec3 lo=vec3(1e10),hi=vec3(-1e10),mean=vec3(0),square=vec3(0);
             for(int y=-1;y<=1;++y)for(int x=-1;x<=1;++x) {
                 vec3 v=toYCoCg(compressHDR(texelFetch(currentColor,clamp(p+ivec2(x,y),ivec2(0),size-1),0).rgb));
                 lo=min(lo,v);hi=max(hi,v);mean+=v;square+=v*v;
             }
             mean/=9.0;vec3 sigma=sqrt(max(square/9.0-mean*mean,vec3(0)));
-            lo=max(lo,mean-1.25*sigma);hi=min(hi,mean+1.25*sigma);
+            float gamma=quality?1.5:1.25;
+            lo=max(lo,mean-gamma*sigma);hi=min(hi,mean+gamma*sigma);
             vec3 c=toYCoCg(compressHDR(current));
-            vec3 h=clamp(toYCoCg(compressHDR(history)),lo,hi);
+            vec3 h=quality?clipHistory(toYCoCg(compressHDR(history)),lo,hi):clamp(toYCoCg(compressHDR(history)),lo,hi);
             float weight=clamp(historyWeight,0.0,.98);
             // Refraction, foam and specular shading need faster response than static surfaces.
-            if(motion.w>.5)weight=min(weight,.85);
+            float opticalConfidence=physicalWater?motion.w-3.:motion.w;
+            if(opticalConfidence>0.&&(!quality||opticalConfidence<=1.))weight=min(weight,.85)*clamp(opticalConfidence,0.,1.);
+            if(quality){
+                float speed=length((previousUV-uv)*vec2(size));
+                weight=min(weight,mix(.95,.65,clamp(speed/16.,0.,1.)));
+            }
             float change=clamp(abs(h.x-c.x)/max(abs(c.x),.05),0.0,1.0);
             weight*=1.0-.5*change;
             result=expandHDR(fromYCoCg(mix(c,h,weight)));
+            }
         }
     }
-    imageStore(resolvedColor,p,vec4(max(result,vec3(0)),1));
+    imageStore(resolvedColor,p,vec4(min(max(result,vec3(0)),vec3(65000)),1));
     imageStore(resolvedDepth,p,vec4(linearDepth,0,0,1));
 }

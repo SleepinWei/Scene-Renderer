@@ -1,0 +1,1072 @@
+{
+  "algorithm": "topology-constrained spatial vertex clustering",
+  "build_seconds": 1.453741291,
+  "enabled": true,
+  "max_uv_displacement": 0.05000000074505806,
+  "max_world_vertex_displacement": 0.10000000149011612,
+  "meshes": [
+    {
+      "instances": 1,
+      "levels": [
+        {
+          "cell_size_local": 0.0,
+          "max_uv_displacement": 0.0,
+          "max_world_vertex_displacement": 0.0,
+          "triangles": 880,
+          "vertices": 1098
+        },
+        {
+          "cell_size_local": 0.007216878701001406,
+          "max_uv_displacement": 0.0001500248908996582,
+          "max_world_vertex_displacement": 0.0005431175231933594,
+          "triangles": 876,
+          "vertices": 1096
+        },
+        {
+          "cell_size_local": 0.028867514804005623,
+          "max_uv_displacement": 0.0002236439031548798,
+          "max_world_vertex_displacement": 0.0008213450782932341,
+          "triangles": 872,
+          "vertices": 1094
+        }
+      ],
+      "preservation": "",
+      "selected_level": 2,
+      "source_id": 117,
+      "world_scale_bound": 1.0
+    },
+    {
+      "instances": 1,
+      "levels": [
+        {
+          "cell_size_local": 0.0,
+          "max_uv_displacement": 0.0,
+          "max_world_vertex_displacement": 0.0,
+          "triangles": 7088,
+          "vertices": 11820
+        }
+      ],
+      "preservation": "",
+      "selected_level": 0,
+      "source_id": 116,
+      "world_scale_bound": 1.0
+    },
+    {
+      "instances": 1,
+      "levels": [
+        {
+          "cell_size_local": 0.0,
+          "max_uv_displacement": 0.0,
+          "max_world_vertex_displacement": 0.0,
+          "triangles": 18,
+          "vertices": 36
+        }
+      ],
+      "preservation": "",
+      "selected_level": 0,
+      "source_id": 119,
+      "world_scale_bound": 1.0
+    },
+    {
+      "instances": 1,
+      "levels": [
+        {
+          "cell_size_local": 0.0,
+          "max_uv_displacement": 0.0,
+          "max_world_vertex_displacement": 0.0,
+          "triangles": 23208,
+          "vertices": 22820
+        }
+      ],
+      "preservation": "",
+      "selected_level": 0,
+      "source_id": 118,
+      "world_scale_bound": 1.0
+    },
+    {
+      "instances": 1,
+      "levels": [
+        {
+          "cell_size_local": 0.0,
+          "max_uv_displacement": 0.0,
+          "max_world_vertex_displacement": 0.0,
+          "triangles": 11008,
+          "vertices": 6084
+        },
+        {
+          "cell_size_local": 0.028867514804005623,
+          "max_uv_displacement": 0.03240001201629639,
+          "max_world_vertex_displacement": 0.016524532809853554,
+          "triangles": 10988,
+          "vertices": 6074
+        },
+        {
+          "cell_size_local": 0.057735029608011246,
+          "max_uv_displacement": 0.049723368138074875,
+          "max_world_vertex_displacement": 0.029750606045126915,
+          "triangles": 10560,
+          "vertices": 5860
+        },
+        {
+          "cell_size_local": 0.11547005921602249,
+          "max_uv_displacement": 0.0498499870300293,
+          "max_world_vertex_displacement": 0.041946422308683395,
+          "triangles": 8470,
+          "vertices": 4815
+        },
+        {
+          "cell_size_local": 0.23094011843204498,
+          "max_uv_displacement": 0.0499500036239624,
+          "max_world_vertex_displacement": 0.04212619364261627,
+          "triangles": 8136,
+          "vertices": 4648
+        },
+        {
+          "cell_size_local": 0.46188023686408997,
+          "max_uv_displacement": 0.0499500036239624,
+          "max_world_vertex_displacement": 0.04212619364261627,
+          "triangles": 7904,
+          "vertices": 4532
+        },
+        {
+          "cell_size_local": 0.9237604737281799,
+          "max_uv_displacement": 0.0499500036239624,
+          "max_world_vertex_displacement": 0.04212619364261627,
+          "triangles": 7774,
+          "vertices": 4467
+        }
+      ],
+      "preservation": "",
+      "selected_level": 6,
+      "source_id": 123,
+      "world_scale_bound": 1.0
+    },
+    {
+      "instances": 1,
+      "levels": [
+        {
+          "cell_size_local": 0.0,
+          "max_uv_displacement": 0.0,
+          "max_world_vertex_displacement": 0.0,
+          "triangles": 19828,
+          "vertices": 10412
+        },
+        {
+          "cell_size_local": 0.007216878701001406,
+          "max_uv_displacement": 0.015500009059906006,
+          "max_world_vertex_displacement": 0.003863212652504444,
+          "triangles": 19604,
+          "vertices": 10300
+        },
+        {
+          "cell_size_local": 0.014433757402002811,
+          "max_uv_displacement": 0.015500009059906006,
+          "max_world_vertex_displacement": 0.007035224232822657,
+          "triangles": 18740,
+          "vertices": 9868
+        },
+        {
+          "cell_size_local": 0.028867514804005623,
+          "max_uv_displacement": 0.02963615022599697,
+          "max_world_vertex_displacement": 0.0156704131513834,
+          "triangles": 18174,
+          "vertices": 9585
+        },
+        {
+          "cell_size_local": 0.057735029608011246,
+          "max_uv_displacement": 0.049954190850257874,
+          "max_world_vertex_displacement": 0.03014197200536728,
+          "triangles": 17678,
+          "vertices": 9337
+        },
+        {
+          "cell_size_local": 0.11547005921602249,
+          "max_uv_displacement": 0.049954190850257874,
+          "max_world_vertex_displacement": 0.04490383341908455,
+          "triangles": 17118,
+          "vertices": 9057
+        },
+        {
+          "cell_size_local": 0.23094011843204498,
+          "max_uv_displacement": 0.049954190850257874,
+          "max_world_vertex_displacement": 0.05764942243695259,
+          "triangles": 16952,
+          "vertices": 8974
+        },
+        {
+          "cell_size_local": 0.46188023686408997,
+          "max_uv_displacement": 0.049954190850257874,
+          "max_world_vertex_displacement": 0.04490381479263306,
+          "triangles": 16848,
+          "vertices": 8922
+        },
+        {
+          "cell_size_local": 0.9237604737281799,
+          "max_uv_displacement": 0.049364469945430756,
+          "max_world_vertex_displacement": 0.04490378871560097,
+          "triangles": 16794,
+          "vertices": 8895
+        }
+      ],
+      "preservation": "",
+      "selected_level": 8,
+      "source_id": 128,
+      "world_scale_bound": 1.0
+    },
+    {
+      "instances": 1,
+      "levels": [
+        {
+          "cell_size_local": 0.0,
+          "max_uv_displacement": 0.0,
+          "max_world_vertex_displacement": 0.0,
+          "triangles": 32,
+          "vertices": 64
+        }
+      ],
+      "preservation": "alpha-or-thin-surface",
+      "selected_level": 0,
+      "source_id": 127,
+      "world_scale_bound": 1.0
+    },
+    {
+      "instances": 1,
+      "levels": [
+        {
+          "cell_size_local": 0.0,
+          "max_uv_displacement": 0.0,
+          "max_world_vertex_displacement": 0.0,
+          "triangles": 16496,
+          "vertices": 12162
+        },
+        {
+          "cell_size_local": 0.014433757402002811,
+          "max_uv_displacement": 0.027245599776506424,
+          "max_world_vertex_displacement": 0.006554001942276955,
+          "triangles": 16436,
+          "vertices": 12132
+        },
+        {
+          "cell_size_local": 0.028867514804005623,
+          "max_uv_displacement": 0.04794010519981384,
+          "max_world_vertex_displacement": 0.01340357307344675,
+          "triangles": 16276,
+          "vertices": 12052
+        },
+        {
+          "cell_size_local": 0.057735029608011246,
+          "max_uv_displacement": 0.04794010519981384,
+          "max_world_vertex_displacement": 0.01340357307344675,
+          "triangles": 15848,
+          "vertices": 11838
+        },
+        {
+          "cell_size_local": 0.11547005921602249,
+          "max_uv_displacement": 0.04794010519981384,
+          "max_world_vertex_displacement": 0.026354141533374786,
+          "triangles": 15428,
+          "vertices": 11628
+        },
+        {
+          "cell_size_local": 0.23094011843204498,
+          "max_uv_displacement": 0.04794010519981384,
+          "max_world_vertex_displacement": 0.026354141533374786,
+          "triangles": 15308,
+          "vertices": 11568
+        },
+        {
+          "cell_size_local": 0.46188023686408997,
+          "max_uv_displacement": 0.04794010519981384,
+          "max_world_vertex_displacement": 0.026354141533374786,
+          "triangles": 15292,
+          "vertices": 11560
+        }
+      ],
+      "preservation": "",
+      "selected_level": 6,
+      "source_id": 120,
+      "world_scale_bound": 1.0
+    },
+    {
+      "instances": 1,
+      "levels": [
+        {
+          "cell_size_local": 0.0,
+          "max_uv_displacement": 0.0,
+          "max_world_vertex_displacement": 0.0,
+          "triangles": 2816,
+          "vertices": 3124
+        }
+      ],
+      "preservation": "",
+      "selected_level": 0,
+      "source_id": 114,
+      "world_scale_bound": 1.0
+    },
+    {
+      "instances": 1,
+      "levels": [
+        {
+          "cell_size_local": 0.0,
+          "max_uv_displacement": 0.0,
+          "max_world_vertex_displacement": 0.0,
+          "triangles": 21,
+          "vertices": 23
+        }
+      ],
+      "preservation": "",
+      "selected_level": 0,
+      "source_id": 115,
+      "world_scale_bound": 1.0
+    },
+    {
+      "instances": 1,
+      "levels": [
+        {
+          "cell_size_local": 0.0,
+          "max_uv_displacement": 0.0,
+          "max_world_vertex_displacement": 0.0,
+          "triangles": 18944,
+          "vertices": 9904
+        },
+        {
+          "cell_size_local": 0.028867514804005623,
+          "max_uv_displacement": 0.007350027561187744,
+          "max_world_vertex_displacement": 0.01439754944294691,
+          "triangles": 18942,
+          "vertices": 9903
+        },
+        {
+          "cell_size_local": 0.057735029608011246,
+          "max_uv_displacement": 0.011556869372725487,
+          "max_world_vertex_displacement": 0.03174036368727684,
+          "triangles": 18092,
+          "vertices": 9478
+        },
+        {
+          "cell_size_local": 0.11547005921602249,
+          "max_uv_displacement": 0.03132449835538864,
+          "max_world_vertex_displacement": 0.06158365309238434,
+          "triangles": 17180,
+          "vertices": 9022
+        },
+        {
+          "cell_size_local": 0.23094011843204498,
+          "max_uv_displacement": 0.04717499017715454,
+          "max_world_vertex_displacement": 0.0994936153292656,
+          "triangles": 13298,
+          "vertices": 7081
+        },
+        {
+          "cell_size_local": 0.46188023686408997,
+          "max_uv_displacement": 0.0444352850317955,
+          "max_world_vertex_displacement": 0.0994936153292656,
+          "triangles": 12410,
+          "vertices": 6637
+        },
+        {
+          "cell_size_local": 0.9237604737281799,
+          "max_uv_displacement": 0.0484461635351181,
+          "max_world_vertex_displacement": 0.0994936153292656,
+          "triangles": 11954,
+          "vertices": 6409
+        }
+      ],
+      "preservation": "",
+      "selected_level": 6,
+      "source_id": 125,
+      "world_scale_bound": 1.0
+    },
+    {
+      "instances": 1,
+      "levels": [
+        {
+          "cell_size_local": 0.0,
+          "max_uv_displacement": 0.0,
+          "max_world_vertex_displacement": 0.0,
+          "triangles": 31436,
+          "vertices": 24110
+        }
+      ],
+      "preservation": "alpha-or-thin-surface",
+      "selected_level": 0,
+      "source_id": 107,
+      "world_scale_bound": 1.0
+    },
+    {
+      "instances": 1,
+      "levels": [
+        {
+          "cell_size_local": 0.0,
+          "max_uv_displacement": 0.0,
+          "max_world_vertex_displacement": 0.0,
+          "triangles": 3472,
+          "vertices": 3932
+        }
+      ],
+      "preservation": "alpha-or-thin-surface",
+      "selected_level": 0,
+      "source_id": 109,
+      "world_scale_bound": 1.0
+    },
+    {
+      "instances": 1,
+      "levels": [
+        {
+          "cell_size_local": 0.0,
+          "max_uv_displacement": 0.0,
+          "max_world_vertex_displacement": 0.0,
+          "triangles": 4086,
+          "vertices": 2241
+        },
+        {
+          "cell_size_local": 0.014433757402002811,
+          "max_uv_displacement": 0.0030907397158443928,
+          "max_world_vertex_displacement": 0.004326589405536652,
+          "triangles": 4082,
+          "vertices": 2239
+        },
+        {
+          "cell_size_local": 0.028867514804005623,
+          "max_uv_displacement": 0.005706382915377617,
+          "max_world_vertex_displacement": 0.014853380620479584,
+          "triangles": 4064,
+          "vertices": 2230
+        },
+        {
+          "cell_size_local": 0.057735029608011246,
+          "max_uv_displacement": 0.013055279850959778,
+          "max_world_vertex_displacement": 0.027908114716410637,
+          "triangles": 4042,
+          "vertices": 2219
+        },
+        {
+          "cell_size_local": 0.11547005921602249,
+          "max_uv_displacement": 0.01598905213177204,
+          "max_world_vertex_displacement": 0.046742528676986694,
+          "triangles": 4002,
+          "vertices": 2199
+        },
+        {
+          "cell_size_local": 0.23094011843204498,
+          "max_uv_displacement": 0.02742353081703186,
+          "max_world_vertex_displacement": 0.08229100704193115,
+          "triangles": 3946,
+          "vertices": 2171
+        },
+        {
+          "cell_size_local": 0.46188023686408997,
+          "max_uv_displacement": 0.02742353081703186,
+          "max_world_vertex_displacement": 0.08229100704193115,
+          "triangles": 3916,
+          "vertices": 2156
+        },
+        {
+          "cell_size_local": 0.9237604737281799,
+          "max_uv_displacement": 0.02742353081703186,
+          "max_world_vertex_displacement": 0.08229100704193115,
+          "triangles": 3910,
+          "vertices": 2153
+        }
+      ],
+      "preservation": "",
+      "selected_level": 7,
+      "source_id": 110,
+      "world_scale_bound": 1.0
+    },
+    {
+      "instances": 1,
+      "levels": [
+        {
+          "cell_size_local": 0.0,
+          "max_uv_displacement": 0.0,
+          "max_world_vertex_displacement": 0.0,
+          "triangles": 796,
+          "vertices": 1053
+        }
+      ],
+      "preservation": "",
+      "selected_level": 0,
+      "source_id": 111,
+      "world_scale_bound": 1.0
+    },
+    {
+      "instances": 1,
+      "levels": [
+        {
+          "cell_size_local": 0.0,
+          "max_uv_displacement": 0.0,
+          "max_world_vertex_displacement": 0.0,
+          "triangles": 5876,
+          "vertices": 4998
+        },
+        {
+          "cell_size_local": 0.014433757402002811,
+          "max_uv_displacement": 0.001900017261505127,
+          "max_world_vertex_displacement": 0.0037392601370811462,
+          "triangles": 5872,
+          "vertices": 4996
+        },
+        {
+          "cell_size_local": 0.057735029608011246,
+          "max_uv_displacement": 0.0102500319480896,
+          "max_world_vertex_displacement": 0.01996186375617981,
+          "triangles": 5848,
+          "vertices": 4984
+        },
+        {
+          "cell_size_local": 0.11547005921602249,
+          "max_uv_displacement": 0.012432584539055824,
+          "max_world_vertex_displacement": 0.024206852540373802,
+          "triangles": 5820,
+          "vertices": 4970
+        },
+        {
+          "cell_size_local": 0.46188023686408997,
+          "max_uv_displacement": 0.012432584539055824,
+          "max_world_vertex_displacement": 0.024206852540373802,
+          "triangles": 5804,
+          "vertices": 4962
+        },
+        {
+          "cell_size_local": 0.9237604737281799,
+          "max_uv_displacement": 0.012432584539055824,
+          "max_world_vertex_displacement": 0.02422194369137287,
+          "triangles": 5796,
+          "vertices": 4958
+        }
+      ],
+      "preservation": "",
+      "selected_level": 5,
+      "source_id": 113,
+      "world_scale_bound": 1.0
+    },
+    {
+      "instances": 1,
+      "levels": [
+        {
+          "cell_size_local": 0.0,
+          "max_uv_displacement": 0.0,
+          "max_world_vertex_displacement": 0.0,
+          "triangles": 16512,
+          "vertices": 9126
+        },
+        {
+          "cell_size_local": 0.028867514804005623,
+          "max_uv_displacement": 0.03240001201629639,
+          "max_world_vertex_displacement": 0.01652461104094982,
+          "triangles": 16490,
+          "vertices": 9115
+        },
+        {
+          "cell_size_local": 0.057735029608011246,
+          "max_uv_displacement": 0.049723368138074875,
+          "max_world_vertex_displacement": 0.030286751687526703,
+          "triangles": 15838,
+          "vertices": 8789
+        },
+        {
+          "cell_size_local": 0.11547005921602249,
+          "max_uv_displacement": 0.0498499870300293,
+          "max_world_vertex_displacement": 0.04196006804704666,
+          "triangles": 12704,
+          "vertices": 7222
+        },
+        {
+          "cell_size_local": 0.23094011843204498,
+          "max_uv_displacement": 0.0499500036239624,
+          "max_world_vertex_displacement": 0.04212595522403717,
+          "triangles": 12200,
+          "vertices": 6970
+        },
+        {
+          "cell_size_local": 0.46188023686408997,
+          "max_uv_displacement": 0.0499500036239624,
+          "max_world_vertex_displacement": 0.04212595522403717,
+          "triangles": 11832,
+          "vertices": 6786
+        },
+        {
+          "cell_size_local": 0.9237604737281799,
+          "max_uv_displacement": 0.0499500036239624,
+          "max_world_vertex_displacement": 0.04212595522403717,
+          "triangles": 11650,
+          "vertices": 6695
+        }
+      ],
+      "preservation": "",
+      "selected_level": 6,
+      "source_id": 122,
+      "world_scale_bound": 1.0
+    },
+    {
+      "instances": 1,
+      "levels": [
+        {
+          "cell_size_local": 0.0,
+          "max_uv_displacement": 0.0,
+          "max_world_vertex_displacement": 0.0,
+          "triangles": 16512,
+          "vertices": 9126
+        },
+        {
+          "cell_size_local": 0.028867514804005623,
+          "max_uv_displacement": 0.03085000067949295,
+          "max_world_vertex_displacement": 0.014906727708876133,
+          "triangles": 16482,
+          "vertices": 9111
+        },
+        {
+          "cell_size_local": 0.057735029608011246,
+          "max_uv_displacement": 0.049723368138074875,
+          "max_world_vertex_displacement": 0.03233352676033974,
+          "triangles": 15880,
+          "vertices": 8810
+        },
+        {
+          "cell_size_local": 0.11547005921602249,
+          "max_uv_displacement": 0.0498499870300293,
+          "max_world_vertex_displacement": 0.04194677993655205,
+          "triangles": 12708,
+          "vertices": 7224
+        },
+        {
+          "cell_size_local": 0.23094011843204498,
+          "max_uv_displacement": 0.0499500036239624,
+          "max_world_vertex_displacement": 0.04212619736790657,
+          "triangles": 12204,
+          "vertices": 6972
+        },
+        {
+          "cell_size_local": 0.46188023686408997,
+          "max_uv_displacement": 0.0499500036239624,
+          "max_world_vertex_displacement": 0.04212619736790657,
+          "triangles": 11828,
+          "vertices": 6784
+        },
+        {
+          "cell_size_local": 0.9237604737281799,
+          "max_uv_displacement": 0.0499500036239624,
+          "max_world_vertex_displacement": 0.04212619736790657,
+          "triangles": 11652,
+          "vertices": 6696
+        }
+      ],
+      "preservation": "",
+      "selected_level": 6,
+      "source_id": 121,
+      "world_scale_bound": 1.0
+    },
+    {
+      "instances": 1,
+      "levels": [
+        {
+          "cell_size_local": 0.0,
+          "max_uv_displacement": 0.0,
+          "max_world_vertex_displacement": 0.0,
+          "triangles": 14336,
+          "vertices": 7398
+        },
+        {
+          "cell_size_local": 0.028867514804005623,
+          "max_uv_displacement": 0.007350027561187744,
+          "max_world_vertex_displacement": 0.01659942977130413,
+          "triangles": 14332,
+          "vertices": 7396
+        },
+        {
+          "cell_size_local": 0.057735029608011246,
+          "max_uv_displacement": 0.011556869372725487,
+          "max_world_vertex_displacement": 0.031740374863147736,
+          "triangles": 13570,
+          "vertices": 7015
+        },
+        {
+          "cell_size_local": 0.11547005921602249,
+          "max_uv_displacement": 0.03132449835538864,
+          "max_world_vertex_displacement": 0.05852982774376869,
+          "triangles": 12884,
+          "vertices": 6672
+        },
+        {
+          "cell_size_local": 0.23094011843204498,
+          "max_uv_displacement": 0.04717499017715454,
+          "max_world_vertex_displacement": 0.0994936153292656,
+          "triangles": 10132,
+          "vertices": 5296
+        },
+        {
+          "cell_size_local": 0.46188023686408997,
+          "max_uv_displacement": 0.0444352850317955,
+          "max_world_vertex_displacement": 0.0994936153292656,
+          "triangles": 9460,
+          "vertices": 4960
+        },
+        {
+          "cell_size_local": 0.9237604737281799,
+          "max_uv_displacement": 0.048373088240623474,
+          "max_world_vertex_displacement": 0.0994936153292656,
+          "triangles": 9150,
+          "vertices": 4805
+        }
+      ],
+      "preservation": "",
+      "selected_level": 6,
+      "source_id": 126,
+      "world_scale_bound": 1.0
+    },
+    {
+      "instances": 1,
+      "levels": [
+        {
+          "cell_size_local": 0.0,
+          "max_uv_displacement": 0.0,
+          "max_world_vertex_displacement": 0.0,
+          "triangles": 9184,
+          "vertices": 5308
+        },
+        {
+          "cell_size_local": 0.014433757402002811,
+          "max_uv_displacement": 0.0038499832153320313,
+          "max_world_vertex_displacement": 0.009043876081705093,
+          "triangles": 9136,
+          "vertices": 5284
+        },
+        {
+          "cell_size_local": 0.028867514804005623,
+          "max_uv_displacement": 0.005050003528594971,
+          "max_world_vertex_displacement": 0.01186720933765173,
+          "triangles": 8934,
+          "vertices": 5183
+        },
+        {
+          "cell_size_local": 0.057735029608011246,
+          "max_uv_displacement": 0.005050003528594971,
+          "max_world_vertex_displacement": 0.01186720933765173,
+          "triangles": 8816,
+          "vertices": 5124
+        },
+        {
+          "cell_size_local": 0.11547005921602249,
+          "max_uv_displacement": 0.010650008916854858,
+          "max_world_vertex_displacement": 0.01847408525645733,
+          "triangles": 8640,
+          "vertices": 5036
+        },
+        {
+          "cell_size_local": 0.23094011843204498,
+          "max_uv_displacement": 0.010650008916854858,
+          "max_world_vertex_displacement": 0.027629606425762177,
+          "triangles": 8584,
+          "vertices": 5008
+        },
+        {
+          "cell_size_local": 0.46188023686408997,
+          "max_uv_displacement": 0.010650008916854858,
+          "max_world_vertex_displacement": 0.027629606425762177,
+          "triangles": 8556,
+          "vertices": 4994
+        }
+      ],
+      "preservation": "",
+      "selected_level": 6,
+      "source_id": 129,
+      "world_scale_bound": 1.0
+    },
+    {
+      "instances": 1,
+      "levels": [
+        {
+          "cell_size_local": 0.0,
+          "max_uv_displacement": 0.0,
+          "max_world_vertex_displacement": 0.0,
+          "triangles": 14484,
+          "vertices": 10918
+        },
+        {
+          "cell_size_local": 0.028867514804005623,
+          "max_uv_displacement": 0.002988734282553196,
+          "max_world_vertex_displacement": 0.016507137566804886,
+          "triangles": 14480,
+          "vertices": 10916
+        },
+        {
+          "cell_size_local": 0.057735029608011246,
+          "max_uv_displacement": 0.005446594674140215,
+          "max_world_vertex_displacement": 0.029186641797423363,
+          "triangles": 13932,
+          "vertices": 10642
+        },
+        {
+          "cell_size_local": 0.11547005921602249,
+          "max_uv_displacement": 0.005460120737552643,
+          "max_world_vertex_displacement": 0.03314598649740219,
+          "triangles": 12928,
+          "vertices": 10140
+        },
+        {
+          "cell_size_local": 0.23094011843204498,
+          "max_uv_displacement": 0.01493803970515728,
+          "max_world_vertex_displacement": 0.0627334862947464,
+          "triangles": 12678,
+          "vertices": 10015
+        },
+        {
+          "cell_size_local": 0.46188023686408997,
+          "max_uv_displacement": 0.01493803970515728,
+          "max_world_vertex_displacement": 0.0627334862947464,
+          "triangles": 12554,
+          "vertices": 9953
+        },
+        {
+          "cell_size_local": 0.9237604737281799,
+          "max_uv_displacement": 0.01493803970515728,
+          "max_world_vertex_displacement": 0.0627334862947464,
+          "triangles": 12522,
+          "vertices": 9937
+        }
+      ],
+      "preservation": "",
+      "selected_level": 6,
+      "source_id": 131,
+      "world_scale_bound": 1.0
+    },
+    {
+      "instances": 1,
+      "levels": [
+        {
+          "cell_size_local": 0.0,
+          "max_uv_displacement": 0.0,
+          "max_world_vertex_displacement": 0.0,
+          "triangles": 17688,
+          "vertices": 9840
+        },
+        {
+          "cell_size_local": 0.007216878701001406,
+          "max_uv_displacement": 0.015500009059906006,
+          "max_world_vertex_displacement": 0.0037973637226969004,
+          "triangles": 17674,
+          "vertices": 9833
+        },
+        {
+          "cell_size_local": 0.014433757402002811,
+          "max_uv_displacement": 0.031000003218650818,
+          "max_world_vertex_displacement": 0.007776496931910515,
+          "triangles": 17500,
+          "vertices": 9746
+        },
+        {
+          "cell_size_local": 0.028867514804005623,
+          "max_uv_displacement": 0.0310000479221344,
+          "max_world_vertex_displacement": 0.017790935933589935,
+          "triangles": 17200,
+          "vertices": 9596
+        },
+        {
+          "cell_size_local": 0.057735029608011246,
+          "max_uv_displacement": 0.0310000479221344,
+          "max_world_vertex_displacement": 0.030142076313495636,
+          "triangles": 16808,
+          "vertices": 9400
+        },
+        {
+          "cell_size_local": 0.11547005921602249,
+          "max_uv_displacement": 0.04650002717971802,
+          "max_world_vertex_displacement": 0.04490382596850395,
+          "triangles": 16300,
+          "vertices": 9146
+        },
+        {
+          "cell_size_local": 0.23094011843204498,
+          "max_uv_displacement": 0.04650002717971802,
+          "max_world_vertex_displacement": 0.04490382596850395,
+          "triangles": 15912,
+          "vertices": 8952
+        },
+        {
+          "cell_size_local": 0.46188023686408997,
+          "max_uv_displacement": 0.04650002717971802,
+          "max_world_vertex_displacement": 0.04490382596850395,
+          "triangles": 15754,
+          "vertices": 8873
+        },
+        {
+          "cell_size_local": 0.9237604737281799,
+          "max_uv_displacement": 0.04650002717971802,
+          "max_world_vertex_displacement": 0.04490368813276291,
+          "triangles": 15736,
+          "vertices": 8864
+        }
+      ],
+      "preservation": "",
+      "selected_level": 8,
+      "source_id": 108,
+      "world_scale_bound": 1.0
+    },
+    {
+      "instances": 1,
+      "levels": [
+        {
+          "cell_size_local": 0.0,
+          "max_uv_displacement": 0.0,
+          "max_world_vertex_displacement": 0.0,
+          "triangles": 10168,
+          "vertices": 9679
+        },
+        {
+          "cell_size_local": 0.057735029608011246,
+          "max_uv_displacement": 0.0019500255584716797,
+          "max_world_vertex_displacement": 0.005108332261443138,
+          "triangles": 10164,
+          "vertices": 9677
+        },
+        {
+          "cell_size_local": 0.11547005921602249,
+          "max_uv_displacement": 0.009886634536087513,
+          "max_world_vertex_displacement": 0.02366495132446289,
+          "triangles": 10160,
+          "vertices": 9675
+        },
+        {
+          "cell_size_local": 0.23094011843204498,
+          "max_uv_displacement": 0.031050026416778564,
+          "max_world_vertex_displacement": 0.07489354908466339,
+          "triangles": 10136,
+          "vertices": 9663
+        },
+        {
+          "cell_size_local": 0.46188023686408997,
+          "max_uv_displacement": 0.0411955825984478,
+          "max_world_vertex_displacement": 0.0993032455444336,
+          "triangles": 10122,
+          "vertices": 9656
+        },
+        {
+          "cell_size_local": 0.9237604737281799,
+          "max_uv_displacement": 0.0411955825984478,
+          "max_world_vertex_displacement": 0.0993032455444336,
+          "triangles": 10110,
+          "vertices": 9650
+        }
+      ],
+      "preservation": "",
+      "selected_level": 5,
+      "source_id": 112,
+      "world_scale_bound": 1.0
+    },
+    {
+      "instances": 1,
+      "levels": [
+        {
+          "cell_size_local": 0.0,
+          "max_uv_displacement": 0.0,
+          "max_world_vertex_displacement": 0.0,
+          "triangles": 14336,
+          "vertices": 7398
+        },
+        {
+          "cell_size_local": 0.028867514804005623,
+          "max_uv_displacement": 0.007350027561187744,
+          "max_world_vertex_displacement": 0.01717229373753071,
+          "triangles": 14330,
+          "vertices": 7395
+        },
+        {
+          "cell_size_local": 0.057735029608011246,
+          "max_uv_displacement": 0.014700010418891907,
+          "max_world_vertex_displacement": 0.031266212463378906,
+          "triangles": 13666,
+          "vertices": 7063
+        },
+        {
+          "cell_size_local": 0.11547005921602249,
+          "max_uv_displacement": 0.03132449835538864,
+          "max_world_vertex_displacement": 0.058530014008283615,
+          "triangles": 13026,
+          "vertices": 6743
+        },
+        {
+          "cell_size_local": 0.23094011843204498,
+          "max_uv_displacement": 0.0444352850317955,
+          "max_world_vertex_displacement": 0.0994936153292656,
+          "triangles": 10154,
+          "vertices": 5307
+        },
+        {
+          "cell_size_local": 0.46188023686408997,
+          "max_uv_displacement": 0.0444352850317955,
+          "max_world_vertex_displacement": 0.0994936153292656,
+          "triangles": 9496,
+          "vertices": 4978
+        },
+        {
+          "cell_size_local": 0.9237604737281799,
+          "max_uv_displacement": 0.048373088240623474,
+          "max_world_vertex_displacement": 0.0994936153292656,
+          "triangles": 9136,
+          "vertices": 4798
+        }
+      ],
+      "preservation": "",
+      "selected_level": 6,
+      "source_id": 124,
+      "world_scale_bound": 1.0
+    },
+    {
+      "instances": 1,
+      "levels": [
+        {
+          "cell_size_local": 0.0,
+          "max_uv_displacement": 0.0,
+          "max_world_vertex_displacement": 0.0,
+          "triangles": 3042,
+          "vertices": 1728
+        },
+        {
+          "cell_size_local": 0.057735029608011246,
+          "max_uv_displacement": 0.01808350160717964,
+          "max_world_vertex_displacement": 0.026097072288393974,
+          "triangles": 3030,
+          "vertices": 1722
+        },
+        {
+          "cell_size_local": 0.11547005921602249,
+          "max_uv_displacement": 0.03570990264415741,
+          "max_world_vertex_displacement": 0.04507153481245041,
+          "triangles": 2944,
+          "vertices": 1679
+        },
+        {
+          "cell_size_local": 0.23094011843204498,
+          "max_uv_displacement": 0.03570990264415741,
+          "max_world_vertex_displacement": 0.06372272968292236,
+          "triangles": 2898,
+          "vertices": 1656
+        },
+        {
+          "cell_size_local": 0.46188023686408997,
+          "max_uv_displacement": 0.04645834118127823,
+          "max_world_vertex_displacement": 0.07154486328363419,
+          "triangles": 2866,
+          "vertices": 1640
+        },
+        {
+          "cell_size_local": 0.9237604737281799,
+          "max_uv_displacement": 0.04645834118127823,
+          "max_world_vertex_displacement": 0.07154486328363419,
+          "triangles": 2844,
+          "vertices": 1629
+        }
+      ],
+      "preservation": "",
+      "selected_level": 5,
+      "source_id": 130,
+      "world_scale_bound": 1.0
+    }
+  ],
+  "selected_triangles": 222635,
+  "selected_unique_triangles": 222635,
+  "source_triangles": 262267,
+  "source_unique_triangles": 262267,
+  "target_ratio": 0.5
+}

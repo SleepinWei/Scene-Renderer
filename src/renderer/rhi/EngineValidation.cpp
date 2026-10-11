@@ -10,6 +10,7 @@
 #include "renderer/SceneImport.h"
 #include "renderer/rhi/SceneSnapshot.h"
 #include "renderer/rhi/GpuImageCache.h"
+#include "renderer/rhi/MaterialWetness.h"
 #include "renderer/rhi/GraphTextures.h"
 #include "component/Lights.h"
 #include "engine/RenderRuntime.h"
@@ -114,7 +115,7 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
         auto parameters = material->properties();
         auto scalarRevision = material->parameterRevision();
         auto imageRevision = material->getContentRevision();
-        parameters.roughnessFactor = .2f;
+        parameters.roughnessFactor = .2f;parameters.matchedGgx=true;parameters.specularAnisotropy=.7f;parameters.specularRotation=.4f;
         material->setProperties(parameters);
         check(material->parameterRevision() > scalarRevision &&
                   material->getContentRevision() == imageRevision,
@@ -138,6 +139,11 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
         auto copy = std::make_shared<Material>(*material);
         check(copy->assetId != material->assetId && copy->getTextures().at("material.albedo") == replacement,
               "Asset copy lost distinct identity or source texture");
+        check(copy->properties().matchedGgx && copy->properties().specularAnisotropy==.7f && copy->properties().specularRotation==.4f,
+              "Material copy lost common GGX parameters");
+        auto invalidShape=material->properties();invalidShape.specularAnisotropy=.91f;rejected=false;
+        try{material->setProperties(invalidShape);}catch(const std::invalid_argument&){rejected=true;}
+        check(rejected && material->properties().specularAnisotropy==.7f,"Invalid material GGX shape partially committed");
         auto foreign = std::async(std::launch::async, [&] {
             unsigned denied = 0;
             try {
@@ -722,8 +728,16 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
         seedTexture->setPixels(4,1,4,std::vector<unsigned char>(16,128));
         scene->objects().at(0)->getComponent<MeshFilter>()->getMeshes().at(0)->getMaterial()->addTexture(
             seedTexture, "material.albedo");
+        auto commonMaterial=scene->objects().at(0)->getComponent<MeshFilter>()->getMeshes().at(0)->getMaterial();
+        auto commonShape=commonMaterial->properties();commonShape.matchedGgx=true;commonShape.specularAnisotropy=.6f;commonShape.specularRotation=.3f;
+        commonMaterial->setProperties(commonShape);
         SceneSnapshotBuilder builder;
         auto first = builder.capture(scene, 0, 64, 64);
+        check(!first->frame.rsm, "Scene snapshot enabled the opt-in RSM demo by default");
+        bool foundCommon=false;for(const auto& draw:first->draws)if(draw.extension.specularShape==glm::vec4(.6f,.3f,1,0)){
+            check(draw.pathTracingSpecularAnisotropy==.6f && draw.pathTracingSpecularRotation==.3f,"Snapshot did not share GGX parameters with PT");foundCommon=true;
+        }
+        check(foundCommon,"Logic material GGX shape did not reach snapshot");
         check(!first->draws.empty(), "Snapshot lost scene draws");
         {
             // Warm three independent records, then replace all three meshes under
@@ -889,7 +903,7 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
                 device->waitIdle();const auto before=device->resourceMemory().usedBytes();
                 auto partial=bounded.resolve(limited);
                 check(partial.packets.empty() && partial.meshUploadsPending==2 && partial.assetUploads==1 &&
-                          device->resourceMemory().usedBytes()==before+108,
+                          device->resourceMemory().usedBytes()==before+108+(device->computeLimits().supported?32:0),
                       "Pending mesh capacity allocated more than one job or admitted an incomplete draw");
                 auto next=bounded.resolve(limited);auto later=bounded.resolve(limited);auto complete=bounded.resolve(limited);
                 check(next.packets.size()==1 && later.packets.size()==1 && complete.packets.size()==2 &&
@@ -1141,7 +1155,10 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
                 std::filesystem::remove_all(directory);
             }
             {
-                const auto before=device->resourceMemory();device->setResourceBudget(before.usedBytes()+128*1024*1024);
+                // Include current water capture / atmosphere allocations as well
+                // as FFT scratch. 2048 still exceeds this allowance, while a
+                // reduced tier must have room to render and prove recovery.
+                const auto before=device->resourceMemory();device->setResourceBudget(before.usedBytes()+256*1024*1024);
                 {
                     engine::RenderRuntime runtime(device,{},1);runtime.notifySurfaceExtent(64,64);
                     auto awaitFrame=[&](uint64_t count){auto until=std::chrono::steady_clock::now()+std::chrono::seconds(15);while(runtime.framesRendered()<count && std::chrono::steady_clock::now()<until){runtime.rethrowFailure();std::this_thread::sleep_for(std::chrono::milliseconds(1));}check(runtime.framesRendered()>=count,"Automatic quality stopped rendering");};
@@ -1210,6 +1227,29 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
               "Terrain source revision did not rebuild geometry and invalidate history");
         device->readBuffer(next.packets.at(0).mesh->vertexBuffer(), 0, sizeof(vertex), &vertex);
         check(std::abs(vertex.position.y - .75f) < 1e-6f, "Terrain retained old source after invalidation");
+        {
+            SceneSnapshotBuilder builder;auto world=*builder.capture(scene,0,64,64);
+            auto source=std::make_shared<TerrainPayload>(*world.terrain->source);
+            auto image=[](glm::u8vec4 colour,bool atlas){auto result=std::make_shared<ImageRGBA8>();result->width=2;result->height=atlas?4:2;
+                for(uint32_t i=0;i<result->width*result->height;++i)for(int c=0;c<4;++c)result->pixels.push_back(colour[c]);return result;};
+            source->shorelineImages={image({200,160,100,255},true),image({128,128,255,255},true),image({255,180,0,255},true),image({255,255,255,255},false)};
+            world.terrain->source=source;world.terrain->extension.features.x=int(MaterialFeature::SpatialRainWetness);
+            for(size_t i=0;i<256;++i)setRainWetCell(world.terrain->extension,i,uint8_t(i));
+            SceneAdapter transactional(device);const auto first=transactional.resolve(world);
+            world.terrain->parameters.albedoAlpha.x=.3f;const auto accepted=transactional.resolve(world);
+            const auto& extension=accepted.packets[0].material->extension();
+            check((extension.features.x&int(MaterialFeature::Shoreline))&&extension.rainWetCells==world.terrain->extension.rainWetCells,
+                  "Terrain parameter edit lost shoreline maps or spatial rain wetness");
+            check(accepted.packets[0].mesh==first.packets[0].mesh,"Terrain material edit rebuilt height geometry");
+            auto rejected=world;rejected.terrain->parameters.albedoAlpha.w=.5f;
+            transactional.beginPublication();const auto candidate=transactional.resolve(rejected);
+            check(candidate.packets[0].material->transparent()&&!accepted.packets[0].material->transparent(),
+                  "Terrain candidate parameters mutated an already published material");
+            transactional.rollbackPublication();const auto retained=transactional.resolve(world);
+            check(retained.packets[0].material==accepted.packets[0].material&&!retained.packets[0].material->transparent(),
+                  "Terrain publication rollback lost accepted parameters");
+            std::cout<<"Terrain parameter edit: shoreline/spatial wetness retained, geometry reused, published parameters isolated and rollback passed\n";
+        }
         first.packets.clear();
         next.packets.clear();
         oldMesh.reset();

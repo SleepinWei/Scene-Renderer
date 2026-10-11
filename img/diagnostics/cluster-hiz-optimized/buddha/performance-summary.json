@@ -1,0 +1,63 @@
+{
+  "scene": "buddha",
+  "cases": {
+    "single_scan": {
+      "round_medians_ms": {
+        "no_occlusion": {
+          "0": 1.426562499254942,
+          "1": 1.2939164973795414,
+          "2": 1.3609375022351742
+        },
+        "two_stage_fused": {
+          "0": 1.377666499465704,
+          "1": 1.3076249994337559,
+          "2": 1.3526879996061325
+        },
+        "two_stage_original": {
+          "0": 1.7359374985098839,
+          "1": 1.5229160003364086,
+          "2": 1.6276044994592667
+        }
+      },
+      "paired_optimized_vs_no_occlusion": {
+        "pairs": 72,
+        "median_change_percent": -0.6799857260467779,
+        "p10_p90_change_percent": [
+          -8.048886441952492,
+          9.35262503571711
+        ],
+        "optimized_faster_pairs": 38,
+        "scope": "Adjacent rotated-mode frames at identical round/sample; descriptive, not a confidence interval."
+      }
+    },
+    "three_scan_overlap": {
+      "round_medians_ms": {
+        "no_occlusion": {
+          "0": 2.389395497739315,
+          "1": 2.4199374988675117,
+          "2": 2.4232290014624596
+        },
+        "two_stage_fused": {
+          "0": 1.8858124986290932,
+          "1": 1.93079200014472,
+          "2": 1.896562498062849
+        },
+        "two_stage_original": {
+          "0": 2.280271001160145,
+          "1": 2.2818330004811287,
+          "2": 2.2734165005385876
+        }
+      },
+      "paired_optimized_vs_no_occlusion": {
+        "pairs": 72,
+        "median_change_percent": -20.959244802638693,
+        "p10_p90_change_percent": [
+          -24.252543747016237,
+          -17.7538334501129
+        ],
+        "optimized_faster_pairs": 72,
+        "scope": "Adjacent rotated-mode frames at identical round/sample; descriptive, not a confidence interval."
+      }
+    }
+  }
+}

@@ -1,0 +1,5457 @@
+{
+  "clusters_1px": {
+    "dispatches": 66,
+    "median_ms": 1.603814996778965,
+    "raw": [
+      {
+        "ms": 0.02491699904203415,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.01854199916124344,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.01479099690914154,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004708997905254364,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.00379200279712677,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004375003278255463,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004458002746105194,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.003915995359420776,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005834005773067474,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0038750022649765015,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.006542004644870758,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004500001668930054,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004625000059604645,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004707999527454376,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005125001072883606,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0047919973731040955,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0053329989314079285,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005000002682209015,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0050420016050338745,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0045410022139549255,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004209004342556,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004583999514579773,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002875000238418579,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028330013155937195,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002749994397163391,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002709001302719116,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027079954743385315,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.00279100239276886,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002749994397163391,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027079954743385315,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.00845799595117569,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006833001971244812,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.003541000187397003,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0035839974880218506,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.002916000783443451,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0050420016050338745,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004332996904850006,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.003667004406452179,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004833005368709564,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.002540998160839081,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007833003997802734,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006624996662139893,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007417000830173492,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.010375000536441803,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.00562499463558197,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007624998688697815,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006667003035545349,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006666995584964752,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007041998207569122,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0066250041127204895,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.003833003342151642,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004707999527454376,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 1.2482910007238388,
+        "sample": 0,
+        "stage": "geometry"
+      },
+      {
+        "ms": 0.02183300256729126,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.019874997437000275,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.018166005611419678,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004666998982429504,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004083000123500824,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004542000591754913,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004707999527454376,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0040000006556510925,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.006292000412940979,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004124999046325684,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.007207997143268585,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004334002733230591,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004916004836559296,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005459003150463104,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004583001136779785,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005000002682209015,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0054579973220825195,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004833005368709564,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0049170032143592834,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004499994218349457,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004833005368709564,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004625000059604645,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028330013155937195,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0033340007066726685,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002790994942188263,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027089938521385193,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0026670023798942566,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002749994397163391,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002834007143974304,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0029579997062683105,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002749994397163391,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028330013155937195,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027079954743385315,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.008416004478931427,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0067909955978393555,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0036249980330467224,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004250004887580872,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0031249970197677612,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005000002682209015,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004625000059604645,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.003457993268966675,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004833996295928955,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0025420039892196655,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007249996066093445,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0066250041127204895,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007082998752593994,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.009790994226932526,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005957998335361481,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.00929199904203415,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0064999982714653015,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006250001490116119,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007791996002197266,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004249997437000275,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0037910044193267822,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005291000008583069,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 1.287208005785942,
+        "sample": 1,
+        "stage": "geometry"
+      },
+      {
+        "ms": 0.0286250039935112,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.02016599476337433,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.017667002975940704,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005708001554012299,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.003832995891571045,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004417002201080322,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004915997385978699,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.003959000110626221,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005915999412536621,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.003917001187801361,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.00641699880361557,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004500001668930054,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004625000059604645,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005291000008583069,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005125001072883606,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0047919973731040955,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005209006369113922,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004999995231628418,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005208000540733337,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0045410022139549255,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0045410022139549255,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004250004887580872,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.003125004470348358,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028339996933937073,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0032500028610229492,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027919933199882507,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002709001302719116,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0032500028610229492,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002749994397163391,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002709001302719116,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028330013155937195,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002749994397163391,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.00920800119638443,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007290996611118317,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0037089958786964417,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0037080049514770508,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0028330013155937195,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005249999463558197,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004875004291534424,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.003707997500896454,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005083002150058746,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0075419992208480835,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0066250041127204895,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007500000298023224,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.010207995772361755,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006124995648860931,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.00975000113248825,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0064999982714653015,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006292000412940979,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007292002439498901,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.00620800256729126,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004374995827674866,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0050420016050338745,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 1.28125,
+        "sample": 2,
+        "stage": "geometry"
+      },
+      {
+        "ms": 0.021834000945091248,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.018042005598545074,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.017374999821186066,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004749998450279236,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.003832995891571045,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004292003810405731,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004834003746509552,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0040000006556510925,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.00579100102186203,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.003958001732826233,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.00583299994468689,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004374995827674866,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004749998450279236,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.006000004708766937,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004957996308803558,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004959002137184143,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0049170032143592834,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004790998995304108,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005791999399662018,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004291996359825134,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004416994750499725,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004374995827674866,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028330013155937195,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027079954743385315,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002749994397163391,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002875000238418579,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028339996933937073,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002665996551513672,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.00279100239276886,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002749994397163391,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027919933199882507,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0026670023798942566,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027079954743385315,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027079954743385315,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0026670023798942566,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.008750006556510925,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007125005125999451,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.003541000187397003,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0036249980330467224,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0034580007195472717,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005084000527858734,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004334002733230591,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0035840049386024475,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004708997905254364,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0025830045342445374,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007916003465652466,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006124995648860931,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.00700000673532486,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.01054200530052185,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005625002086162567,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.009082995355129242,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006791003048419952,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0063749998807907104,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006958998739719391,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006708003580570221,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004750005900859833,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004832997918128967,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 1.2599160000681877,
+        "sample": 3,
+        "stage": "geometry"
+      },
+      {
+        "ms": 0.02445799857378006,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0164170041680336,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.012749999761581421,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004499994218349457,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0038340017199516296,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004249997437000275,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004583001136779785,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.003833003342151642,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005874998867511749,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0040000006556510925,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.006250001490116119,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004666998982429504,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004583001136779785,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004707999527454376,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004625000059604645,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004625000059604645,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0053329989314079285,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004832997918128967,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005084000527858734,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004207998514175415,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0041250064969062805,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004749998450279236,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0028339996933937073,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002916000783443451,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027079954743385315,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002749994397163391,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002709001302719116,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002749994397163391,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.00279100239276886,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002709001302719116,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002749994397163391,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002749994397163391,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.008166998624801636,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0068340003490448,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0035000070929527283,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0036249980330467224,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0029169991612434387,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005249999463558197,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004458002746105194,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0032079964876174927,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004957996308803558,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0025830045342445374,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007457993924617767,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006333000957965851,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006875000894069672,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.009874999523162842,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005667001008987427,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.00929199904203415,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006875000894069672,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0066250041127204895,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.00716700404882431,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.00641699880361557,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004083000123500824,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004749998450279236,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 1.2495829984545708,
+        "sample": 4,
+        "stage": "geometry"
+      },
+      {
+        "ms": 0.005667001008987427,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005083002150058746,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.003959000110626221,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004542000591754913,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.003957994282245636,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004207998514175415,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0050420016050338745,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.003917001187801361,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005584001541137695,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.003832995891571045,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005249999463558197,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004375003278255463,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004625000059604645,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004292003810405731,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004332996904850006,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004790998995304108,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005000002682209015,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004625000059604645,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005291998386383057,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.02875000238418579,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.01912499964237213,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.029040999710559845,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027079954743385315,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002666004002094269,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027079954743385315,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002749994397163391,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002666004002094269,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027079954743385315,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027919933199882507,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002709001302719116,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002790994942188263,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028330013155937195,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002665996551513672,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.007957994937896729,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006041005253791809,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.002458997070789337,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004208996891975403,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.00304199755191803,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004542000591754913,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004666000604629517,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004041999578475952,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004666998982429504,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0027079954743385315,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007334001362323761,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005791999399662018,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.00883299857378006,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006916999816894531,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.008458003401756287,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.00620800256729126,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006875000894069672,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005583994090557098,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007624998688697815,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004375003278255463,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004459001123905182,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.00583299994468689,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 1.2457910031080246,
+        "sample": 5,
+        "stage": "geometry"
+      },
+      {
+        "ms": 0.004999995231628418,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0049169957637786865,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004124999046325684,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004249997437000275,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0038750022649765015,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004292003810405731,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.00466599315404892,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004041001200675964,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005874998867511749,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.003833003342151642,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0064999982714653015,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004458002746105194,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004583999514579773,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.02495799958705902,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.019957996904850006,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.031084001064300537,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0063749998807907104,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0049170032143592834,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004457995295524597,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004583001136779785,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004708006978034973,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004625000059604645,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.00279100239276886,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002709001302719116,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028330013155937195,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002666004002094269,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0030829980969429016,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028330013155937195,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0026670023798942566,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0026669949293136597,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028330013155937195,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002709001302719116,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002666004002094269,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027079954743385315,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0026669949293136597,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0026669949293136597,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002709001302719116,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.009125001728534698,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.008125007152557373,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0030829980969429016,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004124999046325684,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0033340007066726685,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004875004291534424,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005374997854232788,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004583999514579773,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004959002137184143,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.002625003457069397,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.010416999459266663,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006124995648860931,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007083006203174591,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007582999765872955,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.00641699880361557,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.00904199481010437,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006667003035545349,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006083004176616669,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007249996066093445,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005625002086162567,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004500001668930054,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005707994103431702,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 1.2625829949975014,
+        "sample": 6,
+        "stage": "geometry"
+      },
+      {
+        "ms": 0.02504199743270874,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.019249998033046722,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.014082998037338257,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004583001136779785,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.00379200279712677,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004207998514175415,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004583001136779785,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004083998501300812,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005542002618312836,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.003832995891571045,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.006292000412940979,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004500001668930054,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004625000059604645,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005083993077278137,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004915997385978699,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004708997905254364,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005125001072883606,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005291998386383057,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004957996308803558,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004207998514175415,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004375003278255463,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0045410022139549255,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002709001302719116,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.00279100239276886,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002666004002094269,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002709001302719116,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002709001302719116,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027079954743385315,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.00279100239276886,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002709001302719116,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002749994397163391,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002749994397163391,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002749994397163391,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.008042000234127045,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0070409998297691345,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.003666996955871582,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0037499964237213135,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0029169991612434387,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0047919973731040955,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004749998450279236,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.003457993268966675,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004790998995304108,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0077920034527778625,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006541997194290161,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006999999284744263,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.009916000068187714,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.00579100102186203,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.008833996951580048,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006542004644870758,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0064999982714653015,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006958998739719391,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.00679200142621994,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004417002201080322,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005208000540733337,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 1.2728749960660934,
+        "sample": 7,
+        "stage": "geometry"
+      }
+    ],
+    "samples_ms": [
+      1.5793740078806877,
+      1.5839150324463844,
+      1.5939149931073189,
+      1.5983770191669464,
+      1.6092529743909836,
+      1.6217910125851631,
+      1.6280370205640793,
+      1.6334970369935036
+    ],
+    "selected_triangles": 218050,
+    "supported": true
+  },
+  "clusters_4px": {
+    "dispatches": 66,
+    "median_ms": 1.590978030115366,
+    "raw": [
+      {
+        "ms": 0.005374997854232788,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004957996308803558,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004250004887580872,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004707999527454376,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004041999578475952,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004582993686199188,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005333997309207916,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004166997969150543,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005959004163742065,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004124999046325684,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005084000527858734,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004332996904850006,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004625000059604645,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004250004887580872,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004583999514579773,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005416996777057648,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005083002150058746,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0047919973731040955,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005208000540733337,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.02512499690055847,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.017374999821186066,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.025207996368408203,
+        "sample": 0,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0026669949293136597,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027079954743385315,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002665996551513672,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002666004002094269,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002749994397163391,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002709001302719116,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028339996933937073,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002709001302719116,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027079954743385315,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028339996933937073,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0026670023798942566,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028330013155937195,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 0,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.007915996015071869,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007666006684303284,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0028330013155937195,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004041999578475952,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0028330013155937195,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0045410022139549255,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004792004823684692,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.003666996955871582,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004749998450279236,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0025830045342445374,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006749995052814484,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005499996244907379,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007375001907348633,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007416002452373505,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005291000008583069,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006333999335765839,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.008083999156951904,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0055830031633377075,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006750002503395081,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005041003227233887,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004041999578475952,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006750002503395081,
+        "sample": 0,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 1.2307920008897781,
+        "sample": 0,
+        "stage": "geometry"
+      },
+      {
+        "ms": 0.005291998386383057,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005125001072883606,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004124999046325684,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004292003810405731,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0038750022649765015,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004458002746105194,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004583001136779785,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.003916993737220764,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005791999399662018,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.003917001187801361,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005166999995708466,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004249997437000275,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004375003278255463,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004458993673324585,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004333004355430603,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004999995231628418,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004957996308803558,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004666998982429504,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005417004227638245,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004291996359825134,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.01637500524520874,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.01854199916124344,
+        "sample": 1,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.013999998569488525,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002709001302719116,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.00379200279712677,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028330013155937195,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027079954743385315,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002875000238418579,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028330013155937195,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0026670023798942566,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.00304199755191803,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002749994397163391,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.00279100239276886,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0031670033931732178,
+        "sample": 1,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.00962500274181366,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007750004529953003,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0032090023159980774,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004500001668930054,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0036249980330467224,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004999995231628418,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0047919973731040955,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.003707997500896454,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005083002150058746,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0032079964876174927,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.008375003933906555,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006624996662139893,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007959000766277313,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.009709000587463379,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006292000412940979,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.00966700166463852,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.034665994346141815,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.023499995470046997,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.025582998991012573,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.023125000298023224,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.01645900309085846,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.010750003159046173,
+        "sample": 1,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 1.3852079957723618,
+        "sample": 1,
+        "stage": "geometry"
+      },
+      {
+        "ms": 0.0053329989314079285,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0050420016050338745,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0038750022649765015,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004417002201080322,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.003916002810001373,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004542000591754913,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0047919973731040955,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004083000123500824,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.006250001490116119,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0038750022649765015,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005541004240512848,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004332996904850006,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004625000059604645,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004625000059604645,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004749998450279236,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0049170032143592834,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005125001072883606,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004958003759384155,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005374997854232788,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004208996891975403,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.069582998752594,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005874998867511749,
+        "sample": 2,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0029169991612434387,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028339996933937073,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028339996933937073,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028339996933937073,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028330013155937195,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0026670023798942566,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002916000783443451,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028330013155937195,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028339996933937073,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027919933199882507,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002875000238418579,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0026670023798942566,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0026669949293136597,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 2,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.008957996964454651,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0062499940395355225,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0024159997701644897,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0040000006556510925,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0028330013155937195,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005584001541137695,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004792004823684692,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.003582999110221863,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0054579973220825195,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.002875000238418579,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.008042000234127045,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005667001008987427,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007166996598243713,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007083997130393982,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007874995470046997,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007333002984523773,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.009332999587059021,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005959004163742065,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007207997143268585,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004707999527454376,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006583996117115021,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005375005304813385,
+        "sample": 2,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 1.2511250004172325,
+        "sample": 2,
+        "stage": "geometry"
+      },
+      {
+        "ms": 0.026833996176719666,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.01820799708366394,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.014249995350837708,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004792004823684692,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.003833003342151642,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004249997437000275,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004583999514579773,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.003916002810001373,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005665995180606842,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.003915995359420776,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.006292000412940979,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0045410022139549255,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004457995295524597,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004583999514579773,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005041003227233887,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004833996295928955,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005375005304813385,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004916004836559296,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004875004291534424,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004583001136779785,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004165999591350555,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004583999514579773,
+        "sample": 3,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0028330013155937195,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.00279100239276886,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028329938650131226,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002749994397163391,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002749994397163391,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028339996933937073,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002709001302719116,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0029579997062683105,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027079954743385315,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028329938650131226,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002709001302719116,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002749994397163391,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0026670023798942566,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027079954743385315,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028339996933937073,
+        "sample": 3,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.008375003933906555,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0069160014390945435,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.00304199755191803,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0040000006556510925,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0029169991612434387,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004916004836559296,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004749998450279236,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.003166995942592621,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004666998982429504,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.002625003457069397,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007582999765872955,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0063749998807907104,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.008000001311302185,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.008708000183105469,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006292000412940979,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.008209004998207092,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007500000298023224,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0062090009450912476,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006791003048419952,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006167002022266388,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004499994218349457,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005082994699478149,
+        "sample": 3,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 1.2257499992847443,
+        "sample": 3,
+        "stage": "geometry"
+      },
+      {
+        "ms": 0.02162499725818634,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.019874997437000275,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.016833998262882233,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004583001136779785,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004041999578475952,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004209004342556,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004583001136779785,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004207998514175415,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0064999982714653015,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0038339942693710327,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005333006381988525,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004583001136779785,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004625000059604645,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005125001072883606,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004625000059604645,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005333997309207916,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005707994103431702,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004958003759384155,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005584001541137695,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0042909979820251465,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004583999514579773,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004749998450279236,
+        "sample": 4,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.00279100239276886,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.00279100239276886,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028339996933937073,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027079954743385315,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002709001302719116,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027919933199882507,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002709001302719116,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002790994942188263,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002709001302719116,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028330013155937195,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.00279100239276886,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027079954743385315,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002665996551513672,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027079954743385315,
+        "sample": 4,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.00925000011920929,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0075419992208480835,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0031670033931732178,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004041001200675964,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0028339996933937073,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004999995231628418,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004500001668930054,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.003582999110221863,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004542000591754913,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0027079954743385315,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007624998688697815,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0062090009450912476,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007583998143672943,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.010082997381687164,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005917005240917206,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.00929199904203415,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007500000298023224,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006875000894069672,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007499992847442627,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006833001971244812,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004374995827674866,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005166999995708466,
+        "sample": 4,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 1.2448330000042915,
+        "sample": 4,
+        "stage": "geometry"
+      },
+      {
+        "ms": 0.005166999995708466,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004875004291534424,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.003917001187801361,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004458002746105194,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.003833003342151642,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004249997437000275,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005291998386383057,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0037909969687461853,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005750000476837158,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.003959000110626221,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0050420016050338745,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004291996359825134,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004583001136779785,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004458002746105194,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004250004887580872,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.00504099577665329,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005291998386383057,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004916004836559296,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005249999463558197,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004165999591350555,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.026290997862815857,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.01829199492931366,
+        "sample": 5,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.026332996785640717,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002709001302719116,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.004792004823684692,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0029169991612434387,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002709001302719116,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002749994397163391,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.00279100239276886,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027079954743385315,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028330013155937195,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027079954743385315,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.00279100239276886,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027919933199882507,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002709001302719116,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 5,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.008124999701976776,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006667003035545349,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0033750012516975403,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004083000123500824,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0029169991612434387,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004708997905254364,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004874996840953827,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0032500028610229492,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004958003759384155,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0025829970836639404,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007333002984523773,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006082996726036072,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007291004061698914,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.00883299857378006,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005915999412536621,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.008957996964454651,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007334001362323761,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006291002035140991,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.00716700404882431,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006041005253791809,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004458002746105194,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005166999995708466,
+        "sample": 5,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 1.2419590055942535,
+        "sample": 5,
+        "stage": "geometry"
+      },
+      {
+        "ms": 0.03162500262260437,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.022041000425815582,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.015542000532150269,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004207998514175415,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.003959000110626221,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004249997437000275,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004749998450279236,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.003917001187801361,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005708001554012299,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.003917001187801361,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.00679200142621994,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004292003810405731,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004291996359825134,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004707999527454376,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005540996789932251,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0047919973731040955,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005083002150058746,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0049170032143592834,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0050420016050338745,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004458002746105194,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004249997437000275,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004625000059604645,
+        "sample": 6,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028329938650131226,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027079954743385315,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0026670023798942566,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0026670023798942566,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028330013155937195,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002749994397163391,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002749994397163391,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002709001302719116,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028339996933937073,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.00279100239276886,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002749994397163391,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002875000238418579,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 6,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.008542001247406006,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007500000298023224,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0037909969687461853,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004417002201080322,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.002875000238418579,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004666000604629517,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004707999527454376,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.003917001187801361,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004583001136779785,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0025839954614639282,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007207997143268585,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006125003099441528,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007375001907348633,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.009125001728534698,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0063749998807907104,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.008583001792430878,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.007375001907348633,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0065000057220458984,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006624996662139893,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006333000957965851,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004540994763374329,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004874996840953827,
+        "sample": 6,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 1.2518329992890358,
+        "sample": 6,
+        "stage": "geometry"
+      },
+      {
+        "ms": 0.005125001072883606,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005208000540733337,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004166997969150543,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004500001668930054,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0038340017199516296,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004500001668930054,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005083002150058746,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0037910044193267822,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005541995167732239,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.0038750022649765015,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.006417006254196167,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004749998450279236,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004707999527454376,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004291996359825134,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004500001668930054,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.017999999225139618,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.01908300071954727,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.017666004598140717,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.005459003150463104,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004166997969150543,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004542000591754913,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.004749998450279236,
+        "sample": 7,
+        "stage": "clusters/mark"
+      },
+      {
+        "ms": 0.002916000783443451,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002875000238418579,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002875000238418579,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002749994397163391,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0028339996933937073,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027919933199882507,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027920007705688477,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002834007143974304,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002665996551513672,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002709001302719116,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0026669949293136597,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002749994397163391,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002875000238418579,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002750001847743988,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.002749994397163391,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027080029249191284,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.0027079954743385315,
+        "sample": 7,
+        "stage": "clusters/scan"
+      },
+      {
+        "ms": 0.008917003870010376,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006459005177021027,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.003125004470348358,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004209004342556,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0032079964876174927,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.006333000957965851,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004832997918128967,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0034580007195472717,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005791999399662018,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0029169991612434387,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.00858299434185028,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005874998867511749,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.010833002626895905,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.008375003933906555,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.005708001554012299,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.008124999701976776,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.009125001728534698,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0095830038189888,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.008124999701976776,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004749998450279236,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.004458002746105194,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 0.0049170032143592834,
+        "sample": 7,
+        "stage": "clusters/scatter"
+      },
+      {
+        "ms": 1.2475000023841858,
+        "sample": 7,
+        "stage": "geometry"
+      }
+    ],
+    "samples_ms": [
+      1.5617469921708107,
+      1.5700410082936287,
+      1.587250977754593,
+      1.5902100279927254,
+      1.5917460322380066,
+      1.5999580025672913,
+      1.611713007092476,
+      1.819296009838581
+    ],
+    "selected_triangles": 204022,
+    "supported": true
+  },
+  "full": {
+    "dispatches": 0,
+    "median_ms": 1.342500001192093,
+    "raw": [
+      {
+        "ms": 1.741667002439499,
+        "sample": 0,
+        "stage": "geometry"
+      },
+      {
+        "ms": 1.3409579992294312,
+        "sample": 1,
+        "stage": "geometry"
+      },
+      {
+        "ms": 1.3402919992804527,
+        "sample": 2,
+        "stage": "geometry"
+      },
+      {
+        "ms": 1.337458997964859,
+        "sample": 3,
+        "stage": "geometry"
+      },
+      {
+        "ms": 1.3467499986290932,
+        "sample": 4,
+        "stage": "geometry"
+      },
+      {
+        "ms": 1.3357499986886978,
+        "sample": 5,
+        "stage": "geometry"
+      },
+      {
+        "ms": 1.3440420031547546,
+        "sample": 6,
+        "stage": "geometry"
+      },
+      {
+        "ms": 1.3592920005321503,
+        "sample": 7,
+        "stage": "geometry"
+      }
+    ],
+    "samples_ms": [
+      1.3357499986886978,
+      1.337458997964859,
+      1.3402919992804527,
+      1.3409579992294312,
+      1.3440420031547546,
+      1.3467499986290932,
+      1.3592920005321503,
+      1.741667002439499
+    ],
+    "selected_triangles": null,
+    "supported": true
+  },
+  "scope": "GPU geometry + all cluster mark/scan/scatter spans; 3 warmup and 8 measured frames; excludes shadows, lighting, tone mapping and CPU construction; profiler overhead included"
+}

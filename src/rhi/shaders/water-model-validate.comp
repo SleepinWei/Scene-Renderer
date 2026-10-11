@@ -1,0 +1,28 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#include "water-surface-model.glsl"
+#include "water-slope-filter.glsl"
+layout(local_size_x=8,local_size_y=8) in;
+layout(set=0,binding=0,std140) uniform WaterModelTest {vec4 settings;};
+layout(rgba32f,set=0,binding=1) writeonly uniform image2D modelOutput;
+void main(){
+    ivec2 p=ivec2(gl_GlobalInvocationID.xy),size=imageSize(modelOutput);
+    if(any(greaterThanEqual(p,size)))return;
+    vec2 q=((vec2(p)+.5)/vec2(size)*2.-1.)*settings.w;
+    if(settings.x<0.){
+        vec3 V=normalize(vec3(.15,settings.y,1)),sun=normalize(vec3(.1,.45,-1)),H=normalize(V+sun);
+        vec2 mean=H.xz/H.y+q;mat2 cov=mat2(.012,.003,.003,.025);
+        float value=waterSmoothSunSlopes(V,sun,vec3(1),-settings.x,mean,cov).x;
+        imageStore(modelOutput,p,vec4(value,0,0,0));return;
+    }
+    vec3 L=vec3(0,1,0),ray=normalize(vec3(q.x,1,q.y));
+    mat2 cov=mat2(0);vec3 dx=vec3(settings.y,0,0),dy=vec3(0,0,settings.z);
+    if(settings.y<0.){cov=waterSlopeSolarCovariance(vec2(0),mat2(settings.y*settings.y,0,0,settings.z*settings.z),L,L);dx=dy=vec3(0);}
+    float kernel=waterSolarAngularKernelCov(ray,L,settings.x,dx,dy,cov);
+    float f=dielectricFresnel((float(p.x)+.5)/float(size.x),1.,1.333);
+    float rough=waterRoughReflection(L,normalize(vec3(.2,1,.1)),ray,.12);
+    vec3 a=waterRoughSunMoments(L,normalize(vec3(.2,1,.1)),ray,vec3(1),settings.x,.12,vec2(0),mat2(0));
+    vec3 b=waterRoughSun(L,normalize(vec3(.2,1,.1)),ray,vec3(1),settings.x,.12);
+    float limitError=length(a-b)/max(length(b),1e-12);
+    imageStore(modelOutput,p,vec4(kernel,f,rough,limitError));
+}

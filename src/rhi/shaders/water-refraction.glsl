@@ -3,7 +3,11 @@ float waterPixelFootprint(vec3 point) {
 }
 bool waterCandidate(vec3 origin,vec3 V,vec3 ray,float range,vec2 uv,float nearT,float farT,out float distance,out float confidence) {
     if(!submerged(uv,origin,V))return false;
-    vec3 position=waterQueryPosition(uv).xyz;
+    vec4 samplePosition=waterQueryPosition(uv);
+    // The stable heightfield ray supplies terrain. Search this capture only
+    // for independent objects instead of walking every floor pixel twice.
+    if(!queryAboveWater&&volume.w>.5&&coastBedInfo.x>.5&&samplePosition.w>1.5)return false;
+    vec3 position=samplePosition.xyz;
     float t=dot(position-origin,ray),tolerance=waterPixelFootprint(position)*1.5+.002;
     float error=length(position-(origin+ray*t));
     ivec2 size=waterQuerySize(),pixel=clamp(ivec2(uv*vec2(size)),ivec2(0),size-1);
@@ -42,7 +46,7 @@ bool waterDDA(vec3 origin,vec3 V,vec3 ray,float range,out vec2 hitUV,out float d
             // arbitrary starting point. Use exact min/max texels, not bilinear
             // filtering, which is not conservative for depth intervals.
             int mip=min(5,textureQueryLevels(sceneNormal)-1);float cell=exp2(float(mip));
-            vec2 offset=vec2(queryAboveWater&&volume.w>.5?size.x*(queryWideAir?2.:1.):0.,0.);
+            vec2 offset=vec2(queryAboveWater&&volume.w>.5?size.x*waterQueryColumn():0.,0.);
             vec2 tile=floor((pixel+step*.0001+offset)/cell);
             vec2 boundary=(tile+vec2(step.x>=0.?1.:0.,step.y>=0.?1.:0.))*cell-offset;
             vec2 exitDistance=vec2(1e20);
@@ -117,7 +121,7 @@ float waterSlabLut(float tau,float albedo,float g,float noL) {
         float aa=min(floor(a)+float(ai),3.),gb=min(floor(gi)+float(gg),4.);
         float weight=(ai==0?1.-fract(a):fract(a))*(gg==0?1.-fract(gi):fract(gi));
         float row=(aa*5.+gb)*16.+w;
-        result+=weight*textureLod(multipleScatterLut,vec2((t+.5)/16.,(row+.5)/320.),0).r;
+        result+=weight*textureLod(multipleScatterLut,vec3(vec2(t+.5,row+.5)/vec2(textureSize(multipleScatterLut,0).xy),2.),0).r;
     }
     return result;
 }

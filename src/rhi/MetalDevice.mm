@@ -13,12 +13,18 @@
 #include <cstdlib>
 #include <fstream>
 #include <map>
+#include <chrono>
+#include <cmath>
 #include <stdexcept>
 namespace rhi {namespace {
 using json=nlohmann::json;
 void require(bool ok,const std::string& message){if(!ok)throw std::runtime_error("RHI Metal: "+message);}
 std::string errorText(NSError* error){return error?std::string(error.localizedDescription.UTF8String):std::string("unknown Metal error");}
 struct Buffer{id<MTLBuffer> gpu;size_t size;};
+struct MetalRayScene final : RayTracingScene {
+    id<MTLAccelerationStructure> tlas=nil;
+    std::vector<id<MTLAccelerationStructure>> blas;
+};
 struct NativeState{
     id<MTLDevice> device=nil;id<MTLCommandQueue> queue=nil;id<MTLCommandBuffer> command=nil;
     CAMetalLayer* layer=nil;id<CAMetalDrawable> drawable=nil;id<MTLTexture> screen=nil;
@@ -42,9 +48,60 @@ public:
     ~MetalDevice() override {try{close();}catch(...){}}
     std::vector<GpuProfileSample> drainGpuProfileImpl() override {auto result=std::move(profileSamples_);profileSamples_.clear();return result;}
     bool supportsWireframe() const override { return true; }
+    bool supportsNativeRayTracing() const override {
+        if(@available(macOS 12.0,*))return state_.device.supportsRaytracing;
+        return false;
+    }
+    std::shared_ptr<RayTracingScene> buildRayTracingScene(const RayTracingSceneDesc& desc) override {
+        checkThread();require(isOpen()&&supportsNativeRayTracing(),"native ray queries unavailable");
+        require(!desc.meshes.empty()&&!desc.instances.empty()&&desc.vertexCount&&desc.vertexStride>=12&&desc.vertexStride%4==0,"invalid ray scene geometry");
+        const auto &vertices=state_.buffers.at(nativeBuffer(desc.vertices,BufferUsage::Storage));
+        require(vertices.size>=12&&size_t(desc.vertexCount-1)<= (vertices.size-12)/desc.vertexStride,"ray scene vertex range exceeds buffer");
+        endEncoders();finish(); // Publish all buffer writes before AS construction.
+        auto start=std::chrono::steady_clock::now();auto scene=std::make_shared<MetalRayScene>();scene->owner=shared_from_this();
+        auto cb=[state_.queue commandBuffer];require(cb!=nil,"AS command buffer allocation failed");
+        auto build=[&](MTLAccelerationStructureDescriptor* d){
+            auto sizes=[state_.device accelerationStructureSizesWithDescriptor:d];
+            auto as=[state_.device newAccelerationStructureWithSize:sizes.accelerationStructureSize];
+            auto scratch=[state_.device newBufferWithLength:std::max(NSUInteger(1),sizes.buildScratchBufferSize) options:MTLResourceStorageModePrivate];
+            require(as!=nil&&scratch!=nil,"AS allocation failed");
+            auto encoder=[cb accelerationStructureCommandEncoder];
+            [encoder buildAccelerationStructure:as descriptor:d scratchBuffer:scratch scratchBufferOffset:0];[encoder endEncoding];
+            scene->bytes+=sizes.accelerationStructureSize;return as;
+        };
+        NSMutableArray<id<MTLAccelerationStructure>>* bottoms=[NSMutableArray new];
+        if(desc.previousGeometry){
+            require(desc.previousGeometry->owner.lock().get()==this,"foreign BLAS reuse");auto previous=std::dynamic_pointer_cast<MetalRayScene>(desc.previousGeometry);
+            require(previous&&previous->blas.size()==desc.meshes.size(),"invalid BLAS reuse");
+            for(auto as:previous->blas){[bottoms addObject:as];scene->blas.push_back(as);scene->bytes+=as.size;}
+        }
+        else for(const auto &mesh:desc.meshes){
+            require(mesh.indices&&mesh.triangles&&mesh.indexStride>=12&&mesh.indexStride%4==0,"invalid ray mesh indices");
+            std::vector<uint32_t> indices(size_t(mesh.triangles)*3);
+            for(uint32_t t=0;t<mesh.triangles;++t){const auto* source=reinterpret_cast<const uint32_t*>(reinterpret_cast<const uint8_t*>(mesh.indices)+size_t(t)*mesh.indexStride);for(uint32_t k=0;k<3;++k){require(source[k]<desc.vertexCount,"ray mesh index out of range");indices[size_t(t)*3+k]=source[k];}}
+            auto indexBuffer=[state_.device newBufferWithBytes:indices.data() length:indices.size()*sizeof(uint32_t) options:MTLResourceStorageModeShared];require(indexBuffer!=nil,"AS index buffer allocation failed");
+            auto geometry=[MTLAccelerationStructureTriangleGeometryDescriptor descriptor];
+            geometry.vertexBuffer=vertices.gpu;geometry.vertexStride=desc.vertexStride;
+            geometry.indexBuffer=indexBuffer;geometry.indexType=MTLIndexTypeUInt32;geometry.triangleCount=mesh.triangles;
+            geometry.opaque=NO; // Every candidate passes the shared alpha/material logic.
+            auto primitive=[MTLPrimitiveAccelerationStructureDescriptor descriptor];primitive.geometryDescriptors=@[geometry];
+            auto as=build(primitive);[bottoms addObject:as];scene->blas.push_back(as);++scene->blasBuilds;
+        }
+        std::vector<MTLAccelerationStructureInstanceDescriptor> instances(desc.instances.size());
+        for(size_t i=0;i<instances.size();++i){const auto &source=desc.instances[i];require(source.mesh<scene->blas.size(),"ray instance mesh out of range");auto &target=instances[i];
+            for(uint32_t c=0;c<4;++c)for(uint32_t r=0;r<3;++r){const float value=source.transform[c*4+r];require(std::isfinite(value),"nonfinite ray instance transform");reinterpret_cast<float*>(&target.transformationMatrix)[c*3+r]=value;}
+            target.mask=0xff;target.options=MTLAccelerationStructureInstanceOptionNone;target.accelerationStructureIndex=source.mesh;
+        }
+        auto instanceBuffer=[state_.device newBufferWithBytes:instances.data() length:instances.size()*sizeof(instances[0]) options:MTLResourceStorageModeShared];require(instanceBuffer!=nil,"AS instance buffer allocation failed");
+        auto top=[MTLInstanceAccelerationStructureDescriptor descriptor];top.instancedAccelerationStructures=bottoms;top.instanceDescriptorBuffer=instanceBuffer;top.instanceCount=instances.size();
+        scene->tlas=build(top);[cb commit];[cb waitUntilCompleted];require(cb.status!=MTLCommandBufferStatusError,"AS build: "+errorText(cb.error));
+        scene->blasCount=scene->blas.size();scene->instanceCount=instances.size();scene->buildSeconds=std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count();return scene;
+    }
     rhi::ComputeLimits computeLimits() const override {
         auto size=state_.device.maxThreadsPerThreadgroup;
-        return {true,{65535,65535,65535},{uint32_t(size.width),uint32_t(size.height),uint32_t(size.depth)},1024,16,size_t(state_.device.maxBufferLength),16,16,16,16};
+        // Metal has 31 buffer argument slots; our three groups of eight use
+        // slots 0..23. Do not impose an artificial 16-storage-buffer ceiling.
+        return {true,{65535,65535,65535},{uint32_t(size.width),uint32_t(size.height),uint32_t(size.depth)},1024,16,size_t(state_.device.maxBufferLength),24,16,16,16};
     }
     std::array<uint32_t,2> presentationExtent()const override{if(hasConfiguredExtent_)return configuredExtent_;int w=0,h=0;if(state_.window)glfwGetFramebufferSize(state_.window,&w,&h);return {uint32_t(w),uint32_t(h)};}
     bool supportsPresentation() const override {return state_.window!=nullptr;}
@@ -52,7 +109,7 @@ public:
     bool supportsTexture(rhi::Format format,rhi::TextureUsage usage) const override {
         if(!uint32_t(usage)||(uint32_t(usage)&~63u))return false;
         if(format==rhi::Format::Depth32Float)return rhi::hasUsage(usage,rhi::TextureUsage::DepthAttachment) && !(uint32_t(usage)&~uint32_t(rhi::TextureUsage::DepthAttachment|rhi::TextureUsage::Sampled|rhi::TextureUsage::CopySource));
-        return (format==rhi::Format::RGBA8UNorm||format==rhi::Format::RGBA16Float||format==rhi::Format::RGBA32Float)&&!rhi::hasUsage(usage,rhi::TextureUsage::DepthAttachment);
+        return (format==rhi::Format::RGBA8UNorm||format==rhi::Format::RGBA16Float||format==rhi::Format::RGBA32Float||format==rhi::Format::R16Float||format==rhi::Format::R32Float)&&!rhi::hasUsage(usage,rhi::TextureUsage::DepthAttachment);
     }
 protected:
     static std::unordered_map<uint32_t,uint32_t> textureSlots(const rhi::ShaderAsset& asset) {
@@ -66,7 +123,7 @@ protected:
         }return result;
     }
     static MTLPixelFormat format(rhi::Format value) {
-        return value==rhi::Format::RGBA8UNorm?MTLPixelFormatRGBA8Unorm:value==rhi::Format::RGBA16Float?MTLPixelFormatRGBA16Float:value==rhi::Format::RGBA32Float?MTLPixelFormatRGBA32Float:MTLPixelFormatDepth32Float;
+        return value==rhi::Format::RGBA8UNorm?MTLPixelFormatRGBA8Unorm:value==rhi::Format::RGBA16Float?MTLPixelFormatRGBA16Float:value==rhi::Format::RGBA32Float?MTLPixelFormatRGBA32Float:value==rhi::Format::R16Float?MTLPixelFormatR16Float:value==rhi::Format::R32Float?MTLPixelFormatR32Float:MTLPixelFormatDepth32Float;
     }
     PipelineDiskCacheStats pipelineDiskCacheStatsImpl() const override {return diskStats_;}
     void savePipelineDiskCacheImpl() override {
@@ -96,11 +153,13 @@ protected:
         texture.label=[NSString stringWithUTF8String:desc.label.c_str()];auto id=state_.next++;rhiTextures_[id]=texture;return id;
     }
     NativeObject createTextureViewImpl(NativeObject id,const rhi::TextureDesc& desc,const rhi::TextureViewDesc& selection) override {
-        auto view=[rhiTextures_.at(id) newTextureViewWithPixelFormat:format(desc.format) textureType:MTLTextureType2D levels:NSMakeRange(selection.range.firstMip,selection.range.mipCount) slices:NSMakeRange(selection.range.firstLayer,1)];require(view!=nil,"RHI texture view creation failed");
+        auto view=[rhiTextures_.at(id) newTextureViewWithPixelFormat:format(desc.format) textureType:(selection.range.layerCount>1?MTLTextureType2DArray:MTLTextureType2D) levels:NSMakeRange(selection.range.firstMip,selection.range.mipCount) slices:NSMakeRange(selection.range.firstLayer,selection.range.layerCount)];require(view!=nil,"RHI texture view creation failed");
         auto handle=state_.next++;rhiViews_[handle]=view;return handle;
     }
     NativeObject createSamplerImpl(const rhi::SamplerDesc& desc) override {
         auto d=[MTLSamplerDescriptor new];d.minFilter=d.magFilter=desc.filter==rhi::Filter::Nearest?MTLSamplerMinMagFilterNearest:MTLSamplerMinMagFilterLinear;
+        d.mipFilter=desc.mipLinear?MTLSamplerMipFilterLinear:MTLSamplerMipFilterNotMipmapped;
+        d.maxAnisotropy=desc.maxAnisotropy;
         d.sAddressMode=d.tAddressMode=desc.address==rhi::AddressMode::Repeat?MTLSamplerAddressModeRepeat:MTLSamplerAddressModeClampToEdge;
         auto sampler=[state_.device newSamplerStateWithDescriptor:d];require(sampler!=nil,"RHI sampler creation failed");
         auto id=state_.next++;rhiSamplers_[id]=sampler;return id;
@@ -151,7 +210,7 @@ protected:
     void destroySamplerImpl(NativeObject id) noexcept override {rhiSamplers_.erase(id);}
     void destroyPipelineImpl(NativeObject id) noexcept override {rhiPipelines_.erase(id);}
     void writeTextureRegionImpl(NativeObject id,const rhi::TextureDesc& desc,rhi::TextureRegion r,const void* pixels,size_t) override {
-        const size_t pixelBytes=desc.format==rhi::Format::RGBA8UNorm?4:16;
+        const size_t pixelBytes=rhi::formatPixelBytes(desc.format);
         const size_t row=(size_t(r.width)*pixelBytes+255)&~size_t(255);
         auto buffer=[state_.device newBufferWithLength:row*r.height options:MTLResourceStorageModeShared];require(buffer!=nil,"RHI texture staging failed");
         for(size_t y=0;y<r.height;++y)memcpy(static_cast<uint8_t*>(buffer.contents)+y*row,static_cast<const uint8_t*>(pixels)+y*r.width*pixelBytes,r.width*pixelBytes);
@@ -171,14 +230,14 @@ protected:
         for(size_t y=0;y<desc.height;++y)memcpy(result.data()+y*desc.width*pixelBytes,static_cast<uint8_t*>(buffer.contents)+y*row,desc.width*pixelBytes);return result;
     }
     std::function<void()> queueTextureReadbackImpl(NativeObject id,const rhi::TextureDesc& desc,std::shared_ptr<std::vector<uint8_t>> output,rhi::TextureSubresource level) override {
-        const size_t pixelBytes=desc.format==rhi::Format::RGBA8UNorm || desc.format==rhi::Format::Depth32Float?4:desc.format==rhi::Format::RGBA16Float?8:16,row=(size_t(desc.width)*pixelBytes+255)&~size_t(255);
+        const size_t pixelBytes=rhi::formatPixelBytes(desc.format),row=(size_t(desc.width)*pixelBytes+255)&~size_t(255);
         auto buffer=[state_.device newBufferWithLength:row*desc.height options:MTLResourceStorageModeShared];require(buffer!=nil,"RHI async staging allocation failed");endEncoders();command();auto e=[state_.command blitCommandEncoder];[e copyFromTexture:rhiTextures_.at(id) sourceSlice:level.layer sourceLevel:level.mip sourceOrigin:MTLOriginMake(0,0,0) sourceSize:MTLSizeMake(desc.width,desc.height,1) toBuffer:buffer destinationOffset:0 destinationBytesPerRow:row destinationBytesPerImage:row*desc.height];[e endEncoding];
         return [buffer,row,pixelBytes,desc,output]{output->resize(size_t(desc.width)*desc.height*pixelBytes);for(size_t y=0;y<desc.height;++y)memcpy(output->data()+y*desc.width*pixelBytes,static_cast<const uint8_t*>(buffer.contents)+y*row,desc.width*pixelBytes);};
     }
     std::vector<uint8_t> readTextureImpl(NativeObject id,const rhi::TextureDesc& desc) override {return readPixels(id,desc,4);}
     std::vector<float> readTextureFloatImpl(NativeObject id,const rhi::TextureDesc& desc) override {
-        if(desc.format==rhi::Format::RGBA16Float)return rhi::decodeHalfPixels(readPixels(id,desc,8));
-        auto bytes=readPixels(id,desc,desc.format==rhi::Format::Depth32Float?4:16);std::vector<float> values(bytes.size()/4);memcpy(values.data(),bytes.data(),bytes.size());return values;
+        if(desc.format==rhi::Format::RGBA16Float || desc.format==rhi::Format::R16Float)return rhi::decodeHalfPixels(readPixels(id,desc,rhi::formatPixelBytes(desc.format)));
+        auto bytes=readPixels(id,desc,rhi::formatPixelBytes(desc.format));std::vector<float> values(bytes.size()/4);memcpy(values.data(),bytes.data(),bytes.size());return values;
     }
     void copyToBackbufferImpl(NativeObject id,const rhi::TextureDesc& desc) override {
         require(frameActive() || state_.drawable!=nil,"RHI: beginFrame is required before backbuffer copy");
@@ -208,25 +267,38 @@ fragment float4 rhiPresentFragment(float4 position [[position]],texture2d<float>
         endEncoders();command();
         auto load=[](rhi::LoadOp value) {return value==rhi::LoadOp::Clear?MTLLoadActionClear:value==rhi::LoadOp::Load?MTLLoadActionLoad:MTLLoadActionDontCare;};
         auto store=[](rhi::StoreOp value) {return value==rhi::StoreOp::Store?MTLStoreActionStore:MTLStoreActionDontCare;};
-        for(const auto& pass:passes) {
+        for(size_t passIndex=0;passIndex<passes.size();++passIndex) {
+            const auto& pass=passes[passIndex];
             if(pass.copy) {
                 const auto& desc=textureDesc(pass.copySource);auto e=profileBlit(pass.label.empty()?"texture-copy":pass.label);e.label=[NSString stringWithUTF8String:pass.label.c_str()];
                 [e copyFromTexture:rhiTextures_.at(textureObject(pass.copySource)) sourceSlice:pass.sourceSubresource.layer sourceLevel:pass.sourceSubresource.mip sourceOrigin:MTLOriginMake(0,0,0) sourceSize:MTLSizeMake(std::max(1u,desc.width>>pass.sourceSubresource.mip),std::max(1u,desc.height>>pass.sourceSubresource.mip),1) toTexture:rhiTextures_.at(textureObject(pass.copyDestination)) destinationSlice:pass.destinationSubresource.layer destinationLevel:pass.destinationSubresource.mip destinationOrigin:MTLOriginMake(0,0,0)];[e endEncoding];continue;
             }
             if(pass.compute) {
-                const auto& dispatch=pass.dispatch;const auto& desc=computePipelineDesc(dispatch.pipeline);
-                auto computeDesc=[MTLComputePassDescriptor computePassDescriptor];auto sample=profilePass(pass.label.empty()?desc.label:pass.label,"compute",2);
+                auto clusterCompute=[](const rhi::RecordedPass& p){return p.compute&&(p.label.rfind("clusters/",0)==0||p.label.rfind("hiz/",0)==0);};
+                size_t last=passIndex;
+                if(!std::getenv("SCENERENDERER_DISABLE_CLUSTER_ENCODER_BATCH")&&clusterCompute(pass))
+                    while(last+1<passes.size()&&clusterCompute(passes[last+1]))++last;
+                const auto& firstDesc=computePipelineDesc(pass.dispatch.pipeline);
+                auto label=pass.label.empty()?firstDesc.label:pass.label;
+                if(last>passIndex)label+="-batch/"+std::to_string(last-passIndex+1);
+                auto computeDesc=[MTLComputePassDescriptor computePassDescriptor];auto sample=profilePass(label,"compute",2);
                 if(sample.buffer){auto a=computeDesc.sampleBufferAttachments[0];a.sampleBuffer=sample.buffer;a.startOfEncoderSampleIndex=sample.index;a.endOfEncoderSampleIndex=sample.index+1;}
-                auto e=[state_.command computeCommandEncoderWithDescriptor:computeDesc];require(e!=nil,"RHI compute encoder creation failed");e.label=[NSString stringWithUTF8String:pass.label.c_str()];
-                const auto& pipeline=rhiComputePipelines_.at(computePipelineObject(dispatch.pipeline));[e setComputePipelineState:pipeline.pipeline];
-                for(auto set:dispatch.bindings)for(const auto& b:resolvedBindings(set)) {
-                    if(b.buffer)[e setBuffer:state_.buffers.at(b.buffer).gpu offset:b.offset atIndex:b.layout.binding];
-                    else {const auto index=pipeline.textures.at(b.layout.binding);[e setTexture:rhiViews_.at(b.textureView) atIndex:index];if(b.sampler)[e setSamplerState:rhiSamplers_.at(b.sampler) atIndex:index];}
+                auto e=[state_.command computeCommandEncoderWithDescriptor:computeDesc];require(e!=nil,"RHI compute encoder creation failed");e.label=[NSString stringWithUTF8String:label.c_str()];
+                // Serial dispatch order plus an explicit buffer/texture barrier
+                // replaces encoder boundaries for this validated cluster chain.
+                for(size_t i=passIndex;i<=last;++i){
+                    if(i>passIndex)[e memoryBarrierWithScope:MTLBarrierScopeBuffers|MTLBarrierScopeTextures];
+                    const auto& dispatch=passes[i].dispatch;const auto& desc=computePipelineDesc(dispatch.pipeline);
+                    const auto& pipeline=rhiComputePipelines_.at(computePipelineObject(dispatch.pipeline));[e setComputePipelineState:pipeline.pipeline];
+                    if(dispatch.rayScene){auto scene=std::dynamic_pointer_cast<MetalRayScene>(dispatch.rayScene);require(bool(scene),"foreign native AS implementation");[e setAccelerationStructure:scene->tlas atBufferIndex:24];for(auto as:scene->blas)[e useResource:as usage:MTLResourceUsageRead];}
+                    for(auto set:dispatch.bindings)for(const auto& b:resolvedBindings(set)) {
+                        if(b.buffer)[e setBuffer:state_.buffers.at(b.buffer).gpu offset:b.offset atIndex:b.layout.binding];
+                        else {const auto index=pipeline.textures.at(b.layout.binding);[e setTexture:rhiViews_.at(b.textureView) atIndex:index];if(b.sampler)[e setSamplerState:rhiSamplers_.at(b.sampler) atIndex:index];}
+                    }
+                    if(dispatch.indirect)[e dispatchThreadgroupsWithIndirectBuffer:state_.buffers.at(unsigned(nativeBuffer(dispatch.indirect,rhi::BufferUsage::Indirect))).gpu indirectBufferOffset:dispatch.indirectOffset threadsPerThreadgroup:MTLSizeMake(desc.threads[0],desc.threads[1],desc.threads[2])];
+                    else [e dispatchThreadgroups:MTLSizeMake(dispatch.groups[0],dispatch.groups[1],dispatch.groups[2]) threadsPerThreadgroup:MTLSizeMake(desc.threads[0],desc.threads[1],desc.threads[2])];
                 }
-                if(dispatch.indirect)[e dispatchThreadgroupsWithIndirectBuffer:state_.buffers.at(unsigned(nativeBuffer(dispatch.indirect,rhi::BufferUsage::Indirect))).gpu indirectBufferOffset:dispatch.indirectOffset threadsPerThreadgroup:MTLSizeMake(desc.threads[0],desc.threads[1],desc.threads[2])];
-                else [e dispatchThreadgroups:MTLSizeMake(dispatch.groups[0],dispatch.groups[1],dispatch.groups[2]) threadsPerThreadgroup:MTLSizeMake(desc.threads[0],desc.threads[1],desc.threads[2])];
-                // Tracked resources and encoder boundaries resolve compute -> compute/render hazards.
-                [e endEncoding];continue;
+                [e endEncoding];passIndex=last;continue;
             }
             const auto& desc=viewTextureDesc(pass.desc.color?pass.desc.color:pass.desc.depth);auto d=[MTLRenderPassDescriptor renderPassDescriptor];
             const auto colors=rhi::colorAttachments(pass.desc);
@@ -296,6 +368,12 @@ fragment float4 rhiPresentFragment(float4 position [[position]],texture2d<float>
     void readBufferImpl(NativeBuffer native,size_t offset,size_t size,void* data) override {
         waitIdleImpl();
         memcpy(data,static_cast<uint8_t*>(state_.buffers.at(static_cast<unsigned>(native)).gpu.contents)+offset,size);
+    }
+    void copyBufferImpl(NativeBuffer source,size_t sourceOffset,NativeBuffer destination,size_t destinationOffset,size_t size) override {
+        endEncoders();command();auto e=profileBlit("buffer-clone");
+        [e copyFromBuffer:state_.buffers.at(static_cast<unsigned>(source)).gpu sourceOffset:sourceOffset
+                 toBuffer:state_.buffers.at(static_cast<unsigned>(destination)).gpu destinationOffset:destinationOffset size:size];
+        [e endEncoding];
     }
     void bindUniformBufferImpl(uint32_t slot,NativeBuffer native,size_t offset,size_t) override {
         throw std::logic_error("Native Metal uses explicit BindingSet; legacy uniform binding is unavailable");

@@ -1,0 +1,771 @@
+{
+  "captured_at_utc": "2026-10-11T18:20:09.009261+00:00",
+  "hardware": "Apple M4",
+  "backend": "Metal",
+  "macos": "27.0.1",
+  "base_commit": "e1bee07578315192298d3daad19865ec98eaef98",
+  "measured_sha256": {
+    "build/Scene-Renderer": "6fce142219962f3696eba80c3b0fe1302677bf5ef72288158529da8e166d0c50",
+    "src/renderer/rhi/ClusterGeometry.cpp": "74c25651924223c9d7c65a5b3c0d062755032fbedaca552040f7fa4676825147",
+    "src/renderer/rhi/ClusterBuildComparison.cpp": "e718817bec2bd9d3904c630d8d30eb337b44636efa4998b636cf606e7d431099"
+  },
+  "cpu_hierarchy_stdout": [
+    "Attribute seam packing: 4608 -> 38 leaf meshlets; original corners and chart boundaries preserved",
+    "Cluster hierarchy: 38 leaf meshlets, 55 groups, 4608 -> 2820 triangles; mixed cuts preserve exact boundary edges",
+    "Cluster hierarchy validation passed"
+  ],
+  "metal_api_and_shader_validation": {
+    "alpha_protected": true,
+    "batch_dispatches_after": 3,
+    "batch_dispatches_before": 9,
+    "batch_indices_and_pixels_equal": true,
+    "cluster_frustum_reference": true,
+    "cluster_hiz": {
+      "comparisons": 11,
+      "display_equal": true,
+      "hdr_max_error": 0.0,
+      "hidden_triangles_removed": 512,
+      "same_frame_lod_depth": true
+    },
+    "grid": [
+      {
+        "cpu_gpu_indices_equal": true,
+        "pixel_budget": 0.0,
+        "selected_triangles": 4608,
+        "source_triangles": 4608
+      },
+      {
+        "cpu_gpu_indices_equal": true,
+        "pixel_budget": 0.25,
+        "selected_triangles": 4608,
+        "source_triangles": 4608
+      },
+      {
+        "cpu_gpu_indices_equal": true,
+        "pixel_budget": 1.0,
+        "selected_triangles": 4608,
+        "source_triangles": 4608
+      },
+      {
+        "cpu_gpu_indices_equal": true,
+        "pixel_budget": 4.0,
+        "selected_triangles": 3842,
+        "source_triangles": 4608
+      },
+      {
+        "cpu_gpu_indices_equal": true,
+        "pixel_budget": 64.0,
+        "selected_triangles": 2820,
+        "source_triangles": 4608
+      }
+    ],
+    "orthographic_reference": true,
+    "pyramid_oracle": {
+      "base_mips": [
+        0,
+        2
+      ],
+      "builders": [
+        "single_level",
+        "three_level_fused"
+      ],
+      "checked_texels": 1569260,
+      "exact": true,
+      "sizes": 8
+    },
+    "scatter_2d": {
+      "clusters": 65537,
+      "indices_exact": true
+    },
+    "scope": "actual GPU indices compared byte-for-byte with independent CPU hierarchical cut",
+    "seam_split_gpu_exact": true,
+    "shear_mirror_scale": true,
+    "two_stage": {
+      "cases": [
+        {
+          "case": "cold",
+          "cut_triangles": 1536,
+          "early_triangles": 1536,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": false,
+          "late_triangles": 0,
+          "rejected_triangles": 0
+        },
+        {
+          "case": "warm",
+          "cut_triangles": 1536,
+          "early_triangles": 1024,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": true,
+          "late_triangles": 0,
+          "rejected_triangles": 512
+        },
+        {
+          "case": "occluder-moves",
+          "cut_triangles": 1536,
+          "early_triangles": 1024,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": true,
+          "late_triangles": 512,
+          "rejected_triangles": 0
+        },
+        {
+          "case": "occluder-returns",
+          "cut_triangles": 1536,
+          "early_triangles": 1536,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": true,
+          "late_triangles": 0,
+          "rejected_triangles": 0
+        },
+        {
+          "case": "alpha-hole-opens",
+          "cut_triangles": 1536,
+          "early_triangles": 1024,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": true,
+          "late_triangles": 512,
+          "rejected_triangles": 0
+        },
+        {
+          "case": "equal-depth",
+          "cut_triangles": 1536,
+          "early_triangles": 1536,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": true,
+          "late_triangles": 0,
+          "rejected_triangles": 0
+        },
+        {
+          "case": "mirror-shear",
+          "cut_triangles": 1536,
+          "early_triangles": 1024,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": true,
+          "late_triangles": 0,
+          "rejected_triangles": 512
+        },
+        {
+          "case": "coarse-current-cut",
+          "cut_triangles": 1536,
+          "early_triangles": 1024,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": true,
+          "late_triangles": 0,
+          "rejected_triangles": 512
+        },
+        {
+          "case": "fine-current-cut",
+          "cut_triangles": 1536,
+          "early_triangles": 1024,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": true,
+          "late_triangles": 0,
+          "rejected_triangles": 512
+        },
+        {
+          "case": "camera-pan",
+          "cut_triangles": 1536,
+          "early_triangles": 1024,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": true,
+          "late_triangles": 0,
+          "rejected_triangles": 512
+        },
+        {
+          "case": "camera-return",
+          "cut_triangles": 1536,
+          "early_triangles": 1024,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": true,
+          "late_triangles": 0,
+          "rejected_triangles": 512
+        },
+        {
+          "case": "camera-cut-perspective",
+          "cut_triangles": 1536,
+          "early_triangles": 1536,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": true,
+          "late_triangles": 0,
+          "rejected_triangles": 0
+        },
+        {
+          "case": "near-plane",
+          "cut_triangles": 1536,
+          "early_triangles": 1536,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": true,
+          "late_triangles": 0,
+          "rejected_triangles": 0
+        },
+        {
+          "case": "occluder-removal",
+          "cut_triangles": 1024,
+          "early_triangles": 512,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": true,
+          "late_triangles": 512,
+          "rejected_triangles": 0
+        },
+        {
+          "case": "mesh-return",
+          "cut_triangles": 1536,
+          "early_triangles": 1536,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": true,
+          "late_triangles": 0,
+          "rejected_triangles": 0
+        },
+        {
+          "case": "odd-resize",
+          "cut_triangles": 1536,
+          "early_triangles": 1536,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": false,
+          "late_triangles": 0,
+          "rejected_triangles": 0
+        },
+        {
+          "case": "odd-resize-warm",
+          "cut_triangles": 1536,
+          "early_triangles": 1024,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": true,
+          "late_triangles": 0,
+          "rejected_triangles": 512
+        },
+        {
+          "case": "explicit-reset",
+          "cut_triangles": 1536,
+          "early_triangles": 1536,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": false,
+          "late_triangles": 0,
+          "rejected_triangles": 0
+        },
+        {
+          "case": "duplicate-ids",
+          "cut_triangles": 1536,
+          "early_triangles": 1024,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": true,
+          "late_triangles": 0,
+          "rejected_triangles": 512
+        },
+        {
+          "case": "duplicate-ids-warm",
+          "cut_triangles": 1536,
+          "early_triangles": 1024,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": true,
+          "late_triangles": 0,
+          "rejected_triangles": 512
+        },
+        {
+          "case": "geometry-revision",
+          "cut_triangles": 1536,
+          "early_triangles": 1024,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": true,
+          "late_triangles": 0,
+          "rejected_triangles": 512
+        },
+        {
+          "case": "toggle-reenable",
+          "cut_triangles": 1536,
+          "early_triangles": 1536,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": false,
+          "late_triangles": 0,
+          "rejected_triangles": 0
+        },
+        {
+          "case": "legacy-reenable",
+          "cut_triangles": 1536,
+          "early_triangles": 1536,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": false,
+          "late_triangles": 0,
+          "rejected_triangles": 0
+        },
+        {
+          "case": "hierarchy-ready",
+          "cut_triangles": 1536,
+          "early_triangles": 1536,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": false,
+          "late_triangles": 0,
+          "rejected_triangles": 0
+        },
+        {
+          "case": "unsupported-packet-fallback",
+          "display_equal": true,
+          "no_unused_hiz": true
+        },
+        {
+          "case": "taa-jitter-0",
+          "cut_triangles": 1536,
+          "early_triangles": 1536,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": false,
+          "late_triangles": 0,
+          "rejected_triangles": 0
+        },
+        {
+          "case": "taa-jitter-1",
+          "cut_triangles": 1536,
+          "early_triangles": 1024,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": true,
+          "late_triangles": 0,
+          "rejected_triangles": 512
+        },
+        {
+          "case": "taa-jitter-2",
+          "cut_triangles": 1536,
+          "early_triangles": 1024,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": true,
+          "late_triangles": 0,
+          "rejected_triangles": 512
+        },
+        {
+          "case": "taa-jitter-3",
+          "cut_triangles": 1536,
+          "early_triangles": 1024,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": true,
+          "late_triangles": 0,
+          "rejected_triangles": 512
+        },
+        {
+          "case": "taa-jitter-4",
+          "cut_triangles": 1536,
+          "early_triangles": 1024,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": true,
+          "late_triangles": 0,
+          "rejected_triangles": 512
+        },
+        {
+          "case": "taa-jitter-5",
+          "cut_triangles": 1536,
+          "early_triangles": 1024,
+          "hdr_display_gbuffer_equal": true,
+          "history_used": true,
+          "late_triangles": 0,
+          "rejected_triangles": 512
+        }
+      ],
+      "hdr_max_error": 0.0,
+      "recovered_triangles": 1536,
+      "six_gbuffer_attachments_compared": true
+    },
+    "visibility_recovery": true,
+    "zero_error_pixels_equal": true
+  },
+  "scene_comparisons": {
+    "sponza": {
+      "legacy_0px": {
+        "cpu_cut_and_hiz_attachments_exact": true,
+        "source_hdr_relative_rmse": 2.9257635441886025e-05,
+        "source_changed_display_pixels": 1
+      },
+      "legacy_16px": {
+        "cpu_cut_and_hiz_attachments_exact": true,
+        "source_hdr_relative_rmse": 0.018956163866741257,
+        "source_changed_display_pixels": 33280
+      },
+      "legacy_4px": {
+        "cpu_cut_and_hiz_attachments_exact": true,
+        "source_hdr_relative_rmse": 0.012361067055119425,
+        "source_changed_display_pixels": 2880
+      },
+      "optimized_0px": {
+        "cpu_cut_and_hiz_attachments_exact": true,
+        "source_hdr_relative_rmse": 0.001522084163717902,
+        "source_changed_display_pixels": 6
+      },
+      "optimized_16px": {
+        "cpu_cut_and_hiz_attachments_exact": true,
+        "source_hdr_relative_rmse": 0.005610693484713048,
+        "source_changed_display_pixels": 3876
+      },
+      "optimized_4px": {
+        "cpu_cut_and_hiz_attachments_exact": true,
+        "source_hdr_relative_rmse": 0.004412215595508211,
+        "source_changed_display_pixels": 193
+      }
+    },
+    "dragon": {
+      "legacy_0px": {
+        "cpu_cut_and_hiz_attachments_exact": true,
+        "source_hdr_relative_rmse": 0.0,
+        "source_changed_display_pixels": 0
+      },
+      "legacy_16px": {
+        "cpu_cut_and_hiz_attachments_exact": true,
+        "source_hdr_relative_rmse": 0.4283431701891582,
+        "source_changed_display_pixels": 11207
+      },
+      "legacy_4px": {
+        "cpu_cut_and_hiz_attachments_exact": true,
+        "source_hdr_relative_rmse": 0.2304900803541155,
+        "source_changed_display_pixels": 7239
+      },
+      "optimized_0px": {
+        "cpu_cut_and_hiz_attachments_exact": true,
+        "source_hdr_relative_rmse": 0.0,
+        "source_changed_display_pixels": 0
+      },
+      "optimized_16px": {
+        "cpu_cut_and_hiz_attachments_exact": true,
+        "source_hdr_relative_rmse": 0.21191581678034183,
+        "source_changed_display_pixels": 5875
+      },
+      "optimized_4px": {
+        "cpu_cut_and_hiz_attachments_exact": true,
+        "source_hdr_relative_rmse": 0.21191336292198734,
+        "source_changed_display_pixels": 5747
+      }
+    },
+    "buddha": {
+      "legacy_0px": {
+        "cpu_cut_and_hiz_attachments_exact": true,
+        "source_hdr_relative_rmse": 0.0,
+        "source_changed_display_pixels": 0
+      },
+      "legacy_16px": {
+        "cpu_cut_and_hiz_attachments_exact": true,
+        "source_hdr_relative_rmse": 0.04726363474065805,
+        "source_changed_display_pixels": 16087
+      },
+      "legacy_4px": {
+        "cpu_cut_and_hiz_attachments_exact": true,
+        "source_hdr_relative_rmse": 0.027495653789408738,
+        "source_changed_display_pixels": 10408
+      },
+      "optimized_0px": {
+        "cpu_cut_and_hiz_attachments_exact": true,
+        "source_hdr_relative_rmse": 0.0,
+        "source_changed_display_pixels": 0
+      },
+      "optimized_16px": {
+        "cpu_cut_and_hiz_attachments_exact": true,
+        "source_hdr_relative_rmse": 0.019100810337450133,
+        "source_changed_display_pixels": 7920
+      },
+      "optimized_4px": {
+        "cpu_cut_and_hiz_attachments_exact": true,
+        "source_hdr_relative_rmse": 0.018997728328806942,
+        "source_changed_display_pixels": 7565
+      }
+    }
+  },
+  "ctest": {
+    "strategy": "Initial complete suite: 45/48 passed; retested three after correcting FFT test allowance and cold PT compile timeouts; all 48 now have passing results. Six focused regressions passed once more.",
+    "initial_failures": {
+      "pt-native-sky": "150 second timeout",
+      "pt-vulkan-sky": "90 second timeout",
+      "rhi-gpu": "FFT recovery test allowance updated from 128 to 256 MiB above existing allocations; oversized FFT still rejects and reduced tier recovers"
+    },
+    "passed": {
+      "cluster-hierarchy": {
+        "number": 1,
+        "passed": true,
+        "seconds": 0.11,
+        "log_source": "build/cluster-partition-final-regressions.log"
+      },
+      "pt-clustered-world-lod": {
+        "number": 2,
+        "passed": true,
+        "seconds": 0.03,
+        "log_source": "build/cluster-partition-final-regressions.log"
+      },
+      "ao-reference": {
+        "number": 3,
+        "passed": true,
+        "seconds": 0.01,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "pt-cpu": {
+        "number": 4,
+        "passed": true,
+        "seconds": 2.15,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "pt-groom": {
+        "number": 5,
+        "passed": true,
+        "seconds": 1.78,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "pt-knit-patterns": {
+        "number": 6,
+        "passed": true,
+        "seconds": 0.05,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "pt-photon": {
+        "number": 7,
+        "passed": true,
+        "seconds": 0.96,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "pt-scene-package": {
+        "number": 8,
+        "passed": true,
+        "seconds": 0.28,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "pt-medium": {
+        "number": 9,
+        "passed": true,
+        "seconds": 0.32,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "pt-denoiser": {
+        "number": 10,
+        "passed": true,
+        "seconds": 0.27,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "pt-viewport-postprocess": {
+        "number": 11,
+        "passed": true,
+        "seconds": 0.29,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "pt-procedural": {
+        "number": 12,
+        "passed": true,
+        "seconds": 0.39,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "pt-cornell-scene": {
+        "number": 13,
+        "passed": true,
+        "seconds": 0.03,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "rhi-temporal": {
+        "number": 14,
+        "passed": true,
+        "seconds": 0.27,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "raster-preview-native": {
+        "number": 16,
+        "passed": true,
+        "seconds": 0.41,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "water-native": {
+        "number": 17,
+        "passed": true,
+        "seconds": 3.76,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "geometry-culling-native": {
+        "number": 18,
+        "passed": true,
+        "seconds": 0.49,
+        "log_source": "build/cluster-partition-final-regressions.log"
+      },
+      "cluster-rendering-native": {
+        "number": 19,
+        "passed": true,
+        "seconds": 0.86,
+        "log_source": "build/cluster-partition-final-regressions.log"
+      },
+      "environment-rain-native": {
+        "number": 20,
+        "passed": true,
+        "seconds": 0.24,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "hiz-culling-native": {
+        "number": 21,
+        "passed": true,
+        "seconds": 0.33,
+        "log_source": "build/cluster-partition-final-regressions.log"
+      },
+      "post-process-native": {
+        "number": 22,
+        "passed": true,
+        "seconds": 0.16,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "engine-concurrency": {
+        "number": 23,
+        "passed": true,
+        "seconds": 0.37,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "engine-environment": {
+        "number": 24,
+        "passed": true,
+        "seconds": 0.28,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "rhi-nature": {
+        "number": 25,
+        "passed": true,
+        "seconds": 1.79,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "engine-environment-editor": {
+        "number": 26,
+        "passed": true,
+        "seconds": 2.27,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "nature-system": {
+        "number": 27,
+        "passed": true,
+        "seconds": 0.3,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "engine-render-graph": {
+        "number": 28,
+        "passed": true,
+        "seconds": 0.28,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "rhi-image-decoder": {
+        "number": 29,
+        "passed": true,
+        "seconds": 0.26,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "rhi-contract": {
+        "number": 30,
+        "passed": true,
+        "seconds": 0.26,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "rhi-graphics-contract": {
+        "number": 31,
+        "passed": true,
+        "seconds": 0.26,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "rhi-forward-scene": {
+        "number": 32,
+        "passed": true,
+        "seconds": 0.15,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "rhi-deferred-scene": {
+        "number": 33,
+        "passed": true,
+        "seconds": 0.18,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "rhi-ddgi": {
+        "number": 35,
+        "passed": true,
+        "seconds": 131.29,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "rhi-editor-resize": {
+        "number": 36,
+        "passed": true,
+        "seconds": 0.82,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "rhi-editor-terrain": {
+        "number": 37,
+        "passed": true,
+        "seconds": 0.71,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "rhi-editor-single-thread": {
+        "number": 38,
+        "passed": true,
+        "seconds": 0.22,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "rhi-editor-forward": {
+        "number": 39,
+        "passed": true,
+        "seconds": 0.23,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "geometry-culling-vulkan": {
+        "number": 40,
+        "passed": true,
+        "seconds": 0.51,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "cluster-rendering-vulkan": {
+        "number": 41,
+        "passed": true,
+        "seconds": 0.82,
+        "log_source": "build/cluster-partition-final-regressions.log"
+      },
+      "environment-rain-vulkan": {
+        "number": 42,
+        "passed": true,
+        "seconds": 4.29,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "hiz-culling-vulkan": {
+        "number": 43,
+        "passed": true,
+        "seconds": 0.32,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "raster-preview-vulkan": {
+        "number": 45,
+        "passed": true,
+        "seconds": 1.43,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "rhi-vulkan-gpu": {
+        "number": 46,
+        "passed": true,
+        "seconds": 9.05,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "environment-weather-native": {
+        "number": 47,
+        "passed": true,
+        "seconds": 15.17,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "environment-weather-vulkan": {
+        "number": 48,
+        "passed": true,
+        "seconds": 167.29,
+        "log_source": "build/cluster-partition-ctest.log"
+      },
+      "pt-native-sky": {
+        "number": 15,
+        "passed": true,
+        "seconds": 25.78,
+        "log_source": "build/cluster-partition-ctest-retest.log"
+      },
+      "rhi-gpu": {
+        "number": 34,
+        "passed": true,
+        "seconds": 33.71,
+        "log_source": "build/cluster-partition-ctest-retest.log"
+      },
+      "pt-vulkan-sky": {
+        "number": 44,
+        "passed": true,
+        "seconds": 185.1,
+        "log_source": "build/cluster-partition-ctest-retest.log"
+      }
+    }
+  },
+  "all_cmake_targets_build": "passed, including standalone Vulkan validation",
+  "final_core_source_sha256": {
+    "include/renderer/rhi/ClusterGeometry.h": "1369a6104ad7cbf1e90ce953bd8dcae0a98c78fd88af4bd3e5de4c7ebeb278e0",
+    "src/renderer/rhi/ClusterGeometry.cpp": "74c25651924223c9d7c65a5b3c0d062755032fbedaca552040f7fa4676825147",
+    "src/renderer/rhi/ClusterBuildComparison.cpp": "e718817bec2bd9d3904c630d8d30eb337b44636efa4998b636cf606e7d431099",
+    "src/renderer/rhi/ClusterValidation.cpp": "49663d1f669e70343c65f0c7c17c6f4c1c3ac0712beb88fe4b44ea736a1be99a"
+  }
+}

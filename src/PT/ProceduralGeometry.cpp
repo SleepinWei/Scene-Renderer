@@ -53,24 +53,46 @@ render::SnapshotDraw freezeTerrain(const render::SnapshotTerrain &terrain,const 
         float dx=(height.sample({hi.x,uv.y},0,true).x-height.sample({lo.x,uv.y},0,true).x)/(2*(hi.x-lo.x)),dz=(height.sample({uv.x,hi.y},0,true).x-height.sample({uv.x,lo.y},0,true).x)/(2*(hi.y-lo.y));mesh->vertices.push_back({{uv.x*2-1,h,uv.y*2-1},glm::normalize(glm::vec3(-dx,1,-dz)),{uv.x,1-uv.y}});}
     gridIndices(*mesh,n);auto material=std::make_shared<render::MaterialPayload>();uint32_t mip=0;while((source.material.extent>>mip)>options.textureExtent)++mip;Pages colors(source.material,mip);const uint32_t extent=source.material.extent>>mip;
     for(uint32_t layer=0;layer<5;++layer){auto image=std::make_shared<render::ImageRGBA8>();image->width=image->height=extent;image->pixels.resize(size_t(extent)*extent*4);for(uint32_t y=0;y<extent;++y)for(uint32_t x=0;x<extent;++x){auto c=colors.pixel(x,y,layer);for(int k=0;k<4;++k)image->pixels[(size_t(y)*extent+x)*4+k]=byte(c[k]);}material->images[layer]=image;}
-    render::SnapshotDraw draw;draw.objectId=source.id;draw.mesh=mesh;draw.material=material;draw.model=terrain.model;draw.parameters=terrain.parameters;captureShoreline(terrain,draw);draw.pathTracingKind=1;return draw;
+    render::SnapshotDraw draw;draw.objectId=source.id;draw.mesh=mesh;draw.material=material;draw.model=terrain.model;draw.parameters=terrain.parameters;draw.extension=terrain.extension;captureShoreline(terrain,draw);draw.pathTracingKind=1;return draw;
 }
-render::SnapshotDraw freezeOcean(const render::OceanSurfaceSettings &s,const OceanSamples &large,const OceanSamples &detail,const CaptureOptions &options){
+render::SnapshotDraw freezeOcean(const render::OceanSurfaceSettings &s,const OceanSamples &large,const OceanSamples &detail,const CaptureOptions &options,glm::vec2 cameraXZ){
     validate(options);validate(large);if(s.detailWaves)validate(detail);if(!std::isfinite(s.seaLevel)||!std::isfinite(s.spectrum.length)||s.spectrum.length<=0||glm::any(glm::lessThan(s.absorption,glm::vec3(0)))||!std::isfinite(glm::length(s.absorption))||glm::any(glm::lessThan(s.scattering,glm::vec3(0)))||!std::isfinite(glm::length(s.scattering))||!std::isfinite(s.anisotropy)||std::abs(s.anisotropy)>=.99f)throw std::invalid_argument("PT capture: invalid water optics");
+    s.surfaceModel.validate(s.refraction);
     const float length=s.surfaceLength>0?s.surfaceLength:s.spectrum.length;const uint32_t n=options.oceanGrid?options.oceanGrid:s.meshSize;if(n<2||n>1025||!std::isfinite(length)||length<=0)throw std::invalid_argument("PT capture: invalid ocean grid");
+    const bool focused=s.spectrum.seaState.enabled&&s.cameraGrid;
+    if(focused&&(!std::isfinite(s.gridFocus)||s.gridFocus<=0||!std::isfinite(cameraXZ.x)||!std::isfinite(cameraXZ.y)))throw std::invalid_argument("PT capture: invalid focused ocean grid");
+    auto coordinate=[&](float u,float centre){
+        if(!focused)return (u-.5f)*length;
+        const double c=std::clamp(double(centre),-double(length)*.5,double(length)*.5),focus=s.gridFocus;
+        return float(c+focus*std::sinh(glm::mix(std::asinh((-length*.5-c)/focus),std::asinh((length*.5-c)/focus),double(u))));
+    };
+    auto largeDisplacement=[&](glm::vec2 xz){return periodic(large.displacement,large.size,xz/s.spectrum.length+glm::vec2(.5f));};
     auto mesh=std::make_shared<render::MeshPayload>();mesh->vertices.reserve(size_t(n)*n);
-    for(uint32_t y=0;y<n;++y)for(uint32_t x=0;x<n;++x){float u=float(x)/(n-1),v=float(y)/(n-1);glm::vec3 p{(u-.5f)*length,0,(v-.5f)*length};glm::vec2 uv=glm::vec2(p.x,p.z)/s.spectrum.length+glm::vec2(.5f);auto displacement=periodic(large.displacement,large.size,uv);auto normal=periodic(large.normal,large.size,uv);
-        if(s.detailWaves){auto duv=glm::vec2(p.x,p.z)/32.f+glm::vec2(.5f);displacement+=periodic(detail.displacement,detail.size,duv);auto dn=periodic(detail.normal,detail.size,duv);auto slope=glm::vec2(normal.x,normal.z)/std::max(normal.y,.1f)+glm::vec2(dn.x,dn.z)/std::max(dn.y,.1f);normal={slope.x,1,slope.y};}
-        p+=displacement;p.y+=s.seaLevel;mesh->vertices.push_back({p,glm::normalize(normal),{u,1-v}});}
+    for(uint32_t y=0;y<n;++y)for(uint32_t x=0;x<n;++x){float u=float(x)/(n-1),v=float(y)/(n-1);glm::vec3 p{coordinate(u,cameraXZ.x),0,coordinate(v,cameraXZ.y)};
+        const glm::vec2 maskUV=focused?glm::vec2(p.x,p.z)/length+glm::vec2(.5f):glm::vec2(u,v);glm::vec2 uv=glm::vec2(p.x,p.z)/s.spectrum.length+glm::vec2(.5f);auto displacement=periodic(large.displacement,large.size,uv);auto normal=periodic(large.normal,large.size,uv);
+        float footprint=0;
+        if(focused){
+            const float du=1.f/(n-1);footprint=.5f*std::max(coordinate(std::min(1.f,u+du),cameraXZ.x)-coordinate(std::max(0.f,u-du),cameraXZ.x),coordinate(std::min(1.f,v+du),cameraXZ.y)-coordinate(std::max(0.f,v-du),cameraXZ.y));
+            if(footprint>s.spectrum.length/large.size){
+                glm::vec2 xz(p.x,p.z),dx(footprint*.5f,0),dz(0,footprint*.5f);
+                displacement=(displacement*2.f+largeDisplacement(xz+dx)+largeDisplacement(xz-dx)+largeDisplacement(xz+dz)+largeDisplacement(xz-dz))/6.f;
+            }
+        }
+        if(s.detailWaves){auto duv=glm::vec2(p.x,p.z)/32.f+glm::vec2(.5f);displacement+=periodic(detail.displacement,detail.size,duv)*(focused?1-glm::smoothstep(.25f,1.f,footprint):1.f);auto dn=periodic(detail.normal,detail.size,duv);auto slope=glm::vec2(normal.x,normal.z)/std::max(normal.y,.1f)+glm::vec2(dn.x,dn.z)/std::max(dn.y,.1f);normal={slope.x,1,slope.y};}
+        p+=displacement;p.y+=s.seaLevel;mesh->vertices.push_back({p,glm::normalize(normal),{maskUV.x,1-maskUV.y}});}
     gridIndices(*mesh,n);auto material=std::make_shared<render::MaterialPayload>();
     if(s.waterMask){auto image=std::make_shared<render::ImageRGBA8>(*s.waterMask);if(!image->width||!image->height||image->pixels.size()!=size_t(image->width)*image->height*4)throw std::invalid_argument("PT capture: invalid shoreline mask");for(size_t i=0;i<image->pixels.size();i+=4){image->pixels[i+3]=image->pixels[i];image->pixels[i]=image->pixels[i+1]=image->pixels[i+2]=255;}material->images[0]=image;}
-    // Retain the periodic FFT normal field independently of the much larger lake mask UVs.
-    const uint32_t extent=std::min(options.textureExtent,std::max(large.size,256u));auto normalMap=std::make_shared<render::ImageRGBA8>();normalMap->width=normalMap->height=extent;normalMap->pixels.resize(size_t(extent)*extent*4);auto foamMap=std::make_shared<render::ImageRGBA8>();foamMap->width=foamMap->height=extent;foamMap->pixels.resize(size_t(extent)*extent*4);
+    auto fields=std::make_shared<render::OceanNormalFields>();fields->scales={length/s.spectrum.length,length/32.f};
+    auto field=[](const OceanSamples &samples){auto image=std::make_shared<render::ImageRGBA32F>();image->width=image->height=samples.size;image->pixels=samples.normal;return image;};
+    fields->images[0]=field(large);if(s.detailWaves)fields->images[1]=field(detail);material->oceanNormals=fields;
+    // Foam keeps the existing material map. Optical normals retain their native
+    // floating-point grids, independently of the capture material resolution.
+    const uint32_t extent=std::min(options.textureExtent,std::max(large.size,256u));auto foamMap=std::make_shared<render::ImageRGBA8>();foamMap->width=foamMap->height=extent;foamMap->pixels.resize(size_t(extent)*extent*4);
     const float scale=length/s.spectrum.length;
-    for(uint32_t y=0;y<extent;++y)for(uint32_t x=0;x<extent;++x){glm::vec2 uv{(x+.5f)/extent,(y+.5f)/extent};glm::vec2 world{(uv.x-.5f*scale)*s.spectrum.length,(.5f*scale-uv.y)*s.spectrum.length};auto N=periodic(large.normal,large.size,glm::vec2(world.x,world.y)/s.spectrum.length+glm::vec2(.5f));float foam=periodic(large.foam,large.size,world/s.spectrum.length+glm::vec2(.5f)).x;if(s.detailWaves)foam=1-(1-foam)*(1-periodic(detail.foam,detail.size,world/32.f+glm::vec2(.5f)).x);size_t fi=(size_t(y)*extent+x)*4;foamMap->pixels[fi]=byte(foam);foamMap->pixels[fi+3]=255;
-        if(s.detailWaves){auto D=periodic(detail.normal,detail.size,world/32.f+glm::vec2(.5f));auto slope=glm::vec2(N.x,N.z)/std::max(N.y,.1f)+glm::vec2(D.x,D.z)/std::max(D.y,.1f);N={slope.x,1,slope.y};}N=glm::normalize(N);size_t i=(size_t(y)*extent+x)*4;normalMap->pixels[i]=byte(N.x*.5f+.5f);normalMap->pixels[i+1]=byte(-N.z*.5f+.5f);normalMap->pixels[i+2]=byte(N.y*.5f+.5f);normalMap->pixels[i+3]=255;}
-    material->images[1]=normalMap;material->images[2]=foamMap;render::SnapshotDraw draw;draw.objectId=s.id;draw.mesh=mesh;draw.material=material;draw.parameters.albedoAlpha=glm::vec4(1);draw.parameters.factors={0,.045f,1,s.waterMask?.5f:0};draw.parameters.emissiveNormal.w=1;
-    draw.pathTracingIor=s.refraction?1.333f:0;draw.pathTracingAbsorption=s.absorption;draw.pathTracingScattering=s.refraction?s.scattering:glm::vec3(0);draw.pathTracingAnisotropy=s.anisotropy;draw.pathTracingNormalScale=scale;draw.pathTracingKind=3;
+    for(uint32_t y=0;y<extent;++y)for(uint32_t x=0;x<extent;++x){glm::vec2 uv{(x+.5f)/extent,(y+.5f)/extent};glm::vec2 world{(uv.x-.5f*scale)*s.spectrum.length,(.5f*scale-uv.y)*s.spectrum.length};float foam=periodic(large.foam,large.size,world/s.spectrum.length+glm::vec2(.5f)).x;if(s.detailWaves)foam=1-(1-foam)*(1-periodic(detail.foam,detail.size,world/32.f+glm::vec2(.5f)).x);size_t fi=(size_t(y)*extent+x)*4;foamMap->pixels[fi]=byte(foam);foamMap->pixels[fi+3]=255;}
+    material->images[2]=foamMap;render::SnapshotDraw draw;draw.objectId=s.id;draw.mesh=mesh;draw.material=material;draw.parameters.albedoAlpha=glm::vec4(1);draw.parameters.factors={0,.045f,1,s.waterMask?.5f:0};draw.parameters.emissiveNormal.w=1;
+    draw.pathTracingRoughness=s.surfaceModel.physical?s.surfaceModel.effectiveRoughness():0;
+    draw.pathTracingIor=s.refraction?WaterSurfaceModel::ior:0;draw.pathTracingAbsorption=s.absorption;draw.pathTracingScattering=s.refraction?s.scattering:glm::vec3(0);draw.pathTracingAnisotropy=s.anisotropy;draw.pathTracingNormalScale=scale;draw.pathTracingKind=3;
     if(!s.refraction)draw.parameters.albedoAlpha=glm::vec4(glm::pow(s.deep,glm::vec3(1/2.2f)),1);
     return draw;
 }

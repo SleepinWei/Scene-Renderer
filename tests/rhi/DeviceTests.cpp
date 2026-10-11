@@ -134,6 +134,16 @@ int main() {
             check(zero==value,"Explicit buffer upload did not roundtrip");
             initialized.close();
         }
+        {
+            TestDevice frame;frame.manual=true;unsigned acknowledged=0;
+            frame.beginFrame();frame.present([&]{++acknowledged;});
+            check(frame.signaled==1 && acknowledged==0,"Present callback split the frame or acknowledged incomplete GPU work");
+            frame.waitIdle();check(acknowledged==1,"Present callback was lost at native completion");
+            frame.waitIdle();check(acknowledged==1,"Present callback ran more than once");
+            frame.beginFrame();auto token=frame.endFrame([&]{++acknowledged;});
+            check(frame.signaled==2&&acknowledged==1,"Offscreen callback changed completion ownership");
+            frame.wait(token);check(acknowledged==2,"Offscreen frame callback was not retired");frame.close();
+        }
         auto owner = std::make_shared<TestDevice>();
         TestDevice other;
         validateBufferTransfers(*owner);
@@ -162,11 +172,23 @@ int main() {
         rejects<std::invalid_argument>([&] { owner->bindUniformBuffer(0, readOnly); });
         auto writeOnly = owner->createBuffer({64, BufferUsage::CopyDestination, "write only"});
         rejects<std::invalid_argument>([&] { owner->readBuffer(writeOnly, 0, 4, &data); });
+        owner->writeBuffer(a,16,4,&data);
+        owner->copyBuffer(a,16,writeOnly,12,4);
+        owner->copyBuffer(a,512,writeOnly,64,0);
+        rejects<std::invalid_argument>([&]{owner->copyBuffer(writeOnly,64,a,512,0);});
+        rejects<std::invalid_argument>([&]{owner->copyBuffer(a,0,readOnly,0,4);});
+        rejects<std::invalid_argument>([&]{owner->copyBuffer(b,0,a,0,4);});
+        rejects<std::invalid_argument>([&]{owner->copyBuffer(a,2,writeOnly,0,4);});
+        rejects<std::invalid_argument>([&]{owner->copyBuffer(a,0,a,4,8);});
+        rejects<std::out_of_range>([&]{owner->copyBuffer(a,512,writeOnly,0,4);});
+        owner->copyBuffer(a,16,a,32,4);owner->readBuffer(a,32,4,&data);
+        check(data==5,"Nonoverlapping same-buffer copy failed");
         rejects<std::invalid_argument>([&] { owner->createBuffer({0, usage, "empty"}); });
         rejects<std::invalid_argument>([&] { owner->createBuffer({1025, usage, "too large uniform"}); });
         rejects<std::invalid_argument>([&] { owner->createBuffer({4097, BufferUsage::Vertex, "too large"}); });
         rejects<std::invalid_argument>([&] { owner->createBuffer({64, BufferUsage::None, "missing usage"}); });
         owner->destroyBuffer(a);
+        rejects<std::invalid_argument>([&]{owner->copyBuffer(a,0,writeOnly,0,4);});
         rejects<std::invalid_argument>([&] { owner->readBuffer(a, 0, 4, &data); });
         auto replacement = owner->createBuffer({512, usage, "replacement"});
         check(replacement.value != a.value, "stale handle was reused");

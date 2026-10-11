@@ -1,3 +1,4 @@
+#include <chrono>
 #include "rhi/Device.h"
 #include <atomic>
 #include <stdexcept>
@@ -133,6 +134,22 @@ void Device::bindUniformBuffer(uint32_t slot, BufferHandle handle, size_t offset
         throw std::invalid_argument("RHI: empty or misaligned uniform range");
     bindUniformBufferImpl(slot, record.native, offset, size);
 }
+void Device::copyBuffer(BufferHandle source,size_t sourceOffset,BufferHandle destination,size_t destinationOffset,size_t size) {
+    const auto &src=buffer(source),&dst=buffer(destination);
+    checkRange(src.desc.size,sourceOffset,size);checkRange(dst.desc.size,destinationOffset,size);
+    if(!hasUsage(src.desc.usage,BufferUsage::CopySource)||!hasUsage(dst.desc.usage,BufferUsage::CopyDestination))
+        throw std::invalid_argument("RHI: buffer copy lacks transfer usage");
+    if((sourceOffset|destinationOffset|size)&3)throw std::invalid_argument("RHI: misaligned buffer copy");
+    if(source.value==destination.value&&size&&sourceOffset<destinationOffset+size&&destinationOffset<sourceOffset+size)
+        throw std::invalid_argument("RHI: overlapping buffer copy");
+    if(size)copyBufferImpl(src.native,sourceOffset,dst.native,destinationOffset,size);
+}
+void Device::copyBufferImpl(NativeBuffer source,size_t sourceOffset,NativeBuffer destination,size_t destinationOffset,size_t size) {
+    // Portable fallback for software/test devices. Native backends keep copies
+    // on the GPU and override this method.
+    std::vector<uint8_t> bytes(size);readBufferImpl(source,sourceOffset,size,bytes.data());
+    writeBufferImpl(destination,destinationOffset,size,bytes.data());
+}
 void Device::runRetirements(std::vector<std::function<void()>>& work){
     const bool previous=retiring_;retiring_=true;
     try{for(auto& callback:work)callback();work.clear();retiring_=previous;}catch(...){retiring_=previous;throw;}
@@ -141,22 +158,27 @@ void Device::collectFrames(bool all){
     while(!frames_.empty() && (all || completionReadyImpl(frames_.front().native))){auto frame=std::move(frames_.front());frames_.pop_front();runRetirements(frame.retirements);completedSerial_=frame.serial;}
 }
 void Device::setMaxFramesInFlight(size_t count){requireOpen();if(!count || count>3 || frameActive_)throw std::invalid_argument("RHI: frame count must be 1..3 outside a frame");waitIdle();maxFrames_=count;}
-void Device::beginFrame(){
+void Device::beginFrame(FrameStartTiming* timing){
+    using Clock=std::chrono::steady_clock;const auto start=timing?Clock::now():Clock::time_point{};
     requireOpen();if(frameActive_)throw std::logic_error("RHI: frame already active");collectFrames();
     if(frames_.size()>=maxFrames_){waitCompletionImpl(frames_.front().native);collectFrames();}
+    const auto collected=timing?Clock::now():Clock::time_point{};
     frameActive_=backend()!=Backend::OpenGL && !legacy;try{beginFrameImpl();}catch(...){frameActive_=false;throw;}
+    if(timing){timing->flightMilliseconds=std::chrono::duration<double,std::milli>(collected-start).count();timing->acquireMilliseconds=std::chrono::duration<double,std::milli>(Clock::now()-collected).count();}
 }
 CompletionToken Device::checkpoint(std::function<void()> callback){
     requireOpen();collectFrames();if(frames_.size()>=maxFrames_){waitCompletionImpl(frames_.front().native);collectFrames();}
     const auto native=signalCompletionImpl(),serial=nextSerial_++;FrameRecord record{serial,native,{}};if(callback)record.retirements.push_back(std::move(callback));frames_.push_back(std::move(record));collectFrames();return {identity_,serial};
 }
-CompletionToken Device::endFrame(){
+CompletionToken Device::endFrame(std::function<void()> callback){
     requireOpen();if(!frameActive_)throw std::logic_error("RHI: no native frame active");
     collectFrames();if(frames_.size()>=maxFrames_){waitCompletionImpl(frames_.front().native);collectFrames();}
     const auto native=signalCompletionImpl(),serial=nextSerial_++;
+    if(callback)retirements_.push_back(std::move(callback));
     frames_.push_back({serial,native,std::move(retirements_)});retirements_.clear();frameActive_=false;collectFrames();return {identity_,serial};
 }
-void Device::present(){requireOpen();presentImpl();if(frameActive_)endFrame();}
+void Device::present(std::function<void()> callback){requireOpen();presentImpl();if(frameActive_)endFrame(std::move(callback));else if(callback)callback();}
+void Device::pollCompletions(){requireOpen();collectFrames();}
 bool Device::isComplete(CompletionToken token){
     requireOpen();if(token.device!=identity_ || !token.serial || token.serial>=nextSerial_)throw std::invalid_argument("RHI: foreign or future completion token");collectFrames();return token.serial<=completedSerial_;
 }

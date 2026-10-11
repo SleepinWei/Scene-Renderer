@@ -279,6 +279,24 @@ Blender Cycles 原场景 GT：1024 spp、原材质与完整植被，无降噪、
 
 ![完整 Barcelona 法线图对照：Metal 原图、Cycles 原图、线性绝对误差](img/path-tracing/blender-barcelona-thin-matched.png)
 
+### 分层 Cluster 几何
+
+在实时设置中开启 **Hierarchical cluster geometry**，调整 **Cluster LOD error (pixels)**，可另行开启 **Cluster Hi-Z occlusion**。Cluster 几何和遮挡默认关闭；构建在有界 CPU worker 上执行，GPU 选择 group cut 并批处理 indexed indirect 绘制。
+
+Cluster 构建现在将精确位置拓扑与原始属性地址分离，用 Morton 顺序和有界空间补齐提高利用率；父表示至少减少 12.5% 的子三角形才保留。UV／切线接缝继续保护，并限制累计法线偏差。[构建方法、原生对照、逐帧计时及限制](docs/cluster-partition-and-hierarchy.md)。
+
+| 场景 | 叶块利用率：优化前→后 | 层级内存：优化前→后 |
+| --- | ---: | ---: |
+| Sponza | 22.9%→91.0% | 16.66→3.39 MiB |
+| Stanford Dragon | 63.9%→95.7% | 42.64→17.34 MiB |
+| Happy Buddha | 62.8%→96.2% | 53.42→21.96 MiB |
+
+固定 4 px、每模式 72 样本，逐帧配对的 cluster／geometry GPU 窗口分别降低 **3.4%、2.6%、3.4%**；这是部分 GPU 耗时。新切面保留更多三角形，与独立 CPU cut 一致；Hi-Z 的深度、HDR、显示图及六张 G-buffer 与同 cut 一致。Dragon 相对完整几何仍有 **21.2%** HDR LOD 误差，Sponza 的 0 px 有六个显示像素不同。Sponza 开启 Hi-Z 仍慢于自身无遮挡路径，因此遮挡保持默认关闭。
+
+![Sponza：分块优化前后、实际 GPU LOD 与源画面对照](img/diagnostics/cluster-partition/sponza/comparison.png)
+
+![Dragon：实际分块与 PBR 细节优化前后](img/diagnostics/cluster-partition/dragon/detail.png)
+
 ## 系统概览
 
 主逻辑管理世界、输入和编辑器，通过不可变场景快照向独立渲染线程发布数据。渲染线程准备 GPU 资源并调度各效果，RHI 统一资源、管线、命令与呈现；Metal／Vulkan 复用共享 GLSL 生成的着色器。详细流程、资源管理和平台边界见[系统设计](docs/system-design.md)。

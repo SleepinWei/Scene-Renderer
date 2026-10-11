@@ -1,0 +1,25 @@
+{
+  "scope": "8-bit displayed images; not linear-HDR, Hausdorff or transport error",
+  "budgets_px": {
+    "0": {
+      "changed_display_pixels": 1,
+      "max_display_code_difference": 5,
+      "mean_absolute_display_code_difference": 6.430041152263374e-06
+    },
+    "1": {
+      "changed_display_pixels": 120,
+      "max_display_code_difference": 50,
+      "mean_absolute_display_code_difference": 0.0007915380658436214
+    },
+    "4": {
+      "changed_display_pixels": 2880,
+      "max_display_code_difference": 109,
+      "mean_absolute_display_code_difference": 0.022172710905349793
+    },
+    "16": {
+      "changed_display_pixels": 33280,
+      "max_display_code_difference": 109,
+      "mean_absolute_display_code_difference": 0.12248328189300411
+    }
+  }
+}

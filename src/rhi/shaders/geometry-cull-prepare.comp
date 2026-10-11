@@ -1,0 +1,11 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#include "geometry-cull-parameters.glsl"
+layout(local_size_x=1) in;
+layout(set=1,binding=2,std430) readonly buffer CullInputArguments {uint inputCount;uint inputInstances;uint inputFirst;int inputBase;uint inputInstance;};
+layout(set=1,binding=7,std430) writeonly buffer CullDispatch {uint groupsX;uint groupsY;uint groupsZ;};
+void main(){
+    uint capacity=cullCounts.x*3u;
+    uint count=min(inputCount,capacity-min(inputFirst,capacity))/3u;
+    groupsX=inputInstances!=0u?(count+63u)/64u:0u;groupsY=1u;groupsZ=1u;
+}

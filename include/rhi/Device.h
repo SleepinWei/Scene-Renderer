@@ -58,6 +58,7 @@ class ResourceBudgetExceeded:public std::runtime_error {
 public:
     explicit ResourceBudgetExceeded(const std::string& message):std::runtime_error(message){}
 };
+struct FrameStartTiming {double flightMilliseconds=0,acquireMilliseconds=0;};
 class Device {
 public:
     virtual ~Device() = default;
@@ -68,12 +69,16 @@ public:
     void writeBuffer(BufferHandle, size_t offset, size_t size, const void* data);
     // Synchronous validation readback. Not intended for the frame hot path.
     void readBuffer(BufferHandle, size_t offset, size_t size, void* data);
+    // Ordered with uploads and draws on this device. Completion uses the normal
+    // frame/checkpoint API; offsets and size must be multiples of four.
+    void copyBuffer(BufferHandle source, size_t sourceOffset, BufferHandle destination, size_t destinationOffset, size_t size);
     // Transitional binding used by shaders awaiting BindingSet migration.
     void bindUniformBuffer(uint32_t slot, BufferHandle, size_t offset = 0, size_t size = 0);
-    void beginFrame();
-    void present();
+    void beginFrame(FrameStartTiming* timing=nullptr);
+    void present(std::function<void()> onComplete={});
     CompletionToken checkpoint(std::function<void()> onComplete={});
-    CompletionToken endFrame(); // Offscreen frames use this without presentation.
+    CompletionToken endFrame(std::function<void()> onComplete={}); // Offscreen frames use this without presentation.
+    void pollCompletions(); // Nonblocking owner-thread retirement, including frame readbacks.
     bool isComplete(CompletionToken);
     void wait(CompletionToken);
     void retireResources(std::function<void()>);
@@ -104,6 +109,7 @@ protected:
     virtual void destroyBufferImpl(NativeBuffer) noexcept = 0;
     virtual void writeBufferImpl(NativeBuffer, size_t, size_t, const void*) = 0;
     virtual void readBufferImpl(NativeBuffer, size_t, size_t, void*) = 0;
+    virtual void copyBufferImpl(NativeBuffer, size_t, NativeBuffer, size_t, size_t);
     virtual void bindUniformBufferImpl(uint32_t, NativeBuffer, size_t, size_t) = 0;
     virtual void beginFrameImpl() = 0;
     virtual void presentImpl() = 0;

@@ -32,6 +32,11 @@ void validateForwardRendering(std::shared_ptr<rhi::GraphicsDevice> device, const
     }
     auto decoded = ImageRGBA8::load(checkerPath);check(decoded.width == 2 && decoded.height == 2 && decoded.pixels[0] == 255 && decoded.pixels[10] == 255,"Image decode channels/orientation failed");
     auto material = std::make_shared<GpuMaterial>(device,desc);
+    for(auto shape:{glm::vec4(.95f,0,1,0),glm::vec4(.8f,7,1,0),glm::vec4(.8f,0,0,0),glm::vec4(0,0,1.5f,0)}){
+        auto bad=desc.extension;bad.specularShape=shape;bool rejected=false;
+        try{material->updateExtension(bad);}catch(const std::invalid_argument&){rejected=true;}
+        check(rejected && material->extension().specularShape==glm::vec4(0),"Invalid GGX extension changed published material");
+    }
     ForwardPbrRenderer renderer(device,directory,64,64);
     FrameData frame;frame.lights.push_back({{0,0,0,0},{8,8,8,0},{0,0,-1,0}});
     std::vector<DrawPacket> packets{{mesh,material,glm::mat4(1)}};
@@ -79,7 +84,7 @@ void validateForwardRendering(std::shared_ptr<rhi::GraphicsDevice> device, const
     check(std::abs(position[surface] - (16.5f/32-1)) < .001f && std::abs(position[surface+2]-.4f) < .001f && std::abs(position[hole+2]-.6f) < .001f,"G-buffer position/depth/alpha cutoff failed");
     check(normal[surface+2] == 1 && normal[surface+3] == .5f && albedo[surface] == 1 && albedo[surface+3] == 0,"G-buffer normal/roughness/albedo/metallic packing failed");
     check(emission[hole+1] == 4 && emission[surface+3] == 1,"G-buffer emissive/AO packing failed");
-    try { deferred.readGBuffer(4);throw std::runtime_error("invalid G-buffer attachment accepted"); } catch (const std::invalid_argument&) {}
+    try { deferred.readGBuffer(6);throw std::runtime_error("invalid G-buffer attachment accepted"); } catch (const std::invalid_argument&) {}
     compareDeferred(packets,.25f);
     renderer.render(frame,packets,.25f);auto lowExposure = renderer.readOutput();
     check(lowExposure[(16*64+16)*4] < output[(16*64+16)*4],"Exposure update was ignored");
