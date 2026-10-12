@@ -287,6 +287,18 @@ Enable **Hierarchical cluster geometry** in realtime settings; adjust **Cluster 
 
 Cluster construction now separates exact position topology from original attribute addresses, combines Morton ordering with bounded spatial fill, and retains parents only when they remove at least 12.5% of their children's triangles. UV / tangent seams remain protected, with a cumulative normal error limit. [Construction methods, native comparisons, raw timings and limitations](docs/cluster-partition-and-hierarchy.md).
 
+**How the meshlets are built.** Attribute BFS treats triangles as graph nodes, connects them through shared edges using complete-attribute vertex addresses, and fills each 128-triangle block with breadth-first traversal. UV / normal / tangent seams can split a geometrically continuous surface into disconnected graph fragments, leaving small blocks. Position topology adds a separate ID for each exact position to recover geometric neighbors while retaining every original attribute address. Morton ordering chooses spatially local seeds; candidate selection favors attribute-vertex reuse, then a compact bounding box. Bounded spatial fill can pack nearby disconnected fragments together. Packing improves utilization; it does not itself remove source triangles.
+
+**What 2 px / 4 px mean.** **Cluster LOD error (pixels)** is the allowed estimate of geometric position error projected into the actual render viewport. For perspective views, the estimate is approximately `position error × instance scale bound × focal length in pixels / nearest coverage-box depth`; the near plane clamps the denominator. If a parent estimates 3.2 px, a 2 px budget keeps more detailed children, while 4 px can accept that parent.
+
+| Pixel budget | Typical LOD behavior |
+| --- | --- |
+| 0 px | Keep detailed leaves; reject parents with nonzero position error |
+| 2 px | Tighter approximation, usually more triangles |
+| 4 px | Allow more geometric approximation, usually fewer triangles |
+
+The budget measures geometry, not final RGB error or meshlet width: highlights, shadows and normal maps can amplify small shape changes. At the same camera, doubling both viewport dimensions roughly doubles the projected error, so a fixed pixel budget tends to select more detail. Increasing the budget can only choose parents already built. Current parents group up to eight connected children, simplify with endpoint QEM and retain conservative endpoint error bounds; original boundaries and attribute seams remain protected. [Parent construction, quality tradeoffs and actual GPU cuts](docs/cluster-parent-lod-optimization.md).
+
 The Sponza / Stanford measurements below use the previous pair-parent builder and 0.05 normal ceiling; current Coastal Cliff parent settings and results follow separately.
 
 | Scene | Leaf utilization: before → after | Hierarchy memory: before → after |
