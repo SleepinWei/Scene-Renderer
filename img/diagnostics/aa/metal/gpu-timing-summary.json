@@ -1,0 +1,21 @@
+{
+  "device": "Apple M4",
+  "resolution": [
+    480,
+    270
+  ],
+  "validation_enabled": false,
+  "scope": "Per-dispatch Apple GPU timestamp interval. Mixed static/moving Sponza diagnostic frames; not a paired frame-time or 60-fps benchmark. First 8 samples per mode discarded. Probe updates frozen during all AA cases.",
+  "modes": {
+    "temporal/legacy": {
+      "samples": 136,
+      "median_ms": 0.11302053928375244,
+      "p95_ms": 0.1950310468673706
+    },
+    "temporal/high-quality": {
+      "samples": 194,
+      "median_ms": 0.12793755531311035,
+      "p95_ms": 0.25118352174758907
+    }
+  }
+}

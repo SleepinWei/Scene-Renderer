@@ -1,0 +1,24 @@
+{
+  "python_syntax": true,
+  "generator_memory_guard_cases": [
+    "warning",
+    "critical",
+    "oversized_scratch",
+    "invalid_system_reserve",
+    "invalid_small_budget"
+  ],
+  "default_process_budget_bytes": 3221225472,
+  "dense_package_bytes": 84803455,
+  "route_views": 11,
+  "protected_gpu_capture": "deferred_by_user",
+  "source_mesh_sha256_verified": 9,
+  "scene_renderer_build": "passed",
+  "memory_rhi_ctest": "4/4 passed",
+  "native_debug_replay_validation": "pending",
+  "new_route_gpu_validation": "pending",
+  "small_package_generation": "pending",
+  "visualization_input": "pre-memory-admission native captures",
+  "default_gpu_budget_bytes": 1610612736,
+  "diagnostic_batch_triangle_limit": 65536,
+  "diagnostic_scratch_reservation_bytes": 25165824
+}

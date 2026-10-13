@@ -1,0 +1,1130 @@
+{
+  "date": "2026-10-09",
+  "scope": "L3 first package: uniform land-water cell, actual sinks, separate lake input, analytic main-view rain and frozen rain wetness",
+  "passed": true,
+  "backend_reports": {
+    "metal": {
+      "finite_hdr": true,
+      "full_depth_occlusion": true,
+      "height": 240,
+      "paused_equal": true,
+      "scope": "main-view analytic visual rain; uniform frozen rain wetness",
+      "visual_disable_equal": true,
+      "wet_diffuse_pixels": 59520,
+      "width": 320,
+      "editor": {
+        "backend": "Metal",
+        "scope": "native editor CPU environment integration",
+        "executable_sha256": "093878ea532230e8f1080a72b50f4b6677d4d15e9c5664e3e56fb84bfad3ada4",
+        "checkpoint": {
+          "applied_sequence": 3,
+          "cloud_coverage": 0.6666666754969844,
+          "cloud_x": -12.330729063571612,
+          "cloud_z": 12.541341132946448,
+          "coverage_elapsed": 2.0,
+          "coverage_from": 0.550000011920929,
+          "coverage_target": 1.0,
+          "enabled": true,
+          "events": [],
+          "grass_phase": 3.2902467026036764,
+          "initial_cloud_coverage": 0.550000011920929,
+          "initial_rain_m_per_s": 0.0,
+          "initial_seconds": 0.0,
+          "initial_solar": {
+            "azimuth_degrees": -0.0,
+            "elevation_degrees": 10.000000953674316
+          },
+          "initial_wind": {
+            "x": 12.0,
+            "z": 4.0
+          },
+          "lake_area_m2": 0.0,
+          "lake_rain_m3": 0.0,
+          "land": {
+            "evaporation_m": 0.0,
+            "infiltration_m": 0.0,
+            "outflow_m": 0.0,
+            "rain_m": 0.0,
+            "storage_m": 0.0
+          },
+          "land_config": {
+            "area_m2": 0.0,
+            "capacity_m": 0.002,
+            "evaporation_m_per_s": 2.777777777777778e-08,
+            "infiltration_m_per_s": 1.3888888888888888e-07,
+            "initial_storage_m": 0.0
+          },
+          "next_sequence": 4,
+          "rain_m_per_s": 0.0,
+          "scene_key": "classic:sky",
+          "schema_version": 4,
+          "scope": "cpu-environment-surface-water",
+          "solar": {
+            "azimuth_degrees": 45.0,
+            "elevation_degrees": 30.0
+          },
+          "step_seconds": 0.016666666666666666,
+          "tick": 120,
+          "wave_elapsed": 1.9833333333333334,
+          "wave_from": {
+            "x": 12.0,
+            "z": 4.0
+          },
+          "wave_to": {
+            "x": -20.0,
+            "z": 8.0
+          },
+          "wind": {
+            "x": -15.669270936428394,
+            "z": 7.45865886705355
+          },
+          "wind_target": {
+            "x": -20.0,
+            "z": 8.0
+          }
+        },
+        "resumed_checkpoint": {
+          "applied_sequence": 3,
+          "cloud_coverage": 0.6683367950515068,
+          "cloud_x": -12.592481741591639,
+          "cloud_z": 12.665726884365618,
+          "coverage_elapsed": 2.0166666666666666,
+          "coverage_from": 0.550000011920929,
+          "coverage_target": 1.0,
+          "enabled": true,
+          "events": [],
+          "grass_phase": 3.3218616270050165,
+          "initial_cloud_coverage": 0.550000011920929,
+          "initial_rain_m_per_s": 0.0,
+          "initial_seconds": 0.0,
+          "initial_solar": {
+            "azimuth_degrees": -0.0,
+            "elevation_degrees": 10.000000953674316
+          },
+          "initial_wind": {
+            "x": 12.0,
+            "z": 4.0
+          },
+          "lake_area_m2": 0.0,
+          "lake_rain_m3": 0.0,
+          "land": {
+            "evaporation_m": 0.0,
+            "infiltration_m": 0.0,
+            "outflow_m": 0.0,
+            "rain_m": 0.0,
+            "storage_m": 0.0
+          },
+          "land_config": {
+            "area_m2": 0.0,
+            "capacity_m": 0.002,
+            "evaporation_m_per_s": 2.777777777777778e-08,
+            "infiltration_m_per_s": 1.3888888888888888e-07,
+            "initial_storage_m": 0.0
+          },
+          "next_sequence": 4,
+          "rain_m_per_s": 0.0,
+          "scene_key": "classic:sky",
+          "schema_version": 4,
+          "scope": "cpu-environment-surface-water",
+          "solar": {
+            "azimuth_degrees": 45.0,
+            "elevation_degrees": 30.0
+          },
+          "step_seconds": 0.016666666666666666,
+          "tick": 121,
+          "wave_elapsed": 2.0,
+          "wave_from": {
+            "x": 12.0,
+            "z": 4.0
+          },
+          "wave_to": {
+            "x": -20.0,
+            "z": 8.0
+          },
+          "wind": {
+            "x": -15.7408515917417,
+            "z": 7.467606448967713
+          },
+          "wind_target": {
+            "x": -20.0,
+            "z": 8.0
+          }
+        },
+        "runs": [
+          {
+            "name": "capture",
+            "argv": [
+              "--backend",
+              "Metal",
+              "--classic",
+              "sky",
+              "--hidden",
+              "--size",
+              "800x450",
+              "--frames",
+              "12",
+              "--environment-ticks",
+              "120",
+              "--environment-sun",
+              "30",
+              "45",
+              "--environment-wind",
+              "-20",
+              "8",
+              "--environment-cloud-coverage",
+              "1",
+              "--environment-save",
+              "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l3-editor-metal/first.json",
+              "--screenshot",
+              "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l3-editor-metal/sky.ppm"
+            ],
+            "exit_code": 0
+          },
+          {
+            "name": "resume",
+            "argv": [
+              "--backend",
+              "Metal",
+              "--classic",
+              "sky",
+              "--hidden",
+              "--size",
+              "800x450",
+              "--frames",
+              "12",
+              "--environment-load",
+              "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l3-editor-metal/first.json",
+              "--environment-ticks",
+              "1",
+              "--environment-save",
+              "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l3-editor-metal/resumed.json"
+            ],
+            "exit_code": 0
+          },
+          {
+            "name": "continuous-wind",
+            "argv": [
+              "--backend",
+              "Metal",
+              "--classic",
+              "sky",
+              "--hidden",
+              "--size",
+              "800x450",
+              "--frames",
+              "12",
+              "--environment-ticks",
+              "240",
+              "--environment-sun",
+              "30",
+              "45",
+              "--environment-wind",
+              "-20",
+              "8",
+              "--environment-cloud-coverage",
+              "1",
+              "--environment-save",
+              "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l3-editor-metal/continuous.json"
+            ],
+            "exit_code": 0
+          },
+          {
+            "name": "recovered-wind",
+            "argv": [
+              "--backend",
+              "Metal",
+              "--classic",
+              "sky",
+              "--hidden",
+              "--size",
+              "800x450",
+              "--frames",
+              "12",
+              "--environment-load",
+              "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l3-editor-metal/first.json",
+              "--environment-ticks",
+              "120",
+              "--environment-save",
+              "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l3-editor-metal/recovered.json"
+            ],
+            "exit_code": 0
+          },
+          {
+            "name": "clear-coverage",
+            "argv": [
+              "--backend",
+              "Metal",
+              "--classic",
+              "sky",
+              "--hidden",
+              "--size",
+              "800x450",
+              "--frames",
+              "12",
+              "--environment-cloud-coverage",
+              "0",
+              "--environment-ticks",
+              "360",
+              "--environment-save",
+              "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l3-editor-metal/clear.json"
+            ],
+            "exit_code": 0
+          },
+          {
+            "name": "invalid-coverage",
+            "argv": [
+              "--backend",
+              "Metal",
+              "--classic",
+              "sky",
+              "--hidden",
+              "--size",
+              "800x450",
+              "--frames",
+              "12",
+              "--environment-cloud-coverage",
+              "nan"
+            ],
+            "exit_code": 1
+          },
+          {
+            "name": "invalid-wind",
+            "argv": [
+              "--backend",
+              "Metal",
+              "--classic",
+              "sky",
+              "--hidden",
+              "--size",
+              "800x450",
+              "--frames",
+              "12",
+              "--environment-wind",
+              "nan",
+              "8"
+            ],
+            "exit_code": 1
+          },
+          {
+            "name": "wrong-scene",
+            "argv": [
+              "--backend",
+              "Metal",
+              "--classic",
+              "sky",
+              "--hidden",
+              "--size",
+              "800x450",
+              "--frames",
+              "12",
+              "--environment-load",
+              "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l3-editor-metal/wrong-scene.json",
+              "--environment-save",
+              "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l3-editor-metal/rejected.json"
+            ],
+            "exit_code": 1
+          },
+          {
+            "name": "conflicting-time",
+            "argv": [
+              "--backend",
+              "Metal",
+              "--classic",
+              "sky",
+              "--hidden",
+              "--size",
+              "800x450",
+              "--frames",
+              "12",
+              "--environment",
+              "--time",
+              "8"
+            ],
+            "exit_code": 1
+          },
+          {
+            "name": "invalid-sun",
+            "argv": [
+              "--backend",
+              "Metal",
+              "--classic",
+              "sky",
+              "--hidden",
+              "--size",
+              "800x450",
+              "--frames",
+              "12",
+              "--environment-sun",
+              "30junk",
+              "45"
+            ],
+            "exit_code": 1
+          },
+          {
+            "name": "rain-capture",
+            "argv": [
+              "--backend",
+              "Metal",
+              "--classic",
+              "sky",
+              "--hidden",
+              "--size",
+              "800x450",
+              "--frames",
+              "12",
+              "--environment-rain",
+              "36",
+              "--environment-ticks",
+              "120",
+              "--environment-save",
+              "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l3-editor-metal/rain-first.json"
+            ],
+            "exit_code": 0
+          },
+          {
+            "name": "rain-direct",
+            "argv": [
+              "--backend",
+              "Metal",
+              "--classic",
+              "sky",
+              "--hidden",
+              "--size",
+              "800x450",
+              "--frames",
+              "12",
+              "--environment-rain",
+              "36",
+              "--environment-ticks",
+              "240",
+              "--environment-save",
+              "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l3-editor-metal/rain-direct.json"
+            ],
+            "exit_code": 0
+          },
+          {
+            "name": "rain-replay",
+            "argv": [
+              "--backend",
+              "Metal",
+              "--classic",
+              "sky",
+              "--hidden",
+              "--size",
+              "800x450",
+              "--frames",
+              "12",
+              "--environment-load",
+              "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l3-editor-metal/rain-first.json",
+              "--environment-ticks",
+              "120",
+              "--environment-save",
+              "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l3-editor-metal/rain-replay.json"
+            ],
+            "exit_code": 0
+          },
+          {
+            "name": "invalid-rain",
+            "argv": [
+              "--backend",
+              "Metal",
+              "--classic",
+              "sky",
+              "--hidden",
+              "--size",
+              "800x450",
+              "--frames",
+              "12",
+              "--environment-rain",
+              "nan"
+            ],
+            "exit_code": 1
+          }
+        ],
+        "wind_replay_exact": true,
+        "coverage_replay_exact": true,
+        "rain_replay_exact": true,
+        "passed": true
+      }
+    },
+    "vulkan": {
+      "finite_hdr": true,
+      "full_depth_occlusion": true,
+      "height": 240,
+      "paused_equal": true,
+      "scope": "main-view analytic visual rain; uniform frozen rain wetness",
+      "visual_disable_equal": true,
+      "wet_diffuse_pixels": 59520,
+      "width": 320,
+      "editor": {
+        "backend": "Vulkan",
+        "scope": "native editor CPU environment integration",
+        "executable_sha256": "093878ea532230e8f1080a72b50f4b6677d4d15e9c5664e3e56fb84bfad3ada4",
+        "checkpoint": {
+          "applied_sequence": 3,
+          "cloud_coverage": 0.6666666754969844,
+          "cloud_x": -12.330729063571612,
+          "cloud_z": 12.541341132946448,
+          "coverage_elapsed": 2.0,
+          "coverage_from": 0.550000011920929,
+          "coverage_target": 1.0,
+          "enabled": true,
+          "events": [],
+          "grass_phase": 3.2902467026036764,
+          "initial_cloud_coverage": 0.550000011920929,
+          "initial_rain_m_per_s": 0.0,
+          "initial_seconds": 0.0,
+          "initial_solar": {
+            "azimuth_degrees": -0.0,
+            "elevation_degrees": 10.000000953674316
+          },
+          "initial_wind": {
+            "x": 12.0,
+            "z": 4.0
+          },
+          "lake_area_m2": 0.0,
+          "lake_rain_m3": 0.0,
+          "land": {
+            "evaporation_m": 0.0,
+            "infiltration_m": 0.0,
+            "outflow_m": 0.0,
+            "rain_m": 0.0,
+            "storage_m": 0.0
+          },
+          "land_config": {
+            "area_m2": 0.0,
+            "capacity_m": 0.002,
+            "evaporation_m_per_s": 2.777777777777778e-08,
+            "infiltration_m_per_s": 1.3888888888888888e-07,
+            "initial_storage_m": 0.0
+          },
+          "next_sequence": 4,
+          "rain_m_per_s": 0.0,
+          "scene_key": "classic:sky",
+          "schema_version": 4,
+          "scope": "cpu-environment-surface-water",
+          "solar": {
+            "azimuth_degrees": 45.0,
+            "elevation_degrees": 30.0
+          },
+          "step_seconds": 0.016666666666666666,
+          "tick": 120,
+          "wave_elapsed": 1.9833333333333334,
+          "wave_from": {
+            "x": 12.0,
+            "z": 4.0
+          },
+          "wave_to": {
+            "x": -20.0,
+            "z": 8.0
+          },
+          "wind": {
+            "x": -15.669270936428394,
+            "z": 7.45865886705355
+          },
+          "wind_target": {
+            "x": -20.0,
+            "z": 8.0
+          }
+        },
+        "resumed_checkpoint": {
+          "applied_sequence": 3,
+          "cloud_coverage": 0.6683367950515068,
+          "cloud_x": -12.592481741591639,
+          "cloud_z": 12.665726884365618,
+          "coverage_elapsed": 2.0166666666666666,
+          "coverage_from": 0.550000011920929,
+          "coverage_target": 1.0,
+          "enabled": true,
+          "events": [],
+          "grass_phase": 3.3218616270050165,
+          "initial_cloud_coverage": 0.550000011920929,
+          "initial_rain_m_per_s": 0.0,
+          "initial_seconds": 0.0,
+          "initial_solar": {
+            "azimuth_degrees": -0.0,
+            "elevation_degrees": 10.000000953674316
+          },
+          "initial_wind": {
+            "x": 12.0,
+            "z": 4.0
+          },
+          "lake_area_m2": 0.0,
+          "lake_rain_m3": 0.0,
+          "land": {
+            "evaporation_m": 0.0,
+            "infiltration_m": 0.0,
+            "outflow_m": 0.0,
+            "rain_m": 0.0,
+            "storage_m": 0.0
+          },
+          "land_config": {
+            "area_m2": 0.0,
+            "capacity_m": 0.002,
+            "evaporation_m_per_s": 2.777777777777778e-08,
+            "infiltration_m_per_s": 1.3888888888888888e-07,
+            "initial_storage_m": 0.0
+          },
+          "next_sequence": 4,
+          "rain_m_per_s": 0.0,
+          "scene_key": "classic:sky",
+          "schema_version": 4,
+          "scope": "cpu-environment-surface-water",
+          "solar": {
+            "azimuth_degrees": 45.0,
+            "elevation_degrees": 30.0
+          },
+          "step_seconds": 0.016666666666666666,
+          "tick": 121,
+          "wave_elapsed": 2.0,
+          "wave_from": {
+            "x": 12.0,
+            "z": 4.0
+          },
+          "wave_to": {
+            "x": -20.0,
+            "z": 8.0
+          },
+          "wind": {
+            "x": -15.7408515917417,
+            "z": 7.467606448967713
+          },
+          "wind_target": {
+            "x": -20.0,
+            "z": 8.0
+          }
+        },
+        "runs": [
+          {
+            "name": "capture",
+            "argv": [
+              "--backend",
+              "Vulkan",
+              "--classic",
+              "sky",
+              "--hidden",
+              "--size",
+              "800x450",
+              "--frames",
+              "12",
+              "--environment-ticks",
+              "120",
+              "--environment-sun",
+              "30",
+              "45",
+              "--environment-wind",
+              "-20",
+              "8",
+              "--environment-cloud-coverage",
+              "1",
+              "--environment-save",
+              "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l3-editor-vulkan/first.json",
+              "--screenshot",
+              "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l3-editor-vulkan/sky.ppm"
+            ],
+            "exit_code": 0
+          },
+          {
+            "name": "resume",
+            "argv": [
+              "--backend",
+              "Vulkan",
+              "--classic",
+              "sky",
+              "--hidden",
+              "--size",
+              "800x450",
+              "--frames",
+              "12",
+              "--environment-load",
+              "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l3-editor-vulkan/first.json",
+              "--environment-ticks",
+              "1",
+              "--environment-save",
+              "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l3-editor-vulkan/resumed.json"
+            ],
+            "exit_code": 0
+          },
+          {
+            "name": "continuous-wind",
+            "argv": [
+              "--backend",
+              "Vulkan",
+              "--classic",
+              "sky",
+              "--hidden",
+              "--size",
+              "800x450",
+              "--frames",
+              "12",
+              "--environment-ticks",
+              "240",
+              "--environment-sun",
+              "30",
+              "45",
+              "--environment-wind",
+              "-20",
+              "8",
+              "--environment-cloud-coverage",
+              "1",
+              "--environment-save",
+              "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l3-editor-vulkan/continuous.json"
+            ],
+            "exit_code": 0
+          },
+          {
+            "name": "recovered-wind",
+            "argv": [
+              "--backend",
+              "Vulkan",
+              "--classic",
+              "sky",
+              "--hidden",
+              "--size",
+              "800x450",
+              "--frames",
+              "12",
+              "--environment-load",
+              "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l3-editor-vulkan/first.json",
+              "--environment-ticks",
+              "120",
+              "--environment-save",
+              "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l3-editor-vulkan/recovered.json"
+            ],
+            "exit_code": 0
+          },
+          {
+            "name": "clear-coverage",
+            "argv": [
+              "--backend",
+              "Vulkan",
+              "--classic",
+              "sky",
+              "--hidden",
+              "--size",
+              "800x450",
+              "--frames",
+              "12",
+              "--environment-cloud-coverage",
+              "0",
+              "--environment-ticks",
+              "360",
+              "--environment-save",
+              "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l3-editor-vulkan/clear.json"
+            ],
+            "exit_code": 0
+          },
+          {
+            "name": "invalid-coverage",
+            "argv": [
+              "--backend",
+              "Vulkan",
+              "--classic",
+              "sky",
+              "--hidden",
+              "--size",
+              "800x450",
+              "--frames",
+              "12",
+              "--environment-cloud-coverage",
+              "nan"
+            ],
+            "exit_code": 1
+          },
+          {
+            "name": "invalid-wind",
+            "argv": [
+              "--backend",
+              "Vulkan",
+              "--classic",
+              "sky",
+              "--hidden",
+              "--size",
+              "800x450",
+              "--frames",
+              "12",
+              "--environment-wind",
+              "nan",
+              "8"
+            ],
+            "exit_code": 1
+          },
+          {
+            "name": "wrong-scene",
+            "argv": [
+              "--backend",
+              "Vulkan",
+              "--classic",
+              "sky",
+              "--hidden",
+              "--size",
+              "800x450",
+              "--frames",
+              "12",
+              "--environment-load",
+              "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l3-editor-vulkan/wrong-scene.json",
+              "--environment-save",
+              "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l3-editor-vulkan/rejected.json"
+            ],
+            "exit_code": 1
+          },
+          {
+            "name": "conflicting-time",
+            "argv": [
+              "--backend",
+              "Vulkan",
+              "--classic",
+              "sky",
+              "--hidden",
+              "--size",
+              "800x450",
+              "--frames",
+              "12",
+              "--environment",
+              "--time",
+              "8"
+            ],
+            "exit_code": 1
+          },
+          {
+            "name": "invalid-sun",
+            "argv": [
+              "--backend",
+              "Vulkan",
+              "--classic",
+              "sky",
+              "--hidden",
+              "--size",
+              "800x450",
+              "--frames",
+              "12",
+              "--environment-sun",
+              "30junk",
+              "45"
+            ],
+            "exit_code": 1
+          },
+          {
+            "name": "rain-capture",
+            "argv": [
+              "--backend",
+              "Vulkan",
+              "--classic",
+              "sky",
+              "--hidden",
+              "--size",
+              "800x450",
+              "--frames",
+              "12",
+              "--environment-rain",
+              "36",
+              "--environment-ticks",
+              "120",
+              "--environment-save",
+              "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l3-editor-vulkan/rain-first.json"
+            ],
+            "exit_code": 0
+          },
+          {
+            "name": "rain-direct",
+            "argv": [
+              "--backend",
+              "Vulkan",
+              "--classic",
+              "sky",
+              "--hidden",
+              "--size",
+              "800x450",
+              "--frames",
+              "12",
+              "--environment-rain",
+              "36",
+              "--environment-ticks",
+              "240",
+              "--environment-save",
+              "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l3-editor-vulkan/rain-direct.json"
+            ],
+            "exit_code": 0
+          },
+          {
+            "name": "rain-replay",
+            "argv": [
+              "--backend",
+              "Vulkan",
+              "--classic",
+              "sky",
+              "--hidden",
+              "--size",
+              "800x450",
+              "--frames",
+              "12",
+              "--environment-load",
+              "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l3-editor-vulkan/rain-first.json",
+              "--environment-ticks",
+              "120",
+              "--environment-save",
+              "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l3-editor-vulkan/rain-replay.json"
+            ],
+            "exit_code": 0
+          },
+          {
+            "name": "invalid-rain",
+            "argv": [
+              "--backend",
+              "Vulkan",
+              "--classic",
+              "sky",
+              "--hidden",
+              "--size",
+              "800x450",
+              "--frames",
+              "12",
+              "--environment-rain",
+              "nan"
+            ],
+            "exit_code": 1
+          }
+        ],
+        "wind_replay_exact": true,
+        "coverage_replay_exact": true,
+        "rain_replay_exact": true,
+        "passed": true
+      },
+      "khronos_validation_available": false
+    }
+  },
+  "performance": {
+    "backend": "Metal",
+    "size": [
+      800,
+      450
+    ],
+    "frames": 60,
+    "discarded": 20,
+    "physical_checkpoint_equal": true,
+    "runs": [
+      {
+        "name": "on",
+        "argv": [
+          "--classic",
+          "mountain-lake",
+          "--hidden",
+          "--size",
+          "800x450",
+          "--frames",
+          "60",
+          "--environment-ticks",
+          "3600",
+          "--environment-sun",
+          "45",
+          "20",
+          "--environment-wind",
+          "12",
+          "4",
+          "--environment-rain",
+          "50",
+          "--environment-save",
+          "build/environment/l3-isolated/on.json",
+          "--screenshot",
+          "build/environment/l3-isolated/on.ppm"
+        ],
+        "stages": {
+          "rain/vertex": {
+            "samples": 40,
+            "p50_ms": 0.01366635,
+            "max_ms": 0.0406671,
+            "p95_ms": 0.0284998
+          },
+          "rain/fragment": {
+            "samples": 40,
+            "p50_ms": 0.0330831,
+            "max_ms": 0.400708,
+            "p95_ms": 0.223084
+          }
+        }
+      },
+      {
+        "name": "off",
+        "argv": [
+          "--classic",
+          "mountain-lake",
+          "--hidden",
+          "--size",
+          "800x450",
+          "--frames",
+          "60",
+          "--environment-ticks",
+          "3600",
+          "--environment-sun",
+          "45",
+          "20",
+          "--environment-wind",
+          "12",
+          "4",
+          "--environment-rain",
+          "50",
+          "--environment-save",
+          "build/environment/l3-isolated/off.json",
+          "--screenshot",
+          "build/environment/l3-isolated/off.ppm",
+          "--environment-hide-rain"
+        ],
+        "stages": {
+          "rain/vertex": {
+            "samples": 0,
+            "p50_ms": null,
+            "max_ms": null,
+            "p95_ms": null
+          },
+          "rain/fragment": {
+            "samples": 0,
+            "p50_ms": null,
+            "max_ms": null,
+            "p95_ms": null
+          }
+        }
+      }
+    ],
+    "executable_sha256": "9703f722c32b1ed88440e4c6d5c341bcea01a3ec15209c3c0e82492334ce675e",
+    "scope": "Individual native vertex/fragment timestamps, which can overlap. Runs must be exclusive of other validation jobs; no sum or stable frame-rate claim."
+  },
+  "fixed_lake_checkpoint": {
+    "applied_sequence": 3,
+    "cloud_coverage": 0.550000011920929,
+    "cloud_x": 713.6568541527172,
+    "cloud_z": 241.65685415267254,
+    "coverage_elapsed": 6.0,
+    "coverage_from": 0.550000011920929,
+    "coverage_target": 0.550000011920929,
+    "enabled": true,
+    "events": [],
+    "grass_phase": 102.15383225054887,
+    "initial_cloud_coverage": 0.550000011920929,
+    "initial_rain_m_per_s": 0.0,
+    "initial_seconds": 0.0,
+    "initial_solar": {
+      "azimuth_degrees": 128.65980529785156,
+      "elevation_degrees": 57.368064880371094
+    },
+    "initial_wind": {
+      "x": 5.656854152679443,
+      "z": 5.656854152679443
+    },
+    "lake_area_m2": 9850690.231450746,
+    "lake_rain_m3": 8208.90852620873,
+    "land": {
+      "evaporation_m": 1.6666666666665987e-06,
+      "infiltration_m": 8.333333333333349e-06,
+      "outflow_m": 0.0,
+      "rain_m": 0.0008333333333333284,
+      "storage_m": 0.0008233333333333621
+    },
+    "land_config": {
+      "area_m2": 54149309.768549256,
+      "capacity_m": 0.002,
+      "evaporation_m_per_s": 2.777777777777778e-08,
+      "infiltration_m_per_s": 1.3888888888888888e-07,
+      "initial_storage_m": 0.0
+    },
+    "next_sequence": 4,
+    "rain_m_per_s": 1.388888888888889e-05,
+    "scene_key": "classic:mountain-lake",
+    "schema_version": 4,
+    "scope": "cpu-environment-surface-water",
+    "solar": {
+      "azimuth_degrees": 20.0,
+      "elevation_degrees": 45.0
+    },
+    "step_seconds": 0.016666666666666666,
+    "tick": 3600,
+    "wave_elapsed": 8.0,
+    "wave_from": {
+      "x": 5.656854152679443,
+      "z": 5.656854152679443
+    },
+    "wave_to": {
+      "x": 12.0,
+      "z": 4.0
+    },
+    "wind": {
+      "x": 11.999999999999947,
+      "z": 4.000000000000027
+    },
+    "wind_target": {
+      "x": 12.0,
+      "z": 4.0
+    }
+  },
+  "fixed_lake_balance_m3": -1.8215895632721388e-09,
+  "cpu_gpu_pt_metal": {
+    "passed": true,
+    "wet_shore_relative_l1": 6.59506e-08,
+    "tested_executable_sha256": "9703f722c32b1ed88440e4c6d5c341bcea01a3ec15209c3c0e82492334ce675e",
+    "log": "metal-pt.log"
+  },
+  "checks": [
+    "10/10 combined CPU/PT/rain/HiZ checks",
+    "Metal API and shader validation for rain and existing water",
+    "Metal and Vulkan native editor schema-4 rain replay",
+    "Metal full PT bridge including frozen rain/coastal material maximum",
+    "Physical checkpoints equal with visual rain enabled/disabled"
+  ],
+  "limitations": [
+    "Uniform cell, no spatial runoff/soil variation/rain shelter",
+    "Mask-threshold estimate of horizontal land/lake area, no curve-area or basin model",
+    "Lake level fixed; direct lake rain unconsumed; land overflow exits domain",
+    "Artistic scalar albedo/roughness wetting; no independent physical water-film closure",
+    "Visual rain main view only, no reflected/refracted particles or PT rain medium",
+    "No splash/ripple impact or particle motion vectors; TAA motion quality pending",
+    "Rain visual count caps at 50 mm/h; accounting continues to 1000 mm/h",
+    "PT wetness GPU image comparison measured on Metal; Vulkan rain validated but PT reference not rerun",
+    "No 60 fps or 33.3 ms joint budget claim"
+  ],
+  "source_sha256": {
+    "include/engine/Environment.h": "26195376149d5d0b4a685f3ca8c415c34a296809ffe8032c1a296e6beb48164a",
+    "src/engine/Environment.cpp": "01b9e5b17f06573f1a0aeb93866727da2986554fad21abcb318dddd5eb5c854a",
+    "src/renderer/rhi/EnvironmentBridge.cpp": "3f3d08c764721d812b7d7fbc741522f7f6e6666e265b113a2c25c88af5ac9702",
+    "include/renderer/rhi/GpuMaterial.h": "08778c35c0fbb1dfc446c50730d0f366a1cc1b7f6ddee867bbbe402fd3662533",
+    "src/renderer/rhi/GpuMaterial.cpp": "0b35cc87e503c8d43123fb9328e9b30e87baa45d009dee62f6987b6b9c160106",
+    "include/renderer/rhi/GpuRain.h": "e25ca026076bcb5f3c8b99bc0e49fc4960fa8b79a666ab2ef2957e92b2d85a00",
+    "src/renderer/rhi/GpuRain.cpp": "fe718c3317043c85727dbdb334eee3a725e23372d4620c75194fec7a85f3af48",
+    "src/renderer/rhi/RainValidation.cpp": "0991e29b4c601abb61c29e5bc35e863922adb343b1ca9aea323e9a25f7a2b1fd",
+    "src/rhi/shaders/rain.vert": "a3f141a30f8862419300b6db88d4cf5001d618a1f0d8b43de5f70461160145e7",
+    "src/rhi/shaders/rain.frag": "460f796e8bfbbce8ae5a24a4e3ac48b27858df4d11d550433ffc3590eea34fa3",
+    "src/rhi/shaders/rain-parameters.glsl": "ebc4e55d55be69e32727ba4dcafc440f71826e9ac77d863da289e8fe59ee9d25",
+    "src/rhi/shaders/shoreline-material.glsl": "9309ce7378c7eb1c9a74fd325cfa84210da5c1bc0fac53877f8b46c6ba557835",
+    "src/PT/ProceduralGeometry.cpp": "ad266e6d8d0ec193fd91112099e164565a100718c3095b5de496318c075e1b08",
+    "src/PT/CpuPathTracer.cpp": "83b5791c60c748993c9c65d28606a37522989753925ab66ec3efbd3d50ec7546",
+    "src/rhi/shaders/path-trace.comp": "57b596fa58e852df97208c3b36c5233c612e027fc3b04e6997081b2d298872e6",
+    "tests/engine/EnvironmentTests.cpp": "f55830778c9355ab7509a872f221d070113979a5bce52e9bddd3a8eea7d2b413",
+    "tests/PT/ProceduralTests.cpp": "41a05cfbbe0de016093a79d5a1277e7d27bbb6cd398fb6cc2a67ba0a2d1a3cb5",
+    "src/PT/PathTracingValidation.cpp": "40a94f827802f582a0d2cd889a64d70477aa288a5356567071244f578dd26463",
+    "tools/validate_environment_editor.py": "aa8ecaacfc51ab07ee0192068ea13c791c3b15e6c88f9895e21459481dbf8d84"
+  },
+  "final_executable_sha256": "084145270257a026af3a7bb76ff137621cf33f09e82a3076a93a23e6e0eea064",
+  "artifacts_sha256": {
+    "rain-on-trace.json.gz": "8b7a54697b594135d85a03daa9a4c75ab4f222c2e73f631d2ef87b2f8f971451",
+    "mountain-lake-rain.png": "f955295c58116deb9cffd9440c1cbc3d6e70c5c38dfe36a1299ca4a2e13f789f",
+    "dry.png": "76e65c422ad6bb9e172b6445d7b7d7512a6ebc9318d192a03c83f54d6783af63",
+    "overview.png": "b6a487924cbb41c5c499bcc0fa5dd2f718fec8978e34038130a8b04a6edb92c9",
+    "metal-validation-and-vulkan-interrupted.log": "5b38ef7ea3eccea4ab7e29c72ec08804cf6c85455cadf283bf1bce244b520fd5",
+    "metal-pt.log": "701016e44068201535b52cfd6bb264792ef3049d9dd4d65e54f623b9f68657d0",
+    "rain-off-trace.json.gz": "5d44f9ec96730a030b49a05053fb2662e001a4095e1b5e5313176b9250050ef6",
+    "performance.json": "2c9461d14232fa76b92e38d34ee5a1add9221f79eb9d802cc311461a807baea6",
+    "metal-editor.json": "467f7af74c71e77042b7b4a8059a5a86e5e1f3d0e57961f5651b00c6ae66129e",
+    "metal-gpu.log": "35b07deae33a29c2eb2016a4404869beab7e185c21fa3656a4f8eb222cb58e04",
+    "vulkan-editor.json": "0c337e50014d4a53bd02e2209eb166552812e05c1a6a1c4a36599a6d7bc0d983",
+    "vulkan-gpu.log": "116e813bb20ba1fd04efbad4d96a408336c67685db29b9a9d31595162a304c6f",
+    "mountain-lake-checkpoint.json": "fec7296add3b4497755b748fb28eb249749285aed4429ff6756f26839cac7540",
+    "wet.png": "446459b306fba087c2e6f87c2ebce6bc56f583cc6c56fec37d8fa886f5227a63",
+    "combined-tests.log": "06f02f3835060d174ade1d15e6424503255c02604d360c81387cbeab85ad01bc",
+    "metal-water.log": "503d9ab1ef5001298adf06cc7fecd0bed82e61a1fdee9cdc8e4e56f574429be9",
+    "vulkan-final.log": "adcd36079b373edc49666317bcc03f24719207dccb453a729c1c5bfc2ce24619",
+    "rain.png": "be294928f86c827147d30e5eb05acfde158125eb5cea9b7405f530910e14bb60"
+  },
+  "final_validation": {
+    "metal_api_shader_rain": "passed",
+    "vulkan_normal_environment": "passed",
+    "extra_combined_validation_note": "Metal native passed. MoltenVK with Metal API+Shader validation simultaneously enabled exceeded expected time and was interrupted; normal MTL_DEBUG_LAYER=0/MTL_SHADER_VALIDATION=0 Vulkan rerun passed. This extra attempt is not validation evidence."
+  }
+}

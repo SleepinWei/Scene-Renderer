@@ -1,0 +1,94 @@
+{
+  "scope": "static 960x540 main renderer submission only; 12 measured frames per variant; no full-frame performance claim",
+  "metal_main_submission": {
+    "mountain-lake": {
+      "mountain-lake-air-fog": {
+        "p50_ms": 39.302000077441335,
+        "p95_ms": 41.53553956421092,
+        "samples": 12
+      },
+      "mountain-lake-cloud-shadows": {
+        "p50_ms": 43.344395817257464,
+        "p95_ms": 47.06695416243747,
+        "samples": 12
+      },
+      "mountain-lake-weather-combined": {
+        "p50_ms": 37.7982291392982,
+        "p95_ms": 39.91893124766648,
+        "samples": 12
+      },
+      "mountain-lake-weather-off": {
+        "p50_ms": 42.10952075663954,
+        "p95_ms": 48.746812576428056,
+        "samples": 12
+      }
+    },
+    "mountain-lake-beach": {
+      "mountain-lake-beach-air-fog": {
+        "p50_ms": 35.14627076219767,
+        "p95_ms": 36.5582145168446,
+        "samples": 12
+      },
+      "mountain-lake-beach-cloud-shadows": {
+        "p50_ms": 35.14881245791912,
+        "p95_ms": 37.82593752257526,
+        "samples": 12
+      },
+      "mountain-lake-beach-weather-combined": {
+        "p50_ms": 33.95229170564562,
+        "p95_ms": 35.641766677144915,
+        "samples": 12
+      },
+      "mountain-lake-beach-weather-off": {
+        "p50_ms": 35.281645716167986,
+        "p95_ms": 46.08035620767623,
+        "samples": 12
+      }
+    }
+  },
+  "backend_image_parity": {
+    "mountain-lake-beach-air-fog.png": {
+      "mean_abs_difference_0_to_255": 0.015097093768417835,
+      "max_abs_difference_0_to_255": 111.0
+    },
+    "mountain-lake-beach-weather-off.png": {
+      "mean_abs_difference_0_to_255": 0.018134644255042076,
+      "max_abs_difference_0_to_255": 127.0
+    },
+    "mountain-lake-beach-cloud-shadows.png": {
+      "mean_abs_difference_0_to_255": 0.01950874552130699,
+      "max_abs_difference_0_to_255": 127.0
+    },
+    "mountain-lake-cloud-shadow-map.png": {
+      "mean_abs_difference_0_to_255": 0.0,
+      "max_abs_difference_0_to_255": 0.0
+    },
+    "mountain-lake-beach-cloud-shadow-map.png": {
+      "mean_abs_difference_0_to_255": 0.0,
+      "max_abs_difference_0_to_255": 0.0
+    },
+    "mountain-lake-cloud-shadows.png": {
+      "mean_abs_difference_0_to_255": 0.010954861529171467,
+      "max_abs_difference_0_to_255": 144.0
+    },
+    "mountain-lake-air-fog.png": {
+      "mean_abs_difference_0_to_255": 0.00889531895518303,
+      "max_abs_difference_0_to_255": 98.0
+    },
+    "mountain-lake-weather-combined.png": {
+      "mean_abs_difference_0_to_255": 0.008944187313318253,
+      "max_abs_difference_0_to_255": 117.0
+    },
+    "mountain-lake-beach-weather-combined.png": {
+      "mean_abs_difference_0_to_255": 0.014987782575190067,
+      "max_abs_difference_0_to_255": 111.0
+    },
+    "mountain-lake-weather-off.png": {
+      "mean_abs_difference_0_to_255": 0.011148405261337757,
+      "max_abs_difference_0_to_255": 117.0
+    }
+  },
+  "pt_import_export_solar_field_equal": true,
+  "editor_checkpoint_schema": 5,
+  "editor_checkpoint_tick": 180
+}

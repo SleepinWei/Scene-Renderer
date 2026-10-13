@@ -1,0 +1,55 @@
+{
+  "device": "Apple M4",
+  "method": "Union of GPU timestamp intervals within each phase and frame; phases can overlap and are not additive.",
+  "phase_interval_union_ms": {
+    "ddgi/retain-field": {
+      "median": 0.27352046966552734,
+      "p95": 0.4589998722076416
+    },
+    "ddgi/probe-capture": {
+      "median": 13.180770635604858,
+      "p95": 16.823790788650513
+    },
+    "ddgi/probe-integrate": {
+      "median": 3.7552915811538696,
+      "p95": 6.3774590492248535
+    },
+    "ddgi/surface-query": {
+      "median": 8.7495836019516,
+      "p95": 11.263999938964844
+    }
+  },
+  "profiled_ddgi_frames": 170,
+  "discarded_profile_prefix_frames": 10,
+  "application_frames": 480,
+  "profile_window_note": "Metal keeps a rolling bounded sample history. On profile retains 170 complete DDGI frames from the tail; statistics use the last 160 frames for both runs (frames 321..480), after two full probe sweeps.",
+  "runs": {
+    "off": {
+      "gpu_command_buffer_ms": {
+        "median": 17.369229197502136,
+        "p95": 20.32170820236206,
+        "samples": 160
+      },
+      "runtime_seconds_including_startup": 5.31622,
+      "peak_rhi_resource_mib": 364.529,
+      "render_cpu_p95_p99_ms": [
+        12.1365,
+        17.5143
+      ]
+    },
+    "on": {
+      "gpu_command_buffer_ms": {
+        "median": 25.46247911453247,
+        "p95": 28.531749963760376,
+        "samples": 160
+      },
+      "runtime_seconds_including_startup": 8.72342,
+      "peak_rhi_resource_mib": 377.105,
+      "render_cpu_p95_p99_ms": [
+        27.6352,
+        35.4876
+      ]
+    }
+  },
+  "gpu_command_buffer_method": "Duration of each completed Metal command buffer, using last 160 submissions. Includes encoded rendering/presentation work; does not include CPU encoding or predict interactive FPS. No API/shader validation; GPU counters enabled for both runs."
+}

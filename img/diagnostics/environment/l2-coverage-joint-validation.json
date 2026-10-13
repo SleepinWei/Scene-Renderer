@@ -1,0 +1,2214 @@
+{
+  "Metal": {
+    "backend": "Metal",
+    "executable_sha256": "510fa053d0719429881b2a8feb90617f74280ead5d1e20c3f9e3597daa38505c",
+    "passed": true,
+    "runs": [
+      {
+        "name": "fixed-midpoint",
+        "scene": "mountain-lake",
+        "argv": [
+          "--backend",
+          "Metal",
+          "--classic",
+          "mountain-lake",
+          "--hidden",
+          "--size",
+          "1280x720",
+          "--frames",
+          "90",
+          "--environment-clouds",
+          "--environment-cloud-coverage",
+          "1",
+          "--environment-wind",
+          "-20",
+          "8",
+          "--environment-sun",
+          "45",
+          "20",
+          "--environment-save",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-joint/fixed-midpoint.checkpoint.json",
+          "--screenshot",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-joint/fixed-midpoint.ppm",
+          "--environment-ticks",
+          "180"
+        ],
+        "checkpoint": {
+          "applied_sequence": 3,
+          "cloud_coverage": 0.7750000059604645,
+          "cloud_x": -35.62052539912432,
+          "cloud_z": 21.77351251517587,
+          "coverage_elapsed": 3.0,
+          "coverage_from": 0.550000011920929,
+          "coverage_target": 1.0,
+          "enabled": true,
+          "events": [],
+          "grass_phase": 5.362269250614859,
+          "initial_cloud_coverage": 0.550000011920929,
+          "initial_seconds": 0.0,
+          "initial_solar": {
+            "azimuth_degrees": 128.65980529785156,
+            "elevation_degrees": 57.368064880371094
+          },
+          "initial_wind": {
+            "x": 5.656854152679443,
+            "z": 5.656854152679443
+          },
+          "next_sequence": 4,
+          "scene_key": "classic:mountain-lake",
+          "schema_version": 3,
+          "scope": "cpu-clock-solar-wind-coverage",
+          "solar": {
+            "azimuth_degrees": 20.0,
+            "elevation_degrees": 45.0
+          },
+          "step_seconds": 0.016666666666666666,
+          "tick": 180,
+          "wave_elapsed": 2.9833333333333334,
+          "wave_from": {
+            "x": 5.656854152679443,
+            "z": 5.656854152679443
+          },
+          "wave_to": {
+            "x": -20.0,
+            "z": 8.0
+          },
+          "wind": {
+            "x": -18.722620448196235,
+            "z": 7.883341637503573
+          },
+          "wind_target": {
+            "x": -20.0,
+            "z": 8.0
+          }
+        },
+        "summary": {
+          "source": "l2-coverage-metal-fixed-midpoint-trace.json.gz",
+          "cpu_clock": "steady_clock; completion acknowledgement includes owner-thread polling",
+          "gpu_clock": "independent native timestamp origin; do not align to CPU without calibration",
+          "rendered_frames": 90,
+          "water_surface_frames": 90,
+          "warmup_frames": 30,
+          "steady_cpu_wall_ms": 4875.817,
+          "steady_cpu_frame_period_ms": 81.26361666666666,
+          "cpu_scopes": {
+            "ao-depth": {
+              "samples": 60,
+              "p50_ms": 8.3e-05,
+              "p95_ms": 0.00045900000000000004
+            },
+            "ao-filter": {
+              "samples": 60,
+              "p50_ms": 0.00020899999999999998,
+              "p95_ms": 0.0006670000000000001
+            },
+            "ao-raw": {
+              "samples": 60,
+              "p50_ms": 0.0005420000000000001,
+              "p95_ms": 0.001625
+            },
+            "atmosphere": {
+              "samples": 60,
+              "p50_ms": 0.0008545,
+              "p95_ms": 0.001875
+            },
+            "back": {
+              "samples": 60,
+              "p50_ms": 0.000333,
+              "p95_ms": 0.001125
+            },
+            "clouds": {
+              "samples": 60,
+              "p50_ms": 0.023625,
+              "p95_ms": 0.047459
+            },
+            "engine/snapshot": {
+              "samples": 1803,
+              "p50_ms": 0.01,
+              "p95_ms": 0.029917000000000003
+            },
+            "engine/tick": {
+              "samples": 1803,
+              "p50_ms": 2.55583,
+              "p95_ms": 2.69633
+            },
+            "engine/ui": {
+              "samples": 1803,
+              "p50_ms": 0.021875,
+              "p95_ms": 0.082375
+            },
+            "frame/input-to-completion-ack": {
+              "samples": 60,
+              "p50_ms": 461.6015,
+              "p95_ms": 502.042
+            },
+            "frame/input-to-consume": {
+              "samples": 60,
+              "p50_ms": 153.1245,
+              "p95_ms": 179.162
+            },
+            "geometry": {
+              "samples": 60,
+              "p50_ms": 0.0044165,
+              "p95_ms": 0.008166
+            },
+            "graph/compile": {
+              "samples": 60,
+              "p50_ms": 0.060229,
+              "p95_ms": 0.107667
+            },
+            "light": {
+              "samples": 60,
+              "p50_ms": 0.000417,
+              "p95_ms": 0.001125
+            },
+            "motion": {
+              "samples": 60,
+              "p50_ms": 0.0114165,
+              "p95_ms": 0.044333
+            },
+            "ocean-copy": {
+              "samples": 60,
+              "p50_ms": 8.3e-05,
+              "p95_ms": 0.000292
+            },
+            "ocean-simulation": {
+              "samples": 60,
+              "p50_ms": 0.216,
+              "p95_ms": 0.804875
+            },
+            "post-process": {
+              "samples": 60,
+              "p50_ms": 0.005313,
+              "p95_ms": 0.007875
+            },
+            "render/acquire-and-flight-wait": {
+              "samples": 60,
+              "p50_ms": 74.8098,
+              "p95_ms": 93.62660000000001
+            },
+            "render/feedback": {
+              "samples": 60,
+              "p50_ms": 0.0028335,
+              "p95_ms": 0.082916
+            },
+            "render/frame": {
+              "samples": 60,
+              "p50_ms": 78.896,
+              "p95_ms": 96.56830000000001
+            },
+            "render/present-and-flight-wait": {
+              "samples": 60,
+              "p50_ms": 0.014354,
+              "p95_ms": 0.053917
+            },
+            "render/queue-pop": {
+              "samples": 60,
+              "p50_ms": 0.0004795,
+              "p95_ms": 0.00175
+            },
+            "render/record": {
+              "samples": 60,
+              "p50_ms": 1.0307300000000001,
+              "p95_ms": 2.15092
+            },
+            "render/resolve": {
+              "samples": 60,
+              "p50_ms": 0.5466664999999999,
+              "p95_ms": 1.296
+            },
+            "shadows-rsm": {
+              "samples": 60,
+              "p50_ms": 0.14843800000000001,
+              "p95_ms": 0.30129199999999995
+            },
+            "temporal": {
+              "samples": 60,
+              "p50_ms": 0.0057915,
+              "p95_ms": 0.012917
+            },
+            "water-capture/4": {
+              "samples": 60,
+              "p50_ms": 0.0581455,
+              "p95_ms": 0.166458
+            },
+            "water-eye/4": {
+              "samples": 60,
+              "p50_ms": 0.0078335,
+              "p95_ms": 0.018583
+            },
+            "water-surface/4": {
+              "samples": 60,
+              "p50_ms": 0.014374999999999999,
+              "p95_ms": 0.03125
+            },
+            "water-volume/4": {
+              "samples": 60,
+              "p50_ms": 0.00029099999999999997,
+              "p95_ms": 0.000708
+            }
+          },
+          "frame_start_retirement_and_flight_wait": {
+            "samples": 60,
+            "p50_ms": 74.71195,
+            "p95_ms": 93.5925
+          },
+          "frame_start_native_acquire": {
+            "samples": 60,
+            "p50_ms": 0.02225,
+            "p95_ms": 0.078083
+          },
+          "native_submissions_between_surfaces": {
+            "samples": 59,
+            "counts": {
+              "1": 59
+            },
+            "mean": 1
+          },
+          "gpu_surface_completion_period": {
+            "samples": 59,
+            "p50_ms": 76.46279000000004,
+            "p95_ms": 101.73554000000004
+          },
+          "native_submission_duration": {
+            "samples": 59,
+            "p50_ms": 92.8299,
+            "p95_ms": 118.811
+          },
+          "between_native_submission_gaps": {
+            "samples": 58,
+            "p50_ms": 0.0,
+            "p95_ms": 0.0
+          }
+        },
+        "gpu_labels": {
+          "submission/submission": 92,
+          "buffer-upload/blit": 1004,
+          "compute/compute": 246,
+          "terrain/lod/compute": 198,
+          "terrain/lodmap/compute": 33,
+          "terrain/generate/compute": 33,
+          "fft512/gaussian/compute": 1,
+          "fft512/height/compute": 90,
+          "fft512/displacementspectrum/compute": 90,
+          "fft512/horizontal/compute": 270,
+          "fft512/vertical/compute": 270,
+          "fft512/displacement/compute": 90,
+          "fft512/normalfoam/compute": 90,
+          "fft256/gaussian/compute": 1,
+          "fft256/height/compute": 90,
+          "fft256/displacementspectrum/compute": 90,
+          "fft256/horizontal/compute": 270,
+          "fft256/vertical/compute": 270,
+          "fft256/displacement/compute": 90,
+          "fft256/normalfoam/compute": 90,
+          "texture-copy/blit": 270,
+          "shadow-depth/vertex": 540,
+          "shadow-depth/fragment": 540,
+          "back/vertex": 90,
+          "back/fragment": 90,
+          "geometry/vertex": 90,
+          "geometry/fragment": 90,
+          "ao-raw/vertex": 90,
+          "ao-raw/fragment": 90,
+          "ao-filter/vertex": 90,
+          "ao-filter/fragment": 90,
+          "light/vertex": 90,
+          "light/fragment": 90,
+          "motion/vertex": 90,
+          "motion/fragment": 90,
+          "Cloud noise bake/compute": 2,
+          "Cloud XYZ density bake/compute": 1,
+          "Cloud conservative signed distance bake/compute": 33,
+          "Cloud voxel light cache/compute": 1,
+          "Cloud clear/compute": 90,
+          "Cloud GPU tile classification/compute": 90,
+          "Cloud indirect raymarch/compute": 90,
+          "Cloud temporal resolve/compute": 90,
+          "Cloud bilateral composite/vertex": 90,
+          "Cloud bilateral composite/fragment": 90,
+          "ocean-copy/blit": 90,
+          "water/capture/vertex": 90,
+          "water/capture/fragment": 90,
+          "water/capture-air/vertex": 90,
+          "water/capture-air/fragment": 90,
+          "water/capture-reflection/vertex": 90,
+          "water/capture-reflection/fragment": 90,
+          "water/surface/vertex": 90,
+          "water/surface/fragment": 90,
+          "water/underwater-fog/vertex": 90,
+          "water/underwater-fog/fragment": 90,
+          "temporal/compute": 90,
+          "post-tone-grade/vertex": 90,
+          "post-tone-grade/fragment": 90,
+          "render/vertex": 180,
+          "render/fragment": 180,
+          "presentation/vertex": 90,
+          "presentation/fragment": 90
+        },
+        "screenshot": "l2-coverage-metal-fixed-midpoint.png",
+        "trace": "l2-coverage-metal-fixed-midpoint-trace.json.gz",
+        "cloud_cache_dispatches": {
+          "density": 1,
+          "distance": 33,
+          "light": 1
+        }
+      },
+      {
+        "name": "lake-live-1",
+        "scene": "mountain-lake",
+        "argv": [
+          "--backend",
+          "Metal",
+          "--classic",
+          "mountain-lake",
+          "--hidden",
+          "--size",
+          "1280x720",
+          "--frames",
+          "90",
+          "--environment-clouds",
+          "--environment-cloud-coverage",
+          "1",
+          "--environment-wind",
+          "-20",
+          "8",
+          "--environment-sun",
+          "45",
+          "20",
+          "--environment-save",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-joint/lake-live-1.checkpoint.json",
+          "--screenshot",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-joint/lake-live-1.ppm"
+        ],
+        "checkpoint": {
+          "applied_sequence": 3,
+          "cloud_coverage": 1.0,
+          "cloud_x": -112.70190841235478,
+          "cloud_z": 52.99250984394125,
+          "coverage_elapsed": 6.0,
+          "coverage_from": 0.550000011920929,
+          "coverage_target": 1.0,
+          "enabled": true,
+          "events": [],
+          "grass_phase": 13.389241808918696,
+          "initial_cloud_coverage": 0.550000011920929,
+          "initial_seconds": 0.0,
+          "initial_solar": {
+            "azimuth_degrees": 128.65980529785156,
+            "elevation_degrees": 57.368064880371094
+          },
+          "initial_wind": {
+            "x": 5.656854152679443,
+            "z": 5.656854152679443
+          },
+          "next_sequence": 4,
+          "scene_key": "classic:mountain-lake",
+          "schema_version": 3,
+          "scope": "cpu-clock-solar-wind-coverage",
+          "solar": {
+            "azimuth_degrees": 20.0,
+            "elevation_degrees": 45.0
+          },
+          "step_seconds": 0.016666666666666666,
+          "tick": 415,
+          "wave_elapsed": 6.8999999999999995,
+          "wave_from": {
+            "x": 5.656854152679443,
+            "z": 5.656854152679443
+          },
+          "wave_to": {
+            "x": -20.0,
+            "z": 8.0
+          },
+          "wind": {
+            "x": -19.97457076829914,
+            "z": 7.997677642071555
+          },
+          "wind_target": {
+            "x": -20.0,
+            "z": 8.0
+          }
+        },
+        "summary": {
+          "source": "l2-coverage-metal-lake-live-1-trace.json.gz",
+          "cpu_clock": "steady_clock; completion acknowledgement includes owner-thread polling",
+          "gpu_clock": "independent native timestamp origin; do not align to CPU without calibration",
+          "rendered_frames": 90,
+          "water_surface_frames": 90,
+          "warmup_frames": 30,
+          "steady_cpu_wall_ms": 4976.418,
+          "steady_cpu_frame_period_ms": 82.9403,
+          "cpu_scopes": {
+            "ao-depth": {
+              "samples": 60,
+              "p50_ms": 8.3e-05,
+              "p95_ms": 0.000375
+            },
+            "ao-filter": {
+              "samples": 60,
+              "p50_ms": 0.00025,
+              "p95_ms": 0.000833
+            },
+            "ao-raw": {
+              "samples": 60,
+              "p50_ms": 0.000584,
+              "p95_ms": 0.0024159999999999997
+            },
+            "atmosphere": {
+              "samples": 60,
+              "p50_ms": 0.000875,
+              "p95_ms": 0.001583
+            },
+            "back": {
+              "samples": 60,
+              "p50_ms": 0.00045850000000000003,
+              "p95_ms": 0.0018340000000000001
+            },
+            "clouds": {
+              "samples": 60,
+              "p50_ms": 0.0236875,
+              "p95_ms": 0.081625
+            },
+            "engine/snapshot": {
+              "samples": 1843,
+              "p50_ms": 0.011875,
+              "p95_ms": 0.040625
+            },
+            "engine/tick": {
+              "samples": 1843,
+              "p50_ms": 2.55858,
+              "p95_ms": 2.78
+            },
+            "engine/ui": {
+              "samples": 1843,
+              "p50_ms": 0.027583,
+              "p95_ms": 0.115125
+            },
+            "frame/input-to-completion-ack": {
+              "samples": 60,
+              "p50_ms": 464.1835,
+              "p95_ms": 517.47
+            },
+            "frame/input-to-consume": {
+              "samples": 60,
+              "p50_ms": 152.65449999999998,
+              "p95_ms": 184.177
+            },
+            "geometry": {
+              "samples": 60,
+              "p50_ms": 0.004687500000000001,
+              "p95_ms": 0.013792
+            },
+            "graph/compile": {
+              "samples": 60,
+              "p50_ms": 0.061312,
+              "p95_ms": 0.116875
+            },
+            "light": {
+              "samples": 60,
+              "p50_ms": 0.000458,
+              "p95_ms": 0.002041
+            },
+            "motion": {
+              "samples": 60,
+              "p50_ms": 0.0115835,
+              "p95_ms": 0.096334
+            },
+            "ocean-copy": {
+              "samples": 60,
+              "p50_ms": 8.3e-05,
+              "p95_ms": 0.000375
+            },
+            "ocean-simulation": {
+              "samples": 60,
+              "p50_ms": 0.2262505,
+              "p95_ms": 1.1915
+            },
+            "post-process": {
+              "samples": 60,
+              "p50_ms": 0.005542,
+              "p95_ms": 0.042832999999999996
+            },
+            "render/acquire-and-flight-wait": {
+              "samples": 60,
+              "p50_ms": 76.14455,
+              "p95_ms": 95.1502
+            },
+            "render/feedback": {
+              "samples": 60,
+              "p50_ms": 0.0044795,
+              "p95_ms": 0.28
+            },
+            "render/frame": {
+              "samples": 60,
+              "p50_ms": 78.63380000000001,
+              "p95_ms": 105.97
+            },
+            "render/present-and-flight-wait": {
+              "samples": 60,
+              "p50_ms": 0.0197085,
+              "p95_ms": 0.342791
+            },
+            "render/queue-pop": {
+              "samples": 60,
+              "p50_ms": 0.000625,
+              "p95_ms": 0.0015
+            },
+            "render/record": {
+              "samples": 60,
+              "p50_ms": 1.1096650000000001,
+              "p95_ms": 6.47071
+            },
+            "render/resolve": {
+              "samples": 60,
+              "p50_ms": 0.575771,
+              "p95_ms": 3.81821
+            },
+            "shadows-rsm": {
+              "samples": 60,
+              "p50_ms": 0.16260449999999999,
+              "p95_ms": 0.80625
+            },
+            "temporal": {
+              "samples": 60,
+              "p50_ms": 0.005958,
+              "p95_ms": 0.056958
+            },
+            "water-capture/4": {
+              "samples": 60,
+              "p50_ms": 0.057582999999999995,
+              "p95_ms": 0.338792
+            },
+            "water-eye/4": {
+              "samples": 60,
+              "p50_ms": 0.007958,
+              "p95_ms": 0.039167
+            },
+            "water-surface/4": {
+              "samples": 60,
+              "p50_ms": 0.0146465,
+              "p95_ms": 0.039083
+            },
+            "water-volume/4": {
+              "samples": 60,
+              "p50_ms": 0.0003545,
+              "p95_ms": 0.000833
+            }
+          },
+          "frame_start_retirement_and_flight_wait": {
+            "samples": 60,
+            "p50_ms": 76.12270000000001,
+            "p95_ms": 92.4883
+          },
+          "frame_start_native_acquire": {
+            "samples": 60,
+            "p50_ms": 0.0234795,
+            "p95_ms": 0.17575
+          },
+          "native_submissions_between_surfaces": {
+            "samples": 59,
+            "counts": {
+              "1": 59
+            },
+            "mean": 1
+          },
+          "gpu_surface_completion_period": {
+            "samples": 59,
+            "p50_ms": 79.79341000000015,
+            "p95_ms": 99.51549000000023
+          },
+          "native_submission_duration": {
+            "samples": 59,
+            "p50_ms": 97.5321,
+            "p95_ms": 116.166
+          },
+          "between_native_submission_gaps": {
+            "samples": 58,
+            "p50_ms": 0.0,
+            "p95_ms": 0.0
+          }
+        },
+        "gpu_labels": {
+          "submission/submission": 92,
+          "buffer-upload/blit": 1013,
+          "compute/compute": 246,
+          "terrain/lod/compute": 216,
+          "terrain/lodmap/compute": 36,
+          "terrain/generate/compute": 36,
+          "fft512/gaussian/compute": 1,
+          "fft512/height/compute": 90,
+          "fft512/displacementspectrum/compute": 90,
+          "fft512/horizontal/compute": 270,
+          "fft512/vertical/compute": 270,
+          "fft512/displacement/compute": 90,
+          "fft512/normalfoam/compute": 90,
+          "fft256/gaussian/compute": 1,
+          "fft256/height/compute": 90,
+          "fft256/displacementspectrum/compute": 90,
+          "fft256/horizontal/compute": 270,
+          "fft256/vertical/compute": 270,
+          "fft256/displacement/compute": 90,
+          "fft256/normalfoam/compute": 90,
+          "texture-copy/blit": 270,
+          "shadow-depth/vertex": 540,
+          "shadow-depth/fragment": 540,
+          "back/vertex": 90,
+          "back/fragment": 90,
+          "geometry/vertex": 90,
+          "geometry/fragment": 90,
+          "ao-raw/vertex": 90,
+          "ao-raw/fragment": 90,
+          "ao-filter/vertex": 90,
+          "ao-filter/fragment": 90,
+          "light/vertex": 90,
+          "light/fragment": 90,
+          "motion/vertex": 90,
+          "motion/fragment": 90,
+          "Cloud noise bake/compute": 2,
+          "Cloud XYZ density bake/compute": 1,
+          "Cloud conservative signed distance bake/compute": 33,
+          "Cloud voxel light cache/compute": 1,
+          "Cloud clear/compute": 90,
+          "Cloud GPU tile classification/compute": 90,
+          "Cloud indirect raymarch/compute": 90,
+          "Cloud temporal resolve/compute": 90,
+          "Cloud bilateral composite/vertex": 90,
+          "Cloud bilateral composite/fragment": 90,
+          "ocean-copy/blit": 90,
+          "water/capture/vertex": 90,
+          "water/capture/fragment": 90,
+          "water/capture-air/vertex": 90,
+          "water/capture-air/fragment": 90,
+          "water/capture-reflection/vertex": 90,
+          "water/capture-reflection/fragment": 90,
+          "water/surface/vertex": 90,
+          "water/surface/fragment": 90,
+          "water/underwater-fog/vertex": 90,
+          "water/underwater-fog/fragment": 90,
+          "temporal/compute": 90,
+          "post-tone-grade/vertex": 90,
+          "post-tone-grade/fragment": 90,
+          "render/vertex": 180,
+          "render/fragment": 180,
+          "presentation/vertex": 90,
+          "presentation/fragment": 90
+        },
+        "screenshot": "l2-coverage-metal-lake-live-1.png",
+        "trace": "l2-coverage-metal-lake-live-1-trace.json.gz",
+        "cloud_cache_dispatches": {
+          "density": 1,
+          "distance": 33,
+          "light": 1
+        }
+      },
+      {
+        "name": "lake-live-2",
+        "scene": "mountain-lake",
+        "argv": [
+          "--backend",
+          "Metal",
+          "--classic",
+          "mountain-lake",
+          "--hidden",
+          "--size",
+          "1280x720",
+          "--frames",
+          "90",
+          "--environment-clouds",
+          "--environment-cloud-coverage",
+          "1",
+          "--environment-wind",
+          "-20",
+          "8",
+          "--environment-sun",
+          "45",
+          "20",
+          "--environment-save",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-joint/lake-live-2.checkpoint.json",
+          "--screenshot",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-joint/lake-live-2.ppm"
+        ],
+        "checkpoint": {
+          "applied_sequence": 3,
+          "cloud_coverage": 1.0,
+          "cloud_x": -116.69729887467456,
+          "cloud_z": 54.59208887186847,
+          "coverage_elapsed": 6.0,
+          "coverage_from": 0.550000011920929,
+          "coverage_target": 1.0,
+          "enabled": true,
+          "events": [],
+          "grass_phase": 13.801391117637351,
+          "initial_cloud_coverage": 0.550000011920929,
+          "initial_seconds": 0.0,
+          "initial_solar": {
+            "azimuth_degrees": 128.65980529785156,
+            "elevation_degrees": 57.368064880371094
+          },
+          "initial_wind": {
+            "x": 5.656854152679443,
+            "z": 5.656854152679443
+          },
+          "next_sequence": 4,
+          "scene_key": "classic:mountain-lake",
+          "schema_version": 3,
+          "scope": "cpu-clock-solar-wind-coverage",
+          "solar": {
+            "azimuth_degrees": 20.0,
+            "elevation_degrees": 45.0
+          },
+          "step_seconds": 0.016666666666666666,
+          "tick": 427,
+          "wave_elapsed": 7.1,
+          "wave_from": {
+            "x": 5.656854152679443,
+            "z": 5.656854152679443
+          },
+          "wave_to": {
+            "x": -20.0,
+            "z": 8.0
+          },
+          "wind": {
+            "x": -19.979180305979366,
+            "z": 7.998098614144327
+          },
+          "wind_target": {
+            "x": -20.0,
+            "z": 8.0
+          }
+        },
+        "summary": {
+          "source": "l2-coverage-metal-lake-live-2-trace.json.gz",
+          "cpu_clock": "steady_clock; completion acknowledgement includes owner-thread polling",
+          "gpu_clock": "independent native timestamp origin; do not align to CPU without calibration",
+          "rendered_frames": 90,
+          "water_surface_frames": 90,
+          "warmup_frames": 30,
+          "steady_cpu_wall_ms": 5039.922,
+          "steady_cpu_frame_period_ms": 83.9987,
+          "cpu_scopes": {
+            "ao-depth": {
+              "samples": 60,
+              "p50_ms": 4.2000000000000004e-05,
+              "p95_ms": 0.000375
+            },
+            "ao-filter": {
+              "samples": 60,
+              "p50_ms": 0.00025,
+              "p95_ms": 0.001167
+            },
+            "ao-raw": {
+              "samples": 60,
+              "p50_ms": 0.000583,
+              "p95_ms": 0.003042
+            },
+            "atmosphere": {
+              "samples": 60,
+              "p50_ms": 0.0008545,
+              "p95_ms": 0.002375
+            },
+            "back": {
+              "samples": 60,
+              "p50_ms": 0.00045900000000000004,
+              "p95_ms": 0.001875
+            },
+            "clouds": {
+              "samples": 60,
+              "p50_ms": 0.0241665,
+              "p95_ms": 0.07066599999999999
+            },
+            "engine/snapshot": {
+              "samples": 1864,
+              "p50_ms": 0.012125,
+              "p95_ms": 0.036625
+            },
+            "engine/tick": {
+              "samples": 1864,
+              "p50_ms": 2.5593950000000003,
+              "p95_ms": 2.74167
+            },
+            "engine/ui": {
+              "samples": 1864,
+              "p50_ms": 0.0280205,
+              "p95_ms": 0.103083
+            },
+            "frame/input-to-completion-ack": {
+              "samples": 60,
+              "p50_ms": 467.91,
+              "p95_ms": 511.887
+            },
+            "frame/input-to-consume": {
+              "samples": 60,
+              "p50_ms": 159.6805,
+              "p95_ms": 184.219
+            },
+            "geometry": {
+              "samples": 60,
+              "p50_ms": 0.004625,
+              "p95_ms": 0.015583
+            },
+            "graph/compile": {
+              "samples": 60,
+              "p50_ms": 0.0611255,
+              "p95_ms": 0.261458
+            },
+            "light": {
+              "samples": 60,
+              "p50_ms": 0.000458,
+              "p95_ms": 0.0032080000000000003
+            },
+            "motion": {
+              "samples": 60,
+              "p50_ms": 0.0115625,
+              "p95_ms": 0.106667
+            },
+            "ocean-copy": {
+              "samples": 60,
+              "p50_ms": 8.3e-05,
+              "p95_ms": 0.0007920000000000001
+            },
+            "ocean-simulation": {
+              "samples": 60,
+              "p50_ms": 0.24785400000000002,
+              "p95_ms": 0.92075
+            },
+            "post-process": {
+              "samples": 60,
+              "p50_ms": 0.0062495,
+              "p95_ms": 0.02125
+            },
+            "render/acquire-and-flight-wait": {
+              "samples": 60,
+              "p50_ms": 74.33295,
+              "p95_ms": 96.15910000000001
+            },
+            "render/feedback": {
+              "samples": 60,
+              "p50_ms": 0.0041665,
+              "p95_ms": 0.252
+            },
+            "render/frame": {
+              "samples": 60,
+              "p50_ms": 77.4854,
+              "p95_ms": 105.728
+            },
+            "render/present-and-flight-wait": {
+              "samples": 60,
+              "p50_ms": 0.017520499999999998,
+              "p95_ms": 0.11875
+            },
+            "render/queue-pop": {
+              "samples": 59,
+              "p50_ms": 0.000584,
+              "p95_ms": 0.001666
+            },
+            "render/record": {
+              "samples": 60,
+              "p50_ms": 1.181975,
+              "p95_ms": 5.5968800000000005
+            },
+            "render/resolve": {
+              "samples": 60,
+              "p50_ms": 0.6034790000000001,
+              "p95_ms": 3.60842
+            },
+            "shadows-rsm": {
+              "samples": 60,
+              "p50_ms": 0.1505415,
+              "p95_ms": 0.95625
+            },
+            "temporal": {
+              "samples": 60,
+              "p50_ms": 0.0063955,
+              "p95_ms": 0.049832999999999995
+            },
+            "water-capture/4": {
+              "samples": 60,
+              "p50_ms": 0.060229,
+              "p95_ms": 0.183916
+            },
+            "water-eye/4": {
+              "samples": 60,
+              "p50_ms": 0.008896000000000001,
+              "p95_ms": 0.032083
+            },
+            "water-surface/4": {
+              "samples": 60,
+              "p50_ms": 0.0156455,
+              "p95_ms": 0.051625
+            },
+            "water-volume/4": {
+              "samples": 60,
+              "p50_ms": 0.000292,
+              "p95_ms": 0.0009170000000000001
+            }
+          },
+          "frame_start_retirement_and_flight_wait": {
+            "samples": 60,
+            "p50_ms": 74.26705,
+            "p95_ms": 96.1375
+          },
+          "frame_start_native_acquire": {
+            "samples": 60,
+            "p50_ms": 0.0261255,
+            "p95_ms": 0.081
+          },
+          "native_submissions_between_surfaces": {
+            "samples": 59,
+            "counts": {
+              "1": 59
+            },
+            "mean": 1
+          },
+          "gpu_surface_completion_period": {
+            "samples": 59,
+            "p50_ms": 78.49528000000026,
+            "p95_ms": 99.19558999999985
+          },
+          "native_submission_duration": {
+            "samples": 59,
+            "p50_ms": 97.1227,
+            "p95_ms": 120.838
+          },
+          "between_native_submission_gaps": {
+            "samples": 58,
+            "p50_ms": 0.0,
+            "p95_ms": 0.0
+          }
+        },
+        "gpu_labels": {
+          "submission/submission": 92,
+          "buffer-upload/blit": 1010,
+          "compute/compute": 246,
+          "terrain/lod/compute": 210,
+          "terrain/lodmap/compute": 35,
+          "terrain/generate/compute": 35,
+          "fft512/gaussian/compute": 1,
+          "fft512/height/compute": 90,
+          "fft512/displacementspectrum/compute": 90,
+          "fft512/horizontal/compute": 270,
+          "fft512/vertical/compute": 270,
+          "fft512/displacement/compute": 90,
+          "fft512/normalfoam/compute": 90,
+          "fft256/gaussian/compute": 1,
+          "fft256/height/compute": 90,
+          "fft256/displacementspectrum/compute": 90,
+          "fft256/horizontal/compute": 270,
+          "fft256/vertical/compute": 270,
+          "fft256/displacement/compute": 90,
+          "fft256/normalfoam/compute": 90,
+          "texture-copy/blit": 270,
+          "shadow-depth/vertex": 540,
+          "shadow-depth/fragment": 540,
+          "back/vertex": 90,
+          "back/fragment": 90,
+          "geometry/vertex": 90,
+          "geometry/fragment": 90,
+          "ao-raw/vertex": 90,
+          "ao-raw/fragment": 90,
+          "ao-filter/vertex": 90,
+          "ao-filter/fragment": 90,
+          "light/vertex": 90,
+          "light/fragment": 90,
+          "motion/vertex": 90,
+          "motion/fragment": 90,
+          "Cloud noise bake/compute": 2,
+          "Cloud XYZ density bake/compute": 1,
+          "Cloud conservative signed distance bake/compute": 33,
+          "Cloud voxel light cache/compute": 1,
+          "Cloud clear/compute": 90,
+          "Cloud GPU tile classification/compute": 90,
+          "Cloud indirect raymarch/compute": 90,
+          "Cloud temporal resolve/compute": 90,
+          "Cloud bilateral composite/vertex": 90,
+          "Cloud bilateral composite/fragment": 90,
+          "ocean-copy/blit": 90,
+          "water/capture/vertex": 90,
+          "water/capture/fragment": 90,
+          "water/capture-air/vertex": 90,
+          "water/capture-air/fragment": 90,
+          "water/capture-reflection/vertex": 90,
+          "water/capture-reflection/fragment": 90,
+          "water/surface/vertex": 90,
+          "water/surface/fragment": 90,
+          "water/underwater-fog/vertex": 90,
+          "water/underwater-fog/fragment": 90,
+          "temporal/compute": 90,
+          "post-tone-grade/vertex": 90,
+          "post-tone-grade/fragment": 90,
+          "render/vertex": 180,
+          "render/fragment": 180,
+          "presentation/vertex": 90,
+          "presentation/fragment": 90
+        },
+        "screenshot": "l2-coverage-metal-lake-live-2.png",
+        "trace": "l2-coverage-metal-lake-live-2-trace.json.gz",
+        "cloud_cache_dispatches": {
+          "density": 1,
+          "distance": 33,
+          "light": 1
+        }
+      },
+      {
+        "name": "ground-live",
+        "scene": "mountain-lake-ground",
+        "argv": [
+          "--backend",
+          "Metal",
+          "--classic",
+          "mountain-lake-ground",
+          "--hidden",
+          "--size",
+          "1280x720",
+          "--frames",
+          "90",
+          "--environment-clouds",
+          "--environment-cloud-coverage",
+          "1",
+          "--environment-wind",
+          "-20",
+          "8",
+          "--environment-sun",
+          "45",
+          "20",
+          "--environment-save",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-joint/ground-live.checkpoint.json",
+          "--screenshot",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-joint/ground-live.ppm"
+        ],
+        "checkpoint": {
+          "applied_sequence": 3,
+          "cloud_coverage": 1.0,
+          "cloud_x": -136.35093370671595,
+          "cloud_z": 62.457565389150375,
+          "coverage_elapsed": 6.0,
+          "coverage_from": 0.550000011920929,
+          "coverage_target": 1.0,
+          "enabled": true,
+          "events": [],
+          "grass_phase": 15.828159559655461,
+          "initial_cloud_coverage": 0.550000011920929,
+          "initial_seconds": 0.0,
+          "initial_solar": {
+            "azimuth_degrees": 128.65980529785156,
+            "elevation_degrees": 57.368064880371094
+          },
+          "initial_wind": {
+            "x": 5.656854152679443,
+            "z": 5.656854152679443
+          },
+          "next_sequence": 4,
+          "scene_key": "classic:mountain-lake-ground",
+          "schema_version": 3,
+          "scope": "cpu-clock-solar-wind-coverage",
+          "solar": {
+            "azimuth_degrees": 20.0,
+            "elevation_degrees": 45.0
+          },
+          "step_seconds": 0.016666666666666666,
+          "tick": 486,
+          "wave_elapsed": 8.0,
+          "wave_from": {
+            "x": 5.656854152679443,
+            "z": 5.656854152679443
+          },
+          "wave_to": {
+            "x": -20.0,
+            "z": 8.0
+          },
+          "wind": {
+            "x": -19.99221214060468,
+            "z": 7.999288763529111
+          },
+          "wind_target": {
+            "x": -20.0,
+            "z": 8.0
+          }
+        },
+        "summary": {
+          "source": "l2-coverage-metal-ground-live-trace.json.gz",
+          "cpu_clock": "steady_clock; completion acknowledgement includes owner-thread polling",
+          "gpu_clock": "independent native timestamp origin; do not align to CPU without calibration",
+          "rendered_frames": 90,
+          "water_surface_frames": 90,
+          "warmup_frames": 30,
+          "steady_cpu_wall_ms": 5866.136,
+          "steady_cpu_frame_period_ms": 97.76893333333334,
+          "cpu_scopes": {
+            "ao-depth": {
+              "samples": 60,
+              "p50_ms": 8.400000000000001e-05,
+              "p95_ms": 0.000458
+            },
+            "ao-filter": {
+              "samples": 60,
+              "p50_ms": 0.00025,
+              "p95_ms": 0.0009170000000000001
+            },
+            "ao-raw": {
+              "samples": 60,
+              "p50_ms": 0.00075,
+              "p95_ms": 0.002209
+            },
+            "atmosphere": {
+              "samples": 60,
+              "p50_ms": 0.000875,
+              "p95_ms": 0.001875
+            },
+            "back": {
+              "samples": 60,
+              "p50_ms": 0.0003545,
+              "p95_ms": 0.001667
+            },
+            "clouds": {
+              "samples": 60,
+              "p50_ms": 0.0244375,
+              "p95_ms": 0.137625
+            },
+            "engine/snapshot": {
+              "samples": 2132,
+              "p50_ms": 0.0164375,
+              "p95_ms": 0.045292
+            },
+            "engine/tick": {
+              "samples": 2132,
+              "p50_ms": 2.5714,
+              "p95_ms": 2.80962
+            },
+            "engine/ui": {
+              "samples": 2132,
+              "p50_ms": 0.042832999999999996,
+              "p95_ms": 0.124417
+            },
+            "frame/input-to-completion-ack": {
+              "samples": 60,
+              "p50_ms": 548.6745,
+              "p95_ms": 603.304
+            },
+            "frame/input-to-consume": {
+              "samples": 60,
+              "p50_ms": 182.87900000000002,
+              "p95_ms": 225.046
+            },
+            "geometry": {
+              "samples": 60,
+              "p50_ms": 0.004667,
+              "p95_ms": 0.015833
+            },
+            "graph/compile": {
+              "samples": 60,
+              "p50_ms": 0.0624585,
+              "p95_ms": 0.138167
+            },
+            "light": {
+              "samples": 60,
+              "p50_ms": 0.0005,
+              "p95_ms": 0.004542
+            },
+            "motion": {
+              "samples": 60,
+              "p50_ms": 0.0126455,
+              "p95_ms": 0.16
+            },
+            "ocean-copy": {
+              "samples": 60,
+              "p50_ms": 0.000125,
+              "p95_ms": 0.000583
+            },
+            "ocean-simulation": {
+              "samples": 60,
+              "p50_ms": 0.27404150000000005,
+              "p95_ms": 1.68762
+            },
+            "post-process": {
+              "samples": 60,
+              "p50_ms": 0.0057295,
+              "p95_ms": 0.036333
+            },
+            "render/acquire-and-flight-wait": {
+              "samples": 60,
+              "p50_ms": 86.31635,
+              "p95_ms": 114.251
+            },
+            "render/feedback": {
+              "samples": 60,
+              "p50_ms": 0.004916500000000001,
+              "p95_ms": 0.294125
+            },
+            "render/frame": {
+              "samples": 60,
+              "p50_ms": 92.41385,
+              "p95_ms": 131.909
+            },
+            "render/present-and-flight-wait": {
+              "samples": 60,
+              "p50_ms": 0.028479,
+              "p95_ms": 0.133625
+            },
+            "render/queue-pop": {
+              "samples": 60,
+              "p50_ms": 0.000625,
+              "p95_ms": 0.002666
+            },
+            "render/record": {
+              "samples": 60,
+              "p50_ms": 1.4171900000000002,
+              "p95_ms": 8.76654
+            },
+            "render/resolve": {
+              "samples": 60,
+              "p50_ms": 0.7988955,
+              "p95_ms": 5.39821
+            },
+            "shadows-rsm": {
+              "samples": 60,
+              "p50_ms": 0.182875,
+              "p95_ms": 1.2142899999999999
+            },
+            "temporal": {
+              "samples": 60,
+              "p50_ms": 0.0064585,
+              "p95_ms": 0.027708
+            },
+            "water-capture/4": {
+              "samples": 60,
+              "p50_ms": 0.0652295,
+              "p95_ms": 0.37158300000000005
+            },
+            "water-eye/4": {
+              "samples": 60,
+              "p50_ms": 0.008291999999999999,
+              "p95_ms": 0.034
+            },
+            "water-surface/4": {
+              "samples": 60,
+              "p50_ms": 0.015708,
+              "p95_ms": 0.07175
+            },
+            "water-volume/4": {
+              "samples": 60,
+              "p50_ms": 0.00033350000000000003,
+              "p95_ms": 0.000958
+            }
+          },
+          "frame_start_retirement_and_flight_wait": {
+            "samples": 60,
+            "p50_ms": 86.26925,
+            "p95_ms": 114.233
+          },
+          "frame_start_native_acquire": {
+            "samples": 60,
+            "p50_ms": 0.034604499999999996,
+            "p95_ms": 0.18975
+          },
+          "native_submissions_between_surfaces": {
+            "samples": 59,
+            "counts": {
+              "1": 59
+            },
+            "mean": 1
+          },
+          "gpu_surface_completion_period": {
+            "samples": 59,
+            "p50_ms": 92.85016000000014,
+            "p95_ms": 120.8836200000001
+          },
+          "native_submission_duration": {
+            "samples": 59,
+            "p50_ms": 108.517,
+            "p95_ms": 137.47
+          },
+          "between_native_submission_gaps": {
+            "samples": 58,
+            "p50_ms": 0.0,
+            "p95_ms": 0.0
+          }
+        },
+        "gpu_labels": {
+          "submission/submission": 92,
+          "buffer-upload/blit": 1013,
+          "compute/compute": 246,
+          "terrain/lod/compute": 216,
+          "terrain/lodmap/compute": 36,
+          "terrain/generate/compute": 36,
+          "fft512/gaussian/compute": 1,
+          "fft512/height/compute": 90,
+          "fft512/displacementspectrum/compute": 90,
+          "fft512/horizontal/compute": 270,
+          "fft512/vertical/compute": 270,
+          "fft512/displacement/compute": 90,
+          "fft512/normalfoam/compute": 90,
+          "fft256/gaussian/compute": 1,
+          "fft256/height/compute": 90,
+          "fft256/displacementspectrum/compute": 90,
+          "fft256/horizontal/compute": 270,
+          "fft256/vertical/compute": 270,
+          "fft256/displacement/compute": 90,
+          "fft256/normalfoam/compute": 90,
+          "texture-copy/blit": 270,
+          "shadow-depth/vertex": 540,
+          "shadow-depth/fragment": 540,
+          "back/vertex": 90,
+          "back/fragment": 90,
+          "geometry/vertex": 90,
+          "geometry/fragment": 90,
+          "ao-raw/vertex": 90,
+          "ao-raw/fragment": 90,
+          "ao-filter/vertex": 90,
+          "ao-filter/fragment": 90,
+          "light/vertex": 90,
+          "light/fragment": 90,
+          "motion/vertex": 90,
+          "motion/fragment": 90,
+          "Cloud noise bake/compute": 2,
+          "Cloud XYZ density bake/compute": 1,
+          "Cloud conservative signed distance bake/compute": 33,
+          "Cloud voxel light cache/compute": 1,
+          "Cloud clear/compute": 90,
+          "Cloud GPU tile classification/compute": 90,
+          "Cloud indirect raymarch/compute": 90,
+          "Cloud temporal resolve/compute": 90,
+          "Cloud bilateral composite/vertex": 90,
+          "Cloud bilateral composite/fragment": 90,
+          "ocean-copy/blit": 90,
+          "water/capture/vertex": 90,
+          "water/capture/fragment": 90,
+          "water/capture-air/vertex": 90,
+          "water/capture-air/fragment": 90,
+          "water/capture-reflection/vertex": 90,
+          "water/capture-reflection/fragment": 90,
+          "water/surface/vertex": 90,
+          "water/surface/fragment": 90,
+          "water/underwater-fog/vertex": 90,
+          "water/underwater-fog/fragment": 90,
+          "temporal/compute": 90,
+          "post-tone-grade/vertex": 90,
+          "post-tone-grade/fragment": 90,
+          "render/vertex": 180,
+          "render/fragment": 180,
+          "presentation/vertex": 90,
+          "presentation/fragment": 90
+        },
+        "screenshot": "l2-coverage-metal-ground-live.png",
+        "trace": "l2-coverage-metal-ground-live-trace.json.gz",
+        "cloud_cache_dispatches": {
+          "density": 1,
+          "distance": 33,
+          "light": 1
+        }
+      }
+    ],
+    "scope": "Joint main-view cloud/grass/lake workload; distant grass can be culled. Surface completion intervals measure native throughput, not display latency. Warmup discards startup; no global steady-state or budget claim. Clouds are absent from water reflections and PT sky capture.",
+    "gpu_pass_profiling_available": true
+  },
+  "Vulkan": {
+    "backend": "Vulkan",
+    "executable_sha256": "510fa053d0719429881b2a8feb90617f74280ead5d1e20c3f9e3597daa38505c",
+    "passed": true,
+    "runs": [
+      {
+        "name": "fixed-midpoint",
+        "scene": "mountain-lake",
+        "argv": [
+          "--backend",
+          "Vulkan",
+          "--classic",
+          "mountain-lake",
+          "--hidden",
+          "--size",
+          "1280x720",
+          "--frames",
+          "60",
+          "--environment-clouds",
+          "--environment-cloud-coverage",
+          "1",
+          "--environment-wind",
+          "-20",
+          "8",
+          "--environment-sun",
+          "45",
+          "20",
+          "--environment-save",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-joint-vulkan/fixed-midpoint.checkpoint.json",
+          "--screenshot",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-joint-vulkan/fixed-midpoint.ppm",
+          "--environment-ticks",
+          "180"
+        ],
+        "checkpoint": {
+          "applied_sequence": 3,
+          "cloud_coverage": 0.7750000059604645,
+          "cloud_x": -35.62052539912432,
+          "cloud_z": 21.77351251517587,
+          "coverage_elapsed": 3.0,
+          "coverage_from": 0.550000011920929,
+          "coverage_target": 1.0,
+          "enabled": true,
+          "events": [],
+          "grass_phase": 5.362269250614859,
+          "initial_cloud_coverage": 0.550000011920929,
+          "initial_seconds": 0.0,
+          "initial_solar": {
+            "azimuth_degrees": 128.65980529785156,
+            "elevation_degrees": 57.368064880371094
+          },
+          "initial_wind": {
+            "x": 5.656854152679443,
+            "z": 5.656854152679443
+          },
+          "next_sequence": 4,
+          "scene_key": "classic:mountain-lake",
+          "schema_version": 3,
+          "scope": "cpu-clock-solar-wind-coverage",
+          "solar": {
+            "azimuth_degrees": 20.0,
+            "elevation_degrees": 45.0
+          },
+          "step_seconds": 0.016666666666666666,
+          "tick": 180,
+          "wave_elapsed": 2.9833333333333334,
+          "wave_from": {
+            "x": 5.656854152679443,
+            "z": 5.656854152679443
+          },
+          "wave_to": {
+            "x": -20.0,
+            "z": 8.0
+          },
+          "wind": {
+            "x": -18.722620448196235,
+            "z": 7.883341637503573
+          },
+          "wind_target": {
+            "x": -20.0,
+            "z": 8.0
+          }
+        },
+        "summary": {
+          "source": "l2-coverage-vulkan-fixed-midpoint-trace.json.gz",
+          "cpu_clock": "steady_clock; completion acknowledgement includes owner-thread polling",
+          "gpu_clock": "independent native timestamp origin; do not align to CPU without calibration",
+          "rendered_frames": 60,
+          "water_surface_frames": 0,
+          "warmup_frames": 20,
+          "steady_cpu_wall_ms": 4460.542,
+          "steady_cpu_frame_period_ms": 111.51355000000001,
+          "cpu_scopes": {
+            "ao-depth": {
+              "samples": 40,
+              "p50_ms": 0.000125,
+              "p95_ms": 0.000333
+            },
+            "ao-filter": {
+              "samples": 40,
+              "p50_ms": 0.000333,
+              "p95_ms": 0.0012079999999999999
+            },
+            "ao-raw": {
+              "samples": 40,
+              "p50_ms": 0.000833,
+              "p95_ms": 0.003417
+            },
+            "atmosphere": {
+              "samples": 40,
+              "p50_ms": 0.0008335,
+              "p95_ms": 0.00225
+            },
+            "back": {
+              "samples": 40,
+              "p50_ms": 0.000458,
+              "p95_ms": 0.0025
+            },
+            "clouds": {
+              "samples": 40,
+              "p50_ms": 0.029103999999999998,
+              "p95_ms": 0.08925
+            },
+            "engine/snapshot": {
+              "samples": 1631,
+              "p50_ms": 0.010125,
+              "p95_ms": 0.027375
+            },
+            "engine/tick": {
+              "samples": 1631,
+              "p50_ms": 2.55583,
+              "p95_ms": 2.68283
+            },
+            "engine/ui": {
+              "samples": 1631,
+              "p50_ms": 0.0225,
+              "p95_ms": 0.074625
+            },
+            "frame/input-to-completion-ack": {
+              "samples": 40,
+              "p50_ms": 534.9065,
+              "p95_ms": 710.106
+            },
+            "frame/input-to-consume": {
+              "samples": 40,
+              "p50_ms": 209.825,
+              "p95_ms": 323.521
+            },
+            "geometry": {
+              "samples": 40,
+              "p50_ms": 0.004958000000000001,
+              "p95_ms": 0.020416
+            },
+            "graph/compile": {
+              "samples": 40,
+              "p50_ms": 0.060521000000000005,
+              "p95_ms": 0.106958
+            },
+            "light": {
+              "samples": 40,
+              "p50_ms": 0.0005,
+              "p95_ms": 0.002709
+            },
+            "motion": {
+              "samples": 40,
+              "p50_ms": 0.0310835,
+              "p95_ms": 0.245542
+            },
+            "ocean-copy": {
+              "samples": 40,
+              "p50_ms": 0.00016700000000000002,
+              "p95_ms": 0.000584
+            },
+            "ocean-simulation": {
+              "samples": 40,
+              "p50_ms": 0.629521,
+              "p95_ms": 11.8625
+            },
+            "post-process": {
+              "samples": 40,
+              "p50_ms": 0.010708,
+              "p95_ms": 0.035375
+            },
+            "render/acquire-and-flight-wait": {
+              "samples": 40,
+              "p50_ms": 0.0004165,
+              "p95_ms": 103.003
+            },
+            "render/feedback": {
+              "samples": 40,
+              "p50_ms": 0.28602099999999997,
+              "p95_ms": 3.46129
+            },
+            "render/frame": {
+              "samples": 40,
+              "p50_ms": 98.77135,
+              "p95_ms": 303.782
+            },
+            "render/present-and-flight-wait": {
+              "samples": 40,
+              "p50_ms": 0.166375,
+              "p95_ms": 14.735
+            },
+            "render/queue-pop": {
+              "samples": 40,
+              "p50_ms": 0.000458,
+              "p95_ms": 0.0012079999999999999
+            },
+            "render/record": {
+              "samples": 40,
+              "p50_ms": 5.1820450000000005,
+              "p95_ms": 113.912
+            },
+            "render/resolve": {
+              "samples": 40,
+              "p50_ms": 1.4189349999999998,
+              "p95_ms": 198.23
+            },
+            "shadows-rsm": {
+              "samples": 40,
+              "p50_ms": 0.4015415,
+              "p95_ms": 95.8417
+            },
+            "temporal": {
+              "samples": 40,
+              "p50_ms": 0.0108335,
+              "p95_ms": 0.034375
+            },
+            "water-capture/4": {
+              "samples": 40,
+              "p50_ms": 0.13816699999999998,
+              "p95_ms": 0.466083
+            },
+            "water-eye/4": {
+              "samples": 40,
+              "p50_ms": 0.013833,
+              "p95_ms": 0.032
+            },
+            "water-surface/4": {
+              "samples": 40,
+              "p50_ms": 0.0238125,
+              "p95_ms": 0.069917
+            },
+            "water-volume/4": {
+              "samples": 40,
+              "p50_ms": 0.0002295,
+              "p95_ms": 0.000916
+            }
+          },
+          "frame_start_retirement_and_flight_wait": {
+            "samples": 40,
+            "p50_ms": 4.2e-05,
+            "p95_ms": 103.002
+          },
+          "frame_start_native_acquire": {
+            "samples": 40,
+            "p50_ms": 0.000208,
+            "p95_ms": 0.000375
+          },
+          "native_submissions_between_surfaces": {
+            "samples": 0,
+            "counts": {},
+            "mean": null
+          },
+          "gpu_surface_completion_period": null,
+          "native_submission_duration": null,
+          "between_native_submission_gaps": null
+        },
+        "gpu_labels": {},
+        "screenshot": "l2-coverage-vulkan-fixed-midpoint.png",
+        "trace": "l2-coverage-vulkan-fixed-midpoint-trace.json.gz",
+        "cloud_cache_dispatches": null
+      },
+      {
+        "name": "lake-live-1",
+        "scene": "mountain-lake",
+        "argv": [
+          "--backend",
+          "Vulkan",
+          "--classic",
+          "mountain-lake",
+          "--hidden",
+          "--size",
+          "1280x720",
+          "--frames",
+          "60",
+          "--environment-clouds",
+          "--environment-cloud-coverage",
+          "1",
+          "--environment-wind",
+          "-20",
+          "8",
+          "--environment-sun",
+          "45",
+          "20",
+          "--environment-save",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-joint-vulkan/lake-live-1.checkpoint.json",
+          "--screenshot",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-joint-vulkan/lake-live-1.ppm"
+        ],
+        "checkpoint": {
+          "applied_sequence": 3,
+          "cloud_coverage": 1.0,
+          "cloud_x": -98.06275640538958,
+          "cloud_z": 47.128355989649634,
+          "coverage_elapsed": 6.0,
+          "coverage_from": 0.550000011920929,
+          "coverage_target": 1.0,
+          "enabled": true,
+          "events": [],
+          "grass_phase": 11.878432786615544,
+          "initial_cloud_coverage": 0.550000011920929,
+          "initial_seconds": 0.0,
+          "initial_solar": {
+            "azimuth_degrees": 128.65980529785156,
+            "elevation_degrees": 57.368064880371094
+          },
+          "initial_wind": {
+            "x": 5.656854152679443,
+            "z": 5.656854152679443
+          },
+          "next_sequence": 4,
+          "scene_key": "classic:mountain-lake",
+          "schema_version": 3,
+          "scope": "cpu-clock-solar-wind-coverage",
+          "solar": {
+            "azimuth_degrees": 20.0,
+            "elevation_degrees": 45.0
+          },
+          "step_seconds": 0.016666666666666666,
+          "tick": 371,
+          "wave_elapsed": 6.166666666666667,
+          "wave_from": {
+            "x": 5.656854152679443,
+            "z": 5.656854152679443
+          },
+          "wave_to": {
+            "x": -20.0,
+            "z": 8.0
+          },
+          "wind": {
+            "x": -19.94705610859768,
+            "z": 7.995164829696496
+          },
+          "wind_target": {
+            "x": -20.0,
+            "z": 8.0
+          }
+        },
+        "summary": {
+          "source": "l2-coverage-vulkan-lake-live-1-trace.json.gz",
+          "cpu_clock": "steady_clock; completion acknowledgement includes owner-thread polling",
+          "gpu_clock": "independent native timestamp origin; do not align to CPU without calibration",
+          "rendered_frames": 60,
+          "water_surface_frames": 0,
+          "warmup_frames": 20,
+          "steady_cpu_wall_ms": 4360.765,
+          "steady_cpu_frame_period_ms": 109.019125,
+          "cpu_scopes": {
+            "ao-depth": {
+              "samples": 40,
+              "p50_ms": 0.000125,
+              "p95_ms": 0.000292
+            },
+            "ao-filter": {
+              "samples": 40,
+              "p50_ms": 0.000292,
+              "p95_ms": 0.001
+            },
+            "ao-raw": {
+              "samples": 40,
+              "p50_ms": 0.0009375,
+              "p95_ms": 0.0021669999999999997
+            },
+            "atmosphere": {
+              "samples": 40,
+              "p50_ms": 0.0008335,
+              "p95_ms": 0.0022919999999999998
+            },
+            "back": {
+              "samples": 40,
+              "p50_ms": 0.0004795,
+              "p95_ms": 0.0015
+            },
+            "clouds": {
+              "samples": 40,
+              "p50_ms": 0.0296875,
+              "p95_ms": 0.11708299999999999
+            },
+            "engine/snapshot": {
+              "samples": 1579,
+              "p50_ms": 0.009625,
+              "p95_ms": 0.023792
+            },
+            "engine/tick": {
+              "samples": 1579,
+              "p50_ms": 2.55062,
+              "p95_ms": 2.65842
+            },
+            "engine/ui": {
+              "samples": 1579,
+              "p50_ms": 0.021375,
+              "p95_ms": 0.065667
+            },
+            "frame/input-to-completion-ack": {
+              "samples": 40,
+              "p50_ms": 507.4105,
+              "p95_ms": 626.044
+            },
+            "frame/input-to-consume": {
+              "samples": 40,
+              "p50_ms": 207.462,
+              "p95_ms": 291.872
+            },
+            "geometry": {
+              "samples": 40,
+              "p50_ms": 0.004916500000000001,
+              "p95_ms": 0.010709
+            },
+            "graph/compile": {
+              "samples": 40,
+              "p50_ms": 0.059729500000000005,
+              "p95_ms": 0.093042
+            },
+            "light": {
+              "samples": 40,
+              "p50_ms": 0.0005420000000000001,
+              "p95_ms": 0.0014579999999999999
+            },
+            "motion": {
+              "samples": 40,
+              "p50_ms": 0.030333,
+              "p95_ms": 0.165834
+            },
+            "ocean-copy": {
+              "samples": 40,
+              "p50_ms": 0.00016700000000000002,
+              "p95_ms": 0.000708
+            },
+            "ocean-simulation": {
+              "samples": 40,
+              "p50_ms": 0.7846455,
+              "p95_ms": 4.03192
+            },
+            "post-process": {
+              "samples": 40,
+              "p50_ms": 0.010646,
+              "p95_ms": 0.020417
+            },
+            "render/acquire-and-flight-wait": {
+              "samples": 40,
+              "p50_ms": 0.000333,
+              "p95_ms": 0.001167
+            },
+            "render/feedback": {
+              "samples": 40,
+              "p50_ms": 0.5980835,
+              "p95_ms": 11.1365
+            },
+            "render/frame": {
+              "samples": 40,
+              "p50_ms": 94.04135,
+              "p95_ms": 214.679
+            },
+            "render/present-and-flight-wait": {
+              "samples": 40,
+              "p50_ms": 0.0245835,
+              "p95_ms": 5.64221
+            },
+            "render/queue-pop": {
+              "samples": 40,
+              "p50_ms": 0.0005415000000000001,
+              "p95_ms": 0.002584
+            },
+            "render/record": {
+              "samples": 40,
+              "p50_ms": 8.606645,
+              "p95_ms": 99.2852
+            },
+            "render/resolve": {
+              "samples": 40,
+              "p50_ms": 5.832775,
+              "p95_ms": 198.897
+            },
+            "shadows-rsm": {
+              "samples": 40,
+              "p50_ms": 0.35593700000000006,
+              "p95_ms": 77.4425
+            },
+            "temporal": {
+              "samples": 40,
+              "p50_ms": 0.0110415,
+              "p95_ms": 0.029584
+            },
+            "water-capture/4": {
+              "samples": 40,
+              "p50_ms": 0.133292,
+              "p95_ms": 0.408792
+            },
+            "water-eye/4": {
+              "samples": 40,
+              "p50_ms": 0.0129795,
+              "p95_ms": 0.037916
+            },
+            "water-surface/4": {
+              "samples": 40,
+              "p50_ms": 0.0244375,
+              "p95_ms": 0.072542
+            },
+            "water-volume/4": {
+              "samples": 40,
+              "p50_ms": 0.000292,
+              "p95_ms": 0.000833
+            }
+          },
+          "frame_start_retirement_and_flight_wait": {
+            "samples": 40,
+            "p50_ms": 4.2e-05,
+            "p95_ms": 0.000542
+          },
+          "frame_start_native_acquire": {
+            "samples": 40,
+            "p50_ms": 0.000208,
+            "p95_ms": 0.000375
+          },
+          "native_submissions_between_surfaces": {
+            "samples": 0,
+            "counts": {},
+            "mean": null
+          },
+          "gpu_surface_completion_period": null,
+          "native_submission_duration": null,
+          "between_native_submission_gaps": null
+        },
+        "gpu_labels": {},
+        "screenshot": "l2-coverage-vulkan-lake-live-1.png",
+        "trace": "l2-coverage-vulkan-lake-live-1-trace.json.gz",
+        "cloud_cache_dispatches": null
+      },
+      {
+        "name": "ground-live",
+        "scene": "mountain-lake-ground",
+        "argv": [
+          "--backend",
+          "Vulkan",
+          "--classic",
+          "mountain-lake-ground",
+          "--hidden",
+          "--size",
+          "1280x720",
+          "--frames",
+          "60",
+          "--environment-clouds",
+          "--environment-cloud-coverage",
+          "1",
+          "--environment-wind",
+          "-20",
+          "8",
+          "--environment-sun",
+          "45",
+          "20",
+          "--environment-save",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-joint-vulkan/ground-live.checkpoint.json",
+          "--screenshot",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-joint-vulkan/ground-live.ppm"
+        ],
+        "checkpoint": {
+          "applied_sequence": 3,
+          "cloud_coverage": 1.0,
+          "cloud_x": -118.36230089051858,
+          "cloud_z": 55.258603512116025,
+          "coverage_elapsed": 6.0,
+          "coverage_from": 0.550000011920929,
+          "coverage_target": 1.0,
+          "enabled": true,
+          "events": [],
+          "grass_phase": 13.973129768069626,
+          "initial_cloud_coverage": 0.550000011920929,
+          "initial_seconds": 0.0,
+          "initial_solar": {
+            "azimuth_degrees": 128.65980529785156,
+            "elevation_degrees": 57.368064880371094
+          },
+          "initial_wind": {
+            "x": 5.656854152679443,
+            "z": 5.656854152679443
+          },
+          "next_sequence": 4,
+          "scene_key": "classic:mountain-lake-ground",
+          "schema_version": 3,
+          "scope": "cpu-clock-solar-wind-coverage",
+          "solar": {
+            "azimuth_degrees": 20.0,
+            "elevation_degrees": 45.0
+          },
+          "step_seconds": 0.016666666666666666,
+          "tick": 432,
+          "wave_elapsed": 7.183333333333334,
+          "wave_from": {
+            "x": 5.656854152679443,
+            "z": 5.656854152679443
+          },
+          "wave_to": {
+            "x": -20.0,
+            "z": 8.0
+          },
+          "wind": {
+            "x": -19.980844956802024,
+            "z": 7.998250640563434
+          },
+          "wind_target": {
+            "x": -20.0,
+            "z": 8.0
+          }
+        },
+        "summary": {
+          "source": "l2-coverage-vulkan-ground-live-trace.json.gz",
+          "cpu_clock": "steady_clock; completion acknowledgement includes owner-thread polling",
+          "gpu_clock": "independent native timestamp origin; do not align to CPU without calibration",
+          "rendered_frames": 60,
+          "water_surface_frames": 0,
+          "warmup_frames": 20,
+          "steady_cpu_wall_ms": 5015.151,
+          "steady_cpu_frame_period_ms": 125.37877499999999,
+          "cpu_scopes": {
+            "ao-depth": {
+              "samples": 40,
+              "p50_ms": 0.000125,
+              "p95_ms": 0.000375
+            },
+            "ao-filter": {
+              "samples": 40,
+              "p50_ms": 0.000375,
+              "p95_ms": 0.001125
+            },
+            "ao-raw": {
+              "samples": 40,
+              "p50_ms": 0.0009584999999999999,
+              "p95_ms": 0.0025830000000000002
+            },
+            "atmosphere": {
+              "samples": 40,
+              "p50_ms": 0.0008960000000000001,
+              "p95_ms": 0.001625
+            },
+            "back": {
+              "samples": 40,
+              "p50_ms": 0.0005,
+              "p95_ms": 0.002125
+            },
+            "clouds": {
+              "samples": 40,
+              "p50_ms": 0.029228999999999998,
+              "p95_ms": 0.10045799999999999
+            },
+            "engine/snapshot": {
+              "samples": 1799,
+              "p50_ms": 0.010833,
+              "p95_ms": 0.034582999999999996
+            },
+            "engine/tick": {
+              "samples": 1799,
+              "p50_ms": 2.55633,
+              "p95_ms": 2.7111199999999998
+            },
+            "engine/ui": {
+              "samples": 1799,
+              "p50_ms": 0.024542,
+              "p95_ms": 0.092292
+            },
+            "frame/input-to-completion-ack": {
+              "samples": 40,
+              "p50_ms": 590.6385,
+              "p95_ms": 752.036
+            },
+            "frame/input-to-consume": {
+              "samples": 40,
+              "p50_ms": 237.8525,
+              "p95_ms": 306.606
+            },
+            "geometry": {
+              "samples": 40,
+              "p50_ms": 0.004479,
+              "p95_ms": 0.019417
+            },
+            "graph/compile": {
+              "samples": 40,
+              "p50_ms": 0.0609995,
+              "p95_ms": 0.155833
+            },
+            "light": {
+              "samples": 40,
+              "p50_ms": 0.0005,
+              "p95_ms": 0.001709
+            },
+            "motion": {
+              "samples": 40,
+              "p50_ms": 0.0351665,
+              "p95_ms": 0.2455
+            },
+            "ocean-copy": {
+              "samples": 40,
+              "p50_ms": 0.0001665,
+              "p95_ms": 0.000458
+            },
+            "ocean-simulation": {
+              "samples": 40,
+              "p50_ms": 0.7067705,
+              "p95_ms": 8.788120000000001
+            },
+            "post-process": {
+              "samples": 40,
+              "p50_ms": 0.0112505,
+              "p95_ms": 0.044041
+            },
+            "render/acquire-and-flight-wait": {
+              "samples": 40,
+              "p50_ms": 0.000375,
+              "p95_ms": 0.0006670000000000001
+            },
+            "render/feedback": {
+              "samples": 40,
+              "p50_ms": 0.616646,
+              "p95_ms": 3.14217
+            },
+            "render/frame": {
+              "samples": 40,
+              "p50_ms": 120.9795,
+              "p95_ms": 251.414
+            },
+            "render/present-and-flight-wait": {
+              "samples": 40,
+              "p50_ms": 0.0448335,
+              "p95_ms": 1.9906700000000002
+            },
+            "render/queue-pop": {
+              "samples": 40,
+              "p50_ms": 0.00045850000000000003,
+              "p95_ms": 0.001542
+            },
+            "render/record": {
+              "samples": 40,
+              "p50_ms": 8.387315,
+              "p95_ms": 120.598
+            },
+            "render/resolve": {
+              "samples": 40,
+              "p50_ms": 7.529375,
+              "p95_ms": 238.987
+            },
+            "shadows-rsm": {
+              "samples": 40,
+              "p50_ms": 0.359854,
+              "p95_ms": 103.993
+            },
+            "temporal": {
+              "samples": 40,
+              "p50_ms": 0.011333,
+              "p95_ms": 0.043708
+            },
+            "water-capture/4": {
+              "samples": 40,
+              "p50_ms": 0.1393335,
+              "p95_ms": 0.609542
+            },
+            "water-eye/4": {
+              "samples": 40,
+              "p50_ms": 0.0141455,
+              "p95_ms": 0.053792
+            },
+            "water-surface/4": {
+              "samples": 40,
+              "p50_ms": 0.025458500000000002,
+              "p95_ms": 0.169625
+            },
+            "water-volume/4": {
+              "samples": 40,
+              "p50_ms": 0.00025,
+              "p95_ms": 0.0015840000000000001
+            }
+          },
+          "frame_start_retirement_and_flight_wait": {
+            "samples": 40,
+            "p50_ms": 4.2e-05,
+            "p95_ms": 0.000208
+          },
+          "frame_start_native_acquire": {
+            "samples": 40,
+            "p50_ms": 0.000209,
+            "p95_ms": 0.0005
+          },
+          "native_submissions_between_surfaces": {
+            "samples": 0,
+            "counts": {},
+            "mean": null
+          },
+          "gpu_surface_completion_period": null,
+          "native_submission_duration": null,
+          "between_native_submission_gaps": null
+        },
+        "gpu_labels": {},
+        "screenshot": "l2-coverage-vulkan-ground-live.png",
+        "trace": "l2-coverage-vulkan-ground-live-trace.json.gz",
+        "cloud_cache_dispatches": null
+      }
+    ],
+    "scope": "Joint main-view cloud/grass/lake workload; distant grass can be culled. Surface completion intervals measure native throughput, not display latency. Warmup discards startup; no global steady-state or budget claim. Clouds are absent from water reflections and PT sky capture.",
+    "gpu_pass_profiling_available": false
+  }
+}

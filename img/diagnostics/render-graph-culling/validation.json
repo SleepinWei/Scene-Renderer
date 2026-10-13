@@ -1,0 +1,87 @@
+{
+  "date": "2026-10-09",
+  "scope": "RenderGraph dead-pass culling correctness; not a frame-rate benchmark",
+  "cpu": {
+    "ctest": [
+      "engine-concurrency",
+      "engine-render-graph",
+      "rhi-contract",
+      "rhi-graphics-contract"
+    ],
+    "passed": 4,
+    "failed": 0,
+    "randomized_graphs": 400,
+    "declared_passes": 19200,
+    "culled_passes": 10124,
+    "exported_values_and_effects_equal": true
+  },
+  "scene": {
+    "baseline_passes": 9,
+    "active_passes": 8,
+    "culled": [
+      "motion"
+    ],
+    "hdr_equal": true,
+    "display_equal": true
+  },
+  "water": {
+    "max_hdr_difference": 0.0,
+    "required_passes_retained": [
+      "ocean-simulation",
+      "water-capture/1",
+      "water-volume/1",
+      "water-surface/1",
+      "water-eye/1"
+    ]
+  },
+  "native": [
+    {
+      "name": "metal-rhi",
+      "arguments": "--rhi-self-test",
+      "exit_code": 0,
+      "evidence": [
+        "Graph culling: 9 -> 8 passes, culled motion; HDR / display pixels identical",
+        "Water graph culling retains simulation / capture / volume / surface / eye; HDR max difference 0",
+        "RHI GPU-driven clouds: compact indirect queue, zero-work clear, depth occlusion, inside/above shell, wind history, seed and odd resize passed; initial summed opacity 1148.17",
+        "RHI temporal fractional optical motion, out-of-screen rejection, confidence weighting and reactive/static distinction passed",
+        "RHI temporal HDR resolve, jitter, object motion, disocclusion rejection, resize, enable/disable and scene history reset passed"
+      ]
+    },
+    {
+      "name": "metal-water",
+      "arguments": "--water-self-test",
+      "exit_code": 0,
+      "evidence": [
+        "Water graph culling retains simulation / capture / volume / surface / eye; HDR max difference 0",
+        "RHI temporal fractional optical motion, out-of-screen rejection, confidence weighting and reactive/static distinction passed",
+        "RHI temporal HDR resolve, jitter, object motion, disocclusion rejection, resize, enable/disable and scene history reset passed"
+      ]
+    },
+    {
+      "name": "vulkan-rhi",
+      "arguments": "--rhi-self-test --backend Vulkan",
+      "exit_code": 0,
+      "evidence": [
+        "Graph culling: 9 -> 8 passes, culled motion; HDR / display pixels identical",
+        "Water graph culling retains simulation / capture / volume / surface / eye; HDR max difference 0",
+        "RHI GPU-driven clouds: compact indirect queue, zero-work clear, depth occlusion, inside/above shell, wind history, seed and odd resize passed; initial summed opacity 1148.17",
+        "RHI temporal fractional optical motion, out-of-screen rejection, confidence weighting and reactive/static distinction passed",
+        "RHI temporal HDR resolve, jitter, object motion, disocclusion rejection, resize, enable/disable and scene history reset passed"
+      ]
+    },
+    {
+      "name": "vulkan-water",
+      "arguments": "--water-self-test --backend Vulkan",
+      "exit_code": 0,
+      "evidence": [
+        "Water graph culling retains simulation / capture / volume / surface / eye; HDR max difference 0",
+        "RHI temporal fractional optical motion, out-of-screen rejection, confidence weighting and reactive/static distinction passed",
+        "RHI temporal HDR resolve, jitter, object motion, disocclusion rejection, resize, enable/disable and scene history reset passed"
+      ]
+    }
+  ],
+  "controls": {
+    "frame": "FrameData::graphCulling",
+    "environment": "SCENERENDERER_DISABLE_GRAPH_CULLING=1"
+  }
+}

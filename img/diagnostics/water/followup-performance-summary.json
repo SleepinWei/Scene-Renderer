@@ -1,0 +1,200 @@
+{
+  "date": "2026-10-08",
+  "backend": "Metal",
+  "device": "Apple M4",
+  "os": "macOS 15.3.1",
+  "width": 1280,
+  "height": 720,
+  "warmup_frames": 8,
+  "measured_frames": 32,
+  "measurement": "Synchronized complete native frame, including collect, FFT/SWE, shadows, main render, presentation and GPU completion; not pipelined editor throughput. Stage intervals include waits and overlap, and cannot be summed or treated as isolated shader cost.",
+  "cases": {
+    "before": {
+      "source": "followup-performance-before/coastal-performance.json",
+      "stage_intervals_ms": {
+        "buffer-upload": 0.10224878787994385,
+        "terrain/lod": 1.0903527736663818,
+        "terrain/lodmap": 0.06524944305419922,
+        "terrain/generate": 16.967541933059692,
+        "texture-copy": 0.1940624713897705,
+        "fft512/height": 0.23797905445098877,
+        "fft512/displacementspectrum": 0.23918795585632324,
+        "fft512/horizontal": 0.4884999990463257,
+        "fft512/vertical": 0.44975006580352783,
+        "fft512/displacement": 0.35956239700317383,
+        "fft512/normalfoam": 0.2819368839263916,
+        "fft256/height": 0.04406261444091797,
+        "fft256/displacementspectrum": 0.03870844841003418,
+        "fft256/horizontal": 0.5982714891433716,
+        "fft256/vertical": 0.5422911643981934,
+        "fft256/displacement": 0.19933342933654785,
+        "fft256/normalfoam": 0.16166698932647705,
+        "shore/scroll": 0.45660400390625,
+        "shore/step": 3.002293109893799,
+        "shadow-depth": 21.737852811813354,
+        "back": 0.4737919569015503,
+        "geometry": 9.113895535469055,
+        "ao-raw": 7.0902920961380005,
+        "ao-filter": 7.135936975479126,
+        "light": 9.549583554267883,
+        "motion": 10.798083543777466,
+        "ocean-copy": 0.261417031288147,
+        "water/capture": 13.744104027748108,
+        "water/capture-air": 18.533916473388672,
+        "water/depth-chain": 2.2447500228881836,
+        "water/underwater-fog": 17.044145584106445,
+        "water/surface": 26.74245798587799,
+        "temporal": 0.7981666326522827,
+        "post-tone-grade": 24.953770399093628,
+        "presentation": 24.529000520706177
+      },
+      "wall_ms": {
+        "median": 87.09825000000001,
+        "p95_nearest_rank": 100.313791
+      },
+      "gpu_submission_ms": {
+        "median": 82.71116658579558,
+        "p95_nearest_rank": 94.07704183831811
+      },
+      "collect_cpu_ms": {
+        "median": 0.8856459999999999,
+        "p95_nearest_rank": 3.878125
+      },
+      "record_cpu_ms": {
+        "median": 1.471187,
+        "p95_nearest_rank": 4.473333
+      },
+      "submission_count_per_frame": [
+        1
+      ]
+    },
+    "after_reflection_off": {
+      "source": "followup-performance-after/coastal-performance.json",
+      "stage_intervals_ms": {
+        "buffer-upload": 0.047333478927612305,
+        "terrain/lod": 1.096062183380127,
+        "terrain/lodmap": 0.04695844650268555,
+        "terrain/generate": 7.12777042388916,
+        "texture-copy": 0.16472971439361572,
+        "fft512/height": 0.14158296585083008,
+        "fft512/displacementspectrum": 0.16943752765655518,
+        "fft512/horizontal": 0.4336872100830078,
+        "fft512/vertical": 0.4148538112640381,
+        "fft512/displacement": 0.26910400390625,
+        "fft512/normalfoam": 0.222459077835083,
+        "fft256/height": 0.026958465576171875,
+        "fft256/displacementspectrum": 0.027625083923339844,
+        "fft256/horizontal": 0.15572905540466309,
+        "fft256/vertical": 0.17997944355010986,
+        "fft256/displacement": 0.0632709264755249,
+        "fft256/normalfoam": 0.043792009353637695,
+        "shore/scroll": 0.4002079963684082,
+        "shore/step": 2.112397074699402,
+        "shadow-depth": 17.054355144500732,
+        "back": 0.4951876401901245,
+        "geometry": 7.7862290143966675,
+        "ao-raw": 6.367145419120789,
+        "ao-filter": 6.491875052452087,
+        "light": 8.442875027656555,
+        "motion": 9.675812005996704,
+        "ocean-copy": 0.22600007057189941,
+        "water/capture": 13.079520463943481,
+        "water/capture-air": 18.825103998184204,
+        "water/depth-chain": 1.6857081651687622,
+        "water/surface": 23.928603887557983,
+        "water/underwater-fog": 19.955896019935608,
+        "temporal": 0.5823540687561035,
+        "post-tone-grade": 20.259791612625122,
+        "presentation": 20.357916474342346
+      },
+      "wall_ms": {
+        "median": 66.08081250000001,
+        "p95_nearest_rank": 75.521458
+      },
+      "gpu_submission_ms": {
+        "median": 64.0441665891558,
+        "p95_nearest_rank": 73.31145834177732
+      },
+      "collect_cpu_ms": {
+        "median": 0.47097900000000004,
+        "p95_nearest_rank": 0.958125
+      },
+      "record_cpu_ms": {
+        "median": 0.9662705,
+        "p95_nearest_rank": 1.0765
+      },
+      "submission_count_per_frame": [
+        1
+      ]
+    },
+    "after_reflection_on": {
+      "source": "followup-performance-reflection/coastal-performance.json",
+      "stage_intervals_ms": {
+        "buffer-upload": 0.15572822093963623,
+        "terrain/lod": 1.0691659450531006,
+        "terrain/lodmap": 0.04941666126251221,
+        "terrain/generate": 7.106145858764648,
+        "texture-copy": 0.16072940826416016,
+        "fft512/height": 0.16108393669128418,
+        "fft512/displacementspectrum": 0.1770620346069336,
+        "fft512/horizontal": 0.41275012493133545,
+        "fft512/vertical": 0.39822912216186523,
+        "fft512/displacement": 0.24345803260803223,
+        "fft512/normalfoam": 0.17079150676727295,
+        "fft256/height": 0.02818751335144043,
+        "fft256/displacementspectrum": 0.028833508491516113,
+        "fft256/horizontal": 0.1647496223449707,
+        "fft256/vertical": 0.13747847080230713,
+        "fft256/displacement": 0.060124993324279785,
+        "fft256/normalfoam": 0.03347897529602051,
+        "shore/scroll": 0.35420846939086914,
+        "shore/step": 1.638811469078064,
+        "shadow-depth": 16.425145745277405,
+        "back": 0.37733304500579834,
+        "geometry": 7.911291599273682,
+        "ao-raw": 6.181625127792358,
+        "ao-filter": 6.249625086784363,
+        "light": 7.961333394050598,
+        "motion": 9.180229544639587,
+        "ocean-copy": 0.234125018119812,
+        "water/capture": 13.552645564079285,
+        "water/capture-air": 18.792625427246094,
+        "water/capture-reflection": 25.600125074386597,
+        "water/depth-chain": 2.31068754196167,
+        "water/surface": 29.639166474342346,
+        "water/underwater-fog": 25.747854471206665,
+        "temporal": 0.6739795207977295,
+        "post-tone-grade": 27.423791885375977,
+        "presentation": 27.629395961761475
+      },
+      "wall_ms": {
+        "median": 80.239396,
+        "p95_nearest_rank": 90.163042
+      },
+      "gpu_submission_ms": {
+        "median": 78.12731247395277,
+        "p95_nearest_rank": 87.13091677054763
+      },
+      "collect_cpu_ms": {
+        "median": 0.5207705,
+        "p95_nearest_rank": 1.088917
+      },
+      "record_cpu_ms": {
+        "median": 1.0812705,
+        "p95_nearest_rank": 1.3075
+      },
+      "submission_count_per_frame": [
+        1
+      ]
+    }
+  },
+  "complete_frame_latency_reduction_reflection_off_percent": 24.130723062748103,
+  "renderer_snapshot": "2f01d93 plus this realtime water follow-up; isolated from unrelated in-progress AO/PT changes",
+  "shader_sha256": {
+    "src/rhi/shaders/terrain-generate.comp": "9f6126583599879ac6562fff128829534f6281719d64100da571ef424a71b633",
+    "src/rhi/shaders/temporal.comp": "8ac7ab4a73c529f1aac34b3f14f27f11284e0c85418134467a9e9f9fdd88c702",
+    "src/rhi/shaders/ocean-surface.frag": "277f063b7d7c829b7db48d7fad90de75c451fcc8a5381f260b0d8b71f49358ec",
+    "src/rhi/shaders/water-underwater.frag": "789e659c63ad11c0655cd645b573c02a51cc1bb690c8f4b1e9d5411e848b3187"
+  },
+  "gpu_scope": "One Metal command buffer per measured frame in the collected counters; includes FFT, terrain, shadows, rendering and presentation."
+}

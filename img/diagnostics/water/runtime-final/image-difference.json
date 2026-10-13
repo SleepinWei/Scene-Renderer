@@ -1,0 +1,17 @@
+{
+  "seabed": {
+    "mean_abs_byte": 0.0,
+    "p95_abs_byte": 0.0,
+    "p99_abs_byte": 0.0,
+    "max_abs_byte": 0.0,
+    "fraction_pixels_channel_difference_over_4": 0.0
+  },
+  "window": {
+    "mean_abs_byte": 0.023344184027777777,
+    "p95_abs_byte": 0.0,
+    "p99_abs_byte": 1.0,
+    "max_abs_byte": 3.0,
+    "fraction_pixels_channel_difference_over_4": 0.0
+  },
+  "scope": "Display RGB difference of matched final wave frames; not HDR energy or motion equivalence"
+}

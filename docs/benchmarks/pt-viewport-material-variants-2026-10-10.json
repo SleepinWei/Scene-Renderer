@@ -1,0 +1,589 @@
+{
+  "date": "2026-10-10",
+  "stage": "P2-E6b",
+  "scope": "Instance material variants and progressive PT preparation; native RT and full P2-E completion are not claimed. Raster resolutions are independent of the fixed 32x18, 4 spp transport regression. Hidden surface, effects and denoise disabled; no GUI input-to-photon measurement.",
+  "build_scope": "Frozen source under build/pt-p2e6b/source. Concurrent unfinished DDGI entry-point shaders and DDGI validation command excluded only in the private build; DDGI projection uses equivalent RH NO-to-ZO conversion for vendored GLM compatibility. Shared workspace DDGI source was not changed.",
+  "initial_binary_sha256": "16953c7ece57ab94d2f326c609c7c54550ef97e23cc74a25678b9212f079b8bf",
+  "final_binary_sha256": "d01a19a3d978e7038e22bb6a3114881c81cfe499cadf89f478a4b286c6484df4",
+  "final_source_manifest_sha256": "85eaff64470895bbe5d026f498f79c419ea39fc30413047782d5e248f03112e7",
+  "scene_sha256": "7091f804b7739d89b00626e32c3c99ba6e5c01248771ca84d86eaa9ab5e4f2ed",
+  "validation_commands": [
+    {
+      "name": "metal-preview-final",
+      "command": [
+        "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/pt-p2e6b/runtime/final-bin/Scene-Renderer",
+        "--raster-preview-self-test",
+        "--backend",
+        "Metal"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 0.867938584
+    },
+    {
+      "name": "vulkan-preview-final",
+      "command": [
+        "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/pt-p2e6b/runtime/final-bin/Scene-Renderer",
+        "--raster-preview-self-test",
+        "--backend",
+        "Vulkan"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 11.26557625
+    },
+    {
+      "name": "metal-engine-final",
+      "command": [
+        "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/pt-p2e6b/runtime/final-bin/Scene-Renderer",
+        "--engine-self-test",
+        "--backend",
+        "Metal"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 2.3165032919999984
+    },
+    {
+      "name": "vulkan-engine-final",
+      "command": [
+        "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/pt-p2e6b/runtime/final-bin/Scene-Renderer",
+        "--engine-self-test",
+        "--backend",
+        "Vulkan"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 2.410605875
+    },
+    {
+      "name": "barcelona-metal-final",
+      "command": [
+        "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/pt-p2e6b/runtime/final-bin/Scene-Renderer",
+        "--pt-viewport-benchmark",
+        "--scene",
+        "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/path-tracing/appearance/barcelona-full/scene.json",
+        "--backend",
+        "Metal",
+        "--raster-size",
+        "1920x1080",
+        "--navigation-probe",
+        "--cycles",
+        "3",
+        "--output",
+        "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/pt-p2e6b/barcelona-metal-final"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 27.204660917
+    },
+    {
+      "name": "barcelona-vulkan-final",
+      "command": [
+        "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/pt-p2e6b/runtime/final-bin/Scene-Renderer",
+        "--pt-viewport-benchmark",
+        "--scene",
+        "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/path-tracing/appearance/barcelona-full/scene.json",
+        "--backend",
+        "Vulkan",
+        "--raster-size",
+        "1920x1080",
+        "--navigation-probe",
+        "--cycles",
+        "3",
+        "--output",
+        "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/pt-p2e6b/barcelona-vulkan-final"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 27.288280875000005
+    },
+    {
+      "name": "fft-metal-final",
+      "command": [
+        "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/pt-p2e6b/runtime/final-bin/Scene-Renderer",
+        "--pt-viewport-benchmark",
+        "--fixture",
+        "fft",
+        "--backend",
+        "Metal",
+        "--raster-size",
+        "1280x720",
+        "--navigation-probe",
+        "--cycles",
+        "3",
+        "--output",
+        "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/pt-p2e6b/fft-metal-final"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 7.253854167
+    },
+    {
+      "name": "fft-vulkan-final",
+      "command": [
+        "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/pt-p2e6b/runtime/final-bin/Scene-Renderer",
+        "--pt-viewport-benchmark",
+        "--fixture",
+        "fft",
+        "--backend",
+        "Vulkan",
+        "--raster-size",
+        "1280x720",
+        "--navigation-probe",
+        "--cycles",
+        "3",
+        "--output",
+        "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/pt-p2e6b/fft-vulkan-final"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 7.063775082999996
+    }
+  ],
+  "native_pt_regression": {
+    "Metal": "passed; API and Shader Validation enabled before hash indexing",
+    "Vulkan": "passed before hash indexing; MoltenVK, Khronos validation layer unavailable"
+  },
+  "memory_note": "Tracked/native GPU bytes are sampled after restoring the initial scene and advancing four frames. RSS is cumulative process peak. These finite runs do not prove a long-term memory bound.",
+  "stage_source_sha256": {
+    "include/renderer/rhi/SceneAdapter.h": "1bd5de9504155c1e4937198ddd7f8f7a2593bea3c52c86f95ac72e2d347edc3d",
+    "src/renderer/rhi/SceneAdapter.cpp": "4c8488cce4f34abc9bf0379656c99b98a6112c0ee4dd227c62bc42078eebbf11",
+    "src/renderer/rhi/RasterInstanceBatcher.cpp": "a0365569359966633be8bbbd67770ab1d5bcdc0a061ecf74fdaf837a32197011",
+    "include/engine/RenderRuntime.h": "a230f7ace9a48bd073cab3ea3be0646a1f72c862907f7d29ab53ced6412ecf60",
+    "src/engine/RenderRuntime.cpp": "f56da7cb670220032291d3689f478ff0d1bfef07accaa54cee36f7f84460673e",
+    "src/PT/ViewportBenchmark.cpp": "f097d4d5c1e28af4e98ad4d7bd7508b5400724fe40128273f914f440379bb360"
+  },
+  "long_run": {
+    "barcelona-metal": {
+      "cycles": 16,
+      "raster_size": [
+        1920,
+        1080
+      ],
+      "transport_size": [
+        32,
+        18
+      ],
+      "operations": 81,
+      "navigation_samples": 48,
+      "steady_material_builds": 0,
+      "live_material_variants": [
+        110
+      ],
+      "cycle_tracked_gpu_bytes": [
+        669030244,
+        669029668,
+        669030244,
+        669030244,
+        669030244,
+        669030244,
+        669030244,
+        669030244,
+        669029668,
+        669030244,
+        669029668,
+        669029668,
+        669030244,
+        669030244,
+        669029668,
+        669030244
+      ],
+      "cycle_native_gpu_bytes": [
+        686309376,
+        686309376,
+        686309376,
+        686309376,
+        686309376,
+        686309376,
+        686309376,
+        686309376,
+        686309376,
+        686309376,
+        686309376,
+        686309376,
+        686309376,
+        686309376,
+        686309376,
+        686309376
+      ],
+      "cycle_peak_rss_bytes": [
+        782041088,
+        782041088,
+        782041088,
+        782041088,
+        782041088,
+        782041088,
+        782041088,
+        782041088,
+        782041088,
+        782041088,
+        782041088,
+        782041088,
+        782041088,
+        782041088,
+        782041088,
+        782041088
+      ],
+      "fresh_raw_checks": 4,
+      "hot_and_restore_raw_exact": true,
+      "report": "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/pt-p2e6b/barcelona-metal.viewport.json",
+      "report_sha256": "f0162cb86143eb2211eae11c01d085e0a2bb59705d2e2c0d11f2c35f04eeb030"
+    },
+    "barcelona-vulkan": {
+      "cycles": 16,
+      "raster_size": [
+        1920,
+        1080
+      ],
+      "transport_size": [
+        32,
+        18
+      ],
+      "operations": 81,
+      "navigation_samples": 48,
+      "steady_material_builds": 0,
+      "live_material_variants": [
+        110
+      ],
+      "cycle_tracked_gpu_bytes": [
+        669093088,
+        669093088,
+        669029668,
+        669093088,
+        669030244,
+        669093088,
+        669030244,
+        669093088,
+        669030244,
+        669030244,
+        669093088,
+        669093088,
+        669093088,
+        669093088,
+        669093088,
+        669093088
+      ],
+      "cycle_native_gpu_bytes": [
+        717963264,
+        717963264,
+        717864960,
+        717963264,
+        717864960,
+        717963264,
+        717864960,
+        717963264,
+        717864960,
+        717864960,
+        717963264,
+        717963264,
+        717963264,
+        717963264,
+        717963264,
+        717963264
+      ],
+      "cycle_peak_rss_bytes": [
+        695943168,
+        744734720,
+        761610240,
+        761610240,
+        761610240,
+        761610240,
+        761610240,
+        761610240,
+        761610240,
+        761610240,
+        761610240,
+        761610240,
+        761610240,
+        761610240,
+        761610240,
+        761610240
+      ],
+      "fresh_raw_checks": 4,
+      "hot_and_restore_raw_exact": true,
+      "report": "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/pt-p2e6b/barcelona-vulkan.viewport.json",
+      "report_sha256": "555577b763ad453f5ce51fcc8f5c643437377944fed303f2d8a4b80bf361335a"
+    },
+    "fft-metal": {
+      "cycles": 3,
+      "raster_size": [
+        1280,
+        720
+      ],
+      "transport_size": [
+        32,
+        18
+      ],
+      "operations": 16,
+      "navigation_samples": 9,
+      "steady_material_builds": 0,
+      "live_material_variants": [
+        0
+      ],
+      "cycle_tracked_gpu_bytes": [
+        412981192,
+        412981192,
+        412981192
+      ],
+      "cycle_native_gpu_bytes": [
+        433471488,
+        433471488,
+        433471488
+      ],
+      "cycle_peak_rss_bytes": [
+        234389504,
+        254115840,
+        280576000
+      ],
+      "fresh_raw_checks": 8,
+      "hot_and_restore_raw_exact": true,
+      "report": "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/pt-p2e6b/fft-metal.viewport.json",
+      "report_sha256": "9a9dff2832b695b574e2f16b07ca995bbb7cc38f371ad346df5bf265dffec906"
+    },
+    "fft-vulkan": {
+      "cycles": 3,
+      "raster_size": [
+        1280,
+        720
+      ],
+      "transport_size": [
+        32,
+        18
+      ],
+      "operations": 16,
+      "navigation_samples": 9,
+      "steady_material_builds": 0,
+      "live_material_variants": [
+        0
+      ],
+      "cycle_tracked_gpu_bytes": [
+        412981192,
+        412981192,
+        412981192
+      ],
+      "cycle_native_gpu_bytes": [
+        464666624,
+        464666624,
+        464666624
+      ],
+      "cycle_peak_rss_bytes": [
+        243826688,
+        277921792,
+        304480256
+      ],
+      "fresh_raw_checks": 8,
+      "hot_and_restore_raw_exact": true,
+      "report": "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/pt-p2e6b/fft-vulkan.viewport.json",
+      "report_sha256": "cbd22bd11a254774b698c8bf8d39f3ca262146ef59b92b20099bc5ecf2e488bb"
+    }
+  },
+  "final_indexed": {
+    "barcelona-metal": {
+      "cycles": 3,
+      "raster_size": [
+        1920,
+        1080
+      ],
+      "transport_size": [
+        32,
+        18
+      ],
+      "operations": 16,
+      "navigation_samples": 9,
+      "steady_material_builds": 0,
+      "live_material_variants": [
+        110
+      ],
+      "cycle_tracked_gpu_bytes": [
+        669030244,
+        669030244,
+        669030244
+      ],
+      "cycle_native_gpu_bytes": [
+        686309376,
+        686309376,
+        686309376
+      ],
+      "cycle_peak_rss_bytes": [
+        685621248,
+        685621248,
+        685621248
+      ],
+      "fresh_raw_checks": 4,
+      "hot_and_restore_raw_exact": true,
+      "report": "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/pt-p2e6b/barcelona-metal-final.viewport.json",
+      "report_sha256": "fe6658a62a3e92299e548aa1a13ae297922c9e5d95dff4a1df859c5405715c2c",
+      "raw_vs_initial_variant_cache": {
+        "cold": true,
+        "hot": true,
+        "camera": true,
+        "material": true,
+        "transform": true,
+        "restored": true
+      },
+      "raster_vs_initial_variant_cache": {
+        "0": true,
+        "1": true,
+        "2": true
+      }
+    },
+    "barcelona-vulkan": {
+      "cycles": 3,
+      "raster_size": [
+        1920,
+        1080
+      ],
+      "transport_size": [
+        32,
+        18
+      ],
+      "operations": 16,
+      "navigation_samples": 9,
+      "steady_material_builds": 0,
+      "live_material_variants": [
+        110
+      ],
+      "cycle_tracked_gpu_bytes": [
+        669093088,
+        669093088,
+        669029668
+      ],
+      "cycle_native_gpu_bytes": [
+        717963264,
+        717963264,
+        717864960
+      ],
+      "cycle_peak_rss_bytes": [
+        674873344,
+        674873344,
+        674873344
+      ],
+      "fresh_raw_checks": 4,
+      "hot_and_restore_raw_exact": true,
+      "report": "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/pt-p2e6b/barcelona-vulkan-final.viewport.json",
+      "report_sha256": "a5ef3542cb3cee5bbf78f080a5e28603aed0b83752f2ab65e0386b5289ba325e",
+      "raw_vs_initial_variant_cache": {
+        "cold": true,
+        "hot": true,
+        "camera": true,
+        "material": true,
+        "transform": true,
+        "restored": true
+      },
+      "raster_vs_initial_variant_cache": {
+        "0": true,
+        "1": true,
+        "2": true
+      }
+    },
+    "fft-metal": {
+      "cycles": 3,
+      "raster_size": [
+        1280,
+        720
+      ],
+      "transport_size": [
+        32,
+        18
+      ],
+      "operations": 16,
+      "navigation_samples": 9,
+      "steady_material_builds": 0,
+      "live_material_variants": [
+        0
+      ],
+      "cycle_tracked_gpu_bytes": [
+        412981192,
+        412981192,
+        412981192
+      ],
+      "cycle_native_gpu_bytes": [
+        433471488,
+        433471488,
+        433471488
+      ],
+      "cycle_peak_rss_bytes": [
+        218546176,
+        247922688,
+        259178496
+      ],
+      "fresh_raw_checks": 8,
+      "hot_and_restore_raw_exact": true,
+      "report": "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/pt-p2e6b/fft-metal-final.viewport.json",
+      "report_sha256": "9833caff8c3ee429fa15e224499059ade19bf8654f10aa8cc2e7fb63bb936efa",
+      "raw_vs_initial_variant_cache": {
+        "cold": true,
+        "hot": true,
+        "camera": true,
+        "time": true,
+        "underwater": true,
+        "restored": true
+      },
+      "raster_vs_initial_variant_cache": {
+        "0": true,
+        "1": true,
+        "2": true
+      }
+    },
+    "fft-vulkan": {
+      "cycles": 3,
+      "raster_size": [
+        1280,
+        720
+      ],
+      "transport_size": [
+        32,
+        18
+      ],
+      "operations": 16,
+      "navigation_samples": 9,
+      "steady_material_builds": 0,
+      "live_material_variants": [
+        0
+      ],
+      "cycle_tracked_gpu_bytes": [
+        412981192,
+        412981192,
+        412981192
+      ],
+      "cycle_native_gpu_bytes": [
+        464666624,
+        464666624,
+        464666624
+      ],
+      "cycle_peak_rss_bytes": [
+        238551040,
+        250363904,
+        256131072
+      ],
+      "fresh_raw_checks": 8,
+      "hot_and_restore_raw_exact": true,
+      "report": "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/pt-p2e6b/fft-vulkan-final.viewport.json",
+      "report_sha256": "c561f5dc26b2695ba5532fd9ed68c459347250f2100808f3c921d52a36f581d2",
+      "raw_vs_initial_variant_cache": {
+        "cold": true,
+        "hot": true,
+        "camera": true,
+        "time": true,
+        "underwater": true,
+        "restored": true
+      },
+      "raster_vs_initial_variant_cache": {
+        "0": true,
+        "1": true,
+        "2": true
+      }
+    }
+  },
+  "cross_backend": {
+    "long_run-barcelona": {
+      "operations": 81,
+      "maximum_relative_rgb_l1": 0.0
+    },
+    "final_indexed-barcelona": {
+      "operations": 16,
+      "maximum_relative_rgb_l1": 0.0
+    },
+    "long_run-fft": {
+      "operations": 16,
+      "maximum_relative_rgb_l1": 0.0
+    },
+    "final_indexed-fft": {
+      "operations": 16,
+      "maximum_relative_rgb_l1": 0.0
+    }
+  }
+}

@@ -1,0 +1,215 @@
+{
+  "size": [
+    480,
+    270
+  ],
+  "reference_spp": 2048,
+  "exposure": 1.100000023841858,
+  "diagnostics": {
+    "frozen_probe_field_unchanged": true,
+    "legacy_taa_comparison": true,
+    "material_anisotropy_requested": 8,
+    "material_mips": true,
+    "motion_camera_delta": [
+      0,
+      0,
+      0.8
+    ],
+    "motion_frames": 64,
+    "motion_warmup": 16,
+    "raw_shadow_ablation": true,
+    "sky_specular_ablation_scale": 0,
+    "taa_frames": 64,
+    "taa_high_quality": true
+  },
+  "scope": "Old vs new includes material color/roughness/normal filtering and the effect of mips on DDGI capture. Only the two new TAA variants share exactly the same frozen GI field and material evaluation. No exposure fitting or image denoising.",
+  "mask": "Reuse the original geometry/material AOV-aligned eroded mask unchanged. This is an end-to-end metric, not a pure AA or DDGI error.",
+  "aligned_core": {
+    "previous_no_mips_taa": {
+      "pixels": 120872,
+      "linear_rgb_mae": 0.008573739830421399,
+      "linear_rgb_rmse": 0.016539892638428293,
+      "normalized_l1": 0.4454685245558969,
+      "relative_mean_rgb_bias": 0.29367629233380677,
+      "reference_mean_rgb": 0.019246567058736324
+    },
+    "mips_no_taa": {
+      "pixels": 120872,
+      "linear_rgb_mae": 0.008052141004240457,
+      "linear_rgb_rmse": 0.016336841589081413,
+      "normalized_l1": 0.4183676486132348,
+      "relative_mean_rgb_bias": 0.31784120222129214,
+      "reference_mean_rgb": 0.019246567058736324
+    },
+    "mips_legacy_taa": {
+      "pixels": 120872,
+      "linear_rgb_mae": 0.008435553700631239,
+      "linear_rgb_rmse": 0.015948654921984638,
+      "normalized_l1": 0.43828874390366707,
+      "relative_mean_rgb_bias": 0.31516346588406363,
+      "reference_mean_rgb": 0.019246567058736324
+    },
+    "mips_quality_taa": {
+      "pixels": 120872,
+      "linear_rgb_mae": 0.008069690252125658,
+      "linear_rgb_rmse": 0.015596905290552793,
+      "normalized_l1": 0.4192794604616358,
+      "relative_mean_rgb_bias": 0.31337121751511876,
+      "reference_mean_rgb": 0.019246567058736324
+    }
+  },
+  "regions": {
+    "red_curtain": {
+      "previous_no_mips_taa": {
+        "pixels": 10252,
+        "linear_rgb_mae": 0.005729140848810263,
+        "linear_rgb_rmse": 0.009801001400345467,
+        "normalized_l1": 0.32365443815100403,
+        "relative_mean_rgb_bias": 0.1302969131865753,
+        "reference_mean_rgb": 0.017701412906741227,
+        "high_frequency_error_mae": 0.01438389486656622
+      },
+      "mips_no_taa": {
+        "pixels": 10252,
+        "linear_rgb_mae": 0.004842050656877502,
+        "linear_rgb_rmse": 0.007889181833074533,
+        "normalized_l1": 0.2735403485805082,
+        "relative_mean_rgb_bias": 0.1639686946319163,
+        "reference_mean_rgb": 0.017701412906741227,
+        "high_frequency_error_mae": 0.007218428718915495
+      },
+      "mips_legacy_taa": {
+        "pixels": 10252,
+        "linear_rgb_mae": 0.005388121412539632,
+        "linear_rgb_rmse": 0.008562028912106542,
+        "normalized_l1": 0.30438934117443667,
+        "relative_mean_rgb_bias": 0.16137194866391383,
+        "reference_mean_rgb": 0.017701412906741227,
+        "high_frequency_error_mae": 0.009724072645434227
+      },
+      "mips_quality_taa": {
+        "pixels": 10252,
+        "linear_rgb_mae": 0.004874279117389411,
+        "linear_rgb_rmse": 0.007910220137890672,
+        "normalized_l1": 0.27536102022303205,
+        "relative_mean_rgb_bias": 0.15889241314042585,
+        "reference_mean_rgb": 0.017701412906741227,
+        "high_frequency_error_mae": 0.008424408764346789
+      }
+    },
+    "left_arch": {
+      "previous_no_mips_taa": {
+        "pixels": 8568,
+        "linear_rgb_mae": 0.00818243630519751,
+        "linear_rgb_rmse": 0.011878417050943061,
+        "normalized_l1": 0.9009089211621899,
+        "relative_mean_rgb_bias": 0.72920354490774,
+        "reference_mean_rgb": 0.009082423442585082,
+        "high_frequency_error_mae": 0.004938182588181712
+      },
+      "mips_no_taa": {
+        "pixels": 8568,
+        "linear_rgb_mae": 0.008491113601779997,
+        "linear_rgb_rmse": 0.012343530970734378,
+        "normalized_l1": 0.934895147254136,
+        "relative_mean_rgb_bias": 0.790189779882834,
+        "reference_mean_rgb": 0.009082423442585082,
+        "high_frequency_error_mae": 0.0046742912602817325
+      },
+      "mips_legacy_taa": {
+        "pixels": 8568,
+        "linear_rgb_mae": 0.008636404582186459,
+        "linear_rgb_rmse": 0.012296464443515509,
+        "normalized_l1": 0.9508920869833751,
+        "relative_mean_rgb_bias": 0.7906623448684161,
+        "reference_mean_rgb": 0.009082423442585082,
+        "high_frequency_error_mae": 0.004442407974531181
+      },
+      "mips_quality_taa": {
+        "pixels": 8568,
+        "linear_rgb_mae": 0.008388824660551264,
+        "linear_rgb_rmse": 0.012056485662916843,
+        "normalized_l1": 0.9236328512518237,
+        "relative_mean_rgb_bias": 0.7780319481283519,
+        "reference_mean_rgb": 0.009082423442585082,
+        "high_frequency_error_mae": 0.003974044484526314
+      }
+    },
+    "back_wall": {
+      "previous_no_mips_taa": {
+        "pixels": 10411,
+        "linear_rgb_mae": 0.006179914536472402,
+        "linear_rgb_rmse": 0.011910505417558125,
+        "normalized_l1": 1.3984023694622412,
+        "relative_mean_rgb_bias": 1.2639074446276668,
+        "reference_mean_rgb": 0.004419267781167234,
+        "high_frequency_error_mae": 0.0116178189358696
+      },
+      "mips_no_taa": {
+        "pixels": 10411,
+        "linear_rgb_mae": 0.005924734145188762,
+        "linear_rgb_rmse": 0.012912320266328887,
+        "normalized_l1": 1.3406596835876503,
+        "relative_mean_rgb_bias": 1.2307687466797246,
+        "reference_mean_rgb": 0.004419267781167234,
+        "high_frequency_error_mae": 0.01450317113808578
+      },
+      "mips_legacy_taa": {
+        "pixels": 10411,
+        "linear_rgb_mae": 0.006090038718080798,
+        "linear_rgb_rmse": 0.011384244003412057,
+        "normalized_l1": 1.3780651048197565,
+        "relative_mean_rgb_bias": 1.2467262352156365,
+        "reference_mean_rgb": 0.004419267781167234,
+        "high_frequency_error_mae": 0.010876157487768774
+      },
+      "mips_quality_taa": {
+        "pixels": 10411,
+        "linear_rgb_mae": 0.005814127002227276,
+        "linear_rgb_rmse": 0.010870468291600197,
+        "normalized_l1": 1.31563129688684,
+        "relative_mean_rgb_bias": 1.1922708922252487,
+        "reference_mean_rgb": 0.004419267781167234,
+        "high_frequency_error_mae": 0.009337774015158713
+      }
+    },
+    "shadow_floor": {
+      "previous_no_mips_taa": {
+        "pixels": 9529,
+        "linear_rgb_mae": 0.01023942414424106,
+        "linear_rgb_rmse": 0.01636951074068457,
+        "normalized_l1": 2.1377901450219197,
+        "relative_mean_rgb_bias": 2.1142516961818636,
+        "reference_mean_rgb": 0.004789723709824695,
+        "high_frequency_error_mae": 0.004037810885920686
+      },
+      "mips_no_taa": {
+        "pixels": 9529,
+        "linear_rgb_mae": 0.010284011255344094,
+        "linear_rgb_rmse": 0.016559062093485427,
+        "normalized_l1": 2.1470990558911573,
+        "relative_mean_rgb_bias": 2.1266501061256586,
+        "reference_mean_rgb": 0.004789723709824695,
+        "high_frequency_error_mae": 0.004304085599187849
+      },
+      "mips_legacy_taa": {
+        "pixels": 9529,
+        "linear_rgb_mae": 0.01023746091084777,
+        "linear_rgb_rmse": 0.01636220383213067,
+        "normalized_l1": 2.1373802605458563,
+        "relative_mean_rgb_bias": 2.116422039852885,
+        "reference_mean_rgb": 0.004789723709824695,
+        "high_frequency_error_mae": 0.00374993772914947
+      },
+      "mips_quality_taa": {
+        "pixels": 9529,
+        "linear_rgb_mae": 0.01025360676569934,
+        "linear_rgb_rmse": 0.016421351845678406,
+        "normalized_l1": 2.140751197123774,
+        "relative_mean_rgb_bias": 2.1209605388184514,
+        "reference_mean_rgb": 0.004789723709824695,
+        "high_frequency_error_mae": 0.00379722947375769
+      }
+    }
+  }
+}

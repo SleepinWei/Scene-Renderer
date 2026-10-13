@@ -2,6 +2,8 @@
 
 本阶段暂缓材质扩展，优先实现 photon mapping 和通用 PT 优化。没有引入 ReSTIR／reservoir。CPU 并行生成冻结 photon map，CPU／Metal／Vulkan 使用相同的光子与空间索引查询间接光。
 
+2026-10-10 新增 [CPU SPPM 渐进光子映射](path-tracing-sppm.md)，通过独立光子批次和逐像素收缩半径改善固定密度核；下文固定 photon mapping 的参数和跨后端支持范围保持独立。
+
 ## 池底样例与运行
 
 `pool-caustics` 使用封闭透明水体、1.333 IOR、RGB 吸收、有限太阳和棋盘池底。水面为两个解析波的固定几何，便于跨后端独立验收，**不是 FFT 捕获**。`pool-flat` 保留水体但关闭波形，`pool-no-water` 移除水体。池壁与水体侧面相隔 1 cm，避免共面交点的材质／介质归属歧义。

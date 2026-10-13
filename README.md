@@ -2,343 +2,162 @@
 
 **English** · [简体中文](README.zh-CN.md)
 
-A **C++17 graphics renderer** for learning and experimentation, originating from a computer graphics course project at Tongji University. Classic benchmark scenes and natural environments demonstrate real-time lighting, materials, GPU compute, and CPU/GPU path tracing.
+A **C++17 renderer** for learning and experimentation, originating from a computer graphics course project at Tongji University. A shared **RHI** supports native **Metal and Vulkan**, with an interactive editor, real-time effects and CPU/GPU path tracing.
 
-Real-time rendering uses a shared **RHI** with native **Metal and Vulkan** backends. The editor provides camera navigation and interactive effect controls. Features include PBR, CSM/PCSS, RSM, GTAO/SSAO, atmospheric scattering, volumetric clouds, FFT oceans, height/material virtual textures, vegetation, and TSAA.
+![Sponza courtyard: native Metal, RSM disabled](img/metal/sponza-direct.png)
 
-[Build and run](docs/getting-started.md) · [Full gallery and settings](docs/rendering-gallery.md) · [System design](docs/system-design.md) · [Technical docs and change records](docs/README.md)
+[Quick start](#quick-start) · [Capabilities](#capabilities) · [Real-time rendering](#real-time-rendering) · [Cluster and dynamic LOD](#cluster-and-dynamic-lod) · [Path tracing](#path-tracing) · [Development status](#development-status) · [Documentation](#documentation)
 
-Detailed guides are currently available in Chinese.
+## Quick start
 
-![Sponza courtyard rendered with native Metal](img/metal/sponza.png)
-
-## Scenes and effects
-
-Images below were rendered by this project unless explicitly labeled as Blender Cycles references. Real-time images use native Metal; path-traced images identify the integrator and denoising used. Reproduction commands, sampling settings, feature comparisons, and intermediate buffers are documented in the [full gallery](docs/rendering-gallery.md).
-
-### Classic scenes and PBR
-
-Sponza, San Miguel, and Sibenik showcase architectural materials, shadows, and sun/sky RSM indirect lighting. Stanford scans and Damaged Helmet demonstrate metallic, nonmetallic, and textured materials.
-
-| San Miguel courtyard | Sibenik Cathedral |
-| --- | --- |
-| ![Metal San Miguel](img/metal/san-miguel.png) | ![Metal Sibenik Cathedral](img/metal/sibenik.png) |
-
-| Stanford Bunny: three materials | Damaged Helmet: PBR textures |
-| --- | --- |
-| ![Metal Stanford Bunny](img/metal/bunny.png) | ![Metal Damaged Helmet](img/metal/helmet.png) |
-
-### Ambient occlusion
-
-Horizon-based AO with geometric normal reconstruction and edge-aware filtering reduces sampling bands around pillars and arches. These Sponza captures disable RSM and TSAA to isolate AO, with matching lighting and exposure. See [algorithm notes and more comparisons](docs/ambient-occlusion.md).
-
-| Original 24-sample SSAO: AO buffer | Horizon AO + edge-aware filtering: AO buffer |
-| --- | --- |
-| ![Sponza original SSAO visibility](img/ao/sponza-ao-legacy-visibility.png) | ![Sponza horizon AO with edge-aware filtering](img/ao/sponza-ao-gtao-visibility.png) |
-
-| AO disabled: final scene | AO enabled: final scene |
-| --- | --- |
-| ![Sponza with AO disabled](img/ao/sponza-ao-off.png) | ![Sponza with horizon AO enabled](img/ao/sponza-ao-gtao.png) |
-
-### Atmosphere and sun
-
-Atmospheric scattering and an analytic sun disk share lighting parameters with the scene, indirect lighting, and ocean surface. Distant cloud layers support weather distributions and wind changes.
-
-| Daytime sky | Sunset at the horizon | Sunset clouds |
-| --- | --- | --- |
-| ![Metal daytime sky](img/metal/sky-day.png) | ![Metal sunset sun](img/metal/sky-sunset.png) | ![Metal sunset volumetric clouds](img/metal/clouds-sunset.png) |
-
-### Immersive 3D voxel clouds
-
-A 128³ XYZ density field combines conservative distance fields, GPU indirect ray marching, and cached sunlight to support close views and cameras inside the cloud. These images use full-resolution 1080p rendering with cloud temporal accumulation disabled. The storm preset includes internal volumetric flashes.
-
-| 3D cloud volume | Storm shape and internal flashes |
-| --- | --- |
-| ![Metal 3D voxel clouds](img/metal/cloud-volume.png) | ![Metal 3D storm clouds](img/metal/cloud-vortex.png) |
-
-### FFT oceans and transparent water
-
-Primary and short-wave FFT spectra combine to produce wave crests, fine ripples, and foam. Refraction, RGB absorption, and approximate single scattering produce shallow-water transmission and translucent wave crests.
-
-| Rough ocean | Shallow-water refraction and scattering |
-| --- | --- |
-| ![Metal FFT ocean](img/metal/ocean.png) | ![Metal transparent water](img/metal/ocean-clear.png) |
-
-Real-time water now uses a grid concentrated near the camera, an independent underwater color/position layer, and single-scattering integration along the water path. [Before/after, validation and GPU cost](docs/water-realtime-upgrade.md).
-
-The coastal presets add optional DDA refraction with terrain fallback, local multiple scattering, shallow waves, persistent foam, and wet sand. Each feature has an editor switch; existing presets keep the new effects disabled. [Controls, comparisons, animations and limitations](docs/water-coastal-features.md). [First performance round: stage timings, submission gaps and boundary fixes](docs/water-coastal-performance.md).
-
-![Metal coastal shallow waves and foam](img/metal/coastal-beach.png)
-
-Underwater views add distance-dependent absorption and scattering, water-to-air refraction, and total internal reflection. Open `--classic coastal-underwater`; the Ocean panel exposes view, fog and **Short wave ripples** switches. The underwater preset uses a 0.5–2 m FFT wave band so nearby refraction and the Snell-window boundary move with the waves. [Images, optical paths and validation](docs/water-underwater-rendering.md).
-
-| Underwater surface | Looking down at the seabed |
-| --- | --- |
-| ![Metal underwater surface](img/diagnostics/water/ripple-demo/coastal-underwater.png) | ![Metal underwater seabed](img/diagnostics/water/seabed-demo/coastal-underwater-seabed.png) |
-
-The seabed demo adds 25 cm sand ripples, fine normal detail, and optional solar caustics projected through the live FFT surface. Open `--classic coastal-seabed`; toggle **FFT seabed caustics** and adjust **Caustic strength** in the Ocean panel. [Seabed comparisons, implementation and GPU timings](docs/water-seabed-caustics.md).
-
-### Underwater diving, sun shafts, and refraction
-
-The `underwater-dive` preset starts 6 m underwater, looking along a sandy channel between reef outcrops and seagrass. Distance-dependent absorption and single scattering produce blue-green visibility; drifting sediment, 16/48/128 m cascaded caustics on terrain and submerged meshes, and wave-focused sun shafts add depth and moving light. The preset uses 32 samples for shadowed volume lighting.
-
-| Diving view: sun shafts and seabed caustics | Looking up: refracted sky, sun, and floating marker |
-| --- | --- |
-| ![Metal underwater diving scene with sun shafts](img/diagnostics/water/air-refraction/underwater-dive.png) | ![Underwater refraction of the sky and surface marker](img/diagnostics/water/air-refraction/underwater-dive-snell-window.png) |
+On macOS, install Xcode with the Metal Toolchain, CMake, Python 3.9+ and these dependencies. Run from the repository root:
 
 ```sh
-./build/Scene-Renderer --classic underwater-dive --size 1280x720
-```
-
-Hold the right mouse button to look around; use **W/A/S/D** to move and **Q/E** to move vertically. Set **Camera → View pitch** to about **68°** to inspect the sky window. Near-horizontal underwater views show total internal reflection; the window boundary follows the wave normals.
-
-The Ocean panel independently controls **Underwater distance fog**, **Underwater sun shafts**, **FFT seabed caustics**, and **Wide air refraction**, with adjustable shaft contrast, particle density, and volume samples. Wide air refraction adds an upward capture to recover surface objects outside the original camera view; a unit scattering gain preserves sky and object contrast. Metal and Vulkan water validation passes. Wide capture remains a screen-space approximation, and this preset prioritizes visual quality over a 60 fps target.
-
-[Dive scene and controls](docs/water-underwater-diving.md) · [Caustic coverage](docs/water-caustic-cascades.md) · [Sun-shaft implementation](docs/water-sun-shafts.md) · [Refraction comparisons, validation, and performance](docs/water-air-refraction.md)
-
-### Large terrain, lakes, and vegetation
-
-Mountain Lake demonstrates an 8×8 km landscape with height/material VT paging, terrain LOD, an FFT lake surface, grass density that varies with distance, and wet-sand and beach PBR materials.
-
-![Metal Mountain Lake landscape](img/metal/mountain-lake.png)
-
-| Lakeside grass | Beach and wet sand |
-| --- | --- |
-| ![Metal lakeside vegetation](img/metal/mountain-lake-ground.png) | ![Metal lakeside beach](img/metal/mountain-lake-beach.png) |
-
-The current development capture strengthens atmospheric aerial perspective while reducing the fixed-colour ground fog and ground cloud shadows. Ground shadow strength is **30%**, aerial optical distance scale is **2**, and mountain shadow coverage is **8 km**. Mountain/cloud solar occlusion modulates scattered sunlight, including a local sky correction. The view below is **90.0° perpendicular to the sun direction**, with the sun at about **20°** elevation; side lighting produces broad air-shadow bands and softer shafts. **Metal, 960×540, fixed simulation time, RSM off.** [Controls, validation, capture provenance and limitations](docs/mountain-lake-side-light.md).
-
-![Mountain Lake: 90-degree sun side lighting and weaker ground fog](img/diagnostics/environment/aerial-side/mountain-lake-side-combined.png)
-
-<details>
-<summary>Aerial sunlight: occlusion off / on / on with weaker ground fog</summary>
-
-![Matched 90-degree views with atmospheric sunlight occlusion off, on, and on with weaker ground fog](img/diagnostics/environment/aerial-side/comparison.png)
-
-The camera, sun and exposure stay fixed across all three views. The centre view adds atmospheric solar occlusion; the right view also adds the weaker height fog. Narrow shafts, off-screen terrain casters and moving views still need further work; this capture is not a 60 fps claim.
-
-</details>
-
-### Procedural trees and forest: corrected renders
-
-Broadleaf trees, conifers, and shrubs use seeded branching geometry, separate bark and leaf materials, and alpha-tested cascade shadows. These **Metal realtime renders, 960×720, fixed time 8 s, 16 TAA frames** were regenerated after the **2026-10-12** fix for solar-disk artifacts in leaf gaps and the missing foliage material flag. The single-tree canopy's near-white pixel count fell from **854 to 0** in the same camera and exposure; Metal and Vulkan regression checks pass. [Implementation, before/after comparison, validation, and limits](docs/procedural-trees.md).
-
-| Corrected single tree | Corrected forest |
-| --- | --- |
-| ![Corrected Metal single-tree render](img/nature/tree-single.png) | ![Corrected Metal forest render](img/nature/tree-forest.png) |
-
-### Virtual textures and soft shadows
-
-Height/material VT uses physical page caches, page tables, ancestor fallback, and GPU depth feedback. Five-level CSM allocates shadow precision across viewing distances; PCSS estimates penumbra growth with blocker separation.
-
-| Actual GPU VT cache | CSM shadows and cascade regions |
-| --- | --- |
-| ![VT height and material atlases](img/diagnostics/vt-cache.png) | ![CSM cascades and transition bands](img/diagnostics/csm-cascades.png) |
-
-![PCF, default-sun PCSS, and larger-light PCSS comparison](img/diagnostics/pcss-comparison.png)
-
-The comparison shows PCF, PCSS with the default sun, and PCSS with a larger light, respectively. The third column illustrates a wider penumbra. See [page tables, shadow atlases, and full diagnostics](docs/render-diagnostics-gallery.md).
-
-### Post processing
-
-A shared native HDR-to-display module adds optional Bloom, depth of field, camera motion blur, color grading, FXAA, sharpening, vignette, chromatic aberration, and film grain. The **Post processing** panel offers independent controls, exponential / ACES fitted / Reinhard / linear tone mapping, and a soft cinematic preset; extra effects default to off. [Controls, pipeline, comparisons, and limitations](docs/post-processing.md).
-
-| Default display | ACES and combined post effects |
-| --- | --- |
-| ![Cornell default display](img/diagnostics/post-processing/cornell-post-off.png) | ![Cornell combined post processing](img/diagnostics/post-processing/cornell-post-combined.png) |
-
-| HDR Bloom | Depth of field: foreground focus |
-| --- | --- |
-| ![Cornell HDR Bloom](img/diagnostics/post-processing/cornell-bloom.png) | ![Cornell depth of field](img/diagnostics/post-processing/cornell-dof.png) |
-
-```sh
+brew install glfw assimp yaml-cpp glslang spirv-cross
+cmake -S . -B build -DSCENERENDERER_RHI_BACKEND=Metal -DCMAKE_BUILD_TYPE=Release
+cmake --build build --target Scene-Renderer -j2
+./build/Scene-Renderer --memory-info
 ./build/Scene-Renderer --classic cornell --size 1280x720
 ```
 
-Open **Post processing** to enable individual effects or **Soft cinematic preset**. Metal and Vulkan validation passes; depth of field uses opaque depth, and motion blur currently covers camera motion.
+Cornell, sky, ocean and the diving scene are procedural and need no large asset downloads. Sponza and San Miguel require `python3 tools/fetch_gi_assets.py`; other downloads and Vulkan/MoltenVK builds are covered in [build and run](docs/getting-started.md). NumPy and Pillow are required by the cave generator and visualization tools.
 
-### Path tracing, caustics, and subsurface scattering
+Hold the right mouse button to look around; **W/A/S/D** moves, **Q/E** moves vertically and **Shift** increases speed. Editor panels control lighting, water, cluster LOD and post effects.
 
-CPU/Metal/Vulkan path tracing supports multiple bounces, textured materials, refraction, and random walks in homogeneous media. CPU BDPT renders smooth-glass caustics. Procedural terrain, vegetation, and FFT water can be frozen into offline scenes. Unless marked as raw photon mapping, the images below use Open Image Denoise (OIDN).
+**Memory admission stays enabled:** process budget is the smaller of 20% of physical RAM and 3 GiB; GPU resources default to half, with one editor frame in flight. On a 16 GiB machine this is **3 GiB / 1.5 GiB**. System pressure rejects new heavy work and preserves an existing editor frame. `--memory-budget-mib`, `--gpu-resource-budget-mib` and `--memory-info` configure or inspect it. This is cooperative allocation protection; its scope is documented in [memory safety](docs/memory-safety.md).
 
-Refined fur and cloth examples use the captured realtime sunset sky with clouds and a 5° finite sun. Stanford Bunny now has **72,000 finer short fur strands**; the cream knit sweater has **1,280 explicit front yarn loops and 23,360 fine nap strands**, with a separate cloth-yarn near view. **Metal PT, 768×768, 1024 spp, 12 bounces, OIDN display.** [Lighting, material refinements, raw images and validation](docs/path-tracing-grooms-sunlight.md#夕阳展示). Bunny data: [Stanford University Computer Graphics Laboratory](https://graphics.stanford.edu/data/3Dscanrep/).
+## Capabilities
 
-| Stanford Bunny fur at sunset | Knit sweater at sunset | Cloth yarn near view |
-| --- | --- | --- |
-| ![Bunny fur at sunset](img/path-tracing/bunny-fur-sunset.png) | ![Knit sweater at sunset](img/path-tracing/knit-sweater-sunset.png) | ![Cloth yarn at sunset](img/path-tracing/knit-yarn-sunset.png) |
-
-The [YarnSim knitted-cloth examples](docs/path-tracing-knitted-yarn.md) import public relaxed yarn control points, connect periodic spline spans, and add **anisotropic dielectric yarn reflection** shared by CPU/Metal/Vulkan. The prototype sweater has **280 honeycomb repeats on its front**; the separate swatch has **three geometric plies and open stitch holes**. **Metal PT, 768×768, 1024 spp, 12 bounces, OIDN display, sunset lighting.** Sleeves and garment seams remain procedural. Data: [Leaf et al., 2018](https://graphics.stanford.edu/projects/yarnsim/); original assets are not redistributed.
-
-| Honeycomb sweater front | Three-ply knitted cloth |
+| Area | Implementation and references |
 | --- | --- |
-| ![Honeycomb sweater at sunset](img/path-tracing/knitted-sweater-sunset.png) | ![Three-ply honeycomb knit at sunset](img/path-tracing/knitted-honeycomb-sunset.png) |
+| Materials and lighting | PBR, CSM/PCSS shadows, GTAO/SSAO, filtered materials and improved TAA; [DDGI diffuse GI](docs/ddgi.md) and optional PT probe references. |
+| Geometry and visibility | Object/triangle culling, hierarchical meshlets, GPU screen-error LOD, indexed indirect drawing and two-stage cluster Hi-Z. [Geometry pipeline](docs/hierarchical-cluster-geometry.md). |
+| Natural environments | Atmospheric scattering, volumetric clouds, height/material virtual textures, terrain LOD, procedural vegetation and shared weather. [Environment specification](docs/mountain-lake-environment-spec.md). |
+| Water | FFT wind waves and swell, reflection/refraction, absorption/scattering, shore waves, foam, seabed caustics and underwater sun shafts. [Water rendering](docs/ocean-fft-and-rendering-review.md). |
+| Post processing | HDR Bloom, depth of field, camera motion blur, tone mapping/color grading, FXAA, sharpening, vignette, chromatic aberration and grain. [Controls and scope](docs/post-processing.md). |
+| Path tracing | CPU/Metal/Vulkan integrators, textured materials, dielectric/volume transport, fiber/cloth materials, shared BLAS/TLAS, photon mapping and OIDN. [GPU PT](docs/path-tracing-gpu.md). |
+| Runtime | Immutable world snapshots, a dedicated render thread, bounded preparation workers, resource budgets and RenderGraph pass culling. [System design](docs/system-design.md). |
 
-This hair showcase uses circular-fiber scattering under a clear sky captured from the realtime atmosphere pipeline. The low-angle sky and finite sun are rotated together, their source illumination is scaled by 10, and narrower hair highlights reveal the warm solar reflections. Each asset retains **50,000 strands: Metal PT, 512×512, 1024 spp, 12 bounces, OIDN display**. The head remains neutral diffuse. Hair geometry: [Cem Yuksel](https://www.cemyuksel.com/research/hairmodels/); head courtesy of **Murat Afshar**. See [lighting, material settings, raw images and validation](docs/path-tracing-hair-sunlight.md).
+## Real-time rendering
 
-| Straight hair in stronger sunlight | Wavy hair in stronger sunlight |
-|---|---|
-| ![Sunlit straight hair](img/path-tracing/yuksel-straight-sunlit.png) | ![Sunlit wavy hair](img/path-tracing/yuksel-wavy-sunlit.png) |
+These selected captures use this project's native Metal renderer. [Expanded showcase](docs/rendering-showcase.md) retains all comparisons and intermediate results; the [full gallery](docs/rendering-gallery.md) records capture settings and reproduction.
 
-The architectural and natural scenes shown above also have path-traced results. Sponza and San Miguel use Metal PT at 320×240, 64 spp, and 16 bounces; terrain, lake, and ocean captures use Metal PT at 640×480 with procedural animation frozen at 8 seconds. Sampling settings and raw images are available in the [path-tracing gallery](docs/rendering-gallery.md#路径追踪).
+### Architecture and diffuse GI
 
-| Sponza: Metal PT + OIDN, 64 spp | San Miguel: Metal PT + OIDN, 64 spp |
+| San Miguel: RSM disabled | Sponza: DDGI enabled |
 | --- | --- |
-| ![Path-traced Sponza courtyard](img/path-tracing/oidn-sponza.png) | ![Path-traced San Miguel courtyard](img/path-tracing/oidn-san-miguel.png) |
+| ![San Miguel courtyard with native Metal](img/metal/san-miguel-direct.png) | ![Sponza with native DDGI](img/diagnostics/ddgi/metal/sponza-on.png) |
 
-| Stanford Dragon: CPU BDPT glass caustics + OIDN | Jade Dragon: Metal PT subsurface scattering + OIDN |
+DDGI provides local sky visibility and diffuse color bounce through irradiance probes. The editor uses six-face raster capture; optional offline probe references reuse PT. This is the first GI stage, with remaining leakage, lighting and material differences against PT. [Probe layout and GPU visualization](docs/ddgi.md#原理与-sponza-探针布局) · [TAA comparison](docs/realtime-anti-aliasing.md). RSM is disabled by default and retained as a historical demo.
+
+### Atmosphere, terrain and water
+
+| Mountain Lake: aerial perspective and mountain shadows | Immersive 3D cloud volume |
 | --- | --- |
-| ![Glass Stanford Dragon and caustics](img/path-tracing/dragon-glass.png) | ![Polished jade dragon](img/path-tracing/jade-polished-boundary.png) |
+| ![Mountain Lake with atmospheric side lighting](img/diagnostics/environment/aerial-side/mountain-lake-side-combined.png) | ![Native Metal voxel cloud volume](img/metal/cloud-volume.png) |
 
-| Sunlit pool floor: Metal photon mapping + OIDN | Swimming pool above water: Metal photon mapping + OIDN |
+Terrain paging, FFT lake water and vegetation share sun, wind and weather controls. [Mountain Lake](docs/mountain-lake.md) · [Aerial perspective](docs/atmospheric-aerial-perspective.md) · [Procedural trees](docs/procedural-trees.md).
+
+| Underwater diving: sun shafts and caustics | Looking up: refracted sky, sun and floating marker |
 | --- | --- |
-| ![Sunlit pool floor caustics](img/path-tracing/pool-sunlit-underwater.png) | ![Sunlit swimming pool caustics](img/path-tracing/pool-sunlit.png) |
+| ![Underwater diving with sun shafts](img/diagnostics/water/air-refraction/underwater-dive.png) | ![Refracted sky and surface marker](img/diagnostics/water/air-refraction/underwater-dive-snell-window.png) |
 
-Short ripples and a 0.266° sun radius produce clear caustic lines on pale blue tiles: 4M light paths, 64 spp, radius 0.025. The water uses a frozen analytic ripple mesh. [Raw closeup](img/path-tracing/pool-sunlit-underwater-raw.png) · [Flat-water control](img/path-tracing/pool-sunlit-flat.png) · [Reproduction and validation](docs/path-tracing-photon-mapping.md#晴天泳池更明显的网状亮纹).
+Use `--classic underwater-dive` to explore the seabed. The Ocean panel independently controls fog, sun shafts, caustics and air refraction. [Diving scene and controls](docs/water-underwater-diving.md) · [Refraction and performance](docs/water-air-refraction.md) · [Shore waves and foam](docs/water-coastal-features.md).
 
-| Pool: Metal photon mapping, 1M light paths + 32 spp, raw | Refractive caustic contribution, raw |
+### Post processing
+
+| Default display | ACES and combined post effects |
 | --- | --- |
-| ![Pool floor photon caustics](img/path-tracing/pool-photon.png) | ![Pool refractive caustics AOV](img/path-tracing/pool-photon-caustics.png) |
+| ![Cornell default display](img/diagnostics/post-processing/cornell-post-off.png) | ![Cornell with combined native post processing](img/diagnostics/post-processing/cornell-post-combined.png) |
 
-The pool uses a frozen analytic wave mesh. The fixed-radius photon map is biased; CPU/Metal/Vulkan share the same photon data. [Reproduction, validation, and PT acceleration](docs/path-tracing-photon-mapping.md).
+The **Post processing** panel exposes each effect and a soft cinematic preset. Extra effects default to off; depth of field uses opaque depth and motion blur currently covers camera motion. [Pipeline and individual comparisons](docs/post-processing.md).
 
-| Terrain and grass: Metal PT + OIDN, 128 spp | Mountain Lake: Metal PT + OIDN, 128 spp |
-| --- | --- |
-| ![Path-traced terrain and grass](img/path-tracing/pt-terrain.png) | ![Path-traced mountain lake and reflections](img/path-tracing/pt-mountain-lake.png) |
+## Cluster and dynamic LOD
 
-| Lakeside beach: Metal PT + OIDN, 1024 spp | Shallow-water refraction: Metal PT + OIDN, 4096 spp |
-| --- | --- |
-| ![Path-traced lakeside beach and wet sand](img/path-tracing/pt-mountain-lake-beach.png) | ![Path-traced FFT shallow water](img/path-tracing/pt-ocean-clear.png) |
+The dense limestone cave uses **9 shared meshes / 2.88 million unique triangles**, instanced into **76 draws / 24.84 million logical triangles**. Fractures and mineral relief move real vertices; the procedural package is **84.8 MB**, with a checked **10 GB disk cap**.
 
-Beach textures are sampled at world scale; underwater solar paths use a BSDF/phase mixture proposal without changing the sun or exposure. [Raw beach](img/path-tracing/pt-mountain-lake-beach-raw.png) · [Raw shallow water](img/path-tracing/pt-ocean-clear-raw.png) · [Fix and validation](docs/path-tracing-procedural.md#水下太阳路径采样).
+![Cave: captured PBR, actual GPU clusters and parent LOD levels](img/diagnostics/cluster-cave/dynamic-lod.gif)
 
-### Ocean sea states and real-time/PT alignment
+This animation uses **native captures recorded before the memory-admission defaults**. PBR, unique cluster IDs and parent levels show recorded camera poses; the bar charts count submitted triangles. At fixed 4 px, those captures reduce submissions by **25.57% near to 54.64% farther**, against each camera's own 0 px reference, with object/occlusion culling disabled. Playback speed and triangle reduction do not establish renderer FPS. [Enlarged cluster boundaries and triangle wireframe](img/diagnostics/cluster-cave/detail.png).
 
-Recent development captures cover calibrated JONSWAP/TMA wind waves, independently directed swell, shared water optics, and successive glint/reflection corrections. Raster and PT share the FFT fields and detail band; a camera-focused PT grid extends water coverage to 2 km.
-
-| Update | Result and validation |
-| --- | --- |
-| [Sea state and shared optics](docs/ocean-sea-state-and-pt.md) | Calibrated wave height/period, independent swell, IOR 1.333, exact Fresnel and finite-sun reflection. [Shared-surface comparisons](docs/ocean-physical-surface.md). |
-| [Glint spatial filtering and TAA](docs/ocean-glint-antialiasing.md) | Subpixel solar integration, slope-moment mips and linear HDR water history. Near single-frame error improves against raster SSAA; distant/TAA errors remain. |
-| [Native float FFT normals and reconstruction](docs/ocean-float-normals-and-glints.md) | Independent wind/ripple periods on CPU/GPU PT, tent glint reconstruction and direct frozen-water accumulation. Tent smooths edges at extra cost and increases pixel L1 against raw PT. |
-| [Distant sun and sky reflection integration](docs/ocean-reflection-integration.md) | Exact reflection Jacobian in slope space and pixel integration of Fresnel times sky radiance; additive body/reflection/sun/foam/border diagnostics. Metal/Vulkan water regression passes. |
-
-![Wind waves and independent swell: Metal native RT + OIDN, 512x320, 256 spp](img/path-tracing/ocean-sea-state.png)
-
-| Current real-time TAA | Matched Metal native RT + OIDN, 512 spp |
-| --- | --- |
-| ![Current realtime ocean](img/path-tracing/ocean-reflection-after-raster-taa.png) | ![Matched path-traced ocean](img/path-tracing/ocean-reflection-pt-denoised.png) |
-
-Same snapshot, camera, sea state, time, 640×360 resolution and image exporter. Numerical comparisons use raw PT before OIDN. The latest before/after ablation uses one binary and identical compiled shaders; both raw PT films are bitwise identical. These are development-build results, with capture commands, source/build hashes and validation logs in the linked records.
-
-| Latest TAA comparison against raw 512 spp PT | Previous reflection model | Current reflection model |
-| --- | ---: | ---: |
-| All-water relative RGB L1 | 129.66% | 113.49% |
-| Distant-water relative RGB L1 | 171.88% | 134.01% |
-| Side-water relative RGB L1 | 54.73% | 43.56% |
-
-Near glints are largely unchanged. Water self-reflection, non-Gaussian distant slopes, rough sky reflection and volume transport remain different. One synchronized 20-frame capture measures about 3 ms extra single-frame cost; it is not a stable FPS benchmark. [Full images, component statistics, costs and limits](docs/ocean-reflection-integration.md) · [Latest validation record](img/path-tracing/ocean-reflection-validation.json) · [Raw PT](img/path-tracing/ocean-reflection-pt.png).
+The latest implementation records **11 camera poses**, including two interior chambers and a same-camera **0 / 2 / 4 / 8 px** comparison. Reference and LOD reuse one renderer; diagnostics replay at most **65,536 triangles per batch**, with **24 MiB scratch reservations** at default budgets, and stream large membership lists to JSONL. A separate `cluster-cave-small` package preserves the dense source geometry. **Build and four memory/RHI tests pass; the new GPU replay, memory peaks and added poses remain pending validation.** [Procedure and validation scope](docs/cluster-cave.md) · [Implementation checks](img/diagnostics/cluster-cave/implementation-validation.json).
 
 <details>
-<summary>Earlier glint reconstruction and latest sky-reflection components</summary>
+<summary>Prepare a separate smaller cave and capture it when memory pressure is normal</summary>
 
-| Earlier box reconstruction | Earlier tent reconstruction |
-| --- | --- |
-| ![Box glints, historical capture](img/path-tracing/ocean-alignment-box-raster-taa.png) | ![Tent glints, historical capture](img/path-tracing/ocean-alignment-tent-raster-taa.png) |
+```sh
+python3 tools/prepare_cluster_cave.py --level 6
+./build/Scene-Renderer --memory-info
+./build/Scene-Renderer --cluster-scene-flow cluster-cave-small build/cluster-cave-bounded-small --backend Metal
+python3 tools/visualize_cluster_scene_compact.py build/cluster-cave-bounded-small img/diagnostics/cluster-cave-bounded-small
+```
 
-These historical float-normal captures use the same PT input. Tent lowers the glint ROI neighbour gradient by about 12.5%, but increases raw-PT pixel L1 and costs about 5–8 ms. Gradient reduction alone does not establish alias-free rendering. [Reconstruction ablation](docs/ocean-float-normals-and-glints.md).
-
-| Centre-normal sky reflection | Pixel-integrated sky reflection |
-| --- | --- |
-| ![Previous sky reflection contribution](img/path-tracing/ocean-reflection-before-reflection.png) | ![Current sky reflection contribution](img/path-tracing/ocean-reflection-after-reflection.png) |
-
-The sky-reflection images are weighted additive radiance components, not complete renders. Earlier 8-bit-normal PT references and raster SSAA are kept in their stage records; their errors are not compared across reference changes. [Initial comparison and spectrum-cache benchmark](docs/ocean-realtime-pt-comparison.md).
+Small-package generation and protected captures are pending. The process/GPU limits and pressure checks remain enabled.
 
 </details>
 
-![Path-traced FFT rough ocean: Metal PT + OIDN, 256 spp](img/path-tracing/pt-ocean.png)
+Other scene tests retain their own camera and build configurations:
 
-### Blender test scenes
+| Scene | Geometry | Evidence |
+| --- | --- | --- |
+| Coastal Cliff | 9.43M logical triangles, ten shared original LOD0 instances | Recorded parent-builder change improves same-view 4 px reduction from 3.24% to 36.56%. [Quality and timing](docs/cluster-parent-lod-optimization.md). |
+| Bistro exterior | 2.83M source triangles, 132 material meshes | Whole-street partition and camera-route LOD; recorded reductions are modest at 2.95–5.04%. [Animation, connectivity and measurements](docs/rendering-showcase.md#bistro-whole-scene-cluster-and-lod-demonstration). |
+| Sponza and Stanford scans | Architecture and dense scanned surfaces | [Meshlet utilization](docs/cluster-partition-and-hierarchy.md), [two-stage Hi-Z](docs/cluster-two-stage-hiz.md) and [dynamic LOD](docs/cluster-hiz-optimization-and-lod.md). |
 
-Blender's official Classroom and Barcelona Pavilion scenes are imported offline, rendered with this project's Metal path tracer, and denoised with OIDN. See [assets, material conversion, and validation](docs/blender-path-tracing.md).
+This is a **Nanite-inspired prototype**. Geometry streaming, visibility-buffer shading and hybrid rasterization remain future work. UE Nanite captures of the cliff are identified as [separate reference-engine results](docs/cluster-cliff-nanite-test.md).
 
-| Classroom | Barcelona Pavilion |
+## Path tracing
+
+The architectural and natural scenes also have path-traced results. These are rendered by this project's CPU/Metal/Vulkan integrators; images below use **OIDN** and identify the integrator. [Raw results, sampling and reproduction](docs/rendering-gallery.md#路径追踪).
+
+| Sponza: Metal PT, 64 spp | San Miguel: Metal PT, 64 spp |
 | --- | --- |
-| ![Classroom Metal PT + OIDN](img/path-tracing/blender-classroom-materials.png) | ![Barcelona Pavilion pool: Metal PT + OIDN](img/path-tracing/blender-barcelona-water.png) |
+| ![Path-traced Sponza courtyard](img/path-tracing/oidn-sponza.png) | ![Path-traced San Miguel courtyard](img/path-tracing/oidn-san-miguel.png) |
 
-Barcelona now imports Bump/Normal Map atlases and dielectric roughness textures, with bounded pool reflection, refraction, and RGB absorption. Hidden particle emitters and reflected texture UVs are fixed. The pool uses an explicit artistic profile (IOR 1.333, depth 0.5 world units); the original water parameters remain available. [Raw preview](img/path-tracing/blender-barcelona-water-raw.png) · [Reproduction and limits](docs/blender-path-tracing.md#barcelona-材质与池水) · [Validation](img/path-tracing/blender-water-validation.json).
-
-CPU, Metal and Vulkan use **shared geometry BLAS/TLAS**. The latest Barcelona export retains all **20,622 vegetation particles**, representing roughly **55 million instance triangles**. Revision 5 adds Blender corner MikkTSpace frames and separately baked thin-leaf diffuse reflection/transmission. Its CPU geometry/acceleration payload is **54.4 MiB**. This 640×360, 256 spp Metal preview uses OIDN. [Raw image](img/path-tracing/blender-barcelona-thin-raw.png) · [Material validation and reproduction](docs/blender-path-tracing.md#薄玻璃太阳反射链).
-
-![Barcelona full vegetation and thin-leaf transmission: Metal PT + OIDN](img/path-tracing/blender-barcelona-thin.png)
-
-Blender Cycles source-scene GT uses 1024 spp, the original materials and full vegetation, with denoising, intensity clamping, and glossy filtering disabled. The older engine previews use a reduced particle budget; the full-instance preview above still uses a different pool/material profile; see [the comparison and linear reference](docs/blender-path-tracing.md#blender-cycles-gt).
-
-![Barcelona source-scene GT: Blender Cycles, 1024 spp](img/path-tracing/blender-barcelona-cycles-gt.png)
-
-A separate **matched Cycles comparison** reconstructs the same frozen geometry, 512 particles, camera, textures, lights, GGX closures, thin glass and bounded pool. At 320×180, 4096 spp and depth 24, raw Metal/Cycles total RGB energy differs by **0.067%**; pixel differences still contain reflection noise. Original Blender shader graphs and normal maps are outside this controlled baseline. [Measurements, independent-seed noise and reproduction](docs/blender-path-tracing.md#同参数-cycles-线性对照).
-
-Per-lobe normals and bump shadowing reduce small-scene raw Metal/Cycles RGB L1 from **0.838% to 0.290%** for Lambert/leaves and **2.662% to 0.582%** for GGX/leaves (192×96, 4096 spp). Solar proposals reduce full-instance Barcelona L1 from **4.67% → 3.53% → 2.98%** (water, then thin-sheet reflection; 160×90 / 512 spp, seed 1). The thin-glass outlier drops from **29.06 to 0.0656** (Cycles **0.0462**), with RGB RMSE **0.156 → 0.049**. Seed 2 L1 rises slightly from **3.07% to 3.19%**; pool/leaf rare paths and original layered materials remain. Cached scene counts give **1.58×** in a separate single-thread trace microbenchmark. [Latest validation and limits](img/path-tracing/blender-thin-validation.json).
-
-![Full Barcelona with normal maps: Metal raw, Cycles raw, linear absolute error](img/path-tracing/blender-barcelona-thin-matched.png)
-
-### Hierarchical cluster geometry
-
-Enable **Hierarchical cluster geometry** in realtime settings; adjust **Cluster LOD error (pixels)** and optionally enable **Cluster Hi-Z occlusion**. Both cluster geometry and occlusion default to off. Construction runs on bounded CPU workers, with GPU group-cut selection and batched indexed indirect draws.
-
-Cluster construction now separates exact position topology from original attribute addresses, combines Morton ordering with bounded spatial fill, and retains parents only when they remove at least 12.5% of their children's triangles. UV / tangent seams remain protected, with a cumulative normal error limit. [Construction methods, native comparisons, raw timings and limitations](docs/cluster-partition-and-hierarchy.md).
-
-**How the meshlets are built.** Attribute BFS treats triangles as graph nodes, connects them through shared edges using complete-attribute vertex addresses, and fills each 128-triangle block with breadth-first traversal. UV / normal / tangent seams can split a geometrically continuous surface into disconnected graph fragments, leaving small blocks. Position topology adds a separate ID for each exact position to recover geometric neighbors while retaining every original attribute address. Morton ordering chooses spatially local seeds; candidate selection favors attribute-vertex reuse, then a compact bounding box. Bounded spatial fill can pack nearby disconnected fragments together. Packing improves utilization; it does not itself remove source triangles.
-
-**What 2 px / 4 px mean.** **Cluster LOD error (pixels)** is the allowed estimate of geometric position error projected into the actual render viewport. For perspective views, the estimate is approximately `position error × instance scale bound × focal length in pixels / nearest coverage-box depth`; the near plane clamps the denominator. If a parent estimates 3.2 px, a 2 px budget keeps more detailed children, while 4 px can accept that parent.
-
-| Pixel budget | Typical LOD behavior |
+| Terrain and grass: Metal PT, 128 spp | Mountain Lake: Metal PT, 128 spp |
 | --- | --- |
-| 0 px | Keep detailed leaves; reject parents with nonzero position error |
-| 2 px | Tighter approximation, usually more triangles |
-| 4 px | Allow more geometric approximation, usually fewer triangles |
+| ![Path-traced terrain and grass](img/path-tracing/pt-terrain.png) | ![Path-traced mountain lake](img/path-tracing/pt-mountain-lake.png) |
 
-The budget measures geometry, not final RGB error or meshlet width: highlights, shadows and normal maps can amplify small shape changes. At the same camera, doubling both viewport dimensions roughly doubles the projected error, so a fixed pixel budget tends to select more detail. Increasing the budget can only choose parents already built. Current parents group up to eight connected children, simplify with endpoint QEM and retain conservative endpoint error bounds; original boundaries and attribute seams remain protected. [Parent construction, quality tradeoffs and actual GPU cuts](docs/cluster-parent-lod-optimization.md).
+| Lakeside beach: Metal PT, 1024 spp | Shallow-water refraction: Metal PT, 4096 spp |
+| --- | --- |
+| ![Path-traced beach and wet sand](img/path-tracing/pt-mountain-lake-beach.png) | ![Path-traced FFT shallow water](img/path-tracing/pt-ocean-clear.png) |
 
-The Sponza / Stanford measurements below use the previous pair-parent builder and 0.05 normal ceiling; current Coastal Cliff parent settings and results follow separately.
+Procedural terrain, vegetation and FFT water are frozen at a recorded simulation time. Beach textures use world-scale sampling; shallow-water solar paths use a BSDF/phase mixture proposal. [Capture details and fixes](docs/path-tracing-procedural.md) · [Real-time/PT ocean alignment](docs/ocean-reflection-integration.md).
 
-| Scene | Leaf utilization: before → after | Hierarchy memory: before → after |
-| --- | ---: | ---: |
-| Sponza | 22.9% → 91.0% | 16.66 → 3.39 MiB |
-| Stanford Dragon | 63.9% → 95.7% | 42.64 → 17.34 MiB |
-| Happy Buddha | 62.8% → 96.2% | 53.42 → 21.96 MiB |
+| Glass Dragon: CPU BDPT | Jade Dragon: Metal PT, subsurface scattering |
+| --- | --- |
+| ![CPU BDPT glass dragon caustics](img/path-tracing/dragon-glass.png) | ![Metal PT jade subsurface scattering](img/path-tracing/jade-polished-boundary.png) |
 
-At 4 px, paired cluster / geometry GPU windows improve by **3.4%, 2.6% and 3.4%** respectively across 72 samples per mode; these are partial GPU timings. The new cuts retain more triangles and match independent CPU cuts; Hi-Z matches the same cuts in depth, HDR, display and all six G-buffer attachments. Dragon still has **21.2%** HDR LOD error against full geometry, and Sponza's 0 px render differs at six display pixels. Hi-Z remains slower than no occlusion on Sponza and stays off by default.
+[Photon mapping and pool caustics](docs/path-tracing-photon-mapping.md), [CPU SPPM](docs/path-tracing-sppm.md), [anisotropic GGX](docs/path-tracing-materials.md), and [hair/knitted-cloth examples](docs/path-tracing-grooms-sunlight.md) have dedicated comparisons. Current hair fixtures use static triangle ribbons; PBRT native-curve images are independent references.
 
-![Sponza: meshlet construction before and after, GPU LOD and source-image comparison](img/diagnostics/cluster-partition/sponza/comparison.png)
+| Blender Classroom: project Metal PT + OIDN | Barcelona Pavilion: project Metal PT + OIDN |
+| --- | --- |
+| ![Classroom rendered by the project path tracer](img/path-tracing/blender-classroom-materials.png) | ![Barcelona with full vegetation and thin-leaf transmission](img/path-tracing/blender-barcelona-thin.png) |
 
-![Dragon: native meshlet and PBR details before and after](img/diagnostics/cluster-partition/dragon/detail.png)
+Blender assets are exported offline with shared instance geometry. Cycles reference images and matched-input error measurements are labeled separately; material conversion and appearance alignment remain incomplete. [Assets, conversion and Cycles comparisons](docs/blender-path-tracing.md).
 
-### Coastal Cliff parent LOD and UE Nanite
+## Development status
 
-The CC0 **Coastal Cliff canyon** uses ten shared original LOD0 instances (**9.43 million logical triangles**). Connected parent groups and conservative endpoint error bounds improve same-view 4 px LOD reduction from **3.24% to 36.56%**: **8.85M → 5.80M submitted triangles**. On Apple M4 / Metal at 960×540, the geometry GPU window falls **8.31 → 6.22 ms**, or **6.86 → 5.31 ms** with two-stage Hi-Z (paired improvements **24.58% / 22.21%**).
+| Area | Current scope and remaining work |
+| --- | --- |
+| Cave capture | New bounded implementation builds and passes memory/RHI checks; protected GPU correctness, memory measurements, new poses and the small package are pending. |
+| Diffuse GI | Stage-one DDGI is optional; leak control, probe response and shading agreement with PT still need work. |
+| Cluster occlusion | Performance depends on scene complexity. A stable benefit on Sponza has not been established; general defaults disable occlusion, while scene presets may enable it. |
+| Water and weather | Optical captures and scattering remain approximations; demanding presets still require performance work. Current captures do not establish a 60 fps target. |
+| Reference agreement | Raster/PT materials, water transport and imported Blender closures retain documented differences. Hair curves and dynamics remain future work. |
 
-The normal ceiling changes from 0.05 to 0.15: source-image HDR relative RMSE rises **0.578% → 1.181%**. Static CPU-cut / Hi-Z outputs match exactly; the moving reverse view has two depth-tie pixels, verified by an independent draw-order replay. Unique hierarchy memory grows **13.32 → 19.95 MiB**, construction **2.88 → 8.19 s**, and 0 px scans are 3.76% slower. These timings exclude shadows, lighting and postprocessing. [Ablations, native image checks, raw timings and limitations](docs/cluster-parent-lod-optimization.md).
-
-![Coastal Cliff: parent construction, actual GPU LOD and source-image comparison](img/diagnostics/cluster-parents/cliff/benchmark/comparison.png)
-
-![Coastal Cliff: camera distance and actual GPU-selected LOD](img/diagnostics/cluster-parents/cliff/benchmark/optimized/flow/dynamic-lod.gif)
-
-The same layout runs in **UE 5.8 Nanite** on Metal, with verified runtime cluster / triangle views and a full 943,284-triangle fallback per instance. UE images are a geometry reference; lighting and GPU timings are not compared across engines. [Asset preparation and UE verification](docs/cluster-cliff-nanite-test.md).
-
-![UE Nanite runtime clusters in the Coastal Cliff canyon](img/diagnostics/cluster-cliff/unreal/nanite-clusters.png)
-
-## System overview
-
-The main logic thread owns the world, input, and editor, publishing immutable scene snapshots to a dedicated render thread. The render thread prepares GPU resources and schedules effects; the RHI unifies resources, pipelines, commands, and presentation. Metal and Vulkan reuse shaders generated from shared GLSL. See [system design](docs/system-design.md) for the frame flow, resource management, and platform boundaries.
+Images and measurements belong to the settings recorded in their linked reports. The main thread owns the world, input and editor; immutable snapshots feed a dedicated render thread, with bounded resource preparation and a shared RHI. [Runtime and platform boundaries](docs/system-design.md).
 
 ## Documentation
 
 | Guide | Contents |
 | --- | --- |
-| [Build and run](docs/getting-started.md) | Dependencies, backend selection, scene downloads, launch options, controls, and capture reproduction |
-| [Full rendering gallery](docs/rendering-gallery.md) | Effect settings, comparisons, intermediate buffers, measurements, and algorithm limitations |
-| [System design](docs/system-design.md) | Logic/render separation, frame flow, RHI, shader builds, and module structure |
-| [Technical documentation index](docs/README.md) | Implementation notes, change records, validation results, and follow-up plans |
-| [Asset attribution and licenses](samples/README.md) | Model and texture sources, authors, and usage conditions |
+| [Build and run](docs/getting-started.md) | Dependencies, Metal/Vulkan selection, downloads, controls and capture commands |
+| [Expanded showcase](docs/rendering-showcase.md) | All former README images, algorithm explanations, comparisons and performance records |
+| [Full gallery and settings](docs/rendering-gallery.md) | Sampling, effect settings, intermediate buffers and reproduction |
+| [Cave cluster/LOD](docs/cluster-cave.md) | Scene specifications, memory-bounded capture and pending validation |
+| [Memory safety](docs/memory-safety.md) | Budgets, pressure behavior, native allocation checks and cooperative-limit scope |
+| [Technical documentation](docs/README.md) | System design, implementation reports, tests and follow-up plans |
+| [Asset attribution and licenses](samples/README.md) | Model/texture sources, authors and usage conditions |
 
-This project is intended for learning and experimentation. Images, measurements, and feature coverage correspond to the configurations recorded in the documentation. See [course contributors and historical images](docs/archive/historical-gallery.md).
+Detailed technical guides are primarily in Chinese. [Course contributors and historical images](docs/archive/historical-gallery.md).

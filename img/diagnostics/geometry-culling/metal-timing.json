@@ -1,0 +1,277 @@
+{
+  "baseline": {
+    "last_cache_hits": 0,
+    "last_dispatches": 0,
+    "median_gpu_geometry_ms": 0.14735400676727295,
+    "samples": 8,
+    "stages": [
+      {
+        "milliseconds": 0.3516669273376465,
+        "sample": 0,
+        "stage": "geometry"
+      },
+      {
+        "milliseconds": 0.585582971572876,
+        "sample": 1,
+        "stage": "geometry"
+      },
+      {
+        "milliseconds": 1.2354581356048584,
+        "sample": 2,
+        "stage": "geometry"
+      },
+      {
+        "milliseconds": 0.04179215431213379,
+        "sample": 3,
+        "stage": "geometry"
+      },
+      {
+        "milliseconds": 0.08937501907348633,
+        "sample": 4,
+        "stage": "geometry"
+      },
+      {
+        "milliseconds": 0.042875051498413086,
+        "sample": 5,
+        "stage": "geometry"
+      },
+      {
+        "milliseconds": 0.043250083923339844,
+        "sample": 6,
+        "stage": "geometry"
+      },
+      {
+        "milliseconds": 0.20533299446105957,
+        "sample": 7,
+        "stage": "geometry"
+      }
+    ],
+    "supported": true
+  },
+  "display_equal": true,
+  "extra_buffer_bytes": 264224,
+  "hdr_max_error": 0.0,
+  "objects_after": 1,
+  "objects_before": 3,
+  "scope": "96x96 grid geometry + triangle cull GPU stages; not full frame FPS",
+  "triangle_culling_moving": {
+    "last_cache_hits": 0,
+    "last_dispatches": 3,
+    "median_gpu_geometry_ms": 0.15341544151306152,
+    "samples": 8,
+    "stages": [
+      {
+        "milliseconds": 0.023291826248168945,
+        "sample": 0,
+        "stage": "geometry-cull/mark"
+      },
+      {
+        "milliseconds": 0.014915943145751953,
+        "sample": 0,
+        "stage": "geometry-cull/scan"
+      },
+      {
+        "milliseconds": 0.014917135238647461,
+        "sample": 0,
+        "stage": "geometry-cull/scatter"
+      },
+      {
+        "milliseconds": 0.03600001335144043,
+        "sample": 0,
+        "stage": "geometry"
+      },
+      {
+        "milliseconds": 0.017750024795532227,
+        "sample": 1,
+        "stage": "geometry-cull/mark"
+      },
+      {
+        "milliseconds": 0.0038750171661376953,
+        "sample": 1,
+        "stage": "geometry-cull/scan"
+      },
+      {
+        "milliseconds": 0.00391697883605957,
+        "sample": 1,
+        "stage": "geometry-cull/scatter"
+      },
+      {
+        "milliseconds": 0.03683280944824219,
+        "sample": 1,
+        "stage": "geometry"
+      },
+      {
+        "milliseconds": 0.01804184913635254,
+        "sample": 2,
+        "stage": "geometry-cull/mark"
+      },
+      {
+        "milliseconds": 0.0031659603118896484,
+        "sample": 2,
+        "stage": "geometry-cull/scan"
+      },
+      {
+        "milliseconds": 0.0022079944610595703,
+        "sample": 2,
+        "stage": "geometry-cull/scatter"
+      },
+      {
+        "milliseconds": 0.8551669120788574,
+        "sample": 2,
+        "stage": "geometry"
+      },
+      {
+        "milliseconds": 0.018290996551513672,
+        "sample": 3,
+        "stage": "geometry-cull/mark"
+      },
+      {
+        "milliseconds": 0.007166147232055664,
+        "sample": 3,
+        "stage": "geometry-cull/scan"
+      },
+      {
+        "milliseconds": 0.01770782470703125,
+        "sample": 3,
+        "stage": "geometry-cull/scatter"
+      },
+      {
+        "milliseconds": 0.17137503623962402,
+        "sample": 3,
+        "stage": "geometry"
+      },
+      {
+        "milliseconds": 0.020792007446289063,
+        "sample": 4,
+        "stage": "geometry-cull/mark"
+      },
+      {
+        "milliseconds": 0.02266693115234375,
+        "sample": 4,
+        "stage": "geometry-cull/scan"
+      },
+      {
+        "milliseconds": 0.017416000366210938,
+        "sample": 4,
+        "stage": "geometry-cull/scatter"
+      },
+      {
+        "milliseconds": 0.3474578857421875,
+        "sample": 4,
+        "stage": "geometry"
+      },
+      {
+        "milliseconds": 0.014915943145751953,
+        "sample": 5,
+        "stage": "geometry-cull/mark"
+      },
+      {
+        "milliseconds": 0.003667116165161133,
+        "sample": 5,
+        "stage": "geometry-cull/scan"
+      },
+      {
+        "milliseconds": 0.002707958221435547,
+        "sample": 5,
+        "stage": "geometry-cull/scatter"
+      },
+      {
+        "milliseconds": 0.0709998607635498,
+        "sample": 5,
+        "stage": "geometry"
+      },
+      {
+        "milliseconds": 0.015291929244995117,
+        "sample": 6,
+        "stage": "geometry-cull/mark"
+      },
+      {
+        "milliseconds": 0.0038330554962158203,
+        "sample": 6,
+        "stage": "geometry-cull/scan"
+      },
+      {
+        "milliseconds": 0.002666950225830078,
+        "sample": 6,
+        "stage": "geometry-cull/scatter"
+      },
+      {
+        "milliseconds": 0.03695797920227051,
+        "sample": 6,
+        "stage": "geometry"
+      },
+      {
+        "milliseconds": 0.018333911895751953,
+        "sample": 7,
+        "stage": "geometry-cull/mark"
+      },
+      {
+        "milliseconds": 0.0038330554962158203,
+        "sample": 7,
+        "stage": "geometry-cull/scan"
+      },
+      {
+        "milliseconds": 0.0034999847412109375,
+        "sample": 7,
+        "stage": "geometry-cull/scatter"
+      },
+      {
+        "milliseconds": 0.2257080078125,
+        "sample": 7,
+        "stage": "geometry"
+      }
+    ],
+    "supported": true
+  },
+  "triangle_culling_static": {
+    "last_cache_hits": 1,
+    "last_dispatches": 0,
+    "median_gpu_geometry_ms": 0.1106879711151123,
+    "samples": 8,
+    "stages": [
+      {
+        "milliseconds": 0.24200010299682617,
+        "sample": 0,
+        "stage": "geometry"
+      },
+      {
+        "milliseconds": 0.03691720962524414,
+        "sample": 1,
+        "stage": "geometry"
+      },
+      {
+        "milliseconds": 0.8132920265197754,
+        "sample": 2,
+        "stage": "geometry"
+      },
+      {
+        "milliseconds": 0.035459041595458984,
+        "sample": 3,
+        "stage": "geometry"
+      },
+      {
+        "milliseconds": 0.03566694259643555,
+        "sample": 4,
+        "stage": "geometry"
+      },
+      {
+        "milliseconds": 0.13820910453796387,
+        "sample": 5,
+        "stage": "geometry"
+      },
+      {
+        "milliseconds": 1.5594170093536377,
+        "sample": 6,
+        "stage": "geometry"
+      },
+      {
+        "milliseconds": 0.08316683769226074,
+        "sample": 7,
+        "stage": "geometry"
+      }
+    ],
+    "supported": true
+  },
+  "triangles_after": 2312,
+  "triangles_before": 16384
+}

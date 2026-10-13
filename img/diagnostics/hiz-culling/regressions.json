@@ -1,0 +1,58 @@
+{
+  "cpu_tests": {
+    "passed": 4,
+    "total": 4
+  },
+  "hiz_default": false,
+  "metal_api_validation": true,
+  "metal_shader_validation": true,
+  "vulkan_khronos_validation_available": false,
+  "checks": {
+    "metal_hiz": {
+      "exit_code": 0,
+      "evidence": [
+        "HiZ current-frame occlusion: main objects 4 -> 3, triangles 8 -> 6, prepass 2; HDR max error 0; 22 image comparisons, alpha/slit/odd holes, near/equal depth, movement, triangle composition, source shadows, resize and TAA passed"
+      ]
+    },
+    "vulkan_hiz": {
+      "exit_code": 0,
+      "evidence": [
+        "HiZ current-frame occlusion: main objects 4 -> 3, triangles 8 -> 6, prepass 2; HDR max error 0; 22 image comparisons, alpha/slit/odd holes, near/equal depth, movement, triangle composition, source shadows, resize and TAA passed"
+      ]
+    },
+    "metal_water_hiz_enabled": {
+      "exit_code": 0,
+      "evidence": [
+        "Cascaded caustics: 16/48/128 m flat energy, opaque/sloping/vertical mesh height/energy, elevated sea level, alpha cutouts, mesh/cascade switches and wave motion 0.00935729 passed",
+        "Water upgrade: clear/Beer/independent single-scattering energy (max error 0.000146015), volume shadow ratio 0, hidden underwater pixels 4096, forward/deferred, focused grid/camera motion/TSAA, resize/mask passed",
+        "Water optional optics: DDA floor, independent world-space bathymetry, offscreen terrain hit/path, multi-scattering on/off and absorption limit, wet/dry mask override, live TSAA/camera scrolling/odd resize and stale-state rejection passed",
+        "Underwater view: independent Beer/slab energy, capture/fog switches, volume shadow, one eye leg, far air-side capture, Snell window/solar disk/offscreen wide air/toggle, separated air capture behind submerged occluder, 30/60-degree transmission/TIR, offscreen bed reflection, dry mask, surface crossing/TSAA/odd resize passed",
+        "Dive volume: finite 16-sample integration, particle off/zero density, deterministic world placement, temporal drift and opaque occlusion passed",
+        "Guided half-volume: independent full-resolution transmission/TIR comparison, max HDR error 0.000366211, capture/zero-scattering toggles and odd resize/moving TAA passed",
+        "Water scene reflection: offscreen mirrored geometry, independent Fresnel energy, on/off, moving camera / TSAA, odd resize and empty-scene rejection passed",
+        "RHI wave wind: source/destination endpoints, linear spectral displacement and Gaussian phase preservation passed",
+        "RHI normalized short-wave wind endpoints: source/destination RMS caches and spectral blend passed",
+        "RHI full Ocean spectrum -> 2D FFT -> displacement/normal/foam, seed/time updates and zero-wind validation passed; CPU error=6.44989e-07",
+        "RHI temporal fractional optical motion, out-of-screen rejection, confidence weighting and reactive/static distinction passed",
+        "RHI temporal HDR resolve, jitter, object motion, disocclusion rejection, resize, enable/disable and scene history reset passed"
+      ]
+    },
+    "vulkan_graphics_hiz_enabled": {
+      "exit_code": 0,
+      "evidence": [
+        "RHI grass GPU poses, height attachment, bounded indirect instance generation, vertex storage sampling and wind passed; instances 3705, pixels 409",
+        "RHI terrain indirect subdivision queues, screen-error LOD, LOD neighbor stitching, height/normal/index generation and indexed indirect drawing passed; leaves 8191",
+        "RHI compute subdivision levels 1..10, barycentric displacement, winding, area and indexed indirect draw passed",
+        "RHI temporal fractional optical motion, out-of-screen rejection, confidence weighting and reactive/static distinction passed",
+        "RHI temporal HDR resolve, jitter, object motion, disocclusion rejection, resize, enable/disable and scene history reset passed",
+        "Post processing: default CPU tone reference, bypass, HDR bloom, tone curves, focus plane, defocus, camera/static/cut blur, display switches, animated grain, combined effects, odd/tiny resize and invalid parameters passed",
+        "RHI compute -> compute -> vertex/indirect draw, readback and cross-submission dependencies passed",
+        "RHI 8-point complex FFT with three ping-pong dispatches passed CPU DFT comparison",
+        "RHI wave wind: source/destination endpoints, linear spectral displacement and Gaussian phase preservation passed",
+        "RHI normalized short-wave wind endpoints: source/destination RMS caches and spectral blend passed",
+        "RHI full Ocean spectrum -> 2D FFT -> displacement/normal/foam, seed/time updates and zero-wind validation passed; CPU error=6.26898e-07",
+        "RHI 20 frames, bounded completion ring, ordered staging updates, async readbacks and deferred transient resource release passed"
+      ]
+    }
+  }
+}

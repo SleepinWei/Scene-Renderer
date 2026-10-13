@@ -1,0 +1,54 @@
+{
+  "date": "2026-10-08",
+  "hardware": "Apple M4",
+  "os": "macOS 15.3.1",
+  "backend": "Metal",
+  "build": "Release",
+  "source_snapshot": "2f01d93 + preceding water followup fixes + critical-path gallery harness; isolated from concurrent workspace AO/PT/instancing work",
+  "binary_sha256": "66eaee064c3fb09aff27df83389b45325f6349cbceb20a2ffac9bc1f3b41b930",
+  "source_sha256": {
+    "src/renderer/rhi/FeatureGallery.cpp": "de9b6d3f68a9f5cc54dea5633c8ec92201f35ee984adf90817d500eddcbd0362",
+    "src/renderer/rhi/OceanSurface.cpp": "63a1041f27b198585e6a5586a48175ee946bb802bf0f5f83adf82ce5aa46c9ca",
+    "src/renderer/rhi/ForwardPbrRenderer.cpp": "104e4253adbe33e8ededc449f0634be321136693de037bff29376be569e4e70d",
+    "src/rhi/MetalDevice.mm": "bc1c4e15075c8afa8f4ee507bd6fcc53b9c5b7365b3e07a79bb3f8e4a3fcdf3d",
+    "src/rhi/shaders/ocean-surface.frag": "277f063b7d7c829b7db48d7fad90de75c451fcc8a5381f260b0d8b71f49358ec",
+    "src/rhi/shaders/water-medium.glsl": "0096b2014aaa25c363b670ac73fcf21803ee4d97fc3a905ee32810d16d342baf",
+    "src/rhi/shaders/water-refraction.glsl": "64b7f08514aaacc1ba799da411dd591d713adbada6d5a627340510af0cc24bd5",
+    "src/rhi/shaders/water-underwater.frag": "789e659c63ad11c0655cd645b573c02a51cc1bb690c8f4b1e9d5411e848b3187"
+  },
+  "debug_validation": false,
+  "profile": true,
+  "pipeline_disk_cache_disabled": true,
+  "views": {
+    "seabed": {
+      "eye_m": [
+        0,
+        -6,
+        -12
+      ],
+      "yaw_deg": 90,
+      "pitch_deg": -8
+    },
+    "window": {
+      "eye_m": [
+        0,
+        -6,
+        -12
+      ],
+      "yaw_deg": 90,
+      "pitch_deg": 68
+    }
+  },
+  "resolution": [
+    1280,
+    720
+  ],
+  "fft_sizes": [
+    512,
+    256
+  ],
+  "water_mesh_size": 513,
+  "ssao": false,
+  "rsm": false,
+  "notes": "First broad run was built before two followup diagnostic modes were added; all rendering shaders and passes remained identical across both runs."
+}

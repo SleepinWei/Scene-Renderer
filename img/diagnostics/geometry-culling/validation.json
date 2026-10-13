@@ -1,0 +1,76 @@
+{
+  "date": "2026-10-09",
+  "device": "Apple M4",
+  "scope": "Object / triangle frustum culling; stable GPU index compaction; no whole-frame FPS claim",
+  "cpu_tests": {
+    "passed": 4,
+    "failed": 0,
+    "names": [
+      "engine-concurrency",
+      "engine-render-graph",
+      "rhi-contract",
+      "rhi-graphics-contract"
+    ]
+  },
+  "default": {
+    "object_culling": true,
+    "triangle_culling": false,
+    "triangle_minimum": 2048
+  },
+  "geometry": {
+    "objects_before": 3,
+    "objects_after": 1,
+    "triangles_before": 16384,
+    "triangles_after": 2312,
+    "fraction_removed": 0.85888671875,
+    "hdr_max_error": 0,
+    "display_equal": true
+  },
+  "reference": {
+    "source_triangles": 16513,
+    "visible_triangles": 2359,
+    "original_index_order_equal": true
+  },
+  "checks": [
+    {
+      "name": "metal-geometry",
+      "exit_code": 0,
+      "evidence": [
+        "Geometry culling: objects 3 -> 1; grid triangles 16384 -> 2312; stable compaction reference 16513 -> 2359; HDR max error 0; identical display, near/eye crossings, generated counts, storage reuse and TAA passed"
+      ]
+    },
+    {
+      "name": "vulkan-geometry",
+      "exit_code": 0,
+      "evidence": [
+        "Geometry culling: objects 3 -> 1; grid triangles 16384 -> 2312; stable compaction reference 16513 -> 2359; HDR max error 0; identical display, near/eye crossings, generated counts, storage reuse and TAA passed"
+      ]
+    },
+    {
+      "name": "metal-water-triangles-on",
+      "exit_code": 0,
+      "evidence": [
+        "Underwater view: independent Beer/slab energy, capture/fog switches, volume shadow, one eye leg, far air-side capture, Snell window/solar disk/offscreen wide air/toggle, separated air capture behind submerged occluder, 30/60-degree transmission/TIR, offscreen bed reflection, dry mask, surface crossing/TSAA/odd resize passed",
+        "Water scene reflection: offscreen mirrored geometry, independent Fresnel energy, on/off, moving camera / TSAA, odd resize and empty-scene rejection passed",
+        "RHI temporal fractional optical motion, out-of-screen rejection, confidence weighting and reactive/static distinction passed",
+        "RHI temporal HDR resolve, jitter, object motion, disocclusion rejection, resize, enable/disable and scene history reset passed"
+      ]
+    },
+    {
+      "name": "vulkan-rhi",
+      "exit_code": 0,
+      "evidence": [
+        "Graph culling: 9 -> 8 passes, culled motion; HDR / display pixels identical",
+        "Large-world shadow differing pixels: 54",
+        "Large-world float32 positions and forward/deferred shadow agreement passed",
+        "PCSS linear depth, growing penumbra and atlas isolation; CSM split visibility continuity passed (soft pixels 12 -> 57)",
+        "Underwater view: independent Beer/slab energy, capture/fog switches, volume shadow, one eye leg, far air-side capture, Snell window/solar disk/offscreen wide air/toggle, separated air capture behind submerged occluder, 30/60-degree transmission/TIR, offscreen bed reflection, dry mask, surface crossing/TSAA/odd resize passed",
+        "Water scene reflection: offscreen mirrored geometry, independent Fresnel energy, on/off, moving camera / TSAA, odd resize and empty-scene rejection passed",
+        "RHI temporal fractional optical motion, out-of-screen rejection, confidence weighting and reactive/static distinction passed",
+        "RHI temporal HDR resolve, jitter, object motion, disocclusion rejection, resize, enable/disable and scene history reset passed",
+        "RHI 20 frames, bounded completion ring, ordered staging updates, async readbacks and deferred transient resource release passed"
+      ]
+    }
+  ],
+  "timing_file": "metal-timing.json"
+}

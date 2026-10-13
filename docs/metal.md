@@ -62,11 +62,13 @@ python3 tools/fetch_gi_assets.py
 MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 ./build/Scene-Renderer --render-gallery img/metal gi
 ```
 
+RSM 默认关闭，仅保留手动开关和 `gi` 画廊演示，不再持续开发；普通 `--classic` 场景不会自动开启。
+
 大型资源从 McGuire 归档下载，校验值保存在 `samples/gi-assets.json`，不直接提交到 Git。San Miguel 使用上游低面数 OBJ，三角化后仍有约 562 万个三角形，导入需要较长时间和较多内存。
 
 新增 OBJ/MTL 导入保持几何与 UV，读取底色、法线、高度图和透明遮罩，将传统材质参数近似转换为 PBR。植物使用透明裁切和双面绘制，G-buffer、RSM 与两种阴影路径遵循相同裁切规则；阴影顶点阶段传递 UV，Metal 分层阴影适配同步保留这些阶段接口。法线重建对退化 UV 导数使用几何法线，避免产生非有限值。
 
-画廊分别输出 `<场景>-direct.png` 与 `<场景>.png`，仅切换 RSM，相机、曝光、直接光照、天空 IBL 与 SSAO 一致。当前 RSM 以太阳方向的正交投影记录表面，将太阳照射与大气漫反射天空 LUT 合为每纹素反射功率，再通过 G-buffer 全屏采样合成一次漫反射反弹；无太阳和大气时支持聚光灯回退。还输出 `-indirect.png`、`-sun-indirect.png`、`-sky-indirect.png` 用于区分贡献。不具备完整的间接可见性、多次反弹和焦散；对照图不是完整 GI 参考解。具体能量公式、修复内容与捕获步骤见 [RSM 实现与验证](rsm.md)。模型归属、材质转换和上游使用条件见 [场景资源说明](../samples/README.md)。
+显式选择 `gi` 演示画廊时分别输出 `<场景>-direct.png` 与 `<场景>.png`，仅切换 RSM，相机、曝光、直接光照、天空 IBL 与 SSAO 一致。当前 RSM 以太阳方向的正交投影记录表面，将太阳照射与大气漫反射天空 LUT 合为每纹素反射功率，再通过 G-buffer 全屏采样合成一次漫反射反弹；无太阳和大气时支持聚光灯回退。还输出 `-indirect.png`、`-sun-indirect.png`、`-sky-indirect.png` 用于区分贡献。不具备完整的间接可见性、多次反弹和焦散；对照图不是完整 GI 参考解。具体能量公式、修复内容与捕获步骤见 [RSM 实现与验证](rsm.md)。模型归属、材质转换和上游使用条件见 [场景资源说明](../samples/README.md)。
 
 ### 高清海洋
 

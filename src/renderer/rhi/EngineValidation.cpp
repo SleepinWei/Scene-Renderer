@@ -23,6 +23,7 @@
 #include "system/ResourceManager.h"
 #include "renderer/Texture.h"
 #include <glad/glad.h>
+#include <stb/stb_image_write.h>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -54,6 +55,34 @@ void validateEngineBasics(std::shared_ptr<rhi::GraphicsDevice> device) {
         }
         check(reconstructed,"Invalid OBJ normals did not use geometric face normals");
         std::cout<<"OBJ zero/degenerate normal reconstruction passed\n";
+    }
+    {
+        const auto directory=std::filesystem::temp_directory_path()/
+            ("scene-renderer-packed-scene-"+std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+        std::filesystem::create_directories(directory);
+        struct Cleanup{std::filesystem::path path;~Cleanup(){std::error_code error;std::filesystem::remove_all(path,error);}} cleanup{directory};
+        auto image=[&](const char* name,std::array<unsigned char,4> value){
+            check(stbi_write_png((directory/name).string().c_str(),1,1,4,value.data(),4)!=0,"Packed scene fixture write failed");
+        };
+        image("color.dds.png",{201,73,29,255});image("color.tga.png",{0,0,255,255});
+        image("packed.dds.png",{17,81,219,255});image("normal.dds.png",{128,128,255,255});
+        {std::ofstream out(directory/"test.mtl");out<<"newmtl bronze\nKd 1 1 1\nmap_Kd color.dds\nmap_Ks packed.dds\nnorm normal.dds\n";}
+        {std::ofstream out(directory/"test.obj");out<<"mtllib test.mtl\nv 0 0 0\nv 0 1 0\nv 1 0 0\nvt 0 0\nvt 0 1\nvt 1 0\nvn 0 0 -1\nusemtl bronze\nf 1/1/1 2/2/1 3/3/1\n";}
+        SceneImportOptions options;options.convertedTextureDirectory=directory.string();options.packedOrmSpecular=options.uvTangents=true;
+        const auto imported=importOBJScene((directory/"test.obj").string(),1,options);
+        check(imported.triangles==1&&imported.meshes.size()==1,"Packed scene import changed geometry");
+        const auto& textures=imported.meshes[0]->getMaterial()->getTextures();
+        check(textures.at("material.albedo")->pixels()[0]==201,"Converted texture suffix collided with another source format");
+        check(textures.at("material.roughness")->pixels()[0]==81&&textures.at("material.metallic")->pixels()[0]==219&&textures.at("material.ao")->pixels()[0]==17,"Packed source material channels were swapped");
+        for(const auto& v:imported.meshes[0]->getVertices()){
+            check(v.Tangent.x>.99f&&v.Bitangent.y>.99f,"Source UV tangent orientation was lost");
+            check(glm::dot(glm::cross(v.Normal,v.Tangent),v.Bitangent)<-.99f,"Mirrored tangent handedness was lost");
+        }
+        check(std::abs(imported.sourceScale-1)<1e-6f&&glm::length(imported.sourceOrigin-glm::vec3(.5f,0,0))<1e-6f,"Scene camera normalization differs from source geometry");
+        options.packedOcclusion=false;
+        const auto unusedOcclusion=importOBJScene((directory/"test.obj").string(),1,options);
+        check(unusedOcclusion.meshes[0]->getMaterial()->getTextures().at("material.ao")->pixels()[0]==255,"Unused source occlusion channel darkened the scene");
+        std::cout<<"Packed scene textures, UV tangents, handedness and camera normalization passed\n";
     }
     {
         // Checked write boundaries reject before mutation and maintain independent versions.

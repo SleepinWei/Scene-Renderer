@@ -3,6 +3,7 @@
 #include "PT/ValidationScenes.h"
 #include "renderer/rhi/Resources.h"
 #include "rhi/ShaderAssets.h"
+#include "rhi/MemorySafety.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
 #include <chrono>
@@ -22,7 +23,8 @@ struct GpuSceneCache::Lease {
     std::weak_ptr<const void> identity;
     const void *source=nullptr;
     uint64_t used=0;
-    Lease(std::shared_ptr<rhi::GraphicsDevice> device,const char *name,size_t size):resources(std::move(device)),bytes(size) {
+    Lease(std::shared_ptr<rhi::GraphicsDevice> device,const char *name,size_t size):resources(std::move(device)) {
+        rhi::memorySafety().check(rhi::MemorySafety::bytes(size,2),std::string("PT host/GPU cache: ")+name);bytes.resize(size);
         buffer=resources.buffer({size,rhi::BufferUsage::Storage|rhi::BufferUsage::CopySource|rhi::BufferUsage::CopyDestination,name,rhi::BufferInitialization::Uninitialized});
     }
 };

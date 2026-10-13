@@ -1,0 +1,115 @@
+{
+  "scope": "Visible ID transitions, including occlusion boundaries; geometry and LOD cuts unchanged",
+  "frames": [
+    {
+      "name": "0",
+      "visible_cluster_count": 3226,
+      "visible_id_boundary_pixels": 142081,
+      "legacy_key_aliases": 840,
+      "legacy_visible_key_aliases": 2,
+      "unique_keys_verified": true
+    },
+    {
+      "name": "1",
+      "visible_cluster_count": 3135,
+      "visible_id_boundary_pixels": 141668,
+      "legacy_key_aliases": 1048,
+      "legacy_visible_key_aliases": 20,
+      "unique_keys_verified": true
+    },
+    {
+      "name": "2",
+      "visible_cluster_count": 2179,
+      "visible_id_boundary_pixels": 144080,
+      "legacy_key_aliases": 1046,
+      "legacy_visible_key_aliases": 33,
+      "unique_keys_verified": true
+    },
+    {
+      "name": "3",
+      "visible_cluster_count": 3135,
+      "visible_id_boundary_pixels": 141668,
+      "legacy_key_aliases": 1048,
+      "legacy_visible_key_aliases": 20,
+      "unique_keys_verified": true
+    },
+    {
+      "name": "4",
+      "visible_cluster_count": 3227,
+      "visible_id_boundary_pixels": 109008,
+      "legacy_key_aliases": 1075,
+      "legacy_visible_key_aliases": 13,
+      "unique_keys_verified": true
+    },
+    {
+      "name": "5",
+      "visible_cluster_count": 5078,
+      "visible_id_boundary_pixels": 120285,
+      "legacy_key_aliases": 1103,
+      "legacy_visible_key_aliases": 123,
+      "unique_keys_verified": true
+    },
+    {
+      "name": "6",
+      "visible_cluster_count": 3584,
+      "visible_id_boundary_pixels": 39917,
+      "legacy_key_aliases": 1103,
+      "legacy_visible_key_aliases": 100,
+      "unique_keys_verified": true
+    }
+  ],
+  "picked_clusters": [
+    {
+      "cluster": 233,
+      "component_triangle_counts": [
+        94,
+        20,
+        10,
+        4
+      ],
+      "largest_triangle_area_fraction": 0.20867891018455695,
+      "level": 0,
+      "packet": 71,
+      "pixel": [
+        281,
+        309
+      ],
+      "position_edge_components": 4,
+      "raster_key": 12764,
+      "triangles": 128
+    },
+    {
+      "cluster": 7,
+      "component_triangle_counts": [
+        26
+      ],
+      "largest_triangle_area_fraction": 0.09866248156639343,
+      "level": 0,
+      "packet": 11,
+      "pixel": [
+        140,
+        432
+      ],
+      "position_edge_components": 1,
+      "raster_key": 1048,
+      "triangles": 26
+    },
+    {
+      "cluster": 1471,
+      "component_triangle_counts": [
+        74,
+        54
+      ],
+      "largest_triangle_area_fraction": 0.058611301801190584,
+      "level": 1,
+      "packet": 96,
+      "pixel": [
+        972,
+        244
+      ],
+      "position_edge_components": 2,
+      "raster_key": 23023,
+      "triangles": 128
+    }
+  ]
+}

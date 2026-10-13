@@ -153,3 +153,8 @@ MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 ./build/Scene-Renderer --render-galler
 | ![原生 RHI 解析太阳盘](../img/metal/sky-sun-closeup.png) | ![原生 RHI 日落](../img/metal/sky-sunset.png) |
 
 最新图片及对照数值替换 README 的历史实时截图。无地面几何的 `sky` 示例在地球遮挡部分呈暗色，不额外绘制地表贴图；未包含云、夜空星体、完整场景 IBL 遮挡或体积雾。
+
+
+## 大气空中透视补充（2026-10-09）
+
+相机视锥 32³ AP LUT 已复用相同的 Rayleigh／Mie、太阳透射与 Multi 参数，支持远距离几何的 RGB 散射与消光；水体空气几何在独立捕获后 compute pass 接入。天空不重复积分，Environment 面板可独立关闭，完整参数、对照和误差见 [大气空中透视](atmospheric-aerial-perspective.md)。目前不包含逐透明片段 AP、云按散射点的 AP 或空气体积阴影；PT 几何视线介质仍未捕获。

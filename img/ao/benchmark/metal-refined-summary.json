@@ -1,0 +1,885 @@
+{
+  "backend": "Metal",
+  "bias": 0.02500000037252903,
+  "camera_step_world_x": 0.025,
+  "cases": {
+    "contact": {
+      "frames": [
+        {
+          "camera": [
+            2.5,
+            1.7000000476837158,
+            3.5
+          ],
+          "covered_pixels": 43516,
+          "excluded_surface_mismatch": 0,
+          "frame": 0,
+          "matched_pixels": 43516,
+          "modes": {
+            "gtao": {
+              "all": {
+                "mae": 0.03620261985232302,
+                "max_absolute_error": 0.6895045042037964,
+                "mean_signed_error": 0.028339438380092938,
+                "pixels": 43516,
+                "rmse": 0.09167256777855437
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.15779718852524854,
+                "max_absolute_error": 0.6895045042037964,
+                "mean_signed_error": 0.12861838515929716,
+                "pixels": 9701,
+                "rmse": 0.1931812323193744
+              },
+              "open": {
+                "mae": 0.0008517999732388732,
+                "max_absolute_error": 0.6279782056808472,
+                "mean_signed_error": -0.00048245386325527356,
+                "pixels": 32956,
+                "rmse": 0.0056319925783799765
+              }
+            },
+            "gtao-raw": {
+              "all": {
+                "mae": 0.03708607404095492,
+                "max_absolute_error": 0.7461422681808472,
+                "mean_signed_error": 0.02878426174675238,
+                "pixels": 43516,
+                "rmse": 0.09546071872509468
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.16249811589109592,
+                "max_absolute_error": 0.7298606634140015,
+                "mean_signed_error": 0.12923838809376806,
+                "pixels": 9701,
+                "rmse": 0.20092490855361766
+              },
+              "open": {
+                "mae": 0.0005700347608466043,
+                "max_absolute_error": 0.7461422681808472,
+                "mean_signed_error": -8.518085388292863e-05,
+                "pixels": 32956,
+                "rmse": 0.006408502549107026
+              }
+            },
+            "legacy": {
+              "all": {
+                "mae": 0.0475979544173045,
+                "max_absolute_error": 0.954986572265625,
+                "mean_signed_error": 0.0011071116221867147,
+                "pixels": 43516,
+                "rmse": 0.11959583486570563
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.1601240839626774,
+                "max_absolute_error": 0.8739070892333984,
+                "mean_signed_error": 0.054532212498519556,
+                "pixels": 9701,
+                "rmse": 0.19793816149388951
+              },
+              "open": {
+                "mae": 0.014219689244769096,
+                "max_absolute_error": 0.954986572265625,
+                "mean_signed_error": -0.013729103322833006,
+                "pixels": 32956,
+                "rmse": 0.08274764398136888
+              }
+            }
+          },
+          "reference_cpu_seconds": 10.896088333,
+          "reference_rays": 44726079,
+          "saturated_rays": 0
+        }
+      ],
+      "memory": {
+        "filtered_ao_bytes": 5529600,
+        "nominal_point_query_bytes_per_pixel": {
+          "filter_disabled": 32,
+          "filter_enabled_max": 912,
+          "gtao_raw_max": 608
+        },
+        "normal_bytes": 5529600,
+        "note": "nominal shader point-query bound plus AO stores; conditional reads and caches reduce traffic; not measured DRAM bandwidth; legacy bilinear footprint excluded",
+        "position_bytes": 11059200,
+        "raw_ao_bytes": 5529600
+      },
+      "timing": {
+        "encoders_per_submission": 8,
+        "gtao": {
+          "filter": {
+            "max_ms": 0.837078143376857,
+            "mean_ms": 0.7731761088507483,
+            "median_ms": 0.7772187527734786,
+            "min_ms": 0.7062187360133976,
+            "p95_ms": 0.8288867102237418,
+            "p95_to_median": 1.0664780118414383,
+            "samples_ms": [
+              0.7696093816775829,
+              0.7444531074725091,
+              0.8261562325060368,
+              0.837078143376857,
+              0.8014375052880496,
+              0.8152500085998327,
+              0.7952916785143316,
+              0.7338958384934813,
+              0.7495468889828771,
+              0.747598969610408,
+              0.7599062519147992,
+              0.787218741606921,
+              0.7062187360133976,
+              0.7848281238693744,
+              0.716343754902482,
+              0.7959843787830323
+            ],
+            "unstable_samples": false
+          },
+          "raw": {
+            "max_ms": 1.3968281273264438,
+            "mean_ms": 1.3154179705452407,
+            "median_ms": 1.3091172004351392,
+            "min_ms": 1.2271406303625554,
+            "p95_ms": 1.3954921960248612,
+            "p95_to_median": 1.0659795742971,
+            "samples_ms": [
+              1.3354791735764593,
+              1.2271406303625554,
+              1.3352656096685678,
+              1.312609383603558,
+              1.2752343609463423,
+              1.3536614715121686,
+              1.3056250172667205,
+              1.27426563994959,
+              1.3950468855910003,
+              1.3382343749981374,
+              1.284906262299046,
+              1.3968281273264438,
+              1.28068751655519,
+              1.2685885303653777,
+              1.2965156056452543,
+              1.3665989390574396
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "gtao-raw": {
+          "filter": {
+            "max_ms": 0.32225000904873013,
+            "mean_ms": 0.27260970273346175,
+            "median_ms": 0.27129688533023,
+            "min_ms": 0.24978126748465002,
+            "p95_ms": 0.3106835938524455,
+            "p95_to_median": 1.1451793612531633,
+            "samples_ms": [
+              0.2760156348813325,
+              0.260593747952953,
+              0.2665781357791275,
+              0.2644635387696326,
+              0.32225000904873013,
+              0.2765156386885792,
+              0.2623906184453517,
+              0.2775885513983667,
+              0.2507760364096612,
+              0.27662498177960515,
+              0.3068281221203506,
+              0.2632656251080334,
+              0.24990623933263123,
+              0.28167187701910734,
+              0.2765052195172757,
+              0.24978126748465002
+            ],
+            "unstable_samples": false
+          },
+          "raw": {
+            "max_ms": 1.4557708345819265,
+            "mean_ms": 1.3454970685415901,
+            "median_ms": 1.3517213519662619,
+            "min_ms": 1.2370833137538284,
+            "p95_ms": 1.4339895860757679,
+            "p95_to_median": 1.0608618292444931,
+            "samples_ms": [
+              1.3904635270591825,
+              1.4557708345819265,
+              1.3811666867695749,
+              1.3260624837130308,
+              1.2938125000800937,
+              1.3586354325525463,
+              1.3104374811518937,
+              1.2370833137538284,
+              1.38562498614192,
+              1.2647708354052156,
+              1.2995937431696802,
+              1.3541510561481118,
+              1.3290156493894756,
+              1.349291647784412,
+              1.3653437490575016,
+              1.4267291699070483
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "height": 720,
+        "legacy": {
+          "filter": {
+            "max_ms": 0.36224478390067816,
+            "mean_ms": 0.2891370404540794,
+            "median_ms": 0.2749427076196298,
+            "min_ms": 0.2512499922886491,
+            "p95_ms": 0.35502992977853864,
+            "p95_to_median": 1.2912869479328244,
+            "samples_ms": [
+              0.26019790675491095,
+              0.35262497840449214,
+              0.29778125463053584,
+              0.2634583506733179,
+              0.33120313310064375,
+              0.36224478390067816,
+              0.33120313310064375,
+              0.27315624174661934,
+              0.25193748297169805,
+              0.2559010172262788,
+              0.2512499922886491,
+              0.27672917349264026,
+              0.3198854101356119,
+              0.2829479053616524,
+              0.25874999118968844,
+              0.25692189228720963
+            ],
+            "unstable_samples": false
+          },
+          "raw": {
+            "max_ms": 0.7922187505755574,
+            "mean_ms": 0.6458199914050056,
+            "median_ms": 0.6271875026868656,
+            "min_ms": 0.5553125229198486,
+            "p95_ms": 0.7671289204154164,
+            "p95_to_median": 1.2231253287558232,
+            "samples_ms": [
+              0.6132760609034449,
+              0.6610729033127427,
+              0.6328437593765557,
+              0.6166666571516544,
+              0.7587656436953694,
+              0.6238645873963833,
+              0.5881823017261922,
+              0.7922187505755574,
+              0.6150520930532366,
+              0.7075885368976742,
+              0.630510417977348,
+              0.5927812599111348,
+              0.672854162985459,
+              0.5918281385675073,
+              0.5553125229198486,
+              0.6803020660299808
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "sample_submissions_per_pass": 16,
+        "warmup_submissions_per_pass": 4,
+        "width": 960
+      },
+      "triangles": 8
+    },
+    "cornell": {
+      "frames": [
+        {
+          "camera": [
+            0.0,
+            2.799999952316284,
+            9.5
+          ],
+          "covered_pixels": 58080,
+          "excluded_surface_mismatch": 17,
+          "frame": 0,
+          "matched_pixels": 58063,
+          "modes": {
+            "gtao": {
+              "all": {
+                "mae": 0.07286200456465855,
+                "max_absolute_error": 0.73193359375,
+                "mean_signed_error": 0.06411755906232448,
+                "pixels": 58063,
+                "rmse": 0.13369858707244922
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.17099227518443982,
+                "max_absolute_error": 0.704401969909668,
+                "mean_signed_error": 0.16098943452153228,
+                "pixels": 23763,
+                "rmse": 0.20107336327576553
+              },
+              "open": {
+                "mae": 0.004299685726852184,
+                "max_absolute_error": 0.73193359375,
+                "mean_signed_error": -0.0036743602288992444,
+                "pixels": 32650,
+                "rmse": 0.04745307352054107
+              }
+            },
+            "gtao-raw": {
+              "all": {
+                "mae": 0.07604640720965927,
+                "max_absolute_error": 0.8983018398284912,
+                "mean_signed_error": 0.06477349751246689,
+                "pixels": 58063,
+                "rmse": 0.14411412539545546
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.17792356929340902,
+                "max_absolute_error": 0.85365229845047,
+                "mean_signed_error": 0.16311700144839178,
+                "pixels": 23763,
+                "rmse": 0.21370199743637192
+              },
+              "open": {
+                "mae": 0.004809571468081628,
+                "max_absolute_error": 0.8983018398284912,
+                "mean_signed_error": -0.004065628294557744,
+                "pixels": 32650,
+                "rmse": 0.05944563114322506
+              }
+            },
+            "legacy": {
+              "all": {
+                "mae": 0.078840689041761,
+                "max_absolute_error": 0.825927734375,
+                "mean_signed_error": 0.04590711266101623,
+                "pixels": 58063,
+                "rmse": 0.1358305013275574
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.16679797478671407,
+                "max_absolute_error": 0.7057240605354309,
+                "mean_signed_error": 0.13533903703413963,
+                "pixels": 23763,
+                "rmse": 0.19456214049508277
+              },
+              "open": {
+                "mae": 0.016802760563437096,
+                "max_absolute_error": 0.825927734375,
+                "mean_signed_error": -0.016147628139025583,
+                "pixels": 32650,
+                "rmse": 0.06984658127565643
+              }
+            }
+          },
+          "reference_cpu_seconds": 25.301863875,
+          "reference_rays": 59851590,
+          "saturated_rays": 0
+        }
+      ],
+      "memory": {
+        "filtered_ao_bytes": 5529600,
+        "nominal_point_query_bytes_per_pixel": {
+          "filter_disabled": 32,
+          "filter_enabled_max": 912,
+          "gtao_raw_max": 608
+        },
+        "normal_bytes": 5529600,
+        "note": "nominal shader point-query bound plus AO stores; conditional reads and caches reduce traffic; not measured DRAM bandwidth; legacy bilinear footprint excluded",
+        "position_bytes": 11059200,
+        "raw_ao_bytes": 5529600
+      },
+      "timing": {
+        "encoders_per_submission": 8,
+        "gtao": {
+          "filter": {
+            "max_ms": 1.0102447995450348,
+            "mean_ms": 0.9616816441848641,
+            "median_ms": 0.9572916751494631,
+            "min_ms": 0.9292760514654219,
+            "p95_ms": 0.9983190102502704,
+            "p95_to_median": 1.0428577163740629,
+            "samples_ms": [
+              0.9500885498709977,
+              0.9482031164225191,
+              0.9423125011380762,
+              0.9292760514654219,
+              0.9808437607716769,
+              0.9301510581281036,
+              0.9798020764719695,
+              0.9767604351509362,
+              0.9766666626092046,
+              0.9644948004279286,
+              0.9406354220118374,
+              0.9878906130325049,
+              0.9351770859211683,
+              0.9400156268384308,
+              0.9943437471520156,
+              1.0102447995450348
+            ],
+            "unstable_samples": false
+          },
+          "raw": {
+            "max_ms": 1.4213281392585486,
+            "mean_ms": 1.2535286514321342,
+            "median_ms": 1.268171879928559,
+            "min_ms": 1.125645823776722,
+            "p95_ms": 1.368472665490117,
+            "p95_to_median": 1.079090844978528,
+            "samples_ms": [
+              1.2999114696867764,
+              1.4213281392585486,
+              1.1510573094710708,
+              1.3123177050147206,
+              1.168255228549242,
+              1.2598906469065696,
+              1.350854174233973,
+              1.143833331298083,
+              1.2764531129505485,
+              1.3208698073867708,
+              1.125645823776722,
+              1.329276041360572,
+              1.212156261317432,
+              1.181901025120169,
+              1.3138646027073264,
+              1.1888437438756227
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "gtao-raw": {
+          "filter": {
+            "max_ms": 0.35087502328678966,
+            "mean_ms": 0.2863281206373358,
+            "median_ms": 0.27774478076025844,
+            "min_ms": 0.267093739239499,
+            "p95_ms": 0.31783984741196036,
+            "p95_to_median": 1.1443593882914793,
+            "samples_ms": [
+              0.2739739720709622,
+              0.2881666587200016,
+              0.3068281221203506,
+              0.27424999279901385,
+              0.2737343602348119,
+              0.302250002278015,
+              0.28653122717514634,
+              0.2741249918472022,
+              0.2863749978132546,
+              0.27803124976344407,
+              0.35087502328678966,
+              0.29903126414865255,
+              0.2774583117570728,
+              0.26896351482719183,
+              0.267093739239499,
+              0.2735625021159649
+            ],
+            "unstable_samples": false
+          },
+          "raw": {
+            "max_ms": 1.3375624839682132,
+            "mean_ms": 1.2229475869389717,
+            "median_ms": 1.213648429256864,
+            "min_ms": 1.1356250033713877,
+            "p95_ms": 1.3158710789866745,
+            "p95_to_median": 1.0842275631604477,
+            "samples_ms": [
+              1.308640610659495,
+              1.1609739740379155,
+              1.3375624839682132,
+              1.2099062441848218,
+              1.2040468864142895,
+              1.2221093638800085,
+              1.1800937645602971,
+              1.2403802247717977,
+              1.26598437782377,
+              1.1356250033713877,
+              1.2655624886974692,
+              1.1878176883328706,
+              1.2010364443995059,
+              1.1601666628848761,
+              1.2698645587079227,
+              1.217390614328906
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "height": 720,
+        "legacy": {
+          "filter": {
+            "max_ms": 0.4344426852185279,
+            "mean_ms": 0.3015130205312744,
+            "median_ms": 0.29551301850005984,
+            "min_ms": 0.2599218860268593,
+            "p95_ms": 0.3650598882813938,
+            "p95_to_median": 1.2353428290040624,
+            "samples_ms": [
+              0.27529167709872127,
+              0.29674998950213194,
+              0.3419322893023491,
+              0.26392185827717185,
+              0.2599218860268593,
+              0.27853125357069075,
+              0.30371875618584454,
+              0.3221302176825702,
+              0.27938542189076543,
+              0.29712499235756695,
+              0.4344426852185279,
+              0.2990885404869914,
+              0.283255212707445,
+              0.29427604749798775,
+              0.3170468844473362,
+              0.27739061624743044
+            ],
+            "unstable_samples": false
+          },
+          "raw": {
+            "max_ms": 0.8180364675354213,
+            "mean_ms": 0.7356100268225418,
+            "median_ms": 0.7383124902844429,
+            "min_ms": 0.6631093856412917,
+            "p95_ms": 0.8030950484680943,
+            "p95_to_median": 1.087744090796423,
+            "samples_ms": [
+              0.8180364675354213,
+              0.7419062312692404,
+              0.7126250129658729,
+              0.798114575445652,
+              0.6988749955780804,
+              0.7651458436157554,
+              0.6997395830694586,
+              0.7133958279155195,
+              0.7547500135842711,
+              0.6679322978015989,
+              0.7683176954742521,
+              0.7518541533499956,
+              0.7108749996405095,
+              0.7703645969741046,
+              0.6631093856412917,
+              0.7347187492996454
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "sample_submissions_per_pass": 16,
+        "warmup_submissions_per_pass": 4,
+        "width": 960
+      },
+      "triangles": 36
+    },
+    "sponza": {
+      "frames": [
+        {
+          "camera": [
+            -8.5,
+            2.200000047683716,
+            0.0
+          ],
+          "covered_pixels": 75696,
+          "excluded_surface_mismatch": 24,
+          "frame": 0,
+          "matched_pixels": 75672,
+          "modes": {
+            "gtao": {
+              "all": {
+                "mae": 0.10595519788394726,
+                "max_absolute_error": 0.992198646068573,
+                "mean_signed_error": 0.07273384110052464,
+                "pixels": 75672,
+                "rmse": 0.1678977927408481
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.13309336629319768,
+                "max_absolute_error": 0.992198646068573,
+                "mean_signed_error": 0.09371191772226982,
+                "pixels": 59305,
+                "rmse": 0.18889643539390202
+              },
+              "open": {
+                "mae": 0.005744570709190797,
+                "max_absolute_error": 0.7419447898864746,
+                "mean_signed_error": -0.004110675257047137,
+                "pixels": 13249,
+                "rmse": 0.03053685047773733
+              }
+            },
+            "gtao-raw": {
+              "all": {
+                "mae": 0.11319716589367057,
+                "max_absolute_error": 0.9948680400848389,
+                "mean_signed_error": 0.07451306520856182,
+                "pixels": 75672,
+                "rmse": 0.18111799935176293
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.14247428731206152,
+                "max_absolute_error": 0.9948680400848389,
+                "mean_signed_error": 0.09540900657306087,
+                "pixels": 59305,
+                "rmse": 0.20366459933380834
+              },
+              "open": {
+                "mae": 0.004740313567146372,
+                "max_absolute_error": 0.9809196591377258,
+                "mean_signed_error": -0.002329088690703982,
+                "pixels": 13249,
+                "rmse": 0.034616730918985456
+              }
+            },
+            "legacy": {
+              "all": {
+                "mae": 0.1336959292604111,
+                "max_absolute_error": 0.9706677198410034,
+                "mean_signed_error": 0.05408255609719433,
+                "pixels": 75672,
+                "rmse": 0.19917574916667632
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.16312398940887612,
+                "max_absolute_error": 0.9706677198410034,
+                "mean_signed_error": 0.07488933775130176,
+                "pixels": 59305,
+                "rmse": 0.22204109162161062
+              },
+              "open": {
+                "mae": 0.019192051375548393,
+                "max_absolute_error": 0.543923556804657,
+                "mean_signed_error": -0.01669529617772983,
+                "pixels": 13249,
+                "rmse": 0.05396374133283209
+              }
+            }
+          },
+          "reference_cpu_seconds": 75.370065375,
+          "reference_rays": 80453148,
+          "saturated_rays": 0
+        }
+      ],
+      "memory": {
+        "filtered_ao_bytes": 5529600,
+        "nominal_point_query_bytes_per_pixel": {
+          "filter_disabled": 32,
+          "filter_enabled_max": 912,
+          "gtao_raw_max": 608
+        },
+        "normal_bytes": 5529600,
+        "note": "nominal shader point-query bound plus AO stores; conditional reads and caches reduce traffic; not measured DRAM bandwidth; legacy bilinear footprint excluded",
+        "position_bytes": 11059200,
+        "raw_ao_bytes": 5529600
+      },
+      "timing": {
+        "encoders_per_submission": 8,
+        "gtao": {
+          "filter": {
+            "max_ms": 1.3251458294689655,
+            "mean_ms": 1.1817167996923672,
+            "median_ms": 1.1772421858040616,
+            "min_ms": 1.1053073103539646,
+            "p95_ms": 1.2685989568126388,
+            "p95_to_median": 1.0776023592343322,
+            "samples_ms": [
+              1.149848976638168,
+              1.2122812622692436,
+              1.219718746142462,
+              1.1288645910099149,
+              1.3251458294689655,
+              1.1878906225319952,
+              1.1053073103539646,
+              1.246098952833563,
+              1.1147500190418214,
+              1.166593749076128,
+              1.1887343716807663,
+              1.1120937415398657,
+              1.2497499992605299,
+              1.145098969573155,
+              1.1358906340319663,
+              1.2194010196253657
+            ],
+            "unstable_samples": false
+          },
+          "raw": {
+            "max_ms": 1.7370000132359564,
+            "mean_ms": 1.5827366532903397,
+            "median_ms": 1.5860130224609748,
+            "min_ms": 1.4610260259360075,
+            "p95_ms": 1.6796132913441397,
+            "p95_to_median": 1.059016078403901,
+            "samples_ms": [
+              1.5936302079353482,
+              1.6255208174698055,
+              1.6604843840468675,
+              1.4819843927398324,
+              1.4610260259360075,
+              1.5771406178828329,
+              1.6261562414001673,
+              1.6115260368678719,
+              1.5391614579129964,
+              1.5447135374415666,
+              1.5421250136569142,
+              1.6119687352329493,
+              1.7370000132359564,
+              1.5783958369866014,
+              1.5996875008568168,
+              1.5332656330429018
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "gtao-raw": {
+          "filter": {
+            "max_ms": 0.33941667061299086,
+            "mean_ms": 0.2979121090902481,
+            "median_ms": 0.29630991048179567,
+            "min_ms": 0.2760937495622784,
+            "p95_ms": 0.33557684218976647,
+            "p95_to_median": 1.1325198055108023,
+            "samples_ms": [
+              0.2969531051348895,
+              0.29690106748603284,
+              0.2831770689226687,
+              0.3002968733198941,
+              0.28168229619041085,
+              0.2856093633454293,
+              0.2949635381810367,
+              0.33941667061299086,
+              0.2972343936562538,
+              0.29917186475358903,
+              0.2957187534775585,
+              0.3111979167442769,
+              0.2873906050808728,
+              0.28648957959376276,
+              0.2760937495622784,
+              0.334296899382025
+            ],
+            "unstable_samples": false
+          },
+          "raw": {
+            "max_ms": 1.680390618275851,
+            "mean_ms": 1.5468802048417274,
+            "median_ms": 1.5409062471007928,
+            "min_ms": 1.481843733927235,
+            "p95_ms": 1.6266015445580706,
+            "p95_to_median": 1.055613570013434,
+            "samples_ms": [
+              1.558734365971759,
+              1.6086718533188105,
+              1.5271458541974425,
+              1.5675312606617808,
+              1.545671868370846,
+              1.680390618275851,
+              1.481843733927235,
+              1.5002187283243984,
+              1.5783333510626107,
+              1.5142343763727695,
+              1.5157395682763308,
+              1.5444114687852561,
+              1.5757187502458692,
+              1.5374010254163295,
+              1.509869791334495,
+              1.5041666629258543
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "height": 720,
+        "legacy": {
+          "filter": {
+            "max_ms": 0.4074895696248859,
+            "mean_ms": 0.3094085222983267,
+            "median_ms": 0.3083671908825636,
+            "min_ms": 0.25654686032794416,
+            "p95_ms": 0.3524544299580157,
+            "p95_to_median": 1.1429699409631486,
+            "samples_ms": [
+              0.32226560870185494,
+              0.2959270786959678,
+              0.2808593853842467,
+              0.28162499074824154,
+              0.3052343672607094,
+              0.33410938340239227,
+              0.28244269196875393,
+              0.2978229022119194,
+              0.25654686032794416,
+              0.2952187496703118,
+              0.4074895696248859,
+              0.3246718551963568,
+              0.31307811150327325,
+              0.3115000145044178,
+              0.32801562338136137,
+              0.3137291641905904
+            ],
+            "unstable_samples": false
+          },
+          "raw": {
+            "max_ms": 0.9145000076387078,
+            "mean_ms": 0.831226238005911,
+            "median_ms": 0.8352656295755878,
+            "min_ms": 0.7778593862894922,
+            "p95_ms": 0.8898203232092783,
+            "p95_to_median": 1.065314184735951,
+            "samples_ms": [
+              0.8815937617328018,
+              0.8585677132941782,
+              0.8308750111609697,
+              0.8048906165640801,
+              0.7881562341935933,
+              0.8667968795634806,
+              0.8435625059064478,
+              0.7900312484707683,
+              0.8527968602720648,
+              0.7778593862894922,
+              0.8396562479902059,
+              0.7953385356813669,
+              0.8656354330014437,
+              0.8017812506295741,
+              0.7875781157054007,
+              0.9145000076387078
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "sample_submissions_per_pass": 16,
+        "warmup_submissions_per_pass": 4,
+        "width": 960
+      },
+      "triangles": 262266
+    }
+  },
+  "definition": "cosine-weighted BVH visibility, XYZ distance smoothstep from 0.6R to R, geometric-normal bias, alpha cutoff, exact triangle normals; full geometry includes hidden surfaces",
+  "error_colors": "red: too little occlusion; blue: too much occlusion; magnitude scaled 4x; only matched pixels scored",
+  "height": 240,
+  "host_label": "Apple M4",
+  "motion_definition": "nearest-pixel reprojection of error relative to current ray reference; position-mismatch rejection; no AO/scene history; includes reference sampling uncertainty",
+  "motion_frames": 1,
+  "power": 1.5,
+  "radius": 1.0,
+  "rsm": false,
+  "samples_per_pixel": 1024,
+  "seed": 2,
+  "slices": 4,
+  "steps_per_side": 4,
+  "taa": false,
+  "threads": 4,
+  "validation_environment": {
+    "MTL_DEBUG_LAYER": "0",
+    "MTL_SHADER_VALIDATION": "0"
+  },
+  "width": 320
+}

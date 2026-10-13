@@ -1,0 +1,13 @@
+Amazon Lumberyard Bistro — complete exterior and interior benchmark scenes
+Source: https://developer.nvidia.com/orca/amazon-lumberyard-bistro
+Author/donor: Amazon Lumberyard, 2017.
+License: Creative Commons Attribution 4.0 (CC-BY-4.0).
+The full original license and credits remain in the downloaded archive.
+
+SceneRenderer conversion: original FBX geometry and node transforms retained;
+source DDS textures decoded to PNG and optionally reduced in resolution;
+DirectX BC5 normals reconstructed and converted to the OpenGL convention;
+source packed green roughness and blue metallic channels mapped to native PBR;
+the unused zero red occlusion placeholder ignored, matching Falcor's importer.
+Native scene lighting differs from the original renderer. Large source assets
+and converted files remain local, outside Git.

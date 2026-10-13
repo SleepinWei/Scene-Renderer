@@ -1,0 +1,156 @@
+{
+  "batches": [
+    {
+      "full_detail_triangles": 0,
+      "instances": 0,
+      "lod": 0,
+      "triangles": 0,
+      "type": 0
+    },
+    {
+      "full_detail_triangles": 1243452,
+      "instances": 14803,
+      "lod": 1,
+      "triangles": 59212,
+      "type": 0
+    },
+    {
+      "full_detail_triangles": 16128,
+      "instances": 192,
+      "lod": 0,
+      "triangles": 16128,
+      "type": 1
+    },
+    {
+      "full_detail_triangles": 601440,
+      "instances": 7160,
+      "lod": 1,
+      "triangles": 28640,
+      "type": 1
+    },
+    {
+      "full_detail_triangles": 21960,
+      "instances": 183,
+      "lod": 0,
+      "triangles": 21960,
+      "type": 2
+    },
+    {
+      "full_detail_triangles": 163320,
+      "instances": 1361,
+      "lod": 1,
+      "triangles": 5444,
+      "type": 2
+    },
+    {
+      "full_detail_triangles": 2496,
+      "instances": 16,
+      "lod": 0,
+      "triangles": 2496,
+      "type": 3
+    },
+    {
+      "full_detail_triangles": 451308,
+      "instances": 2893,
+      "lod": 1,
+      "triangles": 81004,
+      "type": 3
+    },
+    {
+      "full_detail_triangles": 14448,
+      "instances": 86,
+      "lod": 0,
+      "triangles": 14448,
+      "type": 4
+    },
+    {
+      "full_detail_triangles": 359184,
+      "instances": 2138,
+      "lod": 1,
+      "triangles": 59864,
+      "type": 4
+    },
+    {
+      "full_detail_triangles": 25690,
+      "instances": 35,
+      "lod": 0,
+      "triangles": 25690,
+      "type": 5
+    },
+    {
+      "full_detail_triangles": 15414,
+      "instances": 21,
+      "lod": 1,
+      "triangles": 1512,
+      "type": 5
+    },
+    {
+      "full_detail_triangles": 64974,
+      "instances": 17,
+      "lod": 0,
+      "triangles": 64974,
+      "type": 6
+    },
+    {
+      "full_detail_triangles": 22932,
+      "instances": 6,
+      "lod": 1,
+      "triangles": 192,
+      "type": 6
+    },
+    {
+      "full_detail_triangles": 20552,
+      "instances": 28,
+      "lod": 0,
+      "triangles": 20552,
+      "type": 7
+    },
+    {
+      "full_detail_triangles": 153406,
+      "instances": 209,
+      "lod": 1,
+      "triangles": 15048,
+      "type": 7
+    }
+  ],
+  "full_detail_triangles": 3176704,
+  "gpu_ms_samples": [
+    138.49891666905023,
+    141.76975000009406,
+    138.1187916631461,
+    136.5951249972568,
+    129.56799999665236,
+    133.839916663419,
+    129.8952500001178,
+    130.2662500020233,
+    132.023999998637,
+    130.49687500461005,
+    128.23200000275392,
+    128.7943749994156
+  ],
+  "instances": 29148,
+  "measurement": "Synchronized collection plus completed rendering, fixed simulation time, first four frames excluded; excludes depth feedback and presentation. GPU duration is last completed buffer and backend batching may include preparation passes. Triangle reduction is not an FPS claim.",
+  "synchronized_frame_ms_samples": [
+    143.793916,
+    154.599541,
+    152.272125,
+    141.671208,
+    132.570459,
+    136.904834,
+    133.844166,
+    136.70325,
+    138.336667,
+    136.800584,
+    134.688,
+    134.945625
+  ],
+  "triangles": 417164,
+  "wave_particles": 5104,
+  "backend": "Metal",
+  "width": 960,
+  "height": 540,
+  "time_seconds": 8,
+  "frames": 16,
+  "warmup": 4,
+  "species_lod": true
+}

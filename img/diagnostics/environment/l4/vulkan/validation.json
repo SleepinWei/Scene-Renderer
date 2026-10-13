@@ -1,0 +1,14 @@
+{
+  "backend": "Vulkan",
+  "cloud_shadow_max": 1.0,
+  "cloud_shadow_min": 0.3779296875,
+  "darkened_ground_pixels": 7960,
+  "fog_compared_pixels": 50386,
+  "fog_max_absolute_error": 0.0005123913288116455,
+  "panorama_difference_l1": 77.26371358530105,
+  "pt_relative_l1": 1.0055509477229714e-07,
+  "scope": "P1 approximate: fixed cloud panorama and below-cloud solar field; fog/precipitation media excluded from PT",
+  "shadow_beer_max_absolute_error": 0.0004354583524833755,
+  "water_air_compared_pixels": 1120,
+  "water_air_max_absolute_error": 0.00011992454528808594
+}

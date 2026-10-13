@@ -1,0 +1,394 @@
+{
+  "date": "2026-10-09",
+  "platform": "macOS-15.3.1-arm64-arm-64bit",
+  "scope": "L1 CPU environment clock, solar events and native editor integration; full GPU/weather checkpoint not implemented",
+  "executable_sha256": "6dfa849ea2829fd854e79004aac58b9df084bda8b77f6dd8dab3d927c0b119cf",
+  "source_sha256": {
+    "include/engine/Environment.h": "cd5fc18f86873ee86e26c03258d79ba315e0806efab2177b44d4e32cc37ea100",
+    "src/engine/Environment.cpp": "d7f7db7bfbc2372e4ab8cb17a567ef4efab331a90379ae7ae0ec7226cbf16dc7",
+    "include/renderer/rhi/EnvironmentBridge.h": "eac5ab39efd2dfbe0741c195ea921ff32cf2d3d41e8826f1d169f25e9ab263e2",
+    "src/renderer/rhi/EnvironmentBridge.cpp": "19b21f0fb39d5164a0492e6f590527190ec7e79c92f6e0950c351c5f60994133",
+    "include/renderer/rhi/SceneSnapshot.h": "baa6703c2801ad459ed6ef0ac97b8baa78a13688d273920f69b3d1cecfe996f5",
+    "src/main.cpp": "ba7b100392f5f3e03ce9df6bcec76524b8084ec2019beb6cb3061633f5abc8a4",
+    "include/GUI.h": "4fb7a3ebc5cdb2ca70e21bef026f139c8e02b6cded4c6b0e2b7e69e346d8a943",
+    "tests/engine/EnvironmentTests.cpp": "faa2c55e8f1ca93b9565848cfea0840ce9cea043e5ef65f3790900d7cc8e80e5",
+    "tools/validate_environment_editor.py": "c40d0e21f8c6226c21ea6583898f93cb13259b9cca79c2d629099cb071b0aee5",
+    "CMakeLists.txt": "e1812bfdfec3a024f749d71c1a7e915b42f0782c23880ad5378ba4ca8fca9e4b"
+  },
+  "cpu_and_editor_ctest": {
+    "passed": 5,
+    "total": 5,
+    "log": "Test project /Users/octopusz/Documents/Unreal Projects/SceneRenderer/build\n    Start 13: engine-concurrency\n1/5 Test #13: engine-concurrency ...............   Passed    0.03 sec\n    Start 14: engine-environment\n2/5 Test #14: engine-environment ...............   Passed    0.48 sec\n    Start 15: engine-environment-editor\n3/5 Test #15: engine-environment-editor ........   Passed    2.25 sec\n    Start 18: rhi-contract\n4/5 Test #18: rhi-contract .....................   Passed    0.00 sec\n    Start 19: rhi-graphics-contract\n5/5 Test #19: rhi-graphics-contract ............   Passed    0.00 sec\n\n100% tests passed out of 5\n\nLabel Time Summary:\ngpu    =   2.25 sec*proc (1 test)\n\nTotal Test time (real) =   2.77 sec\n"
+  },
+  "native_editor": {
+    "Metal": {
+      "backend": "Metal",
+      "scope": "native editor CPU environment integration",
+      "executable_sha256": "6dfa849ea2829fd854e79004aac58b9df084bda8b77f6dd8dab3d927c0b119cf",
+      "checkpoint": {
+        "applied_sequence": 1,
+        "enabled": true,
+        "events": [],
+        "initial_seconds": 0.0,
+        "initial_solar": {
+          "azimuth_degrees": -0.0,
+          "elevation_degrees": 10.000000953674316
+        },
+        "next_sequence": 2,
+        "scene_key": "classic:sky",
+        "schema_version": 1,
+        "scope": "cpu-clock-and-solar",
+        "solar": {
+          "azimuth_degrees": 45.0,
+          "elevation_degrees": 30.0
+        },
+        "step_seconds": 0.016666666666666666,
+        "tick": 120
+      },
+      "resumed_checkpoint": {
+        "applied_sequence": 1,
+        "enabled": true,
+        "events": [],
+        "initial_seconds": 0.0,
+        "initial_solar": {
+          "azimuth_degrees": -0.0,
+          "elevation_degrees": 10.000000953674316
+        },
+        "next_sequence": 2,
+        "scene_key": "classic:sky",
+        "schema_version": 1,
+        "scope": "cpu-clock-and-solar",
+        "solar": {
+          "azimuth_degrees": 45.0,
+          "elevation_degrees": 30.0
+        },
+        "step_seconds": 0.016666666666666666,
+        "tick": 121
+      },
+      "runs": [
+        {
+          "name": "capture",
+          "argv": [
+            "--backend",
+            "Metal",
+            "--classic",
+            "sky",
+            "--hidden",
+            "--size",
+            "800x450",
+            "--frames",
+            "12",
+            "--environment-ticks",
+            "120",
+            "--environment-sun",
+            "30",
+            "45",
+            "--environment-save",
+            "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/editor-ctest/first.json",
+            "--screenshot",
+            "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/editor-ctest/sky.ppm"
+          ],
+          "exit_code": 0
+        },
+        {
+          "name": "resume",
+          "argv": [
+            "--backend",
+            "Metal",
+            "--classic",
+            "sky",
+            "--hidden",
+            "--size",
+            "800x450",
+            "--frames",
+            "12",
+            "--environment-load",
+            "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/editor-ctest/first.json",
+            "--environment-ticks",
+            "1",
+            "--environment-save",
+            "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/editor-ctest/resumed.json"
+          ],
+          "exit_code": 0
+        },
+        {
+          "name": "wrong-scene",
+          "argv": [
+            "--backend",
+            "Metal",
+            "--classic",
+            "sky",
+            "--hidden",
+            "--size",
+            "800x450",
+            "--frames",
+            "12",
+            "--environment-load",
+            "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/editor-ctest/wrong-scene.json",
+            "--environment-save",
+            "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/editor-ctest/rejected.json"
+          ],
+          "exit_code": 1
+        },
+        {
+          "name": "conflicting-time",
+          "argv": [
+            "--backend",
+            "Metal",
+            "--classic",
+            "sky",
+            "--hidden",
+            "--size",
+            "800x450",
+            "--frames",
+            "12",
+            "--environment",
+            "--time",
+            "8"
+          ],
+          "exit_code": 1
+        },
+        {
+          "name": "invalid-sun",
+          "argv": [
+            "--backend",
+            "Metal",
+            "--classic",
+            "sky",
+            "--hidden",
+            "--size",
+            "800x450",
+            "--frames",
+            "12",
+            "--environment-sun",
+            "30junk",
+            "45"
+          ],
+          "exit_code": 1
+        }
+      ],
+      "passed": true
+    },
+    "Vulkan": {
+      "backend": "Vulkan",
+      "scope": "native editor CPU environment integration",
+      "executable_sha256": "6dfa849ea2829fd854e79004aac58b9df084bda8b77f6dd8dab3d927c0b119cf",
+      "checkpoint": {
+        "applied_sequence": 1,
+        "enabled": true,
+        "events": [],
+        "initial_seconds": 0.0,
+        "initial_solar": {
+          "azimuth_degrees": -0.0,
+          "elevation_degrees": 10.000000953674316
+        },
+        "next_sequence": 2,
+        "scene_key": "classic:sky",
+        "schema_version": 1,
+        "scope": "cpu-clock-and-solar",
+        "solar": {
+          "azimuth_degrees": 45.0,
+          "elevation_degrees": 30.0
+        },
+        "step_seconds": 0.016666666666666666,
+        "tick": 120
+      },
+      "resumed_checkpoint": {
+        "applied_sequence": 1,
+        "enabled": true,
+        "events": [],
+        "initial_seconds": 0.0,
+        "initial_solar": {
+          "azimuth_degrees": -0.0,
+          "elevation_degrees": 10.000000953674316
+        },
+        "next_sequence": 2,
+        "scene_key": "classic:sky",
+        "schema_version": 1,
+        "scope": "cpu-clock-and-solar",
+        "solar": {
+          "azimuth_degrees": 45.0,
+          "elevation_degrees": 30.0
+        },
+        "step_seconds": 0.016666666666666666,
+        "tick": 121
+      },
+      "runs": [
+        {
+          "name": "capture",
+          "argv": [
+            "--backend",
+            "Vulkan",
+            "--classic",
+            "sky",
+            "--hidden",
+            "--size",
+            "800x450",
+            "--frames",
+            "12",
+            "--environment-ticks",
+            "120",
+            "--environment-sun",
+            "30",
+            "45",
+            "--environment-save",
+            "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/editor-vulkan/first.json",
+            "--screenshot",
+            "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/editor-vulkan/sky.ppm"
+          ],
+          "exit_code": 0
+        },
+        {
+          "name": "resume",
+          "argv": [
+            "--backend",
+            "Vulkan",
+            "--classic",
+            "sky",
+            "--hidden",
+            "--size",
+            "800x450",
+            "--frames",
+            "12",
+            "--environment-load",
+            "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/editor-vulkan/first.json",
+            "--environment-ticks",
+            "1",
+            "--environment-save",
+            "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/editor-vulkan/resumed.json"
+          ],
+          "exit_code": 0
+        },
+        {
+          "name": "wrong-scene",
+          "argv": [
+            "--backend",
+            "Vulkan",
+            "--classic",
+            "sky",
+            "--hidden",
+            "--size",
+            "800x450",
+            "--frames",
+            "12",
+            "--environment-load",
+            "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/editor-vulkan/wrong-scene.json",
+            "--environment-save",
+            "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/editor-vulkan/rejected.json"
+          ],
+          "exit_code": 1
+        },
+        {
+          "name": "conflicting-time",
+          "argv": [
+            "--backend",
+            "Vulkan",
+            "--classic",
+            "sky",
+            "--hidden",
+            "--size",
+            "800x450",
+            "--frames",
+            "12",
+            "--environment",
+            "--time",
+            "8"
+          ],
+          "exit_code": 1
+        },
+        {
+          "name": "invalid-sun",
+          "argv": [
+            "--backend",
+            "Vulkan",
+            "--classic",
+            "sky",
+            "--hidden",
+            "--size",
+            "800x450",
+            "--frames",
+            "12",
+            "--environment-sun",
+            "30junk",
+            "45"
+          ],
+          "exit_code": 1
+        }
+      ],
+      "passed": true
+    }
+  },
+  "display_comparison": {
+    "scope": "tonemapped sky RGB, right half outside editor UI; not an HDR transport comparison",
+    "roi_xyxy": [
+      400,
+      0,
+      800,
+      450
+    ],
+    "mean_abs_rgb_0_255": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max_abs_rgb_0_255": [
+      0,
+      0,
+      0
+    ],
+    "cpu_checkpoints_identical": true
+  },
+  "rhi_regressions": {
+    "Metal": {
+      "passed": true,
+      "log_sha256": "99a6cbdbf90dfd5bc108d27ac2803d107567f982c246f89766a853f30b90d1c2",
+      "log": "rhi-metal.log",
+      "executable_sha256": "bb32c92110174f0c4ac5c06a45973ee66b85bfbc7c90eb8b31d9dc125f2daa4c",
+      "scope": "Full native RHI before final UI intent/display refinements; renderer/GPU code unchanged by those refinements"
+    },
+    "Vulkan": {
+      "passed": true,
+      "log_sha256": "9d7aca128bcf0d20302ad2b67fee747c801272b57adac755bec4771014cf1be6",
+      "log": "rhi-vulkan.log",
+      "executable_sha256": "bb32c92110174f0c4ac5c06a45973ee66b85bfbc7c90eb8b31d9dc125f2daa4c",
+      "scope": "Full native RHI before final UI intent/display refinements; renderer/GPU code unchanged by those refinements"
+    }
+  },
+  "baseline": {
+    "scene": "mountain-lake",
+    "backend": "Metal",
+    "size": [
+      1280,
+      720
+    ],
+    "frames": 40,
+    "warmup_frames": 8,
+    "checkpoint": {
+      "applied_sequence": 1,
+      "enabled": true,
+      "events": [],
+      "initial_seconds": 0.0,
+      "initial_solar": {
+        "azimuth_degrees": 128.65980529785156,
+        "elevation_degrees": 57.368064880371094
+      },
+      "next_sequence": 2,
+      "scene_key": "classic:mountain-lake",
+      "schema_version": 1,
+      "scope": "cpu-clock-and-solar",
+      "solar": {
+        "azimuth_degrees": 20.0,
+        "elevation_degrees": 45.0
+      },
+      "step_seconds": 0.016666666666666666,
+      "tick": 120
+    },
+    "trace": "l1-mountain-lake-trace.json.gz",
+    "summary": "l1-mountain-lake-summary.json",
+    "ui_included": true,
+    "quality_target_met": false,
+    "scope": "Final-build short static sample, first 8 frames excluded; record-time spikes remain, repeated controlled multi-view budget pending; no performance improvement claim",
+    "executable_sha256": "6dfa849ea2829fd854e79004aac58b9df084bda8b77f6dd8dab3d927c0b119cf",
+    "steady_state_confirmed": false
+  }
+}

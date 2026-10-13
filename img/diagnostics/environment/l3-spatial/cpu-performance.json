@@ -1,0 +1,21 @@
+{
+  "scope": "CPU fixed Environment tick; uniform vs 16x16 downhill storage; no rendering/FPS measurement",
+  "spatial": {
+    "checkpoint_bytes": 13239,
+    "land_balance_residual_m3": -1.4455103780619538e-12,
+    "max_us": 30.292,
+    "measured_ticks": 36000,
+    "p50_us": 1.542,
+    "p95_us": 1.625,
+    "warmup_ticks": 600
+  },
+  "uniform": {
+    "checkpoint_bytes": 3865,
+    "land_balance_residual_m3": -4.9822368453078525e-12,
+    "max_us": 0.167,
+    "measured_ticks": 36000,
+    "p50_us": 0.0,
+    "p95_us": 0.042,
+    "warmup_ticks": 600
+  }
+}

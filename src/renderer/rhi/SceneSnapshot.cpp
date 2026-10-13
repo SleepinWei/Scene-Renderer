@@ -1,4 +1,5 @@
 #include "renderer/rhi/SceneSnapshot.h"
+#include "rhi/MemorySafety.h"
 #include "engine/JobSystem.h"
 #include "rhi/ShaderAssets.h"
 #include <algorithm>
@@ -535,6 +536,7 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
                     std::vector<TreeWindVertex> treeWind;
                     if ((!record.pending.valid() && !record.value) ||
                         record.revision != mesh->getContentRevision()) {
+                        rhi::memorySafety().check(rhi::MemorySafety::bytes(mesh->getVertices().size(),sizeof(Vertex)+sizeof(MeshVertex)+sizeof(uint32_t))+rhi::MemorySafety::bytes(mesh->getIndices().size(),8),"scene snapshot mesh copies");
                         vertices = mesh->getVertices();
                         indices = mesh->getIndices();
                         treeWind=mesh->getTreeWind();
@@ -543,6 +545,7 @@ SceneSnapshotBuilder::capture(const std::shared_ptr<RenderScene> &scene, float t
                         record, mesh->getContentRevision(),
                         [id = mesh->assetId, rev = mesh->getContentRevision(), vertices = std::move(vertices),
                          indices = std::move(indices),treeWind=std::move(treeWind)] {
+                            auto scratch=rhi::memorySafety().reserve(rhi::MemorySafety::bytes(vertices.size(),sizeof(MeshVertex)+sizeof(uint32_t))+rhi::MemorySafety::bytes(indices.size(),4),"detached scene mesh payload");
                             auto result = std::make_shared<MeshPayload>();
                             result->id = id;
                             result->revision = rev;

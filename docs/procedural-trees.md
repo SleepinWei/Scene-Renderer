@@ -1,6 +1,6 @@
 # 程序树木：树形、叶片和实例阴影
 
-树木专项第一阶段已实现。自包含资产支持阔叶树、针叶树和灌木，提供近景单树、无叶骨架、林缘、森林四个实时场景；图片来自原生渲染器。没有外部树木模型依赖。
+自包含资产支持阔叶树、针叶树和灌木，提供近景单树、无叶骨架、林缘、森林四个实时场景。树形与叶片第一阶段、亮点修复及分枝／叶片风动均已实现；图片和动画来自原生渲染器。没有外部树木模型依赖。
 
 ## 树形和材质
 
@@ -76,6 +76,47 @@ build/pt-native-rt/runtime/Scene-Renderer --render-gallery build/tree-highlights
 
 此诊断输出正常、关闭 TAA、关闭天空镜面反射、关闭太阳直射四种结果，以及最亮几何像素的 HDR／G-buffer JSON。
 
+## 分枝与叶片风动（2026-10-12）
+
+这轮将近景叶片从四个三角形的折叠菱形改为六个三角形的圆润叶片，轮廓更贴近 alpha 贴图；保留中脊折叠与叶脉法线。单树机位拉近，测试地面扩大，便于检查树冠细节。叶片几何增加了 50%，这一改动改善轮廓，不是几何减量优化。
+
+| 近景枝叶与地面阴影 | 林内枝叶与透光 |
+| --- | --- |
+| ![单树风动](../img/nature/tree-wind-single.gif) | ![森林风动](../img/nature/tree-wind-forest.gif) |
+
+640×480，原生 Metal，风速 XZ 为 (6, 2) m/s。从 8 s 开始连续渲染 60 帧，源时间步长 1/24 s；GIF 播放时长 2.5 s，循环会重新回到起始时刻，并非无缝周期动画。GIF 只对实际 PNG 帧做统一调色板编码。静帧：[单树](../img/nature/tree-wind-single.png)、[森林](../img/nature/tree-wind-forest.png)、[关闭单树风](../img/nature/tree-wind-single-off.png)、[关闭森林风](../img/nature/tree-wind-forest-off.png)、[Vulkan 森林](../img/nature/tree-wind-forest-vulkan.png)。此前的亮点修复图片保留原机位，避免改变同机位对照。
+
+### 变形、阴影与时间历史
+
+生成骨架时给顶点记录主枝、次级枝和叶片中心三个支点。风速控制振幅，主枝低频摆动、次级枝较快摆动、叶片 flutter 再叠加到枝条运动上；主干使用根部固定的二次弯曲。针叶树降低分枝与针叶振幅，远景叶簇降低局部 flutter。法线随旋转更新，并对主干弯曲应用法线变换。零风速或关闭风动恢复静止几何，不在上一帧形状上累积误差。这是解析动画模型，尚未求解枝条弹性、空气动力或碰撞。
+
+`GpuTreeWind` 在 GPU 按树形／LOD 更新共享顶点缓冲，森林继续用实例和 indirect draw 复用它；不逐株上传变形后的网格。树皮与叶片采用同一骨架和时间。模板固定朝向，将世界风转换到模板坐标，保证不同形态的树都顺着共同风向。共享模板也意味着同形态的树共用变形相位，旋转多样性限于形态变体；尚无每株独立骨骼或传播的空间阵风。
+
+颜色、CSM、RSM 使用同一份当前几何，阴影随枝叶移动；投影者 AABB 预留风动范围。新增上一帧顶点缓冲，与已有上一帧实例矩阵共同计算 motion vector，供 TAA 使用。倒放、初始帧、风开关改变或时间跳跃超过 0.25 s 时将历史标为不可复用，避免把不连续变形作为正常运动。动态树暂不进入不可变 cluster 几何路径。
+
+CPU 使用同一变形函数；PT 捕获时冻结当前时间与风设置，普通单树和 GPU 森林都获得实际摆动后的树皮／叶片，不再次施加变形。PT 仍是固定时刻的快照，没有新增运动模糊。
+
+森林的 Vegetation 面板支持 **Tree branch and leaf wind**、**Branch sway**、**Leaf flutter**。独立风模式可调整 **Tree wind XZ (m/s)**；启用环境风时由环境系统提供风速和相位。普通单树默认采用 FrameData 的风设置，环境桥同样可驱动它。
+
+### 验收与开销
+
+Metal 与 Vulkan/MoltenVK 原生回归均通过：CPU/GPU 全顶点位置最大误差 `2.40519e-07`（归一化局部单位），检查法线、上一帧顶点、根部稳定、变形边界与零风复位。专用测试有 2,574 个有效运动像素和 32,025 个变化的阴影深度像素。已有叶片缝隙天空回归、投影者剔除、草地与 Wave Particles 测试继续通过；三个 CPU 测试通过。
+
+两个后端分别完成单树和森林连续 60 帧，所有 HDR 值有限。动画中同步渲染耗时中位数如下，排除图片读回／编码及呈现；这是同一 Apple M4 上的测量，不等于编辑器 FPS，也不能与前文旧几何的耗时直接比较。
+
+| 场景 | Metal | Vulkan / MoltenVK |
+| --- | ---: | ---: |
+| 单树 | 6.40 ms | 8.01 ms |
+| 森林 | 162.08 ms | 187.53 ms |
+
+动态森林仍较重，后续应优先减少候选散布、阴影重复筛选和上传／同步成本。风动额外保存静止顶点、上一帧顶点和三个支点，新增约 112 bytes/顶点，已纳入资源预算。Metal 多线程编辑器实跑 24 帧、1600×900，零场景发布拒绝、零 fallback、零内存压力事件，GPU 资源估算峰值约 769 MiB。完整动画统计见 [tree-wind-metrics.json](../img/nature/tree-wind-metrics.json)。
+
+```sh
+build/pt-native-rt/runtime/Scene-Renderer --render-gallery build/tree-wind-metal tree-wind --backend Metal
+build/pt-native-rt/runtime/Scene-Renderer --render-gallery build/tree-wind-vulkan tree-wind --backend Vulkan
+build/pt-native-rt/runtime/Scene-Renderer --classic tree-forest --backend Metal --hidden --frames 24
+```
+
 ## 验证与复现
 
 CPU 检查覆盖固定种子与缓存、有限法线和高度、近远几何减量、叶片 alpha 轮廓、PT 转换不修改源材质与反射／透射能量上界。
@@ -98,5 +139,5 @@ build/pt-native-rt/runtime/Scene-Renderer --classic tree-forest --backend Metal
 1. 校准近远叶簇的冠层覆盖、叶面积和阴影，增加移动镜头的 LOD / alpha 闪烁对照；按投影大小选择 LOD，并评估保持覆盖的 impostor 与独立 shadow LOD。
 2. 将阴影压缩改成实例索引重映射，减少每个级联复制矩阵的带宽和缓冲容量；复用树皮、叶片的实例筛选结果时，使用覆盖两部分的共同边界。
 3. 增加林下间接光和叶片多层透射。当前漫透射是局部着色模型，不能替代整个冠层的多重散射或透射阴影。
-4. 引入树冠空间竞争、物种斑块和林下遮蔽，减少散布中的冠层穿插；加入枝条层级风和叶片局部运动，匹配速度历史。
+4. 引入树冠空间竞争、物种斑块和林下遮蔽，减少散布中的冠层穿插；在已实现的枝条／叶片风动上增加空间阵风、每株独立骨骼相位与任意实例朝向。
 5. 再考虑 [Self-organizing Tree Models，SIGGRAPH 2009](https://algorithmicbotany.org/papers/selforg.sig2009.html) 的光／空间竞争和生长控制，以及精细枝干体积表示。森林 PT 冻结当前仍展开每批实例，后续复用 BLAS / TLAS，并进一步对齐叶片高光闭包。

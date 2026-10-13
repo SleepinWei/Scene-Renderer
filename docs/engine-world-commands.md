@@ -68,7 +68,7 @@ auto ticket = port.post(engine::SetTransform{
 
 ## RHI 统一资源配额
 
-`Device::setResourceBudget(bytes)` 对当前设备所有 RHI buffer／texture 的逻辑负载统一限额，`0` 为不限额。原生编辑器可使用：
+`Device::setResourceBudget(bytes)` 对当前设备所有 RHI buffer／texture 的逻辑负载统一限额，`0` 恢复自动安全配额。默认启用[进程与 GPU 保护](memory-safety.md)，启动参数对编辑器和离线入口均生效。可使用：
 
 ```sh
 ./build/Scene-Renderer --classic cornell --gpu-resource-budget-mib 256
@@ -78,7 +78,7 @@ auto ticket = port.post(engine::SetTransform{
 
 Buffer 按 descriptor 字节数计费；RGBA8／Depth32、RGBA16、RGBA32 texture 每像素分别计 4、8、16 字节，并检查尺寸乘法溢出。分配前检查剩余配额，超限不进入后端创建；后端创建失败或注册失败不计费。活资源和等待 completion retirement 的资源都继续占用配额，实际安全销毁后才减计；重复销毁不重复减计。关闭设备释放全部已登记资源。`resourceMemory()` 提供 buffer／texture 当前字节、配额与逐次成功分配的峰值，避免仅逐帧采样遗漏峰值。
 
-这个配额覆盖通过 RHI 创建的 mesh、VT、阴影／帧目标和图片；图片 cache 的 64 MiB 空闲 LRU、每帧两项／32 MiB 上传接纳目标仍有各自用途。配额**不包含** driver heap 对齐、隐式 staging、交换链、pipeline、view／sampler 开销，不能作为实际系统显存上限。后续已加入分配前空闲图片淘汰与等待安全退役；仍超限抛出 `ResourceBudgetExceeded`。原生双线程编辑器回滚候选缓存并保留成功画面后重试；冷启动、其他错误及单线程路径仍明确失败。详见 [GPU 发布与内存压力](engine-gpu-publication.md)。
+这个配额覆盖通过 RHI 创建的 mesh、VT、阴影／帧目标和图片；图片 cache 的 64 MiB 空闲 LRU、每帧两项／32 MiB 上传接纳目标仍有各自用途。RHI 逻辑负载计数本身**不包含** driver heap 对齐、隐式 staging、交换链、pipeline、view／sampler 开销；新增的[内存保护](memory-safety.md)另行检查实际进程 footprint 和 Metal 原生分配／staging／AS，仍不是操作系统强制的 RSS 上限。后续已加入分配前空闲图片淘汰与等待安全退役；仍超限抛出 `ResourceBudgetExceeded`。原生双线程编辑器回滚候选缓存并保留成功画面后重试；冷启动、其他错误及单线程路径仍明确失败。详见 [GPU 发布与内存压力](engine-gpu-publication.md)。
 
 ## 验证
 

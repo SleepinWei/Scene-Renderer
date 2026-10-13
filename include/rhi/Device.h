@@ -93,7 +93,7 @@ public:
     void adoptCurrentThread() { ownerThread_=std::this_thread::get_id(); }
     void checkThread() const;
     size_t allocatedBufferBytes() const;
-    void setResourceBudget(size_t bytes); // 0 is unlimited; tracked buffer/texture payloads only.
+    void setResourceBudget(size_t bytes); // 0 restores the automatic safety quota; tracked payloads only.
     ResourceMemoryStats resourceMemory() const;
     // Called once before a quota rejection. Handler may release idle resources,
     // but must not allocate or change the budget. Only the device thread may use it.

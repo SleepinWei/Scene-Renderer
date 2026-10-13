@@ -1,4 +1,5 @@
 #include "rhi/GraphicsDevice.h"
+#include "rhi/MemorySafety.h"
 #include "rhi/ShaderAssets.h"
 #include "rhi/PipelineDiskCache.h"
 #include <Metal/Metal.h>
@@ -32,6 +33,9 @@ struct NativeState{
 };
 class MetalDevice final : public rhi::GraphicsDevice {
 public:
+    void checkNativeAllocation(uint64_t bytes,const std::string& label)const{
+        memorySafety().checkGpu(uint64_t(state_.device.currentAllocatedSize),bytes,label);
+    }
     explicit MetalDevice(NativeState state) : GraphicsDevice({size_t(state.device.maxBufferLength),65536,256,32},{16384,16,3,8,8}),state_(std::move(state)) {
         if(@available(macOS 11.0,*)) {
             if(std::getenv("SCENERENDERER_GPU_PROFILE") && [state_.device supportsFamily:MTLGPUFamilyApple1] && [state_.device supportsCounterSampling:MTLCounterSamplingPointAtStageBoundary])
@@ -62,6 +66,7 @@ public:
         auto cb=[state_.queue commandBuffer];require(cb!=nil,"AS command buffer allocation failed");
         auto build=[&](MTLAccelerationStructureDescriptor* d){
             auto sizes=[state_.device accelerationStructureSizesWithDescriptor:d];
+            checkNativeAllocation(uint64_t(sizes.accelerationStructureSize)+uint64_t(sizes.buildScratchBufferSize),"Metal acceleration structure + scratch");
             auto as=[state_.device newAccelerationStructureWithSize:sizes.accelerationStructureSize];
             auto scratch=[state_.device newBufferWithLength:std::max(NSUInteger(1),sizes.buildScratchBufferSize) options:MTLResourceStorageModePrivate];
             require(as!=nil&&scratch!=nil,"AS allocation failed");
@@ -77,8 +82,10 @@ public:
         }
         else for(const auto &mesh:desc.meshes){
             require(mesh.indices&&mesh.triangles&&mesh.indexStride>=12&&mesh.indexStride%4==0,"invalid ray mesh indices");
+            memorySafety().check(MemorySafety::bytes(size_t(mesh.triangles),24),"Metal ray mesh CPU/GPU indices");
             std::vector<uint32_t> indices(size_t(mesh.triangles)*3);
             for(uint32_t t=0;t<mesh.triangles;++t){const auto* source=reinterpret_cast<const uint32_t*>(reinterpret_cast<const uint8_t*>(mesh.indices)+size_t(t)*mesh.indexStride);for(uint32_t k=0;k<3;++k){require(source[k]<desc.vertexCount,"ray mesh index out of range");indices[size_t(t)*3+k]=source[k];}}
+            checkNativeAllocation(indices.size()*sizeof(uint32_t),"Metal ray mesh index staging");
             auto indexBuffer=[state_.device newBufferWithBytes:indices.data() length:indices.size()*sizeof(uint32_t) options:MTLResourceStorageModeShared];require(indexBuffer!=nil,"AS index buffer allocation failed");
             auto geometry=[MTLAccelerationStructureTriangleGeometryDescriptor descriptor];
             geometry.vertexBuffer=vertices.gpu;geometry.vertexStride=desc.vertexStride;
@@ -87,11 +94,13 @@ public:
             auto primitive=[MTLPrimitiveAccelerationStructureDescriptor descriptor];primitive.geometryDescriptors=@[geometry];
             auto as=build(primitive);[bottoms addObject:as];scene->blas.push_back(as);++scene->blasBuilds;
         }
+        memorySafety().check(MemorySafety::bytes(desc.instances.size(),sizeof(MTLAccelerationStructureInstanceDescriptor)*2),"Metal ray instance CPU/GPU copies");
         std::vector<MTLAccelerationStructureInstanceDescriptor> instances(desc.instances.size());
         for(size_t i=0;i<instances.size();++i){const auto &source=desc.instances[i];require(source.mesh<scene->blas.size(),"ray instance mesh out of range");auto &target=instances[i];
             for(uint32_t c=0;c<4;++c)for(uint32_t r=0;r<3;++r){const float value=source.transform[c*4+r];require(std::isfinite(value),"nonfinite ray instance transform");reinterpret_cast<float*>(&target.transformationMatrix)[c*3+r]=value;}
             target.mask=0xff;target.options=MTLAccelerationStructureInstanceOptionNone;target.accelerationStructureIndex=source.mesh;
         }
+        checkNativeAllocation(instances.size()*sizeof(instances[0]),"Metal ray instance staging");
         auto instanceBuffer=[state_.device newBufferWithBytes:instances.data() length:instances.size()*sizeof(instances[0]) options:MTLResourceStorageModeShared];require(instanceBuffer!=nil,"AS instance buffer allocation failed");
         auto top=[MTLInstanceAccelerationStructureDescriptor descriptor];top.instancedAccelerationStructures=bottoms;top.instanceDescriptorBuffer=instanceBuffer;top.instanceCount=instances.size();
         scene->tlas=build(top);[cb commit];[cb waitUntilCompleted];require(cb.status!=MTLCommandBufferStatusError,"AS build: "+errorText(cb.error));
@@ -143,6 +152,8 @@ protected:
         return {true,uint64_t(state_.device.currentAllocatedSize),uint64_t(state_.device.recommendedMaxWorkingSetSize),"Metal device allocations"};
     }
     NativeObject createTextureImpl(const rhi::TextureDesc& desc) override {
+        uint64_t bytes=0;for(uint32_t mip=0;mip<desc.mipLevels;++mip)bytes+=uint64_t(std::max(1u,desc.width>>mip))*std::max(1u,desc.height>>mip)*desc.arrayLayers*rhi::formatPixelBytes(desc.format);
+        checkNativeAllocation(bytes,desc.label);
         auto d=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:format(desc.format) width:desc.width height:desc.height mipmapped:NO];
         d.mipmapLevelCount=desc.mipLevels;d.arrayLength=desc.arrayLayers;d.textureType=desc.arrayLayers>1?MTLTextureType2DArray:MTLTextureType2D;
         d.storageMode=MTLStorageModePrivate;d.usage=MTLTextureUsagePixelFormatView;
@@ -212,6 +223,7 @@ protected:
     void writeTextureRegionImpl(NativeObject id,const rhi::TextureDesc& desc,rhi::TextureRegion r,const void* pixels,size_t) override {
         const size_t pixelBytes=rhi::formatPixelBytes(desc.format);
         const size_t row=(size_t(r.width)*pixelBytes+255)&~size_t(255);
+        checkNativeAllocation(row*r.height,"Metal texture upload staging");
         auto buffer=[state_.device newBufferWithLength:row*r.height options:MTLResourceStorageModeShared];require(buffer!=nil,"RHI texture staging failed");
         for(size_t y=0;y<r.height;++y)memcpy(static_cast<uint8_t*>(buffer.contents)+y*row,static_cast<const uint8_t*>(pixels)+y*r.width*pixelBytes,r.width*pixelBytes);
         endEncoders();command();auto e=[state_.command blitCommandEncoder];
@@ -222,6 +234,8 @@ protected:
     void writeTextureFloatImpl(NativeObject id,const rhi::TextureDesc& desc,const float* pixels,size_t bytes) override {writeTextureRegionImpl(id,desc,{0,0,desc.width,desc.height},pixels,bytes);}
     std::vector<uint8_t> readPixels(NativeObject id,const rhi::TextureDesc& desc,size_t pixelBytes) {
         const size_t row=(size_t(desc.width)*pixelBytes+255)&~size_t(255);
+        checkNativeAllocation(row*desc.height,"Metal texture readback staging");
+        memorySafety().check(row*desc.height*2,"Metal readback CPU/GPU copies");
         auto buffer=[state_.device newBufferWithLength:row*desc.height options:MTLResourceStorageModeShared];require(buffer!=nil,"RHI texture readback allocation failed");
         endEncoders();command();auto e=[state_.command blitCommandEncoder];
         [e copyFromTexture:rhiTextures_.at(id) sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0,0,0) sourceSize:MTLSizeMake(desc.width,desc.height,1)
@@ -231,6 +245,7 @@ protected:
     }
     std::function<void()> queueTextureReadbackImpl(NativeObject id,const rhi::TextureDesc& desc,std::shared_ptr<std::vector<uint8_t>> output,rhi::TextureSubresource level) override {
         const size_t pixelBytes=rhi::formatPixelBytes(desc.format),row=(size_t(desc.width)*pixelBytes+255)&~size_t(255);
+        checkNativeAllocation(row*desc.height,"Metal async readback staging");
         auto buffer=[state_.device newBufferWithLength:row*desc.height options:MTLResourceStorageModeShared];require(buffer!=nil,"RHI async staging allocation failed");endEncoders();command();auto e=[state_.command blitCommandEncoder];[e copyFromTexture:rhiTextures_.at(id) sourceSlice:level.layer sourceLevel:level.mip sourceOrigin:MTLOriginMake(0,0,0) sourceSize:MTLSizeMake(desc.width,desc.height,1) toBuffer:buffer destinationOffset:0 destinationBytesPerRow:row destinationBytesPerImage:row*desc.height];[e endEncoding];
         return [buffer,row,pixelBytes,desc,output]{output->resize(size_t(desc.width)*desc.height*pixelBytes);for(size_t y=0;y<desc.height;++y)memcpy(output->data()+y*desc.width*pixelBytes,static_cast<const uint8_t*>(buffer.contents)+y*row,desc.width*pixelBytes);};
     }
@@ -342,6 +357,7 @@ fragment float4 rhiPresentFragment(float4 position [[position]],texture2d<float>
         }
     }
     NativeBuffer createBufferImpl(const rhi::BufferDesc& desc, const void* data) override {
+        checkNativeAllocation(std::max<size_t>((desc.size+15)&~size_t(15),16),desc.label);
         auto gpu=[state_.device newBufferWithLength:std::max<size_t>((desc.size+15)&~size_t(15),16)
                                       options:MTLResourceStorageModeShared];
         require(gpu!=nil,"RHI buffer allocation failed: "+desc.label);
@@ -359,6 +375,7 @@ fragment float4 rhiPresentFragment(float4 position [[position]],texture2d<float>
     void writeBufferImpl(NativeBuffer native,size_t offset,size_t size,const void* data) override {
         auto& b=state_.buffers.at(static_cast<unsigned>(native));
         endEncoders();command();
+        checkNativeAllocation(size,"Metal buffer upload staging");
         auto staging=[state_.device newBufferWithBytes:data length:size options:MTLResourceStorageModeShared];
         require(staging!=nil,"RHI staging allocation failed");
         auto e=profileBlit("buffer-upload");

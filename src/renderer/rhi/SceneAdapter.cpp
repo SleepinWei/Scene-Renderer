@@ -484,6 +484,7 @@ SceneFrame SceneAdapter::resolveCandidate(const RenderWorldSnapshot &snapshot) {
             }
             if(mesh.clusterBuild.valid()&&mesh.clusterBuild.wait_for(std::chrono::seconds(0))==std::future_status::ready){
                 try{auto hierarchy=mesh.clusterBuild.get();if(!hierarchy->indices.empty()){mesh.clusters=std::make_shared<GpuClusterGeometry>(device_,hierarchy);++cache_->uploadEpoch;}}
+                catch(const rhi::ResourceBudgetExceeded&){mesh.clusterBuild={};mesh.clusterSource.reset();throw;}
                 catch(const std::exception& error){std::cerr<<"Cluster geometry fallback: "<<error.what()<<'\n';}
                 mesh.clusterBuild={};
             }

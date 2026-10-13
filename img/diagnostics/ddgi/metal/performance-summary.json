@@ -1,0 +1,24 @@
+{
+  "device": "Apple M4",
+  "rendered_frames": 96,
+  "warmup_frames": 10,
+  "method": "Union of GPU timestamp intervals within each phase and frame; phases can overlap and are not additive.",
+  "phase_interval_union_ms": {
+    "ddgi/retain-field": {
+      "median": 0.05362498760223389,
+      "p95": 0.23720788955688477
+    },
+    "ddgi/probe-capture": {
+      "median": 7.607604503631592,
+      "p95": 9.84320878982544
+    },
+    "ddgi/probe-integrate": {
+      "median": 3.4586466550827026,
+      "p95": 3.686541795730591
+    },
+    "ddgi/surface-query": {
+      "median": 2.4954159259796143,
+      "p95": 3.9635419845581055
+    }
+  }
+}

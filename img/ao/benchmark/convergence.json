@@ -1,0 +1,186 @@
+{
+  "baseline_spp": 256,
+  "refined_spp": 1024,
+  "baseline_seed": 1,
+  "refined_seed": 2,
+  "note": "Reference difference is a sampling convergence diagnostic, not a confidence interval; score frame 0 on the common match mask.",
+  "cases": {
+    "contact": {
+      "reference_difference": {
+        "pixels": 43516,
+        "rmse": 0.002182610049601172,
+        "mae": 0.0008056506563174241,
+        "mean_signed_error": 8.984197929990524e-06,
+        "max_absolute_error": 0.03273177146911621
+      },
+      "modes": {
+        "legacy": {
+          "against_baseline": {
+            "pixels": 43516,
+            "rmse": 0.1196040355767018,
+            "mae": 0.04760003765929062,
+            "mean_signed_error": 0.0010981274242567243,
+            "max_absolute_error": 0.954986572265625
+          },
+          "against_refined": {
+            "pixels": 43516,
+            "rmse": 0.1195958348657055,
+            "mae": 0.0475979544173045,
+            "mean_signed_error": 0.0011071116221867147,
+            "max_absolute_error": 0.954986572265625
+          }
+        },
+        "gtao-raw": {
+          "against_baseline": {
+            "pixels": 43516,
+            "rmse": 0.09546895144946185,
+            "mae": 0.03708614652026323,
+            "mean_signed_error": 0.028775277547110244,
+            "max_absolute_error": 0.7436678409576416
+          },
+          "against_refined": {
+            "pixels": 43516,
+            "rmse": 0.09546071871286546,
+            "mae": 0.03708607403924277,
+            "mean_signed_error": 0.028784261745040233,
+            "max_absolute_error": 0.7461422681808472
+          }
+        },
+        "gtao": {
+          "against_baseline": {
+            "pixels": 43516,
+            "rmse": 0.09167994223190039,
+            "mae": 0.036205673982213006,
+            "mean_signed_error": 0.02833045418113566,
+            "max_absolute_error": 0.6888846457004547
+          },
+          "against_refined": {
+            "pixels": 43516,
+            "rmse": 0.09167256776942266,
+            "mae": 0.036202619851295734,
+            "mean_signed_error": 0.02833943837906565,
+            "max_absolute_error": 0.6895045042037964
+          }
+        }
+      }
+    },
+    "cornell": {
+      "reference_difference": {
+        "pixels": 58063,
+        "rmse": 0.003457606790795832,
+        "mae": 0.0016234179292822254,
+        "mean_signed_error": 1.5793855030176167e-05,
+        "max_absolute_error": 0.03700023889541626
+      },
+      "modes": {
+        "legacy": {
+          "against_baseline": {
+            "pixels": 58063,
+            "rmse": 0.13584329356234076,
+            "mae": 0.07884078660570433,
+            "mean_signed_error": 0.045891318805216144,
+            "max_absolute_error": 0.825927734375
+          },
+          "against_refined": {
+            "pixels": 58063,
+            "rmse": 0.135830501324159,
+            "mae": 0.07884068904099109,
+            "mean_signed_error": 0.045907112660246316,
+            "max_absolute_error": 0.825927734375
+          }
+        },
+        "gtao-raw": {
+          "against_baseline": {
+            "pixels": 58063,
+            "rmse": 0.14414129181849725,
+            "mae": 0.07605379872403754,
+            "mean_signed_error": 0.06475770365974645,
+            "max_absolute_error": 0.89837646484375
+          },
+          "against_refined": {
+            "pixels": 58063,
+            "rmse": 0.14411412540024782,
+            "mae": 0.07604640721196901,
+            "mean_signed_error": 0.06477349751477664,
+            "max_absolute_error": 0.8983018398284912
+          }
+        },
+        "gtao": {
+          "against_baseline": {
+            "pixels": 58063,
+            "rmse": 0.1337205962928196,
+            "mae": 0.07285526642884499,
+            "mean_signed_error": 0.06410176520678104,
+            "max_absolute_error": 0.73193359375
+          },
+          "against_refined": {
+            "pixels": 58063,
+            "rmse": 0.1336985870659534,
+            "mae": 0.07286200456414527,
+            "mean_signed_error": 0.06411755906181121,
+            "max_absolute_error": 0.73193359375
+          }
+        }
+      }
+    },
+    "sponza": {
+      "reference_difference": {
+        "pixels": 75672,
+        "rmse": 0.008388450483458008,
+        "mae": 0.005863815958406952,
+        "mean_signed_error": 1.2757084563261833e-05,
+        "max_absolute_error": 0.06930500268936157
+      },
+      "modes": {
+        "legacy": {
+          "against_baseline": {
+            "pixels": 75672,
+            "rmse": 0.19926187378772814,
+            "mae": 0.13381087349570772,
+            "mean_signed_error": 0.054069799019809336,
+            "max_absolute_error": 0.9702268876135349
+          },
+          "against_refined": {
+            "pixels": 75672,
+            "rmse": 0.1991757491886314,
+            "mae": 0.13369592926758936,
+            "mean_signed_error": 0.0540825561043726,
+            "max_absolute_error": 0.9706676937639713
+          }
+        },
+        "gtao-raw": {
+          "against_baseline": {
+            "pixels": 75672,
+            "rmse": 0.18122452740442474,
+            "mae": 0.11334865196801684,
+            "mean_signed_error": 0.07450030814330881,
+            "max_absolute_error": 0.9954393953084946
+          },
+          "against_refined": {
+            "pixels": 75672,
+            "rmse": 0.18111799942088957,
+            "mae": 0.11319716591298082,
+            "mean_signed_error": 0.07451306522787207,
+            "max_absolute_error": 0.9948680191300809
+          }
+        },
+        "gtao": {
+          "against_baseline": {
+            "pixels": 75672,
+            "rmse": 0.1680090134649245,
+            "mae": 0.10610678126129391,
+            "mean_signed_error": 0.07272108402426884,
+            "max_absolute_error": 0.9929979890584946
+          },
+          "against_refined": {
+            "pixels": 75672,
+            "rmse": 0.16789779277222439,
+            "mae": 0.10595519789225474,
+            "mean_signed_error": 0.0727338411088321,
+            "max_absolute_error": 0.992198659107089
+          }
+        }
+      }
+    }
+  }
+}

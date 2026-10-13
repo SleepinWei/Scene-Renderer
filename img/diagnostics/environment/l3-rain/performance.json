@@ -1,0 +1,95 @@
+{
+  "backend": "Metal",
+  "size": [
+    800,
+    450
+  ],
+  "frames": 60,
+  "discarded": 20,
+  "physical_checkpoint_equal": true,
+  "runs": [
+    {
+      "name": "on",
+      "argv": [
+        "--classic",
+        "mountain-lake",
+        "--hidden",
+        "--size",
+        "800x450",
+        "--frames",
+        "60",
+        "--environment-ticks",
+        "3600",
+        "--environment-sun",
+        "45",
+        "20",
+        "--environment-wind",
+        "12",
+        "4",
+        "--environment-rain",
+        "50",
+        "--environment-save",
+        "build/environment/l3-isolated/on.json",
+        "--screenshot",
+        "build/environment/l3-isolated/on.ppm"
+      ],
+      "stages": {
+        "rain/vertex": {
+          "samples": 40,
+          "p50_ms": 0.01366635,
+          "max_ms": 0.0406671,
+          "p95_ms": 0.0284998
+        },
+        "rain/fragment": {
+          "samples": 40,
+          "p50_ms": 0.0330831,
+          "max_ms": 0.400708,
+          "p95_ms": 0.223084
+        }
+      }
+    },
+    {
+      "name": "off",
+      "argv": [
+        "--classic",
+        "mountain-lake",
+        "--hidden",
+        "--size",
+        "800x450",
+        "--frames",
+        "60",
+        "--environment-ticks",
+        "3600",
+        "--environment-sun",
+        "45",
+        "20",
+        "--environment-wind",
+        "12",
+        "4",
+        "--environment-rain",
+        "50",
+        "--environment-save",
+        "build/environment/l3-isolated/off.json",
+        "--screenshot",
+        "build/environment/l3-isolated/off.ppm",
+        "--environment-hide-rain"
+      ],
+      "stages": {
+        "rain/vertex": {
+          "samples": 0,
+          "p50_ms": null,
+          "max_ms": null,
+          "p95_ms": null
+        },
+        "rain/fragment": {
+          "samples": 0,
+          "p50_ms": null,
+          "max_ms": null,
+          "p95_ms": null
+        }
+      }
+    }
+  ],
+  "executable_sha256": "9703f722c32b1ed88440e4c6d5c341bcea01a3ec15209c3c0e82492334ce675e",
+  "scope": "Individual native vertex/fragment timestamps, which can overlap. Runs must be exclusive of other validation jobs; no sum or stable frame-rate claim."
+}

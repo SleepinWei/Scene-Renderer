@@ -235,7 +235,7 @@ Metal API + Shader Validation 与 Vulkan/MoltenVK 同一组 GPU 检查均通过�
 - `GpuTerrain` 保留旧 quadtree 的 5 根节点/轴、6 级遍历、距离 LOD 公式、邻居 LOD map 和边界拼缝。逐级队列使用原生 indirect dispatch，无 CPU 计数读回参与调度；完整顶点/索引输出经 indexed indirect draw 进入 G-buffer。测试产生 4,870 个叶节点，与独立 CPU quadtree 集合完全一致；远相机收缩到 25 个根叶节点。容量按完整树计算，取代旧队列的过小固定 buffer。
 - 草从近处叶节点生成随机 pose，保持贴合 bilinear height，加入风弯曲。Vertex shader 只读 pose storage buffer，GPU 输出实例数量给 indexed indirect draw；容量检查阻止旧路径的写出界。GPU atomic 排序及容量截断、浮点随机函数会影响两个后端的被截断草分布，不以逐像素一致作为草的验收。分别检查实例数量、有效 pose、高度、实际像素及风变化。
 - 旧 `tsaa.comp` resolve 数学迁入统一 compute shader，修正 0..1 深度和顶部纹理行约定。提供 HDR/depth ping-pong history、Halton jitter、逐对象 previous model/motion、遮挡变化/深度拒绝、scene/camera/enable/resize reset。草为 reactive surface，海面使用实际上一帧 displacement。Metal API/Shader Validation 与 Vulkan 均通过静态 HDR、移动 emissive 物体无拖影、resize 和 history reset 检查。
-- 显式绑定组扩展至 3 组，每组 8 个槽位；Metal RHI 顶点流移至 slot 30。旧阶段记录中的 2 组/slot 16 为当时 ABI。这里只读 vertex storage 已开放，graphics storage 写入仍拒绝。
+- 显式绑定组扩展至 3 组，每组 8 个槽位；Metal RHI 顶点流移至 slot 30。旧阶段记录中的 2 组/slot 16 为当时 ABI。当前只读 vertex／fragment storage 已开放，graphics storage 写入仍拒绝。DDGI 的 compute→fragment 探针缓存依赖已纳入合约验证，见 [DDGI 第一阶段](ddgi.md)。
 
 继续迁移特殊材质、透明/细分与编辑器入口；兼容桥移除、多帧并行仍未验收。
 

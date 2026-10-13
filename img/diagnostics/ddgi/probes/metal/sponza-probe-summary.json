@@ -1,0 +1,88 @@
+{
+  "scene": "sponza",
+  "volume": {
+    "capture_resolution": 12,
+    "counts": [
+      16,
+      8,
+      10
+    ],
+    "debug_radius": 0.1599999964237213,
+    "layer_capture_index": 1,
+    "layer_capture_y": 1.0,
+    "origin": [
+      -15.0,
+      -1.0,
+      -9.0
+    ],
+    "spacing": 2.0,
+    "stride_vec4": 321
+  },
+  "probe_count": 1280,
+  "active": 1038,
+  "inactive": 242,
+  "unvisited": 0,
+  "layers": [
+    {
+      "index": 0,
+      "y": -1.0,
+      "active": 160,
+      "inactive": 0,
+      "unvisited": 0
+    },
+    {
+      "index": 1,
+      "y": 1.0,
+      "active": 126,
+      "inactive": 34,
+      "unvisited": 0
+    },
+    {
+      "index": 2,
+      "y": 3.0,
+      "active": 128,
+      "inactive": 32,
+      "unvisited": 0
+    },
+    {
+      "index": 3,
+      "y": 5.0,
+      "active": 128,
+      "inactive": 32,
+      "unvisited": 0
+    },
+    {
+      "index": 4,
+      "y": 7.0,
+      "active": 128,
+      "inactive": 32,
+      "unvisited": 0
+    },
+    {
+      "index": 5,
+      "y": 9.0,
+      "active": 104,
+      "inactive": 56,
+      "unvisited": 0
+    },
+    {
+      "index": 6,
+      "y": 11.0,
+      "active": 104,
+      "inactive": 56,
+      "unvisited": 0
+    },
+    {
+      "index": 7,
+      "y": 13.0,
+      "active": 160,
+      "inactive": 0,
+      "unvisited": 0
+    }
+  ],
+  "readback_sha256": "9d04383b27f94ec7b2b335418d207b8db4c086cdd0457e933e8c93cfd3c723a8",
+  "frozen_field_unchanged": true,
+  "classification": "GPU backface solid-angle fraction >= threshold rejects a probe; this is a heuristic, not an exact point-in-solid test.",
+  "visualization": "Native GPU billboard markers display directional E/pi or classification. Radius is display-only; X-ray reveals occluded markers at reduced alpha.",
+  "reference": "This run uses 1 spp PT only as CLI smoke, never as a quality reference."
+}

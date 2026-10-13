@@ -1,0 +1,364 @@
+{
+  "executable": "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/pt-native-rt/runtime/pt-package-render",
+  "executable_sha256": "1ea2cfa10cfde2e6858cecbbee3b7568ffc01b5b22c2d94c51869b587b4cde94",
+  "size": "160x90",
+  "samples": 64,
+  "max_depth": 12,
+  "seed": 1,
+  "runs": 3,
+  "scope": "sequential offline Metal processes; phase timings are CPU wall time including GPU waits; driver caches uncontrolled; raw PFM before tone mapping/denoising",
+  "scenes": [
+    {
+      "kind": "scene",
+      "source": "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/path-tracing/instances/barcelona-full/scene.json",
+      "renders": [
+        {
+          "run": 0,
+          "mode": "software",
+          "process_seconds": 3.526862084,
+          "render_seconds": 2.562220625,
+          "setup_seconds": 0.064632416,
+          "as_seconds": 0.0,
+          "as_bytes": 0,
+          "blas_count": 0,
+          "instances": 0,
+          "rays": 7737800
+        },
+        {
+          "run": 0,
+          "mode": "native",
+          "process_seconds": 3.9030463330000003,
+          "render_seconds": 1.266662875,
+          "setup_seconds": 2.255335458,
+          "as_seconds": 2.210629125,
+          "as_bytes": 35320880,
+          "blas_count": 110,
+          "instances": 21129,
+          "rays": 7737809
+        },
+        {
+          "run": 1,
+          "mode": "native",
+          "process_seconds": 1.71810275,
+          "render_seconds": 1.2279905,
+          "setup_seconds": 0.124913125,
+          "as_seconds": 0.080352375,
+          "as_bytes": 35320880,
+          "blas_count": 110,
+          "instances": 21129,
+          "rays": 7737809
+        },
+        {
+          "run": 1,
+          "mode": "software",
+          "process_seconds": 2.8684460840000003,
+          "render_seconds": 2.504878,
+          "setup_seconds": 0.038674458,
+          "as_seconds": 0.0,
+          "as_bytes": 0,
+          "blas_count": 0,
+          "instances": 0,
+          "rays": 7737800
+        },
+        {
+          "run": 2,
+          "mode": "software",
+          "process_seconds": 2.9101463340000002,
+          "render_seconds": 2.527115958,
+          "setup_seconds": 0.037642917,
+          "as_seconds": 0.0,
+          "as_bytes": 0,
+          "blas_count": 0,
+          "instances": 0,
+          "rays": 7737800
+        },
+        {
+          "run": 2,
+          "mode": "native",
+          "process_seconds": 1.8186942499999983,
+          "render_seconds": 1.22974,
+          "setup_seconds": 0.218656417,
+          "as_seconds": 0.122214292,
+          "as_bytes": 35320880,
+          "blas_count": 110,
+          "instances": 21129,
+          "rays": 7737809
+        }
+      ],
+      "raw_comparison": {
+        "exact": false,
+        "nrmse": 0.0080236684064793,
+        "maximum_absolute_error": 0.11772923171520233,
+        "different_channels": 31288,
+        "relative_l1": 0.0013157140394003675,
+        "relative_mean_difference": -2.3407888315581674e-05
+      },
+      "median_render_seconds": {
+        "native": 1.22974,
+        "software": 2.527115958
+      },
+      "sampling_speedup": 2.0550002098004456,
+      "aov_comparison": {
+        "albedo": {
+          "nrmse": 0.014327656512575736,
+          "relative_l1": 0.00024626864157941596,
+          "relative_mean_difference": 0.0002385933785649763,
+          "maximum_absolute_error": 0.9651225879788399,
+          "pixels_above_0_001": 23
+        },
+        "normal": {
+          "nrmse": 0.01034693806569177,
+          "relative_l1": 0.00016910960674133835,
+          "relative_mean_difference": 0.0003113932034195924,
+          "maximum_absolute_error": 0.8372358973138034,
+          "pixels_above_0_001": 3
+        }
+      }
+    },
+    {
+      "kind": "scene",
+      "source": "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/path-tracing/blender/materials-before/classroom/scene.json",
+      "renders": [
+        {
+          "run": 0,
+          "mode": "software",
+          "process_seconds": 2.5344990000000003,
+          "render_seconds": 2.141527417,
+          "setup_seconds": 0.042517334,
+          "as_seconds": 0.0,
+          "as_bytes": 0,
+          "blas_count": 0,
+          "instances": 0,
+          "rays": 26443293
+        },
+        {
+          "run": 0,
+          "mode": "native",
+          "process_seconds": 1.2742849590000027,
+          "render_seconds": 0.766400583,
+          "setup_seconds": 0.211866333,
+          "as_seconds": 0.155817792,
+          "as_bytes": 43534384,
+          "blas_count": 360,
+          "instances": 922,
+          "rays": 26442898
+        },
+        {
+          "run": 1,
+          "mode": "native",
+          "process_seconds": 1.4328773330000004,
+          "render_seconds": 0.728897292,
+          "setup_seconds": 0.360094417,
+          "as_seconds": 0.224542417,
+          "as_bytes": 43534384,
+          "blas_count": 360,
+          "instances": 922,
+          "rays": 26442898
+        },
+        {
+          "run": 1,
+          "mode": "software",
+          "process_seconds": 2.545017708000003,
+          "render_seconds": 2.2107975,
+          "setup_seconds": 0.04268225,
+          "as_seconds": 0.0,
+          "as_bytes": 0,
+          "blas_count": 0,
+          "instances": 0,
+          "rays": 26443293
+        },
+        {
+          "run": 2,
+          "mode": "software",
+          "process_seconds": 2.4865320420000003,
+          "render_seconds": 2.169114708,
+          "setup_seconds": 0.038304625,
+          "as_seconds": 0.0,
+          "as_bytes": 0,
+          "blas_count": 0,
+          "instances": 0,
+          "rays": 26443293
+        },
+        {
+          "run": 2,
+          "mode": "native",
+          "process_seconds": 1.223069749999997,
+          "render_seconds": 0.748684333,
+          "setup_seconds": 0.170487334,
+          "as_seconds": 0.122376584,
+          "as_bytes": 43534384,
+          "blas_count": 360,
+          "instances": 922,
+          "rays": 26442898
+        }
+      ],
+      "raw_comparison": {
+        "exact": false,
+        "nrmse": 0.006033764074948027,
+        "maximum_absolute_error": 10.245466232299805,
+        "different_channels": 38033,
+        "relative_l1": 0.0044571387757413134,
+        "relative_mean_difference": 0.002723383040899288
+      },
+      "median_render_seconds": {
+        "native": 0.748684333,
+        "software": 2.169114708
+      },
+      "sampling_speedup": 2.897235339903927,
+      "aov_comparison": {
+        "albedo": {
+          "nrmse": 3.108385720596067e-05,
+          "relative_l1": 5.085183860198629e-06,
+          "relative_mean_difference": -1.9446286502010946e-07,
+          "maximum_absolute_error": 0.0006867647171020508,
+          "pixels_above_0_001": 0
+        },
+        "normal": {
+          "nrmse": 1.0999904283211467e-05,
+          "relative_l1": 2.1189001187985746e-06,
+          "relative_mean_difference": -3.0905782571388926e-07,
+          "maximum_absolute_error": 0.0005949735641479492,
+          "pixels_above_0_001": 0
+        }
+      }
+    },
+    {
+      "kind": "fixture",
+      "source": "pool-sunlit",
+      "renders": [
+        {
+          "run": 0,
+          "mode": "software",
+          "process_seconds": 0.33115508299999874,
+          "render_seconds": 0.218517292,
+          "setup_seconds": 0.007101667,
+          "as_seconds": 0.0,
+          "as_bytes": 0,
+          "blas_count": 0,
+          "instances": 0,
+          "rays": 5068976
+        },
+        {
+          "run": 0,
+          "mode": "native",
+          "process_seconds": 0.31231879099999915,
+          "render_seconds": 0.174903375,
+          "setup_seconds": 0.029275041,
+          "as_seconds": 0.022667375,
+          "as_bytes": 8314440,
+          "blas_count": 11,
+          "instances": 635,
+          "rays": 5068994
+        },
+        {
+          "run": 1,
+          "mode": "native",
+          "process_seconds": 0.3123008330000019,
+          "render_seconds": 0.173417417,
+          "setup_seconds": 0.031868542,
+          "as_seconds": 0.02460275,
+          "as_bytes": 8314440,
+          "blas_count": 11,
+          "instances": 635,
+          "rays": 5068994
+        },
+        {
+          "run": 1,
+          "mode": "software",
+          "process_seconds": 0.3897330839999995,
+          "render_seconds": 0.266450167,
+          "setup_seconds": 0.008425291,
+          "as_seconds": 0.0,
+          "as_bytes": 0,
+          "blas_count": 0,
+          "instances": 0,
+          "rays": 5068976
+        },
+        {
+          "run": 2,
+          "mode": "software",
+          "process_seconds": 0.344550083999998,
+          "render_seconds": 0.236421292,
+          "setup_seconds": 0.007203375,
+          "as_seconds": 0.0,
+          "as_bytes": 0,
+          "blas_count": 0,
+          "instances": 0,
+          "rays": 5068976
+        },
+        {
+          "run": 2,
+          "mode": "native",
+          "process_seconds": 0.3004385840000019,
+          "render_seconds": 0.173474542,
+          "setup_seconds": 0.030069458,
+          "as_seconds": 0.0236335,
+          "as_bytes": 8314440,
+          "blas_count": 11,
+          "instances": 635,
+          "rays": 5068994
+        }
+      ],
+      "raw_comparison": {
+        "exact": false,
+        "nrmse": 3.074171411828865e-05,
+        "maximum_absolute_error": 0.002303067594766617,
+        "different_channels": 15,
+        "relative_l1": 7.601740233446663e-07,
+        "relative_mean_difference": -7.354384026263141e-07
+      },
+      "median_render_seconds": {
+        "native": 0.173474542,
+        "software": 0.236421292
+      },
+      "sampling_speedup": 1.3628587184856207,
+      "aov_comparison": {
+        "albedo": {
+          "nrmse": 0.0,
+          "relative_l1": 0.0,
+          "relative_mean_difference": 0.0,
+          "maximum_absolute_error": 0.0,
+          "pixels_above_0_001": 0
+        },
+        "normal": {
+          "nrmse": 0.0,
+          "relative_l1": 0.0,
+          "relative_mean_difference": 0.0,
+          "maximum_absolute_error": 0.0,
+          "pixels_above_0_001": 0
+        }
+      }
+    }
+  ],
+  "date": "2026-10-10",
+  "device": "Apple M4",
+  "validation_scope": "Metal API and shader validation PT self-test; Vulkan software fallback; editor bridge validation is recorded separately",
+  "validation_binary_sha256": "a38faf2daa8ea9bac039d1550be725848ac681eb63d6420db4bb632d6161446e",
+  "note": "Sampling comparison binary predates cancellation cleanup, default-pipeline-only warmup, traversal option invalidation, and CLI output/argument fixes. Shared integrator and native query shader are unchanged. Final binaries passed validation recorded below.",
+  "final_package_binary_sha256": "73e5d9c59df0b7bf080034cf009fe62424a9ed5d4b47347a90ab657cc48251dd",
+  "final_editor_binary_sha256": "0b2ad5afb17eb1fcdafde838a825685c2622baad432684d915022836363a8dac",
+  "validation": {
+    "Metal GPU PT API and shader validation": "passed",
+    "Metal editor RenderRuntime sky/FFT bridge API and shader validation": "passed",
+    "Vulkan software PT regression": "passed",
+    "Vulkan forced native rejection": "passed (expected exit 1)",
+    "CPU PT and traversal option invalidation": "passed",
+    "32x18 4spp final native/software radiance and AOVs": "bitwise equal"
+  },
+  "source_sha256": {
+    "include/rhi/GraphicsDevice.h": "81144ec6b2e54452b90228ff97931c93c6b9edaffae394a90ec604efe7f70aaa",
+    "src/rhi/GraphicsDevice.cpp": "e1c19f9397ee10287e2c7cf0f847af93ce005ae9dbc952b6a1e78b3b2579f665",
+    "src/rhi/MetalDevice.mm": "731d0c43d8587b94f55a027fbf1f196ce85abc23f4b145e9e8ed8b3eead56a6c",
+    "include/PT/CpuPathTracer.h": "a743e5e64f7967b4af830fa27975a93693df9b4c22087afadef44cd9af02d23e",
+    "include/PT/SceneIdentity.h": "834ececc1fe41e491bea62b85f176637b5b205af0c13c8514ee7c953fad95419",
+    "src/PT/GpuPathTracer.cpp": "b1bc01d63e740c64a8f717a1cfa4b51f9aba7b9dd4ae930fc8e7180ca83d836a",
+    "src/rhi/shaders/path-trace.comp": "3ceaa9d904c504bfcf75ecc6341ce47e33f23a53852a2d9e8140743505d58531",
+    "tools/compile_rhi_shaders.py": "da8ef76c777a093cded3a0b819a6645711d02fa5c6a2c878a5ce4df716cfc8ab",
+    "tools/metal_pt_native.py": "47701cf5794812b3247f4a50152cd3cf021bb728e40fb013f9810343a50d83f3",
+    "tools/benchmark_pt_native.py": "e582aec569a001715efb15fdcd8f1af0daa629eed1d6c411e57d6977eb95a1db"
+  },
+  "shader_sha256": {
+    "path-trace.comp.metallib": "963f3e4e617d65f04099c7a8c80ef18a0fff63916db18bf7c93e52b8fd70fdc3",
+    "path-trace.comp.native.metallib": "b121cecfa2747443ea367e5826d83b2c4ed6f055e3bfbe3be604c6fc27e4f303"
+  }
+}

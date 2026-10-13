@@ -1,0 +1,636 @@
+{
+  "Metal": {
+    "backend": "Metal",
+    "scope": "native editor CPU environment integration",
+    "executable_sha256": "510fa053d0719429881b2a8feb90617f74280ead5d1e20c3f9e3597daa38505c",
+    "checkpoint": {
+      "applied_sequence": 3,
+      "cloud_coverage": 0.6666666754969844,
+      "cloud_x": -12.330729063571612,
+      "cloud_z": 12.541341132946448,
+      "coverage_elapsed": 2.0,
+      "coverage_from": 0.550000011920929,
+      "coverage_target": 1.0,
+      "enabled": true,
+      "events": [],
+      "grass_phase": 3.2902467026036764,
+      "initial_cloud_coverage": 0.550000011920929,
+      "initial_seconds": 0.0,
+      "initial_solar": {
+        "azimuth_degrees": -0.0,
+        "elevation_degrees": 10.000000953674316
+      },
+      "initial_wind": {
+        "x": 12.0,
+        "z": 4.0
+      },
+      "next_sequence": 4,
+      "scene_key": "classic:sky",
+      "schema_version": 3,
+      "scope": "cpu-clock-solar-wind-coverage",
+      "solar": {
+        "azimuth_degrees": 45.0,
+        "elevation_degrees": 30.0
+      },
+      "step_seconds": 0.016666666666666666,
+      "tick": 120,
+      "wave_elapsed": 1.9833333333333334,
+      "wave_from": {
+        "x": 12.0,
+        "z": 4.0
+      },
+      "wave_to": {
+        "x": -20.0,
+        "z": 8.0
+      },
+      "wind": {
+        "x": -15.669270936428394,
+        "z": 7.45865886705355
+      },
+      "wind_target": {
+        "x": -20.0,
+        "z": 8.0
+      }
+    },
+    "resumed_checkpoint": {
+      "applied_sequence": 3,
+      "cloud_coverage": 0.6683367950515068,
+      "cloud_x": -12.592481741591639,
+      "cloud_z": 12.665726884365618,
+      "coverage_elapsed": 2.0166666666666666,
+      "coverage_from": 0.550000011920929,
+      "coverage_target": 1.0,
+      "enabled": true,
+      "events": [],
+      "grass_phase": 3.3218616270050165,
+      "initial_cloud_coverage": 0.550000011920929,
+      "initial_seconds": 0.0,
+      "initial_solar": {
+        "azimuth_degrees": -0.0,
+        "elevation_degrees": 10.000000953674316
+      },
+      "initial_wind": {
+        "x": 12.0,
+        "z": 4.0
+      },
+      "next_sequence": 4,
+      "scene_key": "classic:sky",
+      "schema_version": 3,
+      "scope": "cpu-clock-solar-wind-coverage",
+      "solar": {
+        "azimuth_degrees": 45.0,
+        "elevation_degrees": 30.0
+      },
+      "step_seconds": 0.016666666666666666,
+      "tick": 121,
+      "wave_elapsed": 2.0,
+      "wave_from": {
+        "x": 12.0,
+        "z": 4.0
+      },
+      "wave_to": {
+        "x": -20.0,
+        "z": 8.0
+      },
+      "wind": {
+        "x": -15.7408515917417,
+        "z": 7.467606448967713
+      },
+      "wind_target": {
+        "x": -20.0,
+        "z": 8.0
+      }
+    },
+    "runs": [
+      {
+        "name": "capture",
+        "argv": [
+          "--backend",
+          "Metal",
+          "--classic",
+          "sky",
+          "--hidden",
+          "--size",
+          "800x450",
+          "--frames",
+          "12",
+          "--environment-ticks",
+          "120",
+          "--environment-sun",
+          "30",
+          "45",
+          "--environment-wind",
+          "-20",
+          "8",
+          "--environment-cloud-coverage",
+          "1",
+          "--environment-save",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-metal/first.json",
+          "--screenshot",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-metal/sky.ppm"
+        ],
+        "exit_code": 0
+      },
+      {
+        "name": "resume",
+        "argv": [
+          "--backend",
+          "Metal",
+          "--classic",
+          "sky",
+          "--hidden",
+          "--size",
+          "800x450",
+          "--frames",
+          "12",
+          "--environment-load",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-metal/first.json",
+          "--environment-ticks",
+          "1",
+          "--environment-save",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-metal/resumed.json"
+        ],
+        "exit_code": 0
+      },
+      {
+        "name": "continuous-wind",
+        "argv": [
+          "--backend",
+          "Metal",
+          "--classic",
+          "sky",
+          "--hidden",
+          "--size",
+          "800x450",
+          "--frames",
+          "12",
+          "--environment-ticks",
+          "240",
+          "--environment-sun",
+          "30",
+          "45",
+          "--environment-wind",
+          "-20",
+          "8",
+          "--environment-cloud-coverage",
+          "1",
+          "--environment-save",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-metal/continuous.json"
+        ],
+        "exit_code": 0
+      },
+      {
+        "name": "recovered-wind",
+        "argv": [
+          "--backend",
+          "Metal",
+          "--classic",
+          "sky",
+          "--hidden",
+          "--size",
+          "800x450",
+          "--frames",
+          "12",
+          "--environment-load",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-metal/first.json",
+          "--environment-ticks",
+          "120",
+          "--environment-save",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-metal/recovered.json"
+        ],
+        "exit_code": 0
+      },
+      {
+        "name": "clear-coverage",
+        "argv": [
+          "--backend",
+          "Metal",
+          "--classic",
+          "sky",
+          "--hidden",
+          "--size",
+          "800x450",
+          "--frames",
+          "12",
+          "--environment-cloud-coverage",
+          "0",
+          "--environment-ticks",
+          "360",
+          "--environment-save",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-metal/clear.json"
+        ],
+        "exit_code": 0
+      },
+      {
+        "name": "invalid-coverage",
+        "argv": [
+          "--backend",
+          "Metal",
+          "--classic",
+          "sky",
+          "--hidden",
+          "--size",
+          "800x450",
+          "--frames",
+          "12",
+          "--environment-cloud-coverage",
+          "nan"
+        ],
+        "exit_code": 1
+      },
+      {
+        "name": "invalid-wind",
+        "argv": [
+          "--backend",
+          "Metal",
+          "--classic",
+          "sky",
+          "--hidden",
+          "--size",
+          "800x450",
+          "--frames",
+          "12",
+          "--environment-wind",
+          "nan",
+          "8"
+        ],
+        "exit_code": 1
+      },
+      {
+        "name": "wrong-scene",
+        "argv": [
+          "--backend",
+          "Metal",
+          "--classic",
+          "sky",
+          "--hidden",
+          "--size",
+          "800x450",
+          "--frames",
+          "12",
+          "--environment-load",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-metal/wrong-scene.json",
+          "--environment-save",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-metal/rejected.json"
+        ],
+        "exit_code": 1
+      },
+      {
+        "name": "conflicting-time",
+        "argv": [
+          "--backend",
+          "Metal",
+          "--classic",
+          "sky",
+          "--hidden",
+          "--size",
+          "800x450",
+          "--frames",
+          "12",
+          "--environment",
+          "--time",
+          "8"
+        ],
+        "exit_code": 1
+      },
+      {
+        "name": "invalid-sun",
+        "argv": [
+          "--backend",
+          "Metal",
+          "--classic",
+          "sky",
+          "--hidden",
+          "--size",
+          "800x450",
+          "--frames",
+          "12",
+          "--environment-sun",
+          "30junk",
+          "45"
+        ],
+        "exit_code": 1
+      }
+    ],
+    "wind_replay_exact": true,
+    "coverage_replay_exact": true,
+    "passed": true
+  },
+  "Vulkan": {
+    "backend": "Vulkan",
+    "scope": "native editor CPU environment integration",
+    "executable_sha256": "510fa053d0719429881b2a8feb90617f74280ead5d1e20c3f9e3597daa38505c",
+    "checkpoint": {
+      "applied_sequence": 3,
+      "cloud_coverage": 0.6666666754969844,
+      "cloud_x": -12.330729063571612,
+      "cloud_z": 12.541341132946448,
+      "coverage_elapsed": 2.0,
+      "coverage_from": 0.550000011920929,
+      "coverage_target": 1.0,
+      "enabled": true,
+      "events": [],
+      "grass_phase": 3.2902467026036764,
+      "initial_cloud_coverage": 0.550000011920929,
+      "initial_seconds": 0.0,
+      "initial_solar": {
+        "azimuth_degrees": -0.0,
+        "elevation_degrees": 10.000000953674316
+      },
+      "initial_wind": {
+        "x": 12.0,
+        "z": 4.0
+      },
+      "next_sequence": 4,
+      "scene_key": "classic:sky",
+      "schema_version": 3,
+      "scope": "cpu-clock-solar-wind-coverage",
+      "solar": {
+        "azimuth_degrees": 45.0,
+        "elevation_degrees": 30.0
+      },
+      "step_seconds": 0.016666666666666666,
+      "tick": 120,
+      "wave_elapsed": 1.9833333333333334,
+      "wave_from": {
+        "x": 12.0,
+        "z": 4.0
+      },
+      "wave_to": {
+        "x": -20.0,
+        "z": 8.0
+      },
+      "wind": {
+        "x": -15.669270936428394,
+        "z": 7.45865886705355
+      },
+      "wind_target": {
+        "x": -20.0,
+        "z": 8.0
+      }
+    },
+    "resumed_checkpoint": {
+      "applied_sequence": 3,
+      "cloud_coverage": 0.6683367950515068,
+      "cloud_x": -12.592481741591639,
+      "cloud_z": 12.665726884365618,
+      "coverage_elapsed": 2.0166666666666666,
+      "coverage_from": 0.550000011920929,
+      "coverage_target": 1.0,
+      "enabled": true,
+      "events": [],
+      "grass_phase": 3.3218616270050165,
+      "initial_cloud_coverage": 0.550000011920929,
+      "initial_seconds": 0.0,
+      "initial_solar": {
+        "azimuth_degrees": -0.0,
+        "elevation_degrees": 10.000000953674316
+      },
+      "initial_wind": {
+        "x": 12.0,
+        "z": 4.0
+      },
+      "next_sequence": 4,
+      "scene_key": "classic:sky",
+      "schema_version": 3,
+      "scope": "cpu-clock-solar-wind-coverage",
+      "solar": {
+        "azimuth_degrees": 45.0,
+        "elevation_degrees": 30.0
+      },
+      "step_seconds": 0.016666666666666666,
+      "tick": 121,
+      "wave_elapsed": 2.0,
+      "wave_from": {
+        "x": 12.0,
+        "z": 4.0
+      },
+      "wave_to": {
+        "x": -20.0,
+        "z": 8.0
+      },
+      "wind": {
+        "x": -15.7408515917417,
+        "z": 7.467606448967713
+      },
+      "wind_target": {
+        "x": -20.0,
+        "z": 8.0
+      }
+    },
+    "runs": [
+      {
+        "name": "capture",
+        "argv": [
+          "--backend",
+          "Vulkan",
+          "--classic",
+          "sky",
+          "--hidden",
+          "--size",
+          "800x450",
+          "--frames",
+          "12",
+          "--environment-ticks",
+          "120",
+          "--environment-sun",
+          "30",
+          "45",
+          "--environment-wind",
+          "-20",
+          "8",
+          "--environment-cloud-coverage",
+          "1",
+          "--environment-save",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-vulkan/first.json",
+          "--screenshot",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-vulkan/sky.ppm"
+        ],
+        "exit_code": 0
+      },
+      {
+        "name": "resume",
+        "argv": [
+          "--backend",
+          "Vulkan",
+          "--classic",
+          "sky",
+          "--hidden",
+          "--size",
+          "800x450",
+          "--frames",
+          "12",
+          "--environment-load",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-vulkan/first.json",
+          "--environment-ticks",
+          "1",
+          "--environment-save",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-vulkan/resumed.json"
+        ],
+        "exit_code": 0
+      },
+      {
+        "name": "continuous-wind",
+        "argv": [
+          "--backend",
+          "Vulkan",
+          "--classic",
+          "sky",
+          "--hidden",
+          "--size",
+          "800x450",
+          "--frames",
+          "12",
+          "--environment-ticks",
+          "240",
+          "--environment-sun",
+          "30",
+          "45",
+          "--environment-wind",
+          "-20",
+          "8",
+          "--environment-cloud-coverage",
+          "1",
+          "--environment-save",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-vulkan/continuous.json"
+        ],
+        "exit_code": 0
+      },
+      {
+        "name": "recovered-wind",
+        "argv": [
+          "--backend",
+          "Vulkan",
+          "--classic",
+          "sky",
+          "--hidden",
+          "--size",
+          "800x450",
+          "--frames",
+          "12",
+          "--environment-load",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-vulkan/first.json",
+          "--environment-ticks",
+          "120",
+          "--environment-save",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-vulkan/recovered.json"
+        ],
+        "exit_code": 0
+      },
+      {
+        "name": "clear-coverage",
+        "argv": [
+          "--backend",
+          "Vulkan",
+          "--classic",
+          "sky",
+          "--hidden",
+          "--size",
+          "800x450",
+          "--frames",
+          "12",
+          "--environment-cloud-coverage",
+          "0",
+          "--environment-ticks",
+          "360",
+          "--environment-save",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-vulkan/clear.json"
+        ],
+        "exit_code": 0
+      },
+      {
+        "name": "invalid-coverage",
+        "argv": [
+          "--backend",
+          "Vulkan",
+          "--classic",
+          "sky",
+          "--hidden",
+          "--size",
+          "800x450",
+          "--frames",
+          "12",
+          "--environment-cloud-coverage",
+          "nan"
+        ],
+        "exit_code": 1
+      },
+      {
+        "name": "invalid-wind",
+        "argv": [
+          "--backend",
+          "Vulkan",
+          "--classic",
+          "sky",
+          "--hidden",
+          "--size",
+          "800x450",
+          "--frames",
+          "12",
+          "--environment-wind",
+          "nan",
+          "8"
+        ],
+        "exit_code": 1
+      },
+      {
+        "name": "wrong-scene",
+        "argv": [
+          "--backend",
+          "Vulkan",
+          "--classic",
+          "sky",
+          "--hidden",
+          "--size",
+          "800x450",
+          "--frames",
+          "12",
+          "--environment-load",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-vulkan/wrong-scene.json",
+          "--environment-save",
+          "/Users/octopusz/Documents/Unreal Projects/SceneRenderer/build/environment/l2-coverage-vulkan/rejected.json"
+        ],
+        "exit_code": 1
+      },
+      {
+        "name": "conflicting-time",
+        "argv": [
+          "--backend",
+          "Vulkan",
+          "--classic",
+          "sky",
+          "--hidden",
+          "--size",
+          "800x450",
+          "--frames",
+          "12",
+          "--environment",
+          "--time",
+          "8"
+        ],
+        "exit_code": 1
+      },
+      {
+        "name": "invalid-sun",
+        "argv": [
+          "--backend",
+          "Vulkan",
+          "--classic",
+          "sky",
+          "--hidden",
+          "--size",
+          "800x450",
+          "--frames",
+          "12",
+          "--environment-sun",
+          "30junk",
+          "45"
+        ],
+        "exit_code": 1
+      }
+    ],
+    "wind_replay_exact": true,
+    "coverage_replay_exact": true,
+    "passed": true
+  }
+}

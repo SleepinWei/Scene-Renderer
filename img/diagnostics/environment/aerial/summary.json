@@ -1,0 +1,75 @@
+{
+  "backend_image_parity": {
+    "mountain-lake-beach-aerial-off.png": {
+      "mean_abs_rgb_0_to_255": 0.019908050411522635,
+      "max_abs_rgb_0_to_255": 127.0,
+      "pixels_over_2_levels": 729
+    },
+    "mountain-lake-aerial-off.png": {
+      "mean_abs_rgb_0_to_255": 0.011163194444444444,
+      "max_abs_rgb_0_to_255": 117.0,
+      "pixels_over_2_levels": 202
+    },
+    "mountain-lake-aerial-combined.png": {
+      "mean_abs_rgb_0_to_255": 0.004826388888888889,
+      "max_abs_rgb_0_to_255": 58.0,
+      "pixels_over_2_levels": 85
+    },
+    "mountain-lake-beach-aerial.png": {
+      "mean_abs_rgb_0_to_255": 0.020172968106995884,
+      "max_abs_rgb_0_to_255": 127.0,
+      "pixels_over_2_levels": 681
+    },
+    "mountain-lake-beach-aerial-combined.png": {
+      "mean_abs_rgb_0_to_255": 0.011966949588477367,
+      "max_abs_rgb_0_to_255": 78.0,
+      "pixels_over_2_levels": 410
+    },
+    "mountain-lake-beach-aerial-scale2.png": {
+      "mean_abs_rgb_0_to_255": 0.01948752572016461,
+      "max_abs_rgb_0_to_255": 127.0,
+      "pixels_over_2_levels": 653
+    },
+    "mountain-lake-aerial.png": {
+      "mean_abs_rgb_0_to_255": 0.008767361111111111,
+      "max_abs_rgb_0_to_255": 74.0,
+      "pixels_over_2_levels": 161
+    },
+    "mountain-lake-aerial-scale2.png": {
+      "mean_abs_rgb_0_to_255": 0.007817644032921811,
+      "max_abs_rgb_0_to_255": 74.0,
+      "pixels_over_2_levels": 146
+    }
+  },
+  "metal_effect_vs_off": {
+    "mountain-lake": {
+      "aerial": {
+        "mean_abs_rgb_0_to_255": 3.0127231224279836,
+        "pixels_over_1_level": 261409
+      },
+      "aerial-scale2": {
+        "mean_abs_rgb_0_to_255": 5.135816615226338,
+        "pixels_over_1_level": 261887
+      },
+      "aerial-combined": {
+        "mean_abs_rgb_0_to_255": 31.31804140946502,
+        "pixels_over_1_level": 518347
+      }
+    },
+    "mountain-lake-beach": {
+      "aerial": {
+        "mean_abs_rgb_0_to_255": 3.7826691100823044,
+        "pixels_over_1_level": 192295
+      },
+      "aerial-scale2": {
+        "mean_abs_rgb_0_to_255": 4.146318158436214,
+        "pixels_over_1_level": 194491
+      },
+      "aerial-combined": {
+        "mean_abs_rgb_0_to_255": 17.125237268518518,
+        "pixels_over_1_level": 349169
+      }
+    }
+  },
+  "scope": "Static visual comparison, not full-frame performance acceptance. Metal capture overlapped independent GPU regression work; raw stage intervals are retained without performance inference."
+}

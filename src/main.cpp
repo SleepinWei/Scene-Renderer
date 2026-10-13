@@ -22,6 +22,7 @@
 #include "rhi/ShaderAssets.h"
 #include "renderer/rhi/SceneAdapter.h"
 #include "renderer/rhi/FeatureScenes.h"
+#include "renderer/rhi/ClusterFlowCapture.h"
 #include "renderer/rhi/AoReference.h"
 #ifdef SCENERENDERER_LEGACY_METAL
 #include "metal/MetalBackend.h"
@@ -35,6 +36,7 @@
 #include<thread>
 #include "engine/RenderRuntime.h"
 #include "PT/ViewportBenchmark.h"
+#include "rhi/MemorySafety.h"
 //utils
 #include"utils/Utils.h"
 #include"utils/Camera.h"
@@ -92,7 +94,7 @@ std::array<int,2> scriptedResize{};
 bool startForward=false,startDdgi=false;
 int startDdgiProbes=0,startDdgiProbeLayer=-1;bool startDdgiProbeXray=false;
 bool singleThreadedNative=false;
-int maxFramesInFlight=3;
+int maxFramesInFlight=1;
 size_t gpuResourceBudget=0;
 bool hiddenEditor=false,automaticQuality=false,startPathTracingViewport=false;
 std::array<int,2> windowSize{1600,900};
@@ -317,6 +319,27 @@ void RealTimeRun(GLFWwindow* window, shared_ptr<RenderScene>& scene) {
 }
 
 int main(int argc, char** argv) {
+    // Parse safety limits before every CLI entry point, including offscreen
+    // captures and CPU hierarchy tools. Zero selects automatic limits.
+    try{
+        uint64_t processBudget=0;
+        for(int i=1;i<argc;++i){const std::string argument=argv[i];
+            if(argument!="--memory-budget-mib"&&argument!="--gpu-resource-budget-mib")continue;
+            if(i+1>=argc)throw std::invalid_argument(argument+" requires nonnegative MiB");
+            const std::string value=argv[i+1];size_t consumed=0;
+            if(value.empty()||value[0]=='-')throw std::invalid_argument("Memory budget expects nonnegative MiB");
+            const auto mib=std::stoull(value,&consumed);
+            if(consumed!=value.size()||mib>SIZE_MAX/(1024*1024))throw std::invalid_argument("Memory budget exceeds supported byte range");
+            if(argument=="--memory-budget-mib")processBudget=mib*1024*1024;else gpuResourceBudget=size_t(mib)*1024*1024;
+            for(int k=i;k+2<argc;++k)argv[k]=argv[k+2];argc-=2;argv[argc]=nullptr;--i;
+        }
+        rhi::memorySafety().configure(processBudget,gpuResourceBudget);
+        const auto memory=rhi::memorySafety().stats();
+        std::cout<<"Memory safety: process "<<memory.processBudgetBytes/1048576<<" MiB, GPU "<<memory.gpuBudgetBytes/1048576<<" MiB, physical "<<memory.process.physicalBytes/1048576<<" MiB; memory admission enabled\n";
+        if(argc>1&&std::string(argv[1])=="--memory-info"){
+            std::cout<<"Process footprint "<<memory.process.footprintBytes/1048576<<" MiB ("<<(memory.process.footprintSupported?"supported":"unavailable")<<"), pressure "<<memory.process.pressure<<"\n";return 0;
+        }
+    }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}
     if(argc>1&&std::string(argv[1])=="--cluster-parent-sweep"){try{if(argc!=4)throw std::invalid_argument("Usage: --cluster-parent-sweep SCENE OUTPUT.json");render::inspectClusterParents(argv[2],argv[3]);return 0;}catch(const std::exception &e){std::cerr<<e.what()<<"\n";return 1;}}
     if(argc>1&&std::string(argv[1])=="--cluster-hierarchy-self-test"){try{render::validateClusterHierarchy();std::cout<<"Cluster hierarchy validation passed\n";return 0;}catch(const std::exception &e){std::cerr<<e.what()<<"\n";return 1;}}
     if(argc>1&&std::string(argv[1])=="--pt-world-lod-self-test"){try{pt::validateWorldLod();std::cout<<"PT clustering LOD validation passed\n";return 0;}catch(const std::exception &e){std::cerr<<e.what()<<"\n";return 1;}}
@@ -338,7 +361,7 @@ int main(int argc, char** argv) {
     if(argc>1 && std::string(argv[1])=="--ao-benchmark")return render::runAoBenchmark(argc,argv);
     if (argc > 1 && (std::string(argv[1]) == "--path-trace" || std::string(argv[1]) == "--path-trace-gpu")) return pt::runCommandLine(argc,argv);
     if (argc > 1 && (std::string(argv[1]) == "--rhi-forward" || std::string(argv[1]) == "--rhi-deferred" || std::string(argv[1]) == "--rhi-scene")) { render::runForwardScene(argc,argv);return 0; }
-    if (argc > 1 && (std::string(argv[1]) == "--nature-self-test" || std::string(argv[1]) == "--temporal-self-test" || std::string(argv[1]) == "--raster-preview-self-test" || std::string(argv[1]) == "--ddgi-self-test" || std::string(argv[1]) == "--water-self-test" || std::string(argv[1]) == "--ocean-self-test" || std::string(argv[1]) == "--cloud-self-test" || std::string(argv[1]) == "--post-process-self-test" || std::string(argv[1]) == "--cluster-rendering-self-test" || std::string(argv[1]) == "--geometry-culling-self-test" || std::string(argv[1]) == "--hiz-culling-self-test" || std::string(argv[1]) == "--rain-self-test" || std::string(argv[1]) == "--engine-self-test" || std::string(argv[1]) == "--weather-lighting-self-test")) {
+    if (argc > 1 && (std::string(argv[1]) == "--nature-self-test" || std::string(argv[1]) == "--temporal-self-test" || std::string(argv[1]) == "--raster-preview-self-test" || std::string(argv[1]) == "--ddgi-self-test" || std::string(argv[1]) == "--water-self-test" || std::string(argv[1]) == "--ocean-self-test" || std::string(argv[1]) == "--cloud-self-test" || std::string(argv[1]) == "--post-process-self-test" || std::string(argv[1]) == "--cluster-rendering-self-test" || std::string(argv[1]) == "--cluster-scene-flow" || std::string(argv[1]) == "--geometry-culling-self-test" || std::string(argv[1]) == "--hiz-culling-self-test" || std::string(argv[1]) == "--rain-self-test" || std::string(argv[1]) == "--engine-self-test" || std::string(argv[1]) == "--weather-lighting-self-test")) {
         if(rhi::requestedBackend()==rhi::Backend::OpenGL)throw std::invalid_argument("Water validation requires Metal or Vulkan");
 #ifdef SCENERENDERER_HAS_VULKAN
         if(rhi::requestedBackend()==rhi::Backend::Vulkan)rhi::configureVulkanWindowing();
@@ -356,6 +379,7 @@ int main(int argc, char** argv) {
             else if(std::string(argv[1])=="--cloud-self-test")render::validateCloudsRhi(rhi::graphicsDevice(),rhi::defaultShaderDirectory());
             else if(std::string(argv[1])=="--rain-self-test")render::validateRain(rhi::graphicsDevice(),rhi::defaultShaderDirectory());
             else if(std::string(argv[1])=="--hiz-culling-self-test")render::validateHiZCulling(rhi::graphicsDevice(),rhi::defaultShaderDirectory());
+            else if(std::string(argv[1])=="--cluster-scene-flow"){if(argc<4)throw std::invalid_argument("Usage: --cluster-scene-flow SCENE OUTPUT_DIR [--backend Metal|Vulkan]");render::captureClusterSceneFlow(rhi::graphicsDevice(),rhi::defaultShaderDirectory(),argv[2],argv[3]);}
             else if(std::string(argv[1])=="--cluster-rendering-self-test"){render::validateClusterRendering(rhi::graphicsDevice(),rhi::defaultShaderDirectory());render::captureClusterScene(rhi::graphicsDevice(),rhi::defaultShaderDirectory());}
             else if(std::string(argv[1])=="--geometry-culling-self-test")render::validateGeometryCulling(rhi::graphicsDevice(),rhi::defaultShaderDirectory());
             else if(std::string(argv[1])=="--post-process-self-test")render::validatePostProcessing(rhi::graphicsDevice(),rhi::defaultShaderDirectory());

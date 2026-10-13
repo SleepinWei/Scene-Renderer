@@ -1,6 +1,6 @@
 # Open Image Denoise 降噪
 
-CPU PT、Metal/Vulkan GPU PT 和 CPU BDPT 的命令行最终输出可以使用现成的 **Open Image Denoise 2.5+**。`Denoiser.cpp` 调用官方 RT 神经网络滤波器，在线性 HDR 上执行，随后使用与原图相同的曝光和 tone mapping 写 PNG。降噪仅用于最终图，progress checkpoint 保留原始采样。
+CPU PT、Metal/Vulkan GPU PT 和 CPU BDPT 的命令行最终输出可以使用现成的 **Open Image Denoise 2.5+**。`Denoiser.cpp` 调用官方 RT 神经网络滤波器，在线性 HDR 上执行，随后使用与原图相同的曝光和 tone mapping 写 PNG。离线降噪用于最终图，progress checkpoint 保留原始采样。GPU 视口已支持有限检查点的 CPU worker 降噪预览与独立线性导出，见 [视口说明](path-tracing-gpu.md#视口降噪与线性输出p2-d)。
 
 ## 构建
 
@@ -38,11 +38,11 @@ cmake --build build/pt -j 6
 
 普通输出 `PREFIX.png/.pfm` 始终是原始积分结果；降噪另存为 `PREFIX-denoised.png/.pfm`。新增线性 `-albedo.pfm` 和带符号的世界空间 `-normal.pfm`，用于可重复离线处理。原始法线可为零（背景），PNG 法线的 `[0,1]` 映射不传给 OIDN。BDPT 的 `-caustics` 原始路径贡献也不经过降噪。
 
-JSON 记录 OIDN 实际版本、实际设备、辅助图是否使用，以及 `denoise_seconds`。该时间包括设备/滤波器初始化、buffer 复制、辅助图预滤波和 beauty 执行；`trace_training_denoise_seconds` 为积分、训练和降噪之和，不包括模型导入/BVH/设备准备与最终文件输出。离线报告只记录本次降噪，不伪造渲染采样或射线数。
+JSON 记录 OIDN 实际版本、实际设备、辅助图是否使用，以及 `denoise_seconds`。该时间包括本次需要的设备/滤波器初始化、buffer 复制、辅助图预滤波和 beauty 执行；复用 context 的热调用跳过设备／filter 初始化。`trace_training_denoise_seconds` 为积分、训练和降噪之和，不包括模型导入/BVH/设备准备与最终文件输出。离线报告只记录本次降噪，不伪造渲染采样或射线数。
 
 ## 实现和边界
 
-RT 以 `hdr=true`、`srgb=false`、high quality 执行。albedo / normal 在私有 OIDN buffer 内分别预滤波，再以 `cleanAux=true` 引导 beauty；原始 HDR、AOV 和采样统计均保持不变。显式打包 Float3、上传、读回，不假设 `glm::vec3` 的布局或 CPU 指针能被 GPU 直接访问，因此 Vulkan PT 读回结果也可使用 OIDN 的 CPU/Metal/CUDA 等自动设备。当前没有零拷贝 RHI interop、时域降噪或编辑器实时预览 UI。
+RT 以 `hdr=true`、`srgb=false`、high quality 执行。albedo / normal 在私有 OIDN buffer 内分别预滤波，再以 `cleanAux=true` 引导 beauty；原始 HDR、AOV 和采样统计均保持不变。显式打包 Float3、上传、读回，不假设 `glm::vec3` 的布局或 CPU 指针能被 GPU 直接访问，因此 Vulkan PT 读回结果也可使用 OIDN 的 CPU/Metal/CUDA 等自动设备。GPU 视口使用持续积累的 raw film 和独立降噪显示，具备预览开关与导出按钮；仍没有零拷贝 RHI interop 或时域降噪。
 
 当前渲染器辅助 AOV 采用像素中心第一交点，beauty 有子像素采样；两者在细几何、透明/玻璃、多层反射处可能不匹配。预滤波不会补齐缺失的第二层特征，可用 color-only 作对照。OIDN 的 RT 模型对稀有焦散、高频纹理和路径间相关性可能产生平滑或偏差，不能凭降噪图验证 BDPT 能量或证明更快收敛；所有算法误差仍比较未降噪的线性 PFM。
 

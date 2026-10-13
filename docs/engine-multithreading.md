@@ -1,6 +1,6 @@
 # Engine 多线程与主逻辑／渲染分离
 
-> 本文保留对应批次的实现与验收。后续 Texture／联合加载／图片上传／RHI 子资源／VT／LOD 等当前状态见 [Engine 后续实施记录](engine-runtime-completion.md)。
+> 本文保留对应批次的实现与验收。后续 Texture／联合加载／图片上传／RHI 子资源／VT／LOD 等当前状态见 [Engine 后续实施记录](engine-runtime-completion.md)。 当前水体实际运行时提交／等待、反馈整帧读回与 RDG 评估见 [水体运行时优化](water-runtime-optimization.md)。
 
 ## 线程与所有权
 
@@ -25,7 +25,7 @@ flowchart LR
     V --> R
 ```
 
-CPU 队列与 GPU 在途帧分别限制：最多 2 个等待的帧包，GPU 默认最多 3 帧。队列满时主线程受背压，避免无限堆积输入到画面的延迟；已经接收的帧按 FIFO 执行，不悄悄丢帧。逻辑线程与渲染线程可以重叠处理相邻帧，但这不是无等待的固定频率模拟器。
+CPU 队列与 GPU 在途帧分别限制：最多 2 个等待的帧包，GPU 默认最多 1 帧（`--frames-in-flight 2/3` 可显式增加）。队列满时主线程受背压，避免无限堆积输入到画面的延迟；已经接收的帧按 FIFO 执行，不悄悄丢帧。逻辑线程与渲染线程可以重叠处理相邻帧，但这不是无等待的固定频率模拟器。
 
 `Device::checkThread()` 检查设备归属。设备移交只能发生在启动／join 的静止边界，`adoptCurrentThread()` 不是并发锁。`RenderScene` 的结构容器、相机、sky／terrain 与 bootstrap payload 现已私有，读取和修改入口以及 snapshot capture 都检查逻辑线程。`objects()`／灯光列表返回 const 容器，插入去重，删除／清空同步维护灯光索引；活对象增删组件通过私有注册表自动通知世界并维护灯光索引。后台任务通过容量 256 的值命令队列提交 ID／参数，主循环限量消费 64 条；旧世界入口在替换时失效。Transform／Light／Camera 核心参数及 Mesh／Material 容器已私有，getter／setter 也检查归属；部分效果配置与历史 Texture 字段仍公开，**不得从后台线程直接修改**。后台工作只构建未发布对象或不可变 payload，完成结果由主线程应用。
 
@@ -59,15 +59,15 @@ GUI 轮询 future，在主线程调用 `RenderScene::replaceWith` 一次发布�
 
 普通网格／材质在渲染线程按当前 snapshot 逐步创建：每帧最多接纳 2 个新资产，32 MiB 接纳目标继续限制材质图片等整体上传；单个超大图片允许独占一次。异步静态网格顶点／索引改为跨帧分段：默认每帧 8 MiB、每块 256 KiB、resolve CPU 软目标 2 ms，最多四个已分配但未完成的任务。完整分配仍不可分割，至少一个 chunk 可以推进，不能保证硬帧时间。首次加载完成前暂不绘制，普通网格更新可保留已发布几何；依赖材质／细分记录在等待期间保留，完整网格发布使 TSAA 历史失效。每设备 graphics／compute pipeline cache 默认保留合计最多 64 个空闲 native 条目，独立 handle 共享 lease。地形、细分、海洋、图片与首次管线构建仍有整块工作；详见 [分段上传与管线缓存](engine-streaming-and-pipeline-cache.md)。
 
-可选 `--gpu-resource-budget-mib N` 对原生编辑器的所有 RHI buffer／texture 设定统一逻辑负载配额（默认 0，不限额）。分配前拒绝超限，失败不计费，等待 completion 的资源直到实际安全销毁才减计；空间不足时先淘汰空闲图片并等待安全退役；仍超限时，双线程编辑器回滚候选缓存并冻结成功画面、250 ms 后重试。冷启动没有成功画面时仍失败，其他错误继续传播。帧发布范围与额外 RGBA8 画面成本见 [GPU 发布与压力处理](engine-gpu-publication.md)。详见[组件、命令与配额](engine-world-commands.md)。
+默认启用[进程与 GPU 内存保护](memory-safety.md)：进程预算取物理内存 20% 与 3 GiB 中较小值，GPU 默认占一半。`--memory-budget-mib N` 与 `--gpu-resource-budget-mib N` 可显式设置，0 表示自动保护；所有入口均生效，RHI buffer／texture 配额并覆盖 Metal 原生 staging／AS 的分配前检查。分配前拒绝超限，失败不计费，等待 completion 的资源直到实际安全销毁才减计；空间不足时先淘汰空闲图片并等待安全退役；仍超限时，双线程编辑器回滚候选缓存并冻结成功画面、250 ms 后重试。冷启动没有成功画面时仍失败，其他错误继续传播。帧发布范围与额外 RGBA8 画面成本见 [GPU 发布与压力处理](engine-gpu-publication.md)。详见[组件、命令与配额](engine-world-commands.md)。
 
 运行日志输出帧数、最近一帧渲染线程 CPU 用时、最近最多 256 帧的 CPU p95／p99（每 32 帧和退出时更新）、主线程提交队列的最大等待用时、共享 GPU 图片字节／上传／命中次数、网格分段累计字节／chunk／待完成数、管线原生构建／缓存命中，以及逐次成功分配更新的 RHI buffer／texture 逻辑负载峰值。CPU 时间包含 worker 中的提交、呈现与必要等待，不是 GPU timestamp；队列最大等待也不是完整输入到画面的端到端延迟。该估算包含仍在 RHI 注册的资源，**不包含** driver heap 对齐、隐式 staging、交换链、pipeline 或 RHI 未登记的 native allocation，不能当作系统显存峰值。
 
 ## Render graph 与呈现
 
-`ForwardPbrRenderer` 通过有序 `RenderGraph` 记录 geometry、SSAO、back depth、lighting、forward、motion、ocean、transparent、temporal、tone map。执行前验证未初始化读取和模糊的读写声明；读写同一 attachment 必须声明 ReadWrite。实际 binding／pass 反馈环和 native barrier 继续由 RHI 验证及实现。大气、海洋模拟、阴影仍由效果对象在图前调度。
+`ForwardPbrRenderer` 通过有序 `RenderGraph` 记录大气、海洋模拟、阴影、geometry、SSAO、back depth、lighting、forward、motion、water、transparent、temporal、post-process。执行前验证未初始化读取、mip/layer 和重叠读写声明；读写同一 attachment 必须声明 ReadWrite。实际 binding／pass 反馈环和 native barrier 继续由 RHI 验证及实现，效果回调内部仍可自行提交。
 
-这版 graph 保留已有命令顺序，不负责 transient texture alias、自动拓扑排序、跨队列或并行录制。这些功能需要完整资源描述及子资源生命周期，不能仅靠添加线程获得。
+2026-10-09 增加默认开启的实时 pass culling：根据最终输出和显式副作用追溯版本数据依赖，再重建保留 pass 的 hazards 和 transient 生命周期；可关闭进行对照。图支持兼容纹理对象的复用槽规划；执行保留声明顺序，未实现跨队列、并行录制或自动 barrier。[算法、接口与验证](render-graph-culling.md)。
 
 主线程把 framebuffer 尺寸放入帧包，并通过原子 mailbox 通知最新表面尺寸。最小化后，已经接收的旧帧仍完成离屏 GPU 工作，跳过无效表面呈现；恢复后继续正常呈现，退出不会因渲染线程等待窗口恢复而死锁。渲染 worker 使用显式 `setPresentationExtent`，不调用 GLFW 窗口查询。窗口缩放时已有旧尺寸帧可能仍在队列中；Metal／Vulkan 将它缩放到实际获得的 drawable／swapchain，后续帧重建目标并清空 TSAA 历史。Apple 渲染线程有每帧 autorelease pool，防止长时间运行积累临时 Objective-C 对象。
 

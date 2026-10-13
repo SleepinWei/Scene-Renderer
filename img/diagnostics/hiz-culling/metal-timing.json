@@ -1,0 +1,181 @@
+{
+  "comparisons": 22,
+  "dense_scene": {
+    "display_equal": true,
+    "main_triangles_after": 2,
+    "main_triangles_before": 524290,
+    "nonzero_main_draws_after": 1,
+    "nonzero_main_draws_before": 65,
+    "prepass_triangles": 2
+  },
+  "display_equal": true,
+  "extra_bytes": 116756,
+  "gpu_timings": {
+    "baseline": {
+      "median_ms": 0.498895525932312,
+      "samples_ms": [
+        0.5321249961853027,
+        0.5012500286102295,
+        0.49654102325439453,
+        0.3827078342437744,
+        0.5549578666687012,
+        0.6816251277923584,
+        0.3802499771118164,
+        0.3817908763885498
+      ],
+      "stages": [
+        {
+          "geometry": 0.5321249961853027
+        },
+        {
+          "geometry": 0.5012500286102295
+        },
+        {
+          "geometry": 0.49654102325439453
+        },
+        {
+          "geometry": 0.3827078342437744
+        },
+        {
+          "geometry": 0.5549578666687012
+        },
+        {
+          "geometry": 0.6816251277923584
+        },
+        {
+          "geometry": 0.3802499771118164
+        },
+        {
+          "geometry": 0.3817908763885498
+        }
+      ]
+    },
+    "hiz": {
+      "median_ms": 0.3723338842391968,
+      "samples_ms": [
+        0.10170793533325195,
+        0.4356260299682617,
+        0.3354179859161377,
+        0.40924978256225586,
+        0.10545992851257324,
+        1.3691685199737549,
+        1.3975837230682373,
+        0.05587291717529297
+      ],
+      "stages": [
+        {
+          "geometry": 0.042874813079833984,
+          "hiz/object-tests": 0.0032079219818115234,
+          "hiz/occluder-depth": 0.011374950408935547,
+          "hiz/pyramid-0": 0.009999990463256836,
+          "hiz/pyramid-1": 0.01079106330871582,
+          "hiz/pyramid-2": 0.008749961853027344,
+          "hiz/pyramid-3": 0.002875089645385742,
+          "hiz/pyramid-4": 0.003000020980834961,
+          "hiz/pyramid-5": 0.003041982650756836,
+          "hiz/pyramid-6": 0.0032091140747070313,
+          "hiz/pyramid-7": 0.002583026885986328
+        },
+        {
+          "geometry": 0.3411250114440918,
+          "hiz/object-tests": 0.0031671524047851563,
+          "hiz/occluder-depth": 0.00645899772644043,
+          "hiz/pyramid-0": 0.019875049591064453,
+          "hiz/pyramid-1": 0.016957998275756836,
+          "hiz/pyramid-2": 0.014333963394165039,
+          "hiz/pyramid-3": 0.013416051864624023,
+          "hiz/pyramid-4": 0.007749795913696289,
+          "hiz/pyramid-5": 0.007082939147949219,
+          "hiz/pyramid-6": 0.003000020980834961,
+          "hiz/pyramid-7": 0.0024590492248535156
+        },
+        {
+          "geometry": 0.06441712379455566,
+          "hiz/object-tests": 0.00391697883605957,
+          "hiz/occluder-depth": 0.048333168029785156,
+          "hiz/pyramid-0": 0.02024984359741211,
+          "hiz/pyramid-1": 0.0247499942779541,
+          "hiz/pyramid-2": 0.021125078201293945,
+          "hiz/pyramid-3": 0.019834041595458984,
+          "hiz/pyramid-4": 0.017166852951049805,
+          "hiz/pyramid-5": 0.039166927337646484,
+          "hiz/pyramid-6": 0.04062509536743164,
+          "hiz/pyramid-7": 0.035832881927490234
+        },
+        {
+          "geometry": 0.03787493705749512,
+          "hiz/object-tests": 0.004625082015991211,
+          "hiz/occluder-depth": 0.3265409469604492,
+          "hiz/pyramid-0": 0.0049588680267333984,
+          "hiz/pyramid-1": 0.0051250457763671875,
+          "hiz/pyramid-2": 0.005457878112792969,
+          "hiz/pyramid-3": 0.004999876022338867,
+          "hiz/pyramid-4": 0.002749919891357422,
+          "hiz/pyramid-5": 0.002958059310913086,
+          "hiz/pyramid-6": 0.01133418083190918,
+          "hiz/pyramid-7": 0.002624988555908203
+        },
+        {
+          "geometry": 0.022458791732788086,
+          "hiz/object-tests": 0.007667064666748047,
+          "hiz/occluder-depth": 0.014042139053344727,
+          "hiz/pyramid-0": 0.008999824523925781,
+          "hiz/pyramid-1": 0.01379084587097168,
+          "hiz/pyramid-2": 0.0067920684814453125,
+          "hiz/pyramid-3": 0.0067920684814453125,
+          "hiz/pyramid-4": 0.005208015441894531,
+          "hiz/pyramid-5": 0.006334066390991211,
+          "hiz/pyramid-6": 0.00858306884765625,
+          "hiz/pyramid-7": 0.004791975021362305
+        },
+        {
+          "geometry": 0.3680410385131836,
+          "hiz/object-tests": 0.003584146499633789,
+          "hiz/occluder-depth": 0.9622089862823486,
+          "hiz/pyramid-0": 0.0035419464111328125,
+          "hiz/pyramid-1": 0.015625,
+          "hiz/pyramid-2": 0.0027081966400146484,
+          "hiz/pyramid-3": 0.0025839805603027344,
+          "hiz/pyramid-4": 0.002749919891357422,
+          "hiz/pyramid-5": 0.002875089645385742,
+          "hiz/pyramid-6": 0.0028340816497802734,
+          "hiz/pyramid-7": 0.0024161338806152344
+        },
+        {
+          "geometry": 0.7078330516815186,
+          "hiz/object-tests": 0.0037920475006103516,
+          "hiz/occluder-depth": 0.6402499675750732,
+          "hiz/pyramid-0": 0.013666152954101563,
+          "hiz/pyramid-1": 0.008083105087280273,
+          "hiz/pyramid-2": 0.008459091186523438,
+          "hiz/pyramid-3": 0.003041982650756836,
+          "hiz/pyramid-4": 0.0032501220703125,
+          "hiz/pyramid-5": 0.003000020980834961,
+          "hiz/pyramid-6": 0.0032911300659179688,
+          "hiz/pyramid-7": 0.002917051315307617
+        },
+        {
+          "geometry": 0.022083044052124023,
+          "hiz/object-tests": 0.0031249523162841797,
+          "hiz/occluder-depth": 0.006374835968017578,
+          "hiz/pyramid-0": 0.0032501220703125,
+          "hiz/pyramid-1": 0.004540920257568359,
+          "hiz/pyramid-2": 0.002916097640991211,
+          "hiz/pyramid-3": 0.002665996551513672,
+          "hiz/pyramid-4": 0.0027921199798583984,
+          "hiz/pyramid-5": 0.002707958221435547,
+          "hiz/pyramid-6": 0.003041982650756836,
+          "hiz/pyramid-7": 0.002374887466430664
+        }
+      ]
+    }
+  },
+  "hdr_max_error": 0.0,
+  "main_triangles_after": 6,
+  "main_triangles_before": 8,
+  "objects": 4,
+  "occluders": 1,
+  "prepass_triangles": 2,
+  "pyramid_levels": 8,
+  "timing_scope": "129x97 dense occluded static meshes; geometry plus selected-occluder depth, full HiZ pyramid and tests; excludes CPU/readback; not full-frame FPS"
+}

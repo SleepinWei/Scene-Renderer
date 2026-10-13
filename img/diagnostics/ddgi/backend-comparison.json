@@ -1,0 +1,5 @@
+{
+  "metal_passed": true,
+  "vulkan_passed": true,
+  "max_numeric_difference_except_wall_time": 8.940696716308594e-08
+}

@@ -1,6 +1,7 @@
 #include "engine/RenderRuntime.h"
 #include "engine/Environment.h"
 #pragma once
+#include "rhi/MemorySafety.h"
 #include <imgui/imgui.h>
 #include "renderer/rhi/GuiRenderer.h"
 #include "rhi/ShaderAssets.h"
@@ -329,6 +330,10 @@ public:
             ImGui::Toggle("Enable TSAA", &setting.enableTSAA);
             if(nativeUi_&&setting.enableTSAA)ImGui::Checkbox("TAA high quality",&setting.taaHighQuality);
             if(nativeUi_)ImGui::Checkbox("Automatic quality under memory pressure",&setting.automaticQuality);
+            if(nativeUi_){const auto memory=rhi::memorySafety().stats();
+                ImGui::Text("Memory: %.0f / %.0f MiB",memory.process.footprintBytes/1048576.0,memory.processBudgetBytes/1048576.0);
+                ImGui::Text("GPU quota: %.0f MiB; pending scratch: %.0f MiB",memory.gpuBudgetBytes/1048576.0,memory.reservedBytes/1048576.0);
+                if(memory.process.pressure)ImGui::TextWrapped("System memory pressure: resource growth and heavy rendering are paused.");}
             if(nativeUi_){ImGui::Checkbox("Hierarchical cluster geometry",&setting.clusters.enabled);
                 if(setting.clusters.enabled){ImGui::SliderFloat("Cluster LOD error (pixels)",&setting.clusters.pixelError,0.f,8.f,"%.2f");ImGui::Checkbox("Cluster triangle wireframe",&setting.clusters.wireframe);ImGui::Checkbox("Cluster Hi-Z occlusion",&setting.clusters.occlusion);if(setting.clusters.occlusion){ImGui::Checkbox("Two-stage cluster occlusion",&setting.clusters.twoPhase);
                     if(setting.clusters.twoPhase&&ImGui::TreeNode("Cluster occlusion A/B")){ImGui::Checkbox("Coarse fused Hi-Z pyramid",&setting.clusters.fusedPyramid);ImGui::Checkbox("Fuse late prefix and append",&setting.clusters.fusedLate);ImGui::Checkbox("Conservative XY intervals (experimental)",&setting.clusters.conservativeIntervals);ImGui::TreePop();}}}}

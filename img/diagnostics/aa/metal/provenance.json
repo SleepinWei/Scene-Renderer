@@ -1,0 +1,23 @@
+{
+  "reference_prefix": "img/diagnostics/ddgi/metal/gt/sponza",
+  "reference_spp": 2048,
+  "previous_prefix": "img/diagnostics/ddgi/metal/gt/aa/sponza",
+  "one_spp_smoke_not_used_as_reference": true,
+  "smoke_output": "build/path-tracing/aa-experiments/one-spp-smoke",
+  "raw_sha256": {
+    "sponza-motion-taa-legacy.pfm": "b4274af0bfec539f7a40f463511318150b3fd0ad279a6d58a58e891372135534",
+    "sponza-raster-ddgi-no-shadow.pfm": "5bc471af449127ee620463e578128238ad26bf974267f9c838fc733a81e0f15c",
+    "sponza-raster-ddgi-taa.pfm": "4f3dd522fbba4afe79e0f03b43b2837b8205d857624ea25f63770f6b2c63f0cb",
+    "sponza-raster-ddgi-albedo.pfm": "beea7d1c1816634f1226571754601d34a02e60ab8bd22b1c8a87daed3c2b8ed7",
+    "sponza-raster-ddgi-taa-no-sky-specular.pfm": "5d8ebe45fd4d809542067df798e70fb2790596ddd9afda48e89f959dd087e371",
+    "sponza-raster-ddgi-no-sky-specular.pfm": "55631a0cef2a999c1b464137e9667424a5aed384c16121819efa324174f9ae60",
+    "sponza-motion-no-taa.pfm": "bd2622e593cbc0d1fbc045462330f0995fc45ddc1b2c52462950cd9e002a633d",
+    "sponza-surface-mask.pfm": "957b45fca77f08481a7f71429bf97673a8a2285a779df5f923d7d187fca856d7",
+    "sponza-motion-taa.pfm": "20ff2a8ea848e81232102699bdc213c2ccb304c599fb594f8bdaaa77bdbd647c",
+    "sponza-raster-ddgi-taa-legacy.pfm": "ed4c2c0aaf94572a151ac5296f211960078b6dc7106cd990ebf7c2a94fbc7952",
+    "sponza-raster-off.pfm": "a30f5d7f1aec1b123beadc15c96134ba64681e809d018a5927d36ac1ec552b0e",
+    "sponza-raster-ddgi-normal.pfm": "1f96bd82180316d65e8ed2d0607cccb1262c7ddc12f8e53755c46b3779d50051",
+    "sponza-raster-ddgi.pfm": "ebf6aa7c9ed53e33f935af93149accd08d7b825b0b1105ffb4a78f09c4961010"
+  },
+  "gpu_profile_uncompressed_sha256": "f1cb34044a48f4fe0612556e7983d65bb5c7ed8915adb68541a69db0478acd5d"
+}

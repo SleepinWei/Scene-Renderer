@@ -2,6 +2,8 @@
 
 后续采样与 GPU 路径见 [CPU 采样优化与 Metal/Vulkan GPU Path Tracing](path-tracing-gpu.md)。当前默认 Sobol/VNDF 和自适应采样；下方首次 CPU 图像与耗时属于原 PCG/NDF 固定采样记录。
 
+太阳、水体与玻璃焦散可选择 [CPU SPPM](path-tracing-sppm.md)：每轮重新发射光子、按像素逐渐缩小密度核；使用 `--pt-sppm`，`--pt-samples` 此时表示迭代数。它是有限预算有偏估计，不能和固定 photon map、BDPT 或自适应停止混用。
+
 ## 首次 CPU 结果（2026-10-03）
 
 Sponza 和 San Miguel 首次已完成真实网格、纹理与灯光转换，并输出 320×240 / 8 spp 预览及 640×480 / 256 spp 静态图。积分在 CPU 上执行；天空由实时 RHI 大气烘焙成线性 HDR 环境贴图，保存后可完全在 CPU 上复用。完整生成文件位于忽略的 `build/path-tracing/`；两张最终 PNG 同步到 `img/path-tracing/`，用于 README 展示。
@@ -49,7 +51,7 @@ ctest --test-dir build/pt -R '^pt-' --output-on-failure
 
 前 4 spp、16 spp 和后续每增加 32 spp 保存独立 checkpoint；最后保存指定样本数和无后缀的最终输出。当前每次运行从零开始，没有跨进程继续累积或降噪器。
 
-编辑器 `R` 键使用同一 CPU 核心，冻结当前快照，以窗口一半尺寸输出 `build/path-tracing/editor.*`。这是阻塞的静态渲染，未实现交互式渐进显示。双线程编辑器的天空请求进入 RenderRuntime 队列，在设备拥有线程执行，再把纯 CPU 数据交回逻辑线程；CPU worker 不访问 Camera、Material、Texture 或 GPU handle。
+OpenGL／`--single-thread` 编辑器 `R` 键使用同一 CPU 核心，冻结当前快照，以窗口一半尺寸输出 `build/path-tracing/editor.*`，仍为阻塞的静态渲染。原生 Metal／Vulkan 线程编辑器 `R` 已改为 [渐进 GPU 视口](path-tracing-gpu.md#渐进-gpu-视口2026-10-07)，支持暂停／续采／取消和 GPU 显示。天空与 FFT 捕获在设备所有者线程执行，CPU 场景构建异步处理纯快照；CPU worker 不访问 Camera、Material、Texture 或 GPU handle。
 
 ## 首次实现与数学边界
 

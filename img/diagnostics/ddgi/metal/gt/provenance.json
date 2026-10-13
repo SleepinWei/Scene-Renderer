@@ -1,0 +1,51 @@
+{
+  "date": "2026-10-10",
+  "sky_sha256": "3f891921dc9cbc345e8928dba4d02b29e2f665f8ed8d1da2e94a61069b939cfc",
+  "independent_reference_sky_bitwise_equal": true,
+  "reference_files": {
+    "sponza-seed2-albedo.pfm": {
+      "sha256": "b1c6cbd21e70e05033de5d3c813ebb74c55a24c04330c1d19c1f090c0468fd6d",
+      "bytes": 1555216
+    },
+    "sponza-raster-ddgi-albedo.pfm": {
+      "sha256": "bbc2bc59443ac90492566db10671e0f007d57abff0e79e3a11ef9eb8982f442a",
+      "bytes": 1555216
+    },
+    "sponza-albedo.pfm": {
+      "sha256": "b1c6cbd21e70e05033de5d3c813ebb74c55a24c04330c1d19c1f090c0468fd6d",
+      "bytes": 1555216
+    },
+    "sponza-seed2.pfm": {
+      "sha256": "53cd11b0283539131aafda7138f47d6ca5366fa5511446fe4825acfb9b832dc8",
+      "bytes": 1555216
+    },
+    "sponza-surface-mask.pfm": {
+      "sha256": "957b45fca77f08481a7f71429bf97673a8a2285a779df5f923d7d187fca856d7",
+      "bytes": 1555216
+    },
+    "sponza.pfm": {
+      "sha256": "f82b35800037bd16d2ae6ea72e174217415fc641e95530261035911078bfc92a",
+      "bytes": 1555216
+    },
+    "sponza-seed2-normal.pfm": {
+      "sha256": "f1e9e5b092f4d710d44120b4f54bae541d6587f7ee483da949fe1d58804cd5ba",
+      "bytes": 1555216
+    },
+    "sponza-raster-off.pfm": {
+      "sha256": "5c19e51c381e66fc136e0ba57e2623bf4cfe05ab0b382884f64d5f985db8e5f5",
+      "bytes": 1555216
+    },
+    "sponza-raster-ddgi-normal.pfm": {
+      "sha256": "306428edaec25adeb8bb3cfb78237c803138dc35e467632b6423177f9af682a3",
+      "bytes": 1555216
+    },
+    "sponza-normal.pfm": {
+      "sha256": "f1e9e5b092f4d710d44120b4f54bae541d6587f7ee483da949fe1d58804cd5ba",
+      "bytes": 1555216
+    },
+    "sponza-raster-ddgi.pfm": {
+      "sha256": "5ebfacf9230c3baf6278364097e7b0e9063413584b0c028e71ef744182e1aff6",
+      "bytes": 1555216
+    }
+  }
+}

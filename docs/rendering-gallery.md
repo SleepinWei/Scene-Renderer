@@ -1,8 +1,48 @@
 # 完整效果图集与渲染说明
 
-[返回项目展示](../README.md) · [构建与运行](getting-started.md) · [系统设计](system-design.md) · [技术文档索引](README.md)
+[返回项目展示](../README.md) · [详细功能展示](rendering-showcase.zh-CN.md) · [构建与运行](getting-started.md) · [系统设计](system-design.md) · [技术文档索引](README.md)
 
 这里保留各场景的详细参数、开关对照、中间产物、复现命令及历史验收记录。数据对应各段标明的日期与配置；最新实现范围以相关专题文档为准。所有 shell 命令仍从仓库根目录执行。
+
+## 树木分枝与叶片风动（2026-10-12）
+
+树木增加主枝／次级枝摆动和叶片 flutter，树皮、叶片、CSM 阴影与 TAA 速度使用同一变形几何；PT 捕获冻结相同时间的形状。近景叶片改为六三角形圆润轮廓。以下为原生 Metal 的 640×480、60 帧动画，源时间步长 1/24 s，循环从 8 s 重新开始。
+
+| 单树 | 森林 |
+| --- | --- |
+| ![分枝与叶片风动](../img/nature/tree-wind-single.gif) | ![森林风动与阴影](../img/nature/tree-wind-forest.gif) |
+
+Metal、Vulkan/MoltenVK 回归及多线程编辑器验证通过。当前模型按树形共享解析风动，尚无每株独立弹性求解；森林同步耗时中位数为 Metal 162.08 ms / MoltenVK 187.53 ms，仍需性能优化。[实现、限制、静帧／关闭对照与测量](procedural-trees.md#分枝与叶片风动2026-10-12)。
+
+## 树木树形、叶片与森林阴影（2026-10-11）
+
+阔叶／针叶树和灌木增加分枝骨架与种子变体，树皮和叶片独立材质，叶片支持叶脉与背光漫透射。CSM 在 GPU 按光源视图筛选实例，保持叶片 alpha 阴影轮廓。[实现、命令、对照统计与范围](procedural-trees.md)。
+
+| 近景单树 | 森林 |
+| --- | --- |
+| ![近景程序树木](../img/nature/tree-single.png) | ![森林与树冠阴影](../img/nature/tree-forest.png) |
+
+2026-10-12 已重渲染：修复天空太阳圆盘在叶片缝隙中的导数伪影，以及 GPU 材质漏传叶片标记的问题；对照与回归见 [树木亮点修复](procedural-trees.md#亮点修复2026-10-12)。
+
+## 沙纹与密集草甸改进（2026-10-11）
+
+局部 Gabor 波包替代整片规则余弦沙纹；短草近区 16 cm、远区 58 cm 间距，配合平滑覆盖宽度、弯叶 LOD 和相机无关的草地底色。[SIGGRAPH 调研、方法范围、对比图与统计](procedural-nature-review.md)。
+
+| 密集草甸近景 | 新沙底上的局部水波 |
+| --- | --- |
+| ![密集草甸](../img/nature/refined-meadow.png) | ![局部沙纹水底](../img/nature/refined-wave.png) |
+
+Metal / MoltenVK 验证通过。新增平面测试实测近区 24.97、远区 0.99 丛/m²；这对应测试的 0.2 / 1 m 间距。新版湖岸实际约 3.5 万株，同步采集＋渲染中位约 160 ms；草甸近景约 9.3 万株、211 ms。外观覆盖提升有成本，候选生成优化列为下一步。
+
+## 植被群落与 Wave Particles 初版（2026-10-11）
+
+八种自包含程序植物共用 GPU 地形散布、近／远实例 LOD 和风动历史；局部波环及规定运动源尾流叠加 FFT／浅水。实现、运行命令、关闭对照和测量范围见 [植被与 Wave Particles](vegetation-wave-particles.md)。
+
+| 湖岸植被 | 波粒子与水底折射 |
+|---|---|
+| ![湖岸植物](../img/nature/vegetation-lake.png) | ![局部水波](../img/nature/wave-particles.png) |
+
+本机 Metal／MoltenVK 验证通过。湖岸约 2.9 万株，LOD 三角形约减少 86.9%，一次固定时间测试的同步采集＋渲染耗时从 143.22 ms 降到 136.85 ms；尚未实现破浪、自动曲线岸界反射、双向刚体耦合或局部水波 PT 冻结。
 
 ## 场景与效果
 
@@ -228,6 +268,28 @@ python3 tools/prepare_mountain_lake.py # 先按说明下载两个官方归档；
 湖岸新增 [Poly Haven Aerial Beach 01](https://polyhaven.com/a/aerial_beach_01) 沙滩材质（Rob Tuytel，CC0），包含底色、法线、粗糙度和 AO。30 m 世界坐标平铺与 mip 过滤补充近景细节；岸线距离、相对水位和坡度控制混合，湿沙更暗、更光滑，草在沙地区域退让。
 
 ![Metal 湖岸沙滩近景](../img/metal/mountain-lake-beach.png)
+
+### 山湖 L4：云影与空气雾
+
+`weather-gallery` 在山湖远景和湖岸生成关闭／仅云影／仅雾／联合四组 960×540 对照，以及太阳透射场和主渲染提交样本。各组保留体积云，固定云量 .85、50 mm/h，隐藏雨丝，RSM 关闭。
+
+```sh
+./build/Scene-Renderer --render-gallery build/environment/l4/gallery-metal weather-gallery --backend Metal
+./build/Scene-Renderer --render-gallery build/environment/l4/gallery-vulkan weather-gallery --backend Vulkan
+```
+
+![山湖天气光照对照](../img/diagnostics/environment/l4/weather-overview.png)
+
+[L4 技术报告](weather-lighting.md) 包含开关、雾与水体的空气段分工、近似 P1 PT 捕获、数值检查和测量范围。水面云倒影／RT IBL 天气调制仍未接入；短静态主提交样本不代表完整帧性能。
+
+### 大气空中透视
+
+`aerial-gallery` 生成山湖远景与湖岸的 AP 关闭／正常／双倍光学距离／联合高度雾与云影对照。见 [大气空中透视报告](atmospheric-aerial-perspective.md)。
+
+```sh
+./build/Scene-Renderer --render-gallery build/environment/aerial/gallery-metal aerial-gallery --backend Metal
+./build/Scene-Renderer --render-gallery build/environment/aerial/gallery-vulkan aerial-gallery --backend Vulkan
+```
 
 ### 程序生成地形与草
 

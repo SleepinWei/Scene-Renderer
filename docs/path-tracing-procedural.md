@@ -129,3 +129,8 @@ JSON 新增 `terrain_meshes`、`grass_meshes`、`ocean_interfaces` 和 `frozen_t
 计算细分／额外位移、clearcoat／anisotropy、实时材质到 PT 的通用 SSS 映射、体积云和 BVH 实例共享仍属于后续工作；本轮支持的是上述已冻结的地形、草和 FFT 水面。
 
 最终图片和实际 JSON 汇总见 [验收记录](../img/path-tracing/procedural-validation.json)：Dragon 512 spp BDPT 约 182.08 秒，焦散能量占比约 4.96%，不透明对照为 0；Mountain Lake 为 4,194,304 个三角形，Metal 128 spp 及 Vulkan 16 spp 均完成。所有记录保留具体设备、曝光、采样和时间；各次运行存在并行开发负载。
+
+
+## 2026-10-10：远海风浪与涌浪
+
+新增 [海况模型与 PT 文档](ocean-sea-state-and-pt.md)：`ocean-sea-state` 以 JONSWAP/TMA 风浪与独立涌浪复用原生 FFT；新模型可固定时刻捕获到 CPU、Metal 原生 RT 和 Vulkan PT。新预设采用 2 km 水面覆盖和相机附近加密网格，法线与主/细波配置共用；`frozen_oceans` 报告保留波谱、光学与捕获参数。原 Phillips 捕获继续采用均匀网格。近岸浅水/持久泡沫历史仍未进入 PT 捕获。

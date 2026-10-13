@@ -26,6 +26,8 @@ int main(){
         b=header(0x30315844,4,4,28);word(b,128,71);word(b,132,3);word(b,140,1);redBlock(b,148);image=decode(b);check(image.pixels[0]==255,"DX10 BC1 header");word(b,140,2);rejects(b);
         b=header(0,1,1,4);word(b,80,0x41);word(b,88,32);word(b,92,0xff0000);word(b,96,0xff00);word(b,100,0xff);word(b,104,0xff000000);word(b,128,0x80402010);image=decode(b);check(image.pixels==std::vector<uint8_t>({64,32,16,128}),"RGBA channel masks");
         b=header(0x31545844);b.resize(135);rejects(b);b=header(0x31545844);word(b,112,0x200);rejects(b);word(b,112,0);word(b,16,0);rejects(b);rejects({});
+        // Reject this giant header before allocating its 1 GiB decoded image.
+        rejects(header(0x31545844,16384,16384));
         std::filesystem::remove(path);std::cout<<"DDS BC1/BC2/BC3, DX10, partial blocks, RGBA masks and malformed input passed\n";return 0;
     }catch(const std::exception& e){std::filesystem::remove(path);std::cerr<<e.what()<<'\n';return 1;}
 }

@@ -4,6 +4,8 @@
 
 ## 新增实时测试场景
 
+程序化岩洞无需下载：`python3 tools/prepare_cluster_cave.py --level 7` 生成 `cluster-cave`，约 84.8 MB，检查 10 GB 磁盘上限和渲染器同款进程内存预算。`--level 6` 写入独立的小规格目录，使用 `cluster-cave-small` 加载，不覆盖高密度资源。场景包含原创真实位移岩石与程序纹理；[分块、动态 LOD 与捕获验收](../docs/cluster-cave.md)。
+
 `python3 tools/fetch_benchmark_assets.py` 获取 Stanford Dragon、Happy Buddha、Armadillo 与 Sibenik Cathedral。前三者使用 Stanford 原格式重建 PLY；Buddha 和 Armadillo 来自 Alec Jacobson 的固定修订镜像，原始 Stanford 来源与使用条件保留。Sibenik 为 Marko Dabrovic 建模，Kenzie Lamar／Vicarious Visions 修复洞，Morgan McGuire 制作高清贴图；上游标注 CC BY-NC。说明文件随解压保留，大型模型不提交 Git。
 
 运行 `--classic dragon`、`buddha`、`armadillo`、`sibenik`，或使用 `--render-gallery img/metal benchmarks`。完整来源与校验值见 [benchmark-assets.json](benchmark-assets.json)，转换、场景规模和验收见 [经典测试场景说明](../docs/classic-benchmarks.md)。Dragon 实时演示使用金色金属，与下方离线玻璃 PT 的材质设置不同。
@@ -15,6 +17,16 @@
 使用 `--path-trace`／`--path-trace-gpu blender-classroom` 或 `blender-barcelona`。默认 Barcelona 保留 512／20,622 粒子实例；`--particle-limit -1` 可导出全部植被，CPU／Metal／Vulkan 的共享 BLAS/TLAS 已支持完整包。Classroom 集合实例全部保留。当前转换未完整实现 Cycles 材质闭包和 compositor，具体限制、实际图片与复现见 [Blender PT 说明](../docs/blender-path-tracing.md)。
 
 导出 revision 5 增加可选 `tangents.bin` corner MikkTSpace 帧与独立薄叶透射图。现有 revision 4 包仍可读取；使用上方导出命令重新生成才能获得新材质，README 的完整 Barcelona 图使用 revision 5。小型无外部资源材质对照由 `tests/PT/BlenderAppearanceFixture.py` 生成。
+
+## 独立头发 PT demo
+
+独立程序化头发样例不依赖扫描资产：`python3 tools/create_pt_hair_demo.py --strands 40000 --render Metal`。生成器包含原创简化头模和静态 groom；[完整参数与复现](../docs/path-tracing-hair-demo.md)。
+
+## Yuksel 头发研究基准
+
+`python3 tools/fetch_hair_benchmarks.py` 从 [Cem Yuksel 官方模型页](https://www.cemyuksel.com/research/hairmodels/) 下载固定 SHA256 的 `wStraight.hair`／`wWavy.hair` 与配套 woman 头模，后者由 **Murat Afshar** 提供。每套 50,000 根发丝，分别 125 万／245 万个曲线点。源文件和纹理存放在忽略的 `samples/assets/pt/hair-benchmarks/`；[清单](hair-benchmarks.json)和[署名说明](licenses/yuksel-hair.txt)保留来源。
+
+`python3 tools/create_pt_hair_benchmarks.py --pbrt` 保留全部发丝／曲线点／宽度，生成本项目离线包和 PBRT 原生 flat curve 参考场景。头模使用中性漫反射材质，毛发采用固定吸收预设；未使用源透明度／颜色和头部贴图。[渲染、导入约定、误差与复现](../docs/path-tracing-hair-benchmarks.md)。
 
 ## Stanford Bunny
 
@@ -43,7 +55,7 @@
 
 - 灵感来源：[Cornell University Program of Computer Graphics 的 Cornell Box](https://bowers.cornell.edu/computer-graphics)。
 - 房间、红绿侧墙、两个旋转箱体和顶灯面板由本项目代码自行生成，没有复制上游网格、纹理或测量数据。
-- 使用点光源、弱前方补光、立方体阴影、SSAO、RSM 近似间接光照、PBR 与 HDR；顶灯面板仅显示自发光外观，照明由点光源提供。
+- 使用点光源、弱前方补光、立方体阴影、SSAO、PBR 与 HDR；RSM 近似间接光照仅供手动开启的 demo，默认关闭；顶灯面板仅显示自发光外观，照明由点光源提供。
 - 这是经典布局的实时演示，不是原始 Cornell Box 的测量基准，也不提供面积光源或完整路径追踪光传输。
 
 ## Sponza（Crytek）
@@ -99,7 +111,7 @@ MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 ./build/Scene-Renderer --render-galler
 MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 ./build/Scene-Renderer --render-gallery img/metal gi
 ```
 
-`core` 生成三个基础场景，`gi` 生成两个大型场景及 RSM 开关对照。不传选择项时生成基础场景，并在两个 GI 模型都存在时追加 GI 场景；也可传入单个场景名。`*-direct.png` 关闭 RSM，但仍含天空环境光和 SSAO；相机、曝光及其他光照保持一致。两个 GI 场景的 RSM 使用太阳与天空，不再添加额外聚光灯；同时输出 `*-indirect.png`、`*-sun-indirect.png`、`*-sky-indirect.png`。RSM 是一次间接反弹的近似，不是完整 GI 基准解，详见[实现与验证](../docs/rsm.md)。
+`core` 生成三个基础场景，`gi` 显式开启 RSM demo，生成两个大型场景及开关对照。普通场景、单场景画廊和后处理画廊默认关闭 RSM；需要对照时使用 `gi`，或在编辑器中手动开启 `RSM lighting demo`。`*-direct.png` 关闭 RSM，但仍含天空环境光和 SSAO；相机、曝光及其他光照保持一致。两个 GI 场景的 RSM 使用太阳与天空，不再添加额外聚光灯；同时输出 `*-indirect.png`、`*-sun-indirect.png`、`*-sky-indirect.png`。RSM 是一次间接反弹的近似，不是完整 GI 基准解，详见[实现与验证](../docs/rsm.md)。
 
 Bunny 与 Helmet 资源丢失时可执行：
 

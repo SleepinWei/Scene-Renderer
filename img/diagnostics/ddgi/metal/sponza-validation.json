@@ -1,0 +1,76 @@
+{
+  "date": "2026-10-10",
+  "device": "Apple M4",
+  "backend": "Metal",
+  "scene": "Sponza / Crytek OBJ, height normalized to 12 m",
+  "triangles": 262267,
+  "meshes": 25,
+  "viewport": [
+    960,
+    540
+  ],
+  "screenshot_frames": 480,
+  "time": 8,
+  "rsm": false,
+  "ui_in_screenshots": false,
+  "ddgi": {
+    "origin": [
+      -15,
+      -1,
+      -9
+    ],
+    "grid": [
+      16,
+      8,
+      10
+    ],
+    "spacing_m": 2,
+    "upper_bound": [
+      15,
+      13,
+      9
+    ],
+    "probes": 1280,
+    "cache_bytes": 13148160,
+    "probes_per_frame": 8,
+    "sweep_frames": 160,
+    "completed_sweeps_at_capture": 3,
+    "capture_face_resolution": 12,
+    "max_distance_m": 45,
+    "normal_bias_m": 0.08,
+    "view_bias_m": 0.02,
+    "hysteresis": 0.85,
+    "visibility_power": 3,
+    "bounce_gain": 0.85
+  },
+  "verification": {
+    "deferred_on_off": "Metal API and Shader Validation, 480 frames each, no errors; no rejected publications or fallback frames",
+    "forward_on": "Metal API and Shader Validation, 160 frames at 640x360, no errors; no rejected publications or fallback frames; startup smoke only, not an image-equivalence test",
+    "log_files": [
+      "sponza-on-validation.log",
+      "sponza-off-validation.log",
+      "sponza-forward-validation.log"
+    ]
+  },
+  "limitations": [
+    "Screenshots are LDR comparisons without a path-tracing reference; no numerical leak accuracy claim.",
+    "Three complete probe sweeps show budgeted update behavior, not proof of temporal convergence.",
+    "Fixed 2 m grid and 12x12 raster captures cannot resolve all thin ornaments and corridor details."
+  ],
+  "ldr_screenshot_comparison": {
+    "mean_abs_rgb_difference": 0.030498015512789477,
+    "changed_pixels_above_2_code_values_fraction": 0.9416724537037037,
+    "note": "Image differences confirm a visible contribution; they are not physical accuracy metrics."
+  },
+  "convergence_comparison": {
+    "from_frames": 480,
+    "to_frames": 960,
+    "from_sweeps": 3,
+    "to_sweeps": 6,
+    "mean_abs_rgb_code_values": 0.16177854938271605,
+    "p95_abs_rgb_code_values": 1.0,
+    "pixels_changed_above_2_code_values_fraction": 4.243827160493827e-05,
+    "max_abs_rgb_code_values": 175.0,
+    "note": "Fixed camera, sun, exposure and time; this is an LDR convergence observation, not a physical accuracy test."
+  }
+}

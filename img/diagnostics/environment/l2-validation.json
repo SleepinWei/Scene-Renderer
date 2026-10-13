@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-09",
+  "stage": "L2 shared wind and continuous cloud/grass/wave motion",
+  "executable_sha256": "eefa1bad8dd2a923e26b06119371e62912f7b235e56137426ad33730cc236f74",
+  "source_sha256": {
+    "include/engine/Environment.h": "e30febdb2ac0f445654c450d95a2a94746d1f12a5e8fe8f6fbecc341c39f8559",
+    "src/engine/Environment.cpp": "a5381b8b5fa9261863bcb91d11a1ae5285392b5f14d33ca8a1e8786833181f3d",
+    "src/renderer/rhi/EnvironmentBridge.cpp": "8b409620707affd95d483314d42e10fc4fb8bd775865e0c8e640b14699f70bbb",
+    "include/GUI.h": "59c7284654f4f95d6ad63aca8b52f390bb14e771c626c994eedde8efe2ba1e46",
+    "src/main.cpp": "5fb6b3a0f4f327cb00d6b0371a7e76c736b7c5d2b2b8457edf6bebcfbbb9a162",
+    "include/component/CloudSettings.h": "d03b494144e5e016f394f53c7d82a04425caede48ec5a88cc197bb04579422b6",
+    "src/component/Cloud.cpp": "47e19d37ca5b85f1785bd6b00c96725c79d1334b6a108c41dffc55dd773b683a",
+    "include/component/VegetationSettings.h": "367d3f492909889af1a1b2f4794fc26b9ee4f611763977a9d25077e50fe8329a",
+    "include/renderer/rhi/GpuClouds.h": "90934f821ec4e67728c3828fe40e6199779c86c5e84fabdfba93a41239e355fc",
+    "src/renderer/rhi/GpuClouds.cpp": "2bfff4dd9511627906d5bfedc1c5e391d5af604cb55606fe2ddeb24b4ce3da38",
+    "src/renderer/rhi/ForwardPbrRenderer.cpp": "51a488fd7a396e8177bc6ce77cee1f28d56e633139de541fd63d084b1dae198e",
+    "src/renderer/rhi/GpuGrass.cpp": "1454823b645b45c50e9d78738484929c1b8f3a391deab01c618efb7f6f831301",
+    "include/renderer/rhi/GpuOcean.h": "ef3220ddd9bba819029c11a554f73430d054dd07c113ace6751b424456542835",
+    "src/renderer/rhi/GpuOcean.cpp": "d9bcbf30fb21d2551cca0ae41a050dd4c371bcf3514f839c35de822556bb566d",
+    "src/renderer/rhi/OceanSurface.cpp": "846f8817144dd1b43f58d43e702154a628524af718d65e1d9517db4dca98fd3e",
+    "src/PT/ProceduralCapture.cpp": "6f6671a7cc7bbd5633b23cfc9b2f6849c1390bf0eee7f27bb53a944d82585259",
+    "include/PT/SceneIdentity.h": "ec697ff87f72e44d3531a916db0b5b526294708e62e6b69453c8e3d2b79b1d52",
+    "src/renderer/rhi/CloudValidation.cpp": "5284554343f84c5fbd7753e2d8f06f405714e679fb6195674e662bf11752132a",
+    "src/renderer/rhi/TerrainValidation.cpp": "b4a2878689d90363234a62b8e96709708fa798167da0e9046806298af9e5aaa8",
+    "src/renderer/rhi/OceanValidation.cpp": "e3528ad3bc8d3c8b6da4f889ccdd17ad6938488be459d0de10e5c293c80e701d",
+    "src/rhi/shaders/cloud-parameters.glsl": "c2d6d4ec68d68b48fc73e776d1faf4269f0200f3af37e516a4999bc7ae84e451",
+    "src/rhi/shaders/cloud-density.glsl": "2921be08db24d43479ea8012c2d66246afbc1dd8c776c3eea1eef19f0bf2a4c7",
+    "src/rhi/shaders/cloud-intersection.glsl": "f9fa2e30240c19ac788e2a89714e6780e42c75edf0238cd10f670de470eb1b78",
+    "src/rhi/shaders/cloud-volume-sampling.glsl": "9ffa52ed63affe49d567905e05e92fa44b352ba4e5846921f406ec39d69f9b51",
+    "src/rhi/shaders/cloud-resolve.comp": "c4ccdaeb105c1e4877e6eec5f95fbc954f456b621fc446dc3c0d701d716cf1fe",
+    "src/rhi/shaders/cloud-march.comp": "648939902be459298d2dc73bc4ce3b3ea5548fb7563aaa828ed99257744257da",
+    "src/rhi/shaders/cloud-voxel-march.comp": "120b1b819e8863b98db310d7d63108dd8bb2485d0048dc9ab3c54b1f4e19afc0",
+    "src/rhi/shaders/grass-placement.glsl": "cbebb64da8448ef03440113fc5a1329262269254ff2fb18ec930f87fa6b3625b",
+    "src/rhi/shaders/grass-generate.comp": "2b85f431ddef519c2cafd52561f0f4d15f65b26848efb11a23a3bfd87cbe7d6a",
+    "src/rhi/shaders/ocean-parameters.glsl": "a3ab711bfcbce18352cbddb63c31a41f5061fcd0dfad036550139190dd1bc962",
+    "src/rhi/shaders/ocean-height.comp": "8b8c99ac46ec1af14c1f22cf1681c3d046fcbcf944fc6494dbc68c312071b4da",
+    "tests/engine/EnvironmentTests.cpp": "1af987e653bb72cb2351728e9f922d72268e437d7d35fc43455af3610c43ecb0",
+    "tools/validate_environment_editor.py": "dadda93c00a466decbf869a9d83db141e950af20d4b723f89f9aecdaced3485d"
+  },
+  "platform": "macOS / Apple M4 / Release; Metal default and Vulkan prototype",
+  "checks": {
+    "cpu_ctest": {
+      "passed": true,
+      "tests": 6,
+      "log": "l2-cpu-tests.log"
+    },
+    "rhi_metal": {
+      "passed": true,
+      "debug_layer": true,
+      "shader_validation": true,
+      "log": "l2-rhi-metal.log"
+    },
+    "rhi_vulkan": {
+      "passed": true,
+      "metal_debug_layer": false,
+      "metal_shader_validation": false,
+      "log": "l2-rhi-vulkan.log",
+      "native_khronos_validation_layer_available": false
+    },
+    "editor": {
+      "passed": true,
+      "backends": [
+        "Metal",
+        "Vulkan"
+      ],
+      "cases_per_backend": 8,
+      "wind_replay_exact": true,
+      "report": "l2-editor-validation.json"
+    }
+  },
+  "uniform_bytes": {
+    "cloud": 352,
+    "grass": 208,
+    "ocean": 80
+  },
+  "wind": {
+    "step_hz": 60,
+    "response_time_constant_seconds": 1,
+    "wave_transition_seconds": 8,
+    "wave_target_during_transition": "Finish current blend, then transition to the most recent target",
+    "cloud_accumulation": "double analytic integral; shaders receive float",
+    "additional_fft_passes": 0,
+    "short_wave_normalization": "Two fixed endpoint caches"
+  },
+  "preview": {
+    "mountain_lake": "l2-lake-wind.png",
+    "cloud_layer": "l2-cloud-wind.png",
+    "checkpoint_schema": 2,
+    "checkpoint_scope": "cpu-clock-solar-wind"
+  },
+  "performance": {
+    "report": "l2-lake-summary.json",
+    "trace": "l2-lake-trace.json.gz",
+    "joint_weather_budget_passed": false,
+    "target_ms": 33.3,
+    "gpu_profile_enabled": true,
+    "command": "MTL_DEBUG_LAYER=0 MTL_SHADER_VALIDATION=0 SCENERENDERER_GPU_PROFILE=1 SCENERENDERER_RUNTIME_TRACE_OUTPUT=build/environment/l2-lake-gpu-trace.json ./build/Scene-Renderer --classic mountain-lake --environment-ticks 240 --environment-sun 45 20 --environment-wind 12 4 --environment-save build/environment/l2-lake.json --hidden --size 1280x720 --frames 60 --screenshot build/environment/l2-lake.ppm"
+  },
+  "limitations": [
+    "Continuous cloud coverage/storm transition and joint performance acceptance are pending",
+    "PT frozen grass/wave state is shared; PT sky bake still omits volumetric clouds",
+    "Checkpoint does not contain GPU shallow-water/foam/cloud-light histories, camera or assets",
+    "Long-time float shader precision is unverified; v1 checkpoints use the scene wind baseline"
+  ],
+  "artifact_sha256": {
+    "l2-cloud-checkpoint.json": "dfb6a617c97a5b73a98d766352d1e3d6998a318872a1ae49ecf7df148e1471db",
+    "l2-cloud-wind.png": "8aa1ce9d9bd76204924d681d501cb7b069099204de79f35e4434ddb28979aec2",
+    "l2-cpu-tests.log": "e3da5a6ca0e04c91ba3e2a3d6ebd81cc6518fe136df28ed55544b1fbae7acd79",
+    "l2-editor-validation.json": "03e21b698a36df4c6b585febc8514c8c3bc9c82e999db79483eaddcc5bbe83c7",
+    "l2-lake-checkpoint.json": "85eaea1bf886f2c968e0612e82e0724804e50570ff07f98a79619c88b92aa4cd",
+    "l2-lake-summary.json": "b57752f4be03018c0acdc20e82d0d399c7279489a2a692cbd4ec8140ebd3f0ab",
+    "l2-lake-trace.json.gz": "e113e922998a261d45651a6377be86a89862a716f7cf404a64b81f55833f45e1",
+    "l2-lake-wind.png": "75a92a0f54aab9e44b0994206aa4263f884a16330ec969ea75e213586e77e2a8",
+    "l2-rhi-metal.log": "88a4e14fd15832e3ed511830da9ab1a9124e590638a1a0215ca8e1b34a4333d7",
+    "l2-rhi-vulkan.log": "0f4541fad2724cef2d3ba731a8c6ad880ffe6274518714b2a615c5bc114fa975"
+  }
+}

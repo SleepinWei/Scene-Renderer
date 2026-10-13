@@ -1,0 +1,3006 @@
+{
+  "backend": "Metal",
+  "bias": 0.02500000037252903,
+  "camera_step_world_x": 0.025,
+  "cases": {
+    "contact": {
+      "frames": [
+        {
+          "camera": [
+            2.5,
+            1.7000000476837158,
+            3.5
+          ],
+          "covered_pixels": 43516,
+          "excluded_surface_mismatch": 0,
+          "frame": 0,
+          "matched_pixels": 43516,
+          "modes": {
+            "gtao": {
+              "all": {
+                "mae": 0.03619695699535997,
+                "max_absolute_error": 0.6888846158981323,
+                "mean_signed_error": 0.028335739149362663,
+                "pixels": 43516,
+                "rmse": 0.09167969460884087
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.15755604207362398,
+                "max_absolute_error": 0.6888846158981323,
+                "mean_signed_error": 0.12835282900534806,
+                "pixels": 9719,
+                "rmse": 0.1931062010323998
+              },
+              "open": {
+                "mae": 0.000881065304193759,
+                "max_absolute_error": 0.6255037784576416,
+                "mean_signed_error": -0.0005219524339761733,
+                "pixels": 32934,
+                "rmse": 0.007182509647743203
+              }
+            },
+            "gtao-hiz": {
+              "all": {
+                "mae": 0.03619695699535997,
+                "max_absolute_error": 0.6888846158981323,
+                "mean_signed_error": 0.028335739149362663,
+                "pixels": 43516,
+                "rmse": 0.09167969460884087
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.15755604207362398,
+                "max_absolute_error": 0.6888846158981323,
+                "mean_signed_error": 0.12835282900534806,
+                "pixels": 9719,
+                "rmse": 0.1931062010323998
+              },
+              "open": {
+                "mae": 0.000881065304193759,
+                "max_absolute_error": 0.6255037784576416,
+                "mean_signed_error": -0.0005219524339761733,
+                "pixels": 32934,
+                "rmse": 0.007182509647743203
+              }
+            },
+            "gtao-raw": {
+              "all": {
+                "mae": 0.037082718526553295,
+                "max_absolute_error": 0.7436678409576416,
+                "mean_signed_error": 0.028777690011412466,
+                "pixels": 43516,
+                "rmse": 0.0954686639047528
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.1622973787513507,
+                "max_absolute_error": 0.7237929105758667,
+                "mean_signed_error": 0.12896603169246446,
+                "pixels": 9719,
+                "rmse": 0.20086818374795182
+              },
+              "open": {
+                "mae": 0.0005929799304891966,
+                "max_absolute_error": 0.7436678409576416,
+                "mean_signed_error": -0.0001313155731332753,
+                "pixels": 32934,
+                "rmse": 0.008313741529764935
+              }
+            },
+            "gtao-world": {
+              "all": {
+                "mae": 0.03620185026877921,
+                "max_absolute_error": 0.6888846158981323,
+                "mean_signed_error": 0.028328625207077067,
+                "pixels": 43516,
+                "rmse": 0.09167976300273166
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.1575549870364545,
+                "max_absolute_error": 0.6888846158981323,
+                "mean_signed_error": 0.12835152276885253,
+                "pixels": 9719,
+                "rmse": 0.19310653600583616
+              },
+              "open": {
+                "mae": 0.0008882350693448628,
+                "max_absolute_error": 0.6255037784576416,
+                "mean_signed_error": -0.0005305293059967295,
+                "pixels": 32934,
+                "rmse": 0.007181994498947964
+              }
+            },
+            "legacy": {
+              "all": {
+                "mae": 0.04760003765929062,
+                "max_absolute_error": 0.954986572265625,
+                "mean_signed_error": 0.0010981274242567243,
+                "pixels": 43516,
+                "rmse": 0.11960403557670225
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.1598690643558557,
+                "max_absolute_error": 0.8693615794181824,
+                "mean_signed_error": 0.05448351608638546,
+                "pixels": 9719,
+                "rmse": 0.19769597526843063
+              },
+              "open": {
+                "mae": 0.014243092741508435,
+                "max_absolute_error": 0.954986572265625,
+                "mean_signed_error": -0.013781134965113259,
+                "pixels": 32934,
+                "rmse": 0.08290530974474043
+              }
+            }
+          },
+          "reference_cpu_seconds": 0.546612542,
+          "reference_rays": 11214178,
+          "saturated_rays": 0
+        },
+        {
+          "camera": [
+            2.5250000953674316,
+            1.7000000476837158,
+            3.5
+          ],
+          "covered_pixels": 43519,
+          "excluded_surface_mismatch": 0,
+          "frame": 1,
+          "matched_pixels": 43519,
+          "modes": {
+            "gtao": {
+              "all": {
+                "mae": 0.03577816410070614,
+                "max_absolute_error": 0.6751022338867188,
+                "mean_signed_error": 0.028105112761735024,
+                "pixels": 43519,
+                "rmse": 0.09064211061680531
+              },
+              "motion": {
+                "overlap_pixels": 42909,
+                "reprojected_error_delta_rmse": 0.01406682977003938
+              },
+              "occluded": {
+                "mae": 0.15728516584493632,
+                "max_absolute_error": 0.6751022338867188,
+                "mean_signed_error": 0.12835087231892395,
+                "pixels": 9628,
+                "rmse": 0.19210864145056097
+              },
+              "open": {
+                "mae": 0.0008210680757037405,
+                "max_absolute_error": 0.5825252532958984,
+                "mean_signed_error": -0.00046894683637540094,
+                "pixels": 32987,
+                "rmse": 0.004247996134608865
+              }
+            },
+            "gtao-hiz": {
+              "all": {
+                "mae": 0.03577816410070614,
+                "max_absolute_error": 0.6751022338867188,
+                "mean_signed_error": 0.028105112761735024,
+                "pixels": 43519,
+                "rmse": 0.09064211061680531
+              },
+              "motion": {
+                "overlap_pixels": 42909,
+                "reprojected_error_delta_rmse": 0.01406682977003938
+              },
+              "occluded": {
+                "mae": 0.15728516584493632,
+                "max_absolute_error": 0.6751022338867188,
+                "mean_signed_error": 0.12835087231892395,
+                "pixels": 9628,
+                "rmse": 0.19210864145056097
+              },
+              "open": {
+                "mae": 0.0008210680757037405,
+                "max_absolute_error": 0.5825252532958984,
+                "mean_signed_error": -0.00046894683637540094,
+                "pixels": 32987,
+                "rmse": 0.004247996134608865
+              }
+            },
+            "gtao-raw": {
+              "all": {
+                "mae": 0.036719645130308065,
+                "max_absolute_error": 0.732086718082428,
+                "mean_signed_error": 0.028587486703714856,
+                "pixels": 43519,
+                "rmse": 0.09474534125042362
+              },
+              "motion": {
+                "overlap_pixels": 42909,
+                "reprojected_error_delta_rmse": 0.029052023470877663
+              },
+              "occluded": {
+                "mae": 0.16238069740454092,
+                "max_absolute_error": 0.732086718082428,
+                "mean_signed_error": 0.12907381053653355,
+                "pixels": 9628,
+                "rmse": 0.20070492926760655
+              },
+              "open": {
+                "mae": 0.0005209807137242914,
+                "max_absolute_error": 0.6501522064208984,
+                "mean_signed_error": -6.996005512445359e-05,
+                "pixels": 32987,
+                "rmse": 0.004567373847931574
+              }
+            },
+            "gtao-world": {
+              "all": {
+                "mae": 0.035772738622121804,
+                "max_absolute_error": 0.6751022338867188,
+                "mean_signed_error": 0.028107670911623577,
+                "pixels": 43519,
+                "rmse": 0.09064288438071018
+              },
+              "motion": {
+                "overlap_pixels": 42909,
+                "reprojected_error_delta_rmse": 0.01407217881210722
+              },
+              "occluded": {
+                "mae": 0.15728197081806158,
+                "max_absolute_error": 0.6751022338867188,
+                "mean_signed_error": 0.12834620656539258,
+                "pixels": 9628,
+                "rmse": 0.19210632045759332
+              },
+              "open": {
+                "mae": 0.0008144284431587501,
+                "max_absolute_error": 0.5825252532958984,
+                "mean_signed_error": -0.0004637068460004047,
+                "pixels": 32987,
+                "rmse": 0.004247563737208174
+              }
+            },
+            "legacy": {
+              "all": {
+                "mae": 0.04727073967177414,
+                "max_absolute_error": 0.954254150390625,
+                "mean_signed_error": 0.0010063764453550595,
+                "pixels": 43519,
+                "rmse": 0.11909085952712697
+              },
+              "motion": {
+                "overlap_pixels": 42909,
+                "reprojected_error_delta_rmse": 0.015851239379466954
+              },
+              "occluded": {
+                "mae": 0.16042739303808118,
+                "max_absolute_error": 0.8697168827056885,
+                "mean_signed_error": 0.05400215321629435,
+                "pixels": 9628,
+                "rmse": 0.19839119373612102
+              },
+              "open": {
+                "mae": 0.01394080399281584,
+                "max_absolute_error": 0.954254150390625,
+                "mean_signed_error": -0.01348862713745755,
+                "pixels": 32987,
+                "rmse": 0.08182575484364854
+              }
+            }
+          },
+          "reference_cpu_seconds": 0.497064958,
+          "reference_rays": 11214754,
+          "saturated_rays": 0
+        },
+        {
+          "camera": [
+            2.549999952316284,
+            1.7000000476837158,
+            3.5
+          ],
+          "covered_pixels": 43519,
+          "excluded_surface_mismatch": 0,
+          "frame": 2,
+          "matched_pixels": 43519,
+          "modes": {
+            "gtao": {
+              "all": {
+                "mae": 0.03554828572397616,
+                "max_absolute_error": 0.7075414657592773,
+                "mean_signed_error": 0.027974907996453503,
+                "pixels": 43519,
+                "rmse": 0.09041593968551716
+              },
+              "motion": {
+                "overlap_pixels": 42913,
+                "reprojected_error_delta_rmse": 0.014030377413317325
+              },
+              "occluded": {
+                "mae": 0.15707696116294145,
+                "max_absolute_error": 0.7075414657592773,
+                "mean_signed_error": 0.12844396688992893,
+                "pixels": 9580,
+                "rmse": 0.19208993043005892
+              },
+              "open": {
+                "mae": 0.0008197596230299814,
+                "max_absolute_error": 0.5933115482330322,
+                "mean_signed_error": -0.0004660695230126103,
+                "pixels": 33089,
+                "rmse": 0.004406822325985045
+              }
+            },
+            "gtao-hiz": {
+              "all": {
+                "mae": 0.03554828572397616,
+                "max_absolute_error": 0.7075414657592773,
+                "mean_signed_error": 0.027974907996453503,
+                "pixels": 43519,
+                "rmse": 0.09041593968551716
+              },
+              "motion": {
+                "overlap_pixels": 42913,
+                "reprojected_error_delta_rmse": 0.014030377413317325
+              },
+              "occluded": {
+                "mae": 0.15707696116294145,
+                "max_absolute_error": 0.7075414657592773,
+                "mean_signed_error": 0.12844396688992893,
+                "pixels": 9580,
+                "rmse": 0.19208993043005892
+              },
+              "open": {
+                "mae": 0.0008197596230299814,
+                "max_absolute_error": 0.5933115482330322,
+                "mean_signed_error": -0.0004660695230126103,
+                "pixels": 33089,
+                "rmse": 0.004406822325985045
+              }
+            },
+            "gtao-raw": {
+              "all": {
+                "mae": 0.03643489477909396,
+                "max_absolute_error": 0.7456274032592773,
+                "mean_signed_error": 0.02844729337359935,
+                "pixels": 43519,
+                "rmse": 0.09437536517852171
+              },
+              "motion": {
+                "overlap_pixels": 42913,
+                "reprojected_error_delta_rmse": 0.029174689997726242
+              },
+              "occluded": {
+                "mae": 0.1619603604607144,
+                "max_absolute_error": 0.7456274032592773,
+                "mean_signed_error": 0.12912059065133397,
+                "pixels": 9580,
+                "rmse": 0.20036930053504945
+              },
+              "open": {
+                "mae": 0.0005279663769957947,
+                "max_absolute_error": 0.6504404544830322,
+                "mean_signed_error": -7.220102158464336e-05,
+                "pixels": 33089,
+                "rmse": 0.005124369291406423
+              }
+            },
+            "gtao-world": {
+              "all": {
+                "mae": 0.03554885224134142,
+                "max_absolute_error": 0.7075414657592773,
+                "mean_signed_error": 0.027972170327274525,
+                "pixels": 43519,
+                "rmse": 0.09041586462939433
+              },
+              "motion": {
+                "overlap_pixels": 42913,
+                "reprojected_error_delta_rmse": 0.014038464515005976
+              },
+              "occluded": {
+                "mae": 0.15707357245845435,
+                "max_absolute_error": 0.7075414657592773,
+                "mean_signed_error": 0.12844095972982977,
+                "pixels": 9580,
+                "rmse": 0.19208977259500887
+              },
+              "open": {
+                "mae": 0.0008213488400449,
+                "max_absolute_error": 0.5933115482330322,
+                "mean_signed_error": -0.0004688732776591696,
+                "pixels": 33089,
+                "rmse": 0.0044064676432832095
+              }
+            },
+            "legacy": {
+              "all": {
+                "mae": 0.047053899721378446,
+                "max_absolute_error": 0.953460693359375,
+                "mean_signed_error": 0.0009241825705265533,
+                "pixels": 43519,
+                "rmse": 0.1188781083019556
+              },
+              "motion": {
+                "overlap_pixels": 42913,
+                "reprojected_error_delta_rmse": 0.015727453541738216
+              },
+              "occluded": {
+                "mae": 0.16037835946971538,
+                "max_absolute_error": 0.8583640456199646,
+                "mean_signed_error": 0.05389431462096272,
+                "pixels": 9580,
+                "rmse": 0.19831970514546282
+              },
+              "open": {
+                "mae": 0.01387008666422963,
+                "max_absolute_error": 0.953460693359375,
+                "mean_signed_error": -0.013411191028294765,
+                "pixels": 33089,
+                "rmse": 0.08152467540678633
+              }
+            }
+          },
+          "reference_cpu_seconds": 0.473283417,
+          "reference_rays": 11214674,
+          "saturated_rays": 0
+        },
+        {
+          "camera": [
+            2.575000047683716,
+            1.7000000476837158,
+            3.5
+          ],
+          "covered_pixels": 43515,
+          "excluded_surface_mismatch": 0,
+          "frame": 3,
+          "matched_pixels": 43515,
+          "modes": {
+            "gtao": {
+              "all": {
+                "mae": 0.03530610909506355,
+                "max_absolute_error": 0.6805887818336487,
+                "mean_signed_error": 0.027905136659804753,
+                "pixels": 43515,
+                "rmse": 0.09012760383564608
+              },
+              "motion": {
+                "overlap_pixels": 42910,
+                "reprojected_error_delta_rmse": 0.014108534356465214
+              },
+              "occluded": {
+                "mae": 0.15736669828500666,
+                "max_absolute_error": 0.6805887818336487,
+                "mean_signed_error": 0.12915161244491197,
+                "pixels": 9498,
+                "rmse": 0.19229884276658413
+              },
+              "open": {
+                "mae": 0.0007998998722773492,
+                "max_absolute_error": 0.5930233001708984,
+                "mean_signed_error": -0.0004507319005673687,
+                "pixels": 33152,
+                "rmse": 0.004318004569359438
+              }
+            },
+            "gtao-hiz": {
+              "all": {
+                "mae": 0.03530610909506355,
+                "max_absolute_error": 0.6805887818336487,
+                "mean_signed_error": 0.027905136659804753,
+                "pixels": 43515,
+                "rmse": 0.09012760383564608
+              },
+              "motion": {
+                "overlap_pixels": 42910,
+                "reprojected_error_delta_rmse": 0.014108534356465214
+              },
+              "occluded": {
+                "mae": 0.15736669828500666,
+                "max_absolute_error": 0.6805887818336487,
+                "mean_signed_error": 0.12915161244491197,
+                "pixels": 9498,
+                "rmse": 0.19229884276658413
+              },
+              "open": {
+                "mae": 0.0007998998722773492,
+                "max_absolute_error": 0.5930233001708984,
+                "mean_signed_error": -0.0004507319005673687,
+                "pixels": 33152,
+                "rmse": 0.004318004569359438
+              }
+            },
+            "gtao-raw": {
+              "all": {
+                "mae": 0.0361888264392034,
+                "max_absolute_error": 0.7318583130836487,
+                "mean_signed_error": 0.02837413464156318,
+                "pixels": 43515,
+                "rmse": 0.09394548337185611
+              },
+              "motion": {
+                "overlap_pixels": 42910,
+                "reprojected_error_delta_rmse": 0.029161067649713504
+              },
+              "occluded": {
+                "mae": 0.16227047531309569,
+                "max_absolute_error": 0.7318583130836487,
+                "mean_signed_error": 0.12983059481172265,
+                "pixels": 9498,
+                "rmse": 0.2003583260797295
+              },
+              "open": {
+                "mae": 0.0005064572200438,
+                "max_absolute_error": 0.6501522064208984,
+                "mean_signed_error": -5.996845209517994e-05,
+                "pixels": 33152,
+                "rmse": 0.0044934203790014775
+              }
+            },
+            "gtao-world": {
+              "all": {
+                "mae": 0.035307416534555325,
+                "max_absolute_error": 0.6805887818336487,
+                "mean_signed_error": 0.02790219115071306,
+                "pixels": 43515,
+                "rmse": 0.090126070282068
+              },
+              "motion": {
+                "overlap_pixels": 42910,
+                "reprojected_error_delta_rmse": 0.014116488453257966
+              },
+              "occluded": {
+                "mae": 0.1573617116266312,
+                "max_absolute_error": 0.6805887818336487,
+                "mean_signed_error": 0.1291444666148688,
+                "pixels": 9498,
+                "rmse": 0.19229527463703835
+              },
+              "open": {
+                "mae": 0.0008025345910326164,
+                "max_absolute_error": 0.5930233001708984,
+                "mean_signed_error": -0.0004530148275023952,
+                "pixels": 33152,
+                "rmse": 0.004318718048720076
+              }
+            },
+            "legacy": {
+              "all": {
+                "mae": 0.04683255224197497,
+                "max_absolute_error": 0.952667236328125,
+                "mean_signed_error": 0.0007953014601020721,
+                "pixels": 43515,
+                "rmse": 0.11861211809583265
+              },
+              "motion": {
+                "overlap_pixels": 42910,
+                "reprojected_error_delta_rmse": 0.01568432571066805
+              },
+              "occluded": {
+                "mae": 0.16107542773131747,
+                "max_absolute_error": 0.8517605662345886,
+                "mean_signed_error": 0.05337886932894515,
+                "pixels": 9498,
+                "rmse": 0.19897085932632
+              },
+              "open": {
+                "mae": 0.01379487503672371,
+                "max_absolute_error": 0.952667236328125,
+                "mean_signed_error": -0.013344595526995922,
+                "pixels": 33152,
+                "rmse": 0.08121298517696124
+              }
+            }
+          },
+          "reference_cpu_seconds": 0.48324275,
+          "reference_rays": 11213393,
+          "saturated_rays": 0
+        }
+      ],
+      "memory": {
+        "allocated_depth_pyramid_bytes": 3686268,
+        "filtered_ao_bytes": 1382400,
+        "nominal_point_query_bytes_per_pixel": {
+          "filter_disabled_max": 8,
+          "filter_enabled_max": 390,
+          "gtao_hiz_raw_max": 286,
+          "gtao_raw_max": 158
+        },
+        "normal_bytes": 5529600,
+        "note": "nominal point-query bound plus scalar AO stores; hierarchy adds conditional reads, preprocess reads world positions; caches/branches reduce traffic; not measured DRAM bandwidth",
+        "position_bytes": 11059200,
+        "raw_ao_bytes": 1382400
+      },
+      "timing": {
+        "encoders_per_submission": 8,
+        "gtao": {
+          "fast_reconstruction": true,
+          "filter": {
+            "max_ms": 0.7214687357190996,
+            "mean_ms": 0.6103916020947509,
+            "median_ms": 0.5946536402916536,
+            "min_ms": 0.5561979196500033,
+            "p95_ms": 0.710097658156883,
+            "p95_to_median": 1.1941365696653412,
+            "samples_ms": [
+              0.5921197880525142,
+              0.5561979196500033,
+              0.6841093709226698,
+              0.5646614590659738,
+              0.5633072869386524,
+              0.7214687357190996,
+              0.5680468748323619,
+              0.597187492530793,
+              0.6795781373512,
+              0.5659374874085188,
+              0.559442734811455,
+              0.6048437498975545,
+              0.7063072989694774,
+              0.5702916532754898,
+              0.6021719018463045,
+              0.6305937422439456
+            ],
+            "unstable_samples": false
+          },
+          "preprocess": {
+            "max_ms": 0.23010934819467366,
+            "mean_ms": 0.1557532505103154,
+            "median_ms": 0.14287758676800877,
+            "min_ms": 0.13510938151739538,
+            "p95_ms": 0.2133554735337384,
+            "p95_to_median": 1.4932746161241162,
+            "samples_ms": [
+              0.14251560787670314,
+              0.1612187479622662,
+              0.20777084864676,
+              0.19284896552562714,
+              0.14387498958967626,
+              0.1432395656593144,
+              0.13809374650008976,
+              0.13639061944559216,
+              0.13655205839313567,
+              0.13510938151739538,
+              0.13864063657820225,
+              0.16565623809583485,
+              0.23010934819467366,
+              0.1452447904739529,
+              0.13875000877305865,
+              0.13603645493276417
+            ],
+            "unstable_samples": false
+          },
+          "raw": {
+            "max_ms": 1.0497916664462537,
+            "mean_ms": 0.9337861356470967,
+            "median_ms": 0.9037994896061718,
+            "min_ms": 0.8768958214204758,
+            "p95_ms": 1.0417057274025865,
+            "p95_to_median": 1.1525849918951678,
+            "samples_ms": [
+              0.8771666907705367,
+              0.9890208311844617,
+              0.87771873222664,
+              0.9923124744091183,
+              0.8768958214204758,
+              0.9903125173877925,
+              0.9078593866433948,
+              0.9538281301502138,
+              0.8869791927281767,
+              0.8912187768146396,
+              1.0497916664462537,
+              0.8997395925689489,
+              0.9419427078682929,
+              0.8834947948344052,
+              1.0390104143880308,
+              0.8832864405121654
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "gtao-hiz": {
+          "fast_reconstruction": true,
+          "filter": {
+            "max_ms": 0.7113489555194974,
+            "mean_ms": 0.6056914044165751,
+            "median_ms": 0.5788801936432719,
+            "min_ms": 0.5579062562901527,
+            "p95_ms": 0.7053059962345287,
+            "p95_to_median": 1.2183971812812882,
+            "samples_ms": [
+              0.6192083237692714,
+              0.6649531133007258,
+              0.5707291711587459,
+              0.582171865971759,
+              0.5690833204425871,
+              0.5652552063111216,
+              0.6060364539735019,
+              0.6889114738442004,
+              0.5755885213147849,
+              0.5585937469732016,
+              0.7032916764728725,
+              0.5579062562901527,
+              0.5607031343970448,
+              0.7113489555194974,
+              0.5923645803704858,
+              0.5649166705552489
+            ],
+            "unstable_samples": false
+          },
+          "preprocess": {
+            "max_ms": 0.6550156394951046,
+            "mean_ms": 0.46057975487201475,
+            "median_ms": 0.42692448187153786,
+            "min_ms": 0.39635939174331725,
+            "p95_ms": 0.6468125066021457,
+            "p95_to_median": 1.5150513359333946,
+            "samples_ms": [
+              0.5008593725506216,
+              0.4542135284282267,
+              0.419489573687315,
+              0.42631771066226065,
+              0.43596874456852674,
+              0.6550156394951046,
+              0.39648436359129846,
+              0.4275312530808151,
+              0.508046883624047,
+              0.41878127376548946,
+              0.40226560668088496,
+              0.4177343798801303,
+              0.6440781289711595,
+              0.41811459232121706,
+              0.39635939174331725,
+              0.4480156349018216
+            ],
+            "unstable_samples": true
+          },
+          "raw": {
+            "max_ms": 1.3405520876403898,
+            "mean_ms": 1.2329319652053528,
+            "median_ms": 1.2573645799420774,
+            "min_ms": 1.1325364466756582,
+            "p95_ms": 1.338759102509357,
+            "p95_to_median": 1.0647342257494077,
+            "samples_ms": [
+              1.213729177834466,
+              1.1325364466756582,
+              1.3405520876403898,
+              1.1532552307471633,
+              1.2542760523501784,
+              1.291619788389653,
+              1.135895843617618,
+              1.2803593708667904,
+              1.3195260253269225,
+              1.1420468799769878,
+              1.2741666578222066,
+              1.1529843613971025,
+              1.2604531075339764,
+              1.2950781383551657,
+              1.1422708339523524,
+              1.3381614407990128
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "gtao-raw": {
+          "fast_reconstruction": true,
+          "filter": {
+            "max_ms": 0.04991667810827494,
+            "mean_ms": 0.03742317494470626,
+            "median_ms": 0.033742180676199496,
+            "min_ms": 0.032359384931623936,
+            "p95_ms": 0.04956509656039998,
+            "p95_to_median": 1.4689357820717672,
+            "samples_ms": [
+              0.032359384931623936,
+              0.03268750151619315,
+              0.03254166222177446,
+              0.03306247526779771,
+              0.033765623811632395,
+              0.03242187085561454,
+              0.04991667810827494,
+              0.0466301862616092,
+              0.04126562271267176,
+              0.032557290978729725,
+              0.04944790271110833,
+              0.0342395796906203,
+              0.03962501068599522,
+              0.040828133933246136,
+              0.0337187375407666,
+              0.03370313788764179
+            ],
+            "unstable_samples": false
+          },
+          "preprocess": {
+            "max_ms": 0.2216197899542749,
+            "mean_ms": 0.14910937352397013,
+            "median_ms": 0.13951041910331696,
+            "min_ms": 0.13448958634398878,
+            "p95_ms": 0.19566666742321104,
+            "p95_to_median": 1.4025236873405602,
+            "samples_ms": [
+              0.15832812641747296,
+              0.14365624519996345,
+              0.14156248653307557,
+              0.1870156265795231,
+              0.13943228987045586,
+              0.13680729898624122,
+              0.13958854833617806,
+              0.1508281275164336,
+              0.2216197899542749,
+              0.14606249169446528,
+              0.13862497871741652,
+              0.13897396274842322,
+              0.137562514282763,
+              0.13586977729573846,
+              0.13448958634398878,
+              0.1353281259071082
+            ],
+            "unstable_samples": false
+          },
+          "raw": {
+            "max_ms": 1.0374999837949872,
+            "mean_ms": 0.9312415368185611,
+            "median_ms": 0.9226770926034078,
+            "min_ms": 0.8781562501098961,
+            "p95_ms": 1.0096015612361953,
+            "p95_to_median": 1.094208980942101,
+            "samples_ms": [
+              0.9354166686534882,
+              0.8874062623362988,
+              0.9762812405824661,
+              0.8868489821907133,
+              0.9202187648043036,
+              0.9129948157351464,
+              1.0003020870499313,
+              0.8781562501098961,
+              0.9517812577541918,
+              0.9011041547637433,
+              0.925135420402512,
+              0.9509218507446349,
+              0.9019895805977285,
+              0.9551406255923212,
+              0.8786666439846158,
+              1.0374999837949872
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "gtao-world": {
+          "fast_reconstruction": false,
+          "filter": {
+            "max_ms": 0.7139270892366767,
+            "mean_ms": 0.6016207680659136,
+            "median_ms": 0.5888619780307636,
+            "min_ms": 0.551796896615997,
+            "p95_ms": 0.6911848904564977,
+            "p95_to_median": 1.1737638296293407,
+            "samples_ms": [
+              0.5588697968050838,
+              0.6836041575297713,
+              0.5655885324813426,
+              0.5775468598585576,
+              0.7139270892366767,
+              0.5741510249208659,
+              0.5987604381516576,
+              0.6573593709617853,
+              0.5614531401079148,
+              0.5562447768170387,
+              0.6132812413852662,
+              0.6237760535441339,
+              0.5984010349493474,
+              0.5793229211121798,
+              0.611848954576999,
+              0.551796896615997
+            ],
+            "unstable_samples": false
+          },
+          "preprocess": null,
+          "raw": {
+            "max_ms": 1.1695624853018671,
+            "mean_ms": 1.0729925124906003,
+            "median_ms": 1.0656171943992376,
+            "min_ms": 0.994078116491437,
+            "p95_ms": 1.1686015786835924,
+            "p95_to_median": 1.0966429453518851,
+            "samples_ms": [
+              1.0823333286680281,
+              1.0114062461070716,
+              1.1682812764775008,
+              0.9968645754270256,
+              1.1396874906495214,
+              0.994078116491437,
+              1.1695624853018671,
+              1.0164999985136092,
+              1.130062504671514,
+              1.071406266419217,
+              1.0485885431990027,
+              1.091593730961904,
+              1.002453122055158,
+              1.0598281223792583,
+              1.0492656438145787,
+              1.1359687487129122
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "height": 720,
+        "legacy": {
+          "fast_reconstruction": false,
+          "filter": {
+            "max_ms": 0.21913539967499673,
+            "mean_ms": 0.15168489153438713,
+            "median_ms": 0.1373359264107421,
+            "min_ms": 0.13160938397049904,
+            "p95_ms": 0.2123815065715462,
+            "p95_to_median": 1.546438081586598,
+            "samples_ms": [
+              0.13728125486522913,
+              0.13468231190927327,
+              0.14002603711560369,
+              0.14021873357705772,
+              0.21913539967499673,
+              0.145875004818663,
+              0.13432811829261482,
+              0.13468749239109457,
+              0.13444270007312298,
+              0.13434374704957008,
+              0.13160938397049904,
+              0.13164061238057911,
+              0.13739059795625508,
+              0.17585416208021343,
+              0.1853124995250255,
+              0.21013020887039602
+            ],
+            "unstable_samples": true
+          },
+          "preprocess": null,
+          "raw": {
+            "max_ms": 0.6577343738172203,
+            "mean_ms": 0.4920882111036917,
+            "median_ms": 0.45067709288559854,
+            "min_ms": 0.430921878432855,
+            "p95_ms": 0.625648426648695,
+            "p95_to_median": 1.3882410189583605,
+            "samples_ms": [
+              0.6577343738172203,
+              0.5122656293679029,
+              0.45708855031989515,
+              0.6149531109258533,
+              0.4330312367528677,
+              0.430921878432855,
+              0.4920156206935644,
+              0.5211041425354779,
+              0.43618230847641826,
+              0.4357708094175905,
+              0.43415624531917274,
+              0.559390609851107,
+              0.4435937444213778,
+              0.4320937441661954,
+              0.44426563545130193,
+              0.5688437377102673
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "sample_submissions_per_pass": 16,
+        "warmup_submissions_per_pass": 4,
+        "width": 960
+      },
+      "triangles": 8
+    },
+    "cornell": {
+      "frames": [
+        {
+          "camera": [
+            0.0,
+            2.799999952316284,
+            9.5
+          ],
+          "covered_pixels": 58080,
+          "excluded_surface_mismatch": 17,
+          "frame": 0,
+          "matched_pixels": 58063,
+          "modes": {
+            "gtao": {
+              "all": {
+                "mae": 0.07285852894548063,
+                "max_absolute_error": 0.73193359375,
+                "mean_signed_error": 0.0640999823883095,
+                "pixels": 58063,
+                "rmse": 0.13371883132225762
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.1708085960056077,
+                "max_absolute_error": 0.702914297580719,
+                "mean_signed_error": 0.16075367200141136,
+                "pixels": 23794,
+                "rmse": 0.20102672282065367
+              },
+              "open": {
+                "mae": 0.004316856266379808,
+                "max_absolute_error": 0.73193359375,
+                "mean_signed_error": -0.0036641291500609957,
+                "pixels": 32716,
+                "rmse": 0.04743727876471099
+              }
+            },
+            "gtao-hiz": {
+              "all": {
+                "mae": 0.07285852894548063,
+                "max_absolute_error": 0.73193359375,
+                "mean_signed_error": 0.0640999823883095,
+                "pixels": 58063,
+                "rmse": 0.13371883132225762
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.1708085960056077,
+                "max_absolute_error": 0.702914297580719,
+                "mean_signed_error": 0.16075367200141136,
+                "pixels": 23794,
+                "rmse": 0.20102672282065367
+              },
+              "open": {
+                "mae": 0.004316856266379808,
+                "max_absolute_error": 0.73193359375,
+                "mean_signed_error": -0.0036641291500609957,
+                "pixels": 32716,
+                "rmse": 0.04743727876471099
+              }
+            },
+            "gtao-raw": {
+              "all": {
+                "mae": 0.07605523934986491,
+                "max_absolute_error": 0.89837646484375,
+                "mean_signed_error": 0.06475754597813936,
+                "pixels": 58063,
+                "rmse": 0.14414091271930618
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.17776990372327794,
+                "max_absolute_error": 0.8540736436843872,
+                "mean_signed_error": 0.16288507998871424,
+                "pixels": 23794,
+                "rmse": 0.21367453029697484
+              },
+              "open": {
+                "mae": 0.004823369855023142,
+                "max_absolute_error": 0.89837646484375,
+                "mean_signed_error": -0.004055839186339116,
+                "pixels": 32716,
+                "rmse": 0.059443982772138075
+              }
+            },
+            "gtao-world": {
+              "all": {
+                "mae": 0.07285667242755912,
+                "max_absolute_error": 0.73193359375,
+                "mean_signed_error": 0.06409949463685849,
+                "pixels": 58063,
+                "rmse": 0.13372117647959722
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.1708108328155703,
+                "max_absolute_error": 0.702914297580719,
+                "mean_signed_error": 0.16074882900002443,
+                "pixels": 23794,
+                "rmse": 0.2010300188101346
+              },
+              "open": {
+                "mae": 0.004312665904627874,
+                "max_absolute_error": 0.73193359375,
+                "mean_signed_error": -0.0036607710597917086,
+                "pixels": 32716,
+                "rmse": 0.047439125513044446
+              }
+            },
+            "legacy": {
+              "all": {
+                "mae": 0.07884078660724417,
+                "max_absolute_error": 0.825927734375,
+                "mean_signed_error": 0.04589131880675597,
+                "pixels": 58063,
+                "rmse": 0.1358432935680101
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.16662115002478572,
+                "max_absolute_error": 0.7061319947242737,
+                "mean_signed_error": 0.1351646942974159,
+                "pixels": 23794,
+                "rmse": 0.1944977322937247
+              },
+              "open": {
+                "mae": 0.016856705463592837,
+                "max_absolute_error": 0.825927734375,
+                "mean_signed_error": -0.01618329115937983,
+                "pixels": 32716,
+                "rmse": 0.06995415162265199
+              }
+            }
+          },
+          "reference_cpu_seconds": 1.169845875,
+          "reference_rays": 15006509,
+          "saturated_rays": 0
+        },
+        {
+          "camera": [
+            0.02500000037252903,
+            2.799999952316284,
+            9.5
+          ],
+          "covered_pixels": 58080,
+          "excluded_surface_mismatch": 0,
+          "frame": 1,
+          "matched_pixels": 58080,
+          "modes": {
+            "gtao": {
+              "all": {
+                "mae": 0.07193801888333988,
+                "max_absolute_error": 0.724365234375,
+                "mean_signed_error": 0.06364448927317236,
+                "pixels": 58080,
+                "rmse": 0.13049904892549735
+              },
+              "motion": {
+                "overlap_pixels": 56816,
+                "reprojected_error_delta_rmse": 0.02660432599519754
+              },
+              "occluded": {
+                "mae": 0.1702200821262993,
+                "max_absolute_error": 0.6927704811096191,
+                "mean_signed_error": 0.15428330158038867,
+                "pixels": 24092,
+                "rmse": 0.20086445044969137
+              },
+              "open": {
+                "mae": 0.0013782926687154722,
+                "max_absolute_error": 0.724365234375,
+                "mean_signed_error": -0.0007148966688624833,
+                "pixels": 32604,
+                "rmse": 0.014965110415189664
+              }
+            },
+            "gtao-hiz": {
+              "all": {
+                "mae": 0.07193801888333988,
+                "max_absolute_error": 0.724365234375,
+                "mean_signed_error": 0.06364448927317236,
+                "pixels": 58080,
+                "rmse": 0.13049904892549735
+              },
+              "motion": {
+                "overlap_pixels": 56816,
+                "reprojected_error_delta_rmse": 0.02660432599519754
+              },
+              "occluded": {
+                "mae": 0.1702200821262993,
+                "max_absolute_error": 0.6927704811096191,
+                "mean_signed_error": 0.15428330158038867,
+                "pixels": 24092,
+                "rmse": 0.20086445044969137
+              },
+              "open": {
+                "mae": 0.0013782926687154722,
+                "max_absolute_error": 0.724365234375,
+                "mean_signed_error": -0.0007148966688624833,
+                "pixels": 32604,
+                "rmse": 0.014965110415189664
+              }
+            },
+            "gtao-raw": {
+              "all": {
+                "mae": 0.07514846435730081,
+                "max_absolute_error": 0.8817138671875,
+                "mean_signed_error": 0.06448040398751122,
+                "pixels": 58080,
+                "rmse": 0.14087536467152229
+              },
+              "motion": {
+                "overlap_pixels": 56816,
+                "reprojected_error_delta_rmse": 0.05189151726889098
+              },
+              "occluded": {
+                "mae": 0.17808141613110998,
+                "max_absolute_error": 0.8482363224029541,
+                "mean_signed_error": 0.1559016452460526,
+                "pixels": 24092,
+                "rmse": 0.2162663323991024
+              },
+              "open": {
+                "mae": 0.0011074285048851132,
+                "max_absolute_error": 0.8817138671875,
+                "mean_signed_error": -0.000333810705244139,
+                "pixels": 32604,
+                "rmse": 0.017965135694965013
+              }
+            },
+            "gtao-world": {
+              "all": {
+                "mae": 0.07193677034049446,
+                "max_absolute_error": 0.724365234375,
+                "mean_signed_error": 0.06364547289759126,
+                "pixels": 58080,
+                "rmse": 0.13049960574442196
+              },
+              "motion": {
+                "overlap_pixels": 56816,
+                "reprojected_error_delta_rmse": 0.02660350755544368
+              },
+              "occluded": {
+                "mae": 0.170221192076018,
+                "max_absolute_error": 0.6927704811096191,
+                "mean_signed_error": 0.15428409200744952,
+                "pixels": 24092,
+                "rmse": 0.20086478113687364
+              },
+              "open": {
+                "mae": 0.0013756328946226961,
+                "max_absolute_error": 0.724365234375,
+                "mean_signed_error": -0.0007133092006837323,
+                "pixels": 32604,
+                "rmse": 0.01497082706772046
+              }
+            },
+            "legacy": {
+              "all": {
+                "mae": 0.07846835215804333,
+                "max_absolute_error": 0.663910984992981,
+                "mean_signed_error": 0.04539686914009989,
+                "pixels": 58080,
+                "rmse": 0.13502613418421075
+              },
+              "motion": {
+                "overlap_pixels": 56816,
+                "reprojected_error_delta_rmse": 0.024344655606648894
+              },
+              "occluded": {
+                "mae": 0.16747732474106047,
+                "max_absolute_error": 0.6031091809272766,
+                "mean_signed_error": 0.12875554761962996,
+                "pixels": 24092,
+                "rmse": 0.19721513248579933
+              },
+              "open": {
+                "mae": 0.014497557354476493,
+                "max_absolute_error": 0.61767578125,
+                "mean_signed_error": -0.013816114298888706,
+                "pixels": 32604,
+                "rmse": 0.058497753305153784
+              }
+            }
+          },
+          "reference_cpu_seconds": 1.26327075,
+          "reference_rays": 15039795,
+          "saturated_rays": 0
+        },
+        {
+          "camera": [
+            0.05000000074505806,
+            2.799999952316284,
+            9.5
+          ],
+          "covered_pixels": 58080,
+          "excluded_surface_mismatch": 0,
+          "frame": 2,
+          "matched_pixels": 58080,
+          "modes": {
+            "gtao": {
+              "all": {
+                "mae": 0.07235070204352011,
+                "max_absolute_error": 0.7202205657958984,
+                "mean_signed_error": 0.06509968158519588,
+                "pixels": 58080,
+                "rmse": 0.1305755734316733
+              },
+              "motion": {
+                "overlap_pixels": 56727,
+                "reprojected_error_delta_rmse": 0.023828599492053185
+              },
+              "occluded": {
+                "mae": 0.17217851606671458,
+                "max_absolute_error": 0.6773896217346191,
+                "mean_signed_error": 0.15764592052883253,
+                "pixels": 24020,
+                "rmse": 0.20215660635093274
+              },
+              "open": {
+                "mae": 0.0012210809547929633,
+                "max_absolute_error": 0.7202205657958984,
+                "mean_signed_error": -0.0005555780071488479,
+                "pixels": 32567,
+                "rmse": 0.010687198869446001
+              }
+            },
+            "gtao-hiz": {
+              "all": {
+                "mae": 0.07235070204352011,
+                "max_absolute_error": 0.7202205657958984,
+                "mean_signed_error": 0.06509968158519588,
+                "pixels": 58080,
+                "rmse": 0.1305755734316733
+              },
+              "motion": {
+                "overlap_pixels": 56727,
+                "reprojected_error_delta_rmse": 0.023828599492053185
+              },
+              "occluded": {
+                "mae": 0.17217851606671458,
+                "max_absolute_error": 0.6773896217346191,
+                "mean_signed_error": 0.15764592052883253,
+                "pixels": 24020,
+                "rmse": 0.20215660635093274
+              },
+              "open": {
+                "mae": 0.0012210809547929633,
+                "max_absolute_error": 0.7202205657958984,
+                "mean_signed_error": -0.0005555780071488479,
+                "pixels": 32567,
+                "rmse": 0.010687198869446001
+              }
+            },
+            "gtao-raw": {
+              "all": {
+                "mae": 0.07541960333871653,
+                "max_absolute_error": 0.8674545288085938,
+                "mean_signed_error": 0.06573161823962387,
+                "pixels": 58080,
+                "rmse": 0.13990661808719762
+              },
+              "motion": {
+                "overlap_pixels": 56727,
+                "reprojected_error_delta_rmse": 0.05218464902474857
+              },
+              "occluded": {
+                "mae": 0.17986368583166332,
+                "max_absolute_error": 0.8449404239654541,
+                "mean_signed_error": 0.15863366857369576,
+                "pixels": 24020,
+                "rmse": 0.21637521044025568
+              },
+              "open": {
+                "mae": 0.0009133039058310826,
+                "max_absolute_error": 0.8625545501708984,
+                "mean_signed_error": -0.00014337189647700214,
+                "pixels": 32567,
+                "rmse": 0.01254806581930762
+              }
+            },
+            "gtao-world": {
+              "all": {
+                "mae": 0.07235098165323953,
+                "max_absolute_error": 0.7202205657958984,
+                "mean_signed_error": 0.06509492319646823,
+                "pixels": 58080,
+                "rmse": 0.13057681732050755
+              },
+              "motion": {
+                "overlap_pixels": 56727,
+                "reprojected_error_delta_rmse": 0.02383057325802134
+              },
+              "occluded": {
+                "mae": 0.17217913607288957,
+                "max_absolute_error": 0.6773896217346191,
+                "mean_signed_error": 0.1576383686339875,
+                "pixels": 24020,
+                "rmse": 0.2021574548283545
+              },
+              "open": {
+                "mae": 0.0012213022388897856,
+                "max_absolute_error": 0.7202205657958984,
+                "mean_signed_error": -0.0005580143907004492,
+                "pixels": 32567,
+                "rmse": 0.010695494122453374
+              }
+            },
+            "legacy": {
+              "all": {
+                "mae": 0.07831877353023892,
+                "max_absolute_error": 0.650072455406189,
+                "mean_signed_error": 0.04676539741312834,
+                "pixels": 58080,
+                "rmse": 0.133920728433742
+              },
+              "motion": {
+                "overlap_pixels": 56727,
+                "reprojected_error_delta_rmse": 0.02180935854191298
+              },
+              "occluded": {
+                "mae": 0.16784545971541281,
+                "max_absolute_error": 0.650072455406189,
+                "mean_signed_error": 0.13214391779889673,
+                "pixels": 24020,
+                "rmse": 0.19622020912191115
+              },
+              "open": {
+                "mae": 0.013818215806999538,
+                "max_absolute_error": 0.6133861541748047,
+                "mean_signed_error": -0.013139843893149247,
+                "pixels": 32567,
+                "rmse": 0.056187570811750534
+              }
+            }
+          },
+          "reference_cpu_seconds": 1.147851291,
+          "reference_rays": 15032721,
+          "saturated_rays": 0
+        },
+        {
+          "camera": [
+            0.07500000298023224,
+            2.799999952316284,
+            9.5
+          ],
+          "covered_pixels": 58080,
+          "excluded_surface_mismatch": 0,
+          "frame": 3,
+          "matched_pixels": 58080,
+          "modes": {
+            "gtao": {
+              "all": {
+                "mae": 0.07220523043127715,
+                "max_absolute_error": 0.72802734375,
+                "mean_signed_error": 0.06470171094900279,
+                "pixels": 58080,
+                "rmse": 0.1307280836022031
+              },
+              "motion": {
+                "overlap_pixels": 56711,
+                "reprojected_error_delta_rmse": 0.023054076359459597
+              },
+              "occluded": {
+                "mae": 0.1714678282818724,
+                "max_absolute_error": 0.6900331974029541,
+                "mean_signed_error": 0.15647268923099736,
+                "pixels": 24065,
+                "rmse": 0.20211581799997982
+              },
+              "open": {
+                "mae": 0.0012282175935509941,
+                "max_absolute_error": 0.72802734375,
+                "mean_signed_error": -0.0006053143779173592,
+                "pixels": 32465,
+                "rmse": 0.011335441663986728
+              }
+            },
+            "gtao-hiz": {
+              "all": {
+                "mae": 0.07220523043127715,
+                "max_absolute_error": 0.72802734375,
+                "mean_signed_error": 0.06470171094900279,
+                "pixels": 58080,
+                "rmse": 0.1307280836022031
+              },
+              "motion": {
+                "overlap_pixels": 56711,
+                "reprojected_error_delta_rmse": 0.023054076359459597
+              },
+              "occluded": {
+                "mae": 0.1714678282818724,
+                "max_absolute_error": 0.6900331974029541,
+                "mean_signed_error": 0.15647268923099736,
+                "pixels": 24065,
+                "rmse": 0.20211581799997982
+              },
+              "open": {
+                "mae": 0.0012282175935509941,
+                "max_absolute_error": 0.72802734375,
+                "mean_signed_error": -0.0006053143779173592,
+                "pixels": 32465,
+                "rmse": 0.011335441663986728
+              }
+            },
+            "gtao-raw": {
+              "all": {
+                "mae": 0.07531737142034675,
+                "max_absolute_error": 0.87554931640625,
+                "mean_signed_error": 0.06532716156617217,
+                "pixels": 58080,
+                "rmse": 0.14021224404695906
+              },
+              "motion": {
+                "overlap_pixels": 56711,
+                "reprojected_error_delta_rmse": 0.05028019661828412
+              },
+              "occluded": {
+                "mae": 0.1792090317482466,
+                "max_absolute_error": 0.8454287052154541,
+                "mean_signed_error": 0.15743182253409096,
+                "pixels": 24065,
+                "rmse": 0.21650729818723294
+              },
+              "open": {
+                "mae": 0.0009260079296311226,
+                "max_absolute_error": 0.87554931640625,
+                "mean_signed_error": -0.00018691194272272652,
+                "pixels": 32465,
+                "rmse": 0.013286755152916836
+              }
+            },
+            "gtao-world": {
+              "all": {
+                "mae": 0.07220188997834716,
+                "max_absolute_error": 0.72802734375,
+                "mean_signed_error": 0.06470659334063736,
+                "pixels": 58080,
+                "rmse": 0.13073017621871802
+              },
+              "motion": {
+                "overlap_pixels": 56711,
+                "reprojected_error_delta_rmse": 0.023051708847542797
+              },
+              "occluded": {
+                "mae": 0.17146987250818177,
+                "max_absolute_error": 0.6900331974029541,
+                "mean_signed_error": 0.15647466244195768,
+                "pixels": 24065,
+                "rmse": 0.20211856008338475
+              },
+              "open": {
+                "mae": 0.0012207997867878571,
+                "max_absolute_error": 0.72802734375,
+                "mean_signed_error": -0.0005978694612763612,
+                "pixels": 32465,
+                "rmse": 0.011342931075537998
+              }
+            },
+            "legacy": {
+              "all": {
+                "mae": 0.07869800320203023,
+                "max_absolute_error": 0.7412018179893494,
+                "mean_signed_error": 0.046386117751122585,
+                "pixels": 58080,
+                "rmse": 0.13482575037031216
+              },
+              "motion": {
+                "overlap_pixels": 56711,
+                "reprojected_error_delta_rmse": 0.023287983708894337
+              },
+              "occluded": {
+                "mae": 0.1682856838723713,
+                "max_absolute_error": 0.7412018179893494,
+                "mean_signed_error": 0.1310864114009638,
+                "pixels": 24065,
+                "rmse": 0.19709519579381188
+              },
+              "open": {
+                "mae": 0.014232182082310307,
+                "max_absolute_error": 0.63623046875,
+                "mean_signed_error": -0.013582834339318098,
+                "pixels": 32465,
+                "rmse": 0.057756381252134066
+              }
+            }
+          },
+          "reference_cpu_seconds": 1.47634175,
+          "reference_rays": 15033267,
+          "saturated_rays": 0
+        }
+      ],
+      "memory": {
+        "allocated_depth_pyramid_bytes": 3686268,
+        "filtered_ao_bytes": 1382400,
+        "nominal_point_query_bytes_per_pixel": {
+          "filter_disabled_max": 8,
+          "filter_enabled_max": 390,
+          "gtao_hiz_raw_max": 286,
+          "gtao_raw_max": 158
+        },
+        "normal_bytes": 5529600,
+        "note": "nominal point-query bound plus scalar AO stores; hierarchy adds conditional reads, preprocess reads world positions; caches/branches reduce traffic; not measured DRAM bandwidth",
+        "position_bytes": 11059200,
+        "raw_ao_bytes": 1382400
+      },
+      "timing": {
+        "encoders_per_submission": 8,
+        "gtao": {
+          "fast_reconstruction": true,
+          "filter": {
+            "max_ms": 0.8987031178548932,
+            "mean_ms": 0.8160729139490286,
+            "median_ms": 0.7944661338115111,
+            "min_ms": 0.7395937573164701,
+            "p95_ms": 0.8934999859775417,
+            "p95_to_median": 1.1246545925008888,
+            "samples_ms": [
+              0.8917656086850911,
+              0.7695572858210653,
+              0.8740051998756826,
+              0.7833593699615449,
+              0.773640611441806,
+              0.8987031178548932,
+              0.7752552337478846,
+              0.8687760273460299,
+              0.7438958273269236,
+              0.7395937573164701,
+              0.8874166815076023,
+              0.7949531136546284,
+              0.8603593742009252,
+              0.7585937564726919,
+              0.7939791539683938,
+              0.8433125040028244
+            ],
+            "unstable_samples": false
+          },
+          "preprocess": {
+            "max_ms": 0.2521614369470626,
+            "mean_ms": 0.1592112621437991,
+            "median_ms": 0.1462838554289192,
+            "min_ms": 0.13893749564886093,
+            "p95_ms": 0.2311927091795951,
+            "p95_to_median": 1.5804389930913052,
+            "samples_ms": [
+              0.15065624029375613,
+              0.2521614369470626,
+              0.14534374349750578,
+              0.13893749564886093,
+              0.1448281400371343,
+              0.14219270087778568,
+              0.14381250366568565,
+              0.13954687165096402,
+              0.14030729653313756,
+              0.1472239673603326,
+              0.1594062487129122,
+              0.16386457718908787,
+              0.22420313325710595,
+              0.1519687648396939,
+              0.16047395183704793,
+              0.14245312195271254
+            ],
+            "unstable_samples": true
+          },
+          "raw": {
+            "max_ms": 1.3478541804943234,
+            "mean_ms": 1.2627998021343956,
+            "median_ms": 1.2879557179985568,
+            "min_ms": 1.175635406980291,
+            "p95_ms": 1.346604163700249,
+            "p95_to_median": 1.0455360730824117,
+            "samples_ms": [
+              1.2494531110860407,
+              1.291265623876825,
+              1.1795572936534882,
+              1.3461874914355576,
+              1.2868385238107294,
+              1.175635406980291,
+              1.3478541804943234,
+              1.2132968695368618,
+              1.1806093680206686,
+              1.3405625068116933,
+              1.1796718754339963,
+              1.2890729121863842,
+              1.2937187566421926,
+              1.2197656324133277,
+              1.321531250141561,
+              1.2897760316263884
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "gtao-hiz": {
+          "fast_reconstruction": true,
+          "filter": {
+            "max_ms": 0.9387812460772693,
+            "mean_ms": 0.817410809759167,
+            "median_ms": 0.7965546828927472,
+            "min_ms": 0.738567701773718,
+            "p95_ms": 0.9106836005230434,
+            "p95_to_median": 1.1432781955606972,
+            "samples_ms": [
+              0.8905416761990637,
+              0.7844375213608146,
+              0.8741249912418425,
+              0.7965781260281801,
+              0.9387812460772693,
+              0.7454166770912707,
+              0.7912968576420099,
+              0.8818281057756394,
+              0.7413749990519136,
+              0.8555208332836628,
+              0.7486146059818566,
+              0.7965312397573143,
+              0.8547343895770609,
+              0.7389062666334212,
+              0.9013177186716348,
+              0.738567701773718
+            ],
+            "unstable_samples": false
+          },
+          "preprocess": {
+            "max_ms": 0.6455156253650784,
+            "mean_ms": 0.4651210929296212,
+            "median_ms": 0.4241197748342529,
+            "min_ms": 0.3853228990919888,
+            "p95_ms": 0.640441408904735,
+            "p95_to_median": 1.51004845071188,
+            "samples_ms": [
+              0.6358593818731606,
+              0.40751564665697515,
+              0.4087187408003956,
+              0.44814584543928504,
+              0.39514063973911107,
+              0.40547395474277437,
+              0.3853228990919888,
+              0.44589582830667496,
+              0.6387500034179538,
+              0.39214061689563096,
+              0.4394114366732538,
+              0.5350416759029031,
+              0.4055052122566849,
+              0.408828112995252,
+              0.444671866716817,
+              0.6455156253650784
+            ],
+            "unstable_samples": true
+          },
+          "raw": {
+            "max_ms": 1.5557864389847964,
+            "mean_ms": 1.4808196629019221,
+            "median_ms": 1.5150468825595453,
+            "min_ms": 1.4043802220840007,
+            "p95_ms": 1.5426223981194198,
+            "p95_to_median": 1.0182010971919813,
+            "samples_ms": [
+              1.4069843746256083,
+              1.4060312241781503,
+              1.5557864389847964,
+              1.521968748420477,
+              1.4312343846540898,
+              1.4050208264961839,
+              1.533046888653189,
+              1.5382343844976276,
+              1.41602085204795,
+              1.4043802220840007,
+              1.5357291558757424,
+              1.5249843709170818,
+              1.5081250166986138,
+              1.4312552229966968,
+              1.537968753837049,
+              1.5363437414634973
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "gtao-raw": {
+          "fast_reconstruction": true,
+          "filter": {
+            "max_ms": 0.14523437130264938,
+            "mean_ms": 0.04658593752537854,
+            "median_ms": 0.03467968781478703,
+            "min_ms": 0.034281256375834346,
+            "p95_ms": 0.0893164033186622,
+            "p95_to_median": 2.575467339719785,
+            "samples_ms": [
+              0.03455209662206471,
+              0.03446353366598487,
+              0.03435937105678022,
+              0.034442724427208304,
+              0.03523434861563146,
+              0.03473437391221523,
+              0.034765631426125765,
+              0.03455206751823425,
+              0.034572905860841274,
+              0.05121354479342699,
+              0.03462500171735883,
+              0.034281256375834346,
+              0.06180210039019585,
+              0.07067708065733314,
+              0.14523437130264938,
+              0.03586459206417203
+            ],
+            "unstable_samples": true
+          },
+          "preprocess": {
+            "max_ms": 0.2459895913489163,
+            "mean_ms": 0.15975357928255107,
+            "median_ms": 0.15135155990719795,
+            "min_ms": 0.13686457532458007,
+            "p95_ms": 0.20488803420448676,
+            "p95_to_median": 1.3537226463348973,
+            "samples_ms": [
+              0.17808855045586824,
+              0.14145835302770138,
+              0.13779685832560062,
+              0.13895833399146795,
+              0.15179687761701643,
+              0.1625468721613288,
+              0.15566145884804428,
+              0.15090624219737947,
+              0.1550156157463789,
+              0.18872914370149374,
+              0.2459895913489163,
+              0.19118751515634358,
+              0.13740622671321034,
+              0.14426562120206654,
+              0.13938543270342052,
+              0.13686457532458007
+            ],
+            "unstable_samples": false
+          },
+          "raw": {
+            "max_ms": 1.3259375118650496,
+            "mean_ms": 1.2480641271395143,
+            "median_ms": 1.2234609457664192,
+            "min_ms": 1.1783958179876208,
+            "p95_ms": 1.320648443652317,
+            "p95_to_median": 1.079436534710976,
+            "samples_ms": [
+              1.1822708183899522,
+              1.303953118622303,
+              1.1923906276933849,
+              1.1783958179876208,
+              1.310828112764284,
+              1.209624984767288,
+              1.2341770925559103,
+              1.3188854209147394,
+              1.212744798976928,
+              1.3057187607046217,
+              1.2892708473373204,
+              1.2121302133891732,
+              1.3259375118650496,
+              1.1983281292486936,
+              1.1984843586105853,
+              1.2958854204043746
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "gtao-world": {
+          "fast_reconstruction": false,
+          "filter": {
+            "max_ms": 0.9369843755848706,
+            "mean_ms": 0.7993509079824435,
+            "median_ms": 0.7550182199338451,
+            "min_ms": 0.7152135367505252,
+            "p95_ms": 0.9224414025084116,
+            "p95_to_median": 1.2217472084173493,
+            "samples_ms": [
+              0.8818385540507734,
+              0.7612395856995136,
+              0.7248749898280948,
+              0.8422135433647782,
+              0.7152135367505252,
+              0.9162343922071159,
+              0.7487968541681767,
+              0.741046853363514,
+              0.881901039974764,
+              0.7419426983688027,
+              0.9175937448162585,
+              0.7235989614855498,
+              0.8183020690921694,
+              0.7201198022812605,
+              0.7177135266829282,
+              0.9369843755848706
+            ],
+            "unstable_samples": false
+          },
+          "preprocess": null,
+          "raw": {
+            "max_ms": 1.6154531331267208,
+            "mean_ms": 1.3188385419198312,
+            "median_ms": 1.2849036429543048,
+            "min_ms": 1.1379739735275507,
+            "p95_ms": 1.6118320418172516,
+            "p95_to_median": 1.2544380667419226,
+            "samples_ms": [
+              1.1716510343831033,
+              1.4017968496773392,
+              1.4950052136555314,
+              1.6106250113807619,
+              1.6154531331267208,
+              1.4341874921228737,
+              1.3084427337162197,
+              1.2920624867547303,
+              1.2769479071721435,
+              1.2777447991538793,
+              1.172406249679625,
+              1.1546302121132612,
+              1.3096562470309436,
+              1.1379739735275507,
+              1.2775989598594606,
+              1.1652343673631549
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "height": 720,
+        "legacy": {
+          "fast_reconstruction": false,
+          "filter": {
+            "max_ms": 0.18321353127248585,
+            "mean_ms": 0.16157258687599096,
+            "median_ms": 0.1622031268198043,
+            "min_ms": 0.14157811529003084,
+            "p95_ms": 0.1780103993951343,
+            "p95_to_median": 1.097453562611593,
+            "samples_ms": [
+              0.14157811529003084,
+              0.14477083459496498,
+              0.18321353127248585,
+              0.17627602210268378,
+              0.17450519953854382,
+              0.17291144467890263,
+              0.16498437616974115,
+              0.17581769498065114,
+              0.14877604553475976,
+              0.15096875722520053,
+              0.15140624600462615,
+              0.16644271090626717,
+              0.15942187746986747,
+              0.1554791524540633,
+              0.17236979329027236,
+              0.1462395885027945
+            ],
+            "unstable_samples": false
+          },
+          "preprocess": null,
+          "raw": {
+            "max_ms": 1.6136718913912773,
+            "mean_ms": 0.7252122359204805,
+            "median_ms": 0.6127656233729795,
+            "min_ms": 0.547260424355045,
+            "p95_ms": 1.1286015724181198,
+            "p95_to_median": 1.8418160702385882,
+            "samples_ms": [
+              0.9669114660937339,
+              0.9278333163820207,
+              0.9252031159121543,
+              0.7457239553332329,
+              1.6136718913912773,
+              0.6055156118236482,
+              0.547260424355045,
+              0.5616354173980653,
+              0.5832708266098052,
+              0.6232968589756638,
+              0.5742239591199905,
+              0.6200156349223107,
+              0.5475468642544001,
+              0.5473801866173744,
+              0.5699843750335276,
+              0.6439218705054373
+            ],
+            "unstable_samples": true
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "sample_submissions_per_pass": 16,
+        "warmup_submissions_per_pass": 4,
+        "width": 960
+      },
+      "triangles": 36
+    },
+    "sponza": {
+      "frames": [
+        {
+          "camera": [
+            -8.5,
+            2.200000047683716,
+            0.0
+          ],
+          "covered_pixels": 75696,
+          "excluded_surface_mismatch": 24,
+          "frame": 0,
+          "matched_pixels": 75672,
+          "modes": {
+            "gtao": {
+              "all": {
+                "mae": 0.10610230776796518,
+                "max_absolute_error": 0.9929980039596558,
+                "mean_signed_error": 0.07272118726609057,
+                "pixels": 75672,
+                "rmse": 0.16800487929829439
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.13308214119487402,
+                "max_absolute_error": 0.9929980039596558,
+                "mean_signed_error": 0.09376498688624887,
+                "pixels": 59344,
+                "rmse": 0.18887603415898332
+              },
+              "open": {
+                "mae": 0.005694113281576705,
+                "max_absolute_error": 0.75244140625,
+                "mean_signed_error": -0.004365566495900086,
+                "pixels": 12984,
+                "rmse": 0.03009877591717962
+              }
+            },
+            "gtao-hiz": {
+              "all": {
+                "mae": 0.10610230776796518,
+                "max_absolute_error": 0.9929980039596558,
+                "mean_signed_error": 0.07272118726609057,
+                "pixels": 75672,
+                "rmse": 0.16800487929829439
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.13308214119487402,
+                "max_absolute_error": 0.9929980039596558,
+                "mean_signed_error": 0.09376498688624887,
+                "pixels": 59344,
+                "rmse": 0.18887603415898332
+              },
+              "open": {
+                "mae": 0.005694113281576705,
+                "max_absolute_error": 0.75244140625,
+                "mean_signed_error": -0.004365566495900086,
+                "pixels": 12984,
+                "rmse": 0.03009877591717962
+              }
+            },
+            "gtao-raw": {
+              "all": {
+                "mae": 0.1133450697069809,
+                "max_absolute_error": 0.9954394102096558,
+                "mean_signed_error": 0.07449971731440648,
+                "pixels": 75672,
+                "rmse": 0.18122159050792191
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.14248379433052083,
+                "max_absolute_error": 0.9954394102096558,
+                "mean_signed_error": 0.09547131650303514,
+                "pixels": 59344,
+                "rmse": 0.20362268280010368
+              },
+              "open": {
+                "mae": 0.004616164896712947,
+                "max_absolute_error": 0.981842041015625,
+                "mean_signed_error": -0.0026962803567697146,
+                "pixels": 12984,
+                "rmse": 0.03446317313159213
+              }
+            },
+            "gtao-world": {
+              "all": {
+                "mae": 0.10610530875061047,
+                "max_absolute_error": 0.9929980039596558,
+                "mean_signed_error": 0.07272249210228388,
+                "pixels": 75672,
+                "rmse": 0.16800833443412347
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.13308627593364714,
+                "max_absolute_error": 0.9929980039596558,
+                "mean_signed_error": 0.09376592256085446,
+                "pixels": 59344,
+                "rmse": 0.18888131050206156
+              },
+              "open": {
+                "mae": 0.005693172222291402,
+                "max_absolute_error": 0.744873046875,
+                "mean_signed_error": -0.004362614394997052,
+                "pixels": 12984,
+                "rmse": 0.03007764219626397
+              }
+            },
+            "legacy": {
+              "all": {
+                "mae": 0.1338108734626771,
+                "max_absolute_error": 0.9702268838882446,
+                "mean_signed_error": 0.05406979898677869,
+                "pixels": 75672,
+                "rmse": 0.19926187370653006
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.16328581709070214,
+                "max_absolute_error": 0.9702268838882446,
+                "mean_signed_error": 0.07477629133498903,
+                "pixels": 59344,
+                "rmse": 0.22212905261757537
+              },
+              "open": {
+                "mae": 0.019255686140471743,
+                "max_absolute_error": 0.5423583984375,
+                "mean_signed_error": -0.017323427944365505,
+                "pixels": 12984,
+                "rmse": 0.05527700867770013
+              }
+            }
+          },
+          "reference_cpu_seconds": 4.75688575,
+          "reference_rays": 20170691,
+          "saturated_rays": 0
+        },
+        {
+          "camera": [
+            -8.475000381469727,
+            2.200000047683716,
+            0.0
+          ],
+          "covered_pixels": 75709,
+          "excluded_surface_mismatch": 11,
+          "frame": 1,
+          "matched_pixels": 75698,
+          "modes": {
+            "gtao": {
+              "all": {
+                "mae": 0.1067232370526396,
+                "max_absolute_error": 0.9925255179405212,
+                "mean_signed_error": 0.07278331315509795,
+                "pixels": 75698,
+                "rmse": 0.16901988057834147
+              },
+              "motion": {
+                "overlap_pixels": 70905,
+                "reprojected_error_delta_rmse": 0.05690525612889031
+              },
+              "occluded": {
+                "mae": 0.13398096199782222,
+                "max_absolute_error": 0.9925255179405212,
+                "mean_signed_error": 0.09375877353559053,
+                "pixels": 59362,
+                "rmse": 0.19007362735389674
+              },
+              "open": {
+                "mae": 0.0051047966598585185,
+                "max_absolute_error": 0.8340104222297668,
+                "mean_signed_error": -0.003787651342083943,
+                "pixels": 13016,
+                "rmse": 0.029121564725455077
+              }
+            },
+            "gtao-hiz": {
+              "all": {
+                "mae": 0.1067232370526396,
+                "max_absolute_error": 0.9925255179405212,
+                "mean_signed_error": 0.07278331315509795,
+                "pixels": 75698,
+                "rmse": 0.16901988057834147
+              },
+              "motion": {
+                "overlap_pixels": 70905,
+                "reprojected_error_delta_rmse": 0.05690525612889031
+              },
+              "occluded": {
+                "mae": 0.13398096199782222,
+                "max_absolute_error": 0.9925255179405212,
+                "mean_signed_error": 0.09375877353559053,
+                "pixels": 59362,
+                "rmse": 0.19007362735389674
+              },
+              "open": {
+                "mae": 0.0051047966598585185,
+                "max_absolute_error": 0.8340104222297668,
+                "mean_signed_error": -0.003787651342083943,
+                "pixels": 13016,
+                "rmse": 0.029121564725455077
+              }
+            },
+            "gtao-raw": {
+              "all": {
+                "mae": 0.11411160758858085,
+                "max_absolute_error": 0.9954552054405212,
+                "mean_signed_error": 0.07462056151545302,
+                "pixels": 75698,
+                "rmse": 0.18234979315165292
+              },
+              "motion": {
+                "overlap_pixels": 70905,
+                "reprojected_error_delta_rmse": 0.08058687256497396
+              },
+              "occluded": {
+                "mae": 0.143562101945918,
+                "max_absolute_error": 0.9954552054405212,
+                "mean_signed_error": 0.09554954904145178,
+                "pixels": 59362,
+                "rmse": 0.20488702975216186
+              },
+              "open": {
+                "mae": 0.003998884909454855,
+                "max_absolute_error": 0.9869384765625,
+                "mean_signed_error": -0.002101706378688531,
+                "pixels": 13016,
+                "rmse": 0.03403913091906409
+              }
+            },
+            "gtao-world": {
+              "all": {
+                "mae": 0.10672860015374201,
+                "max_absolute_error": 0.9925255179405212,
+                "mean_signed_error": 0.07279942468593455,
+                "pixels": 75698,
+                "rmse": 0.16902354783823537
+              },
+              "motion": {
+                "overlap_pixels": 70905,
+                "reprojected_error_delta_rmse": 0.05690520972047503
+              },
+              "occluded": {
+                "mae": 0.13398727587450684,
+                "max_absolute_error": 0.9925255179405212,
+                "mean_signed_error": 0.09377931267595527,
+                "pixels": 59362,
+                "rmse": 0.19007777164144363
+              },
+              "open": {
+                "mae": 0.005106992103713528,
+                "max_absolute_error": 0.8340104222297668,
+                "mean_signed_error": -0.003789461388973349,
+                "pixels": 13016,
+                "rmse": 0.02912368259605181
+              }
+            },
+            "legacy": {
+              "all": {
+                "mae": 0.13323820423744384,
+                "max_absolute_error": 0.9827855825424194,
+                "mean_signed_error": 0.054035890505515854,
+                "pixels": 75698,
+                "rmse": 0.19865734872283983
+              },
+              "motion": {
+                "overlap_pixels": 70905,
+                "reprojected_error_delta_rmse": 0.055913793091575764
+              },
+              "occluded": {
+                "mae": 0.16274141436131778,
+                "max_absolute_error": 0.9827855825424194,
+                "mean_signed_error": 0.07456271711742314,
+                "pixels": 59362,
+                "rmse": 0.2215263782414226
+              },
+              "open": {
+                "mae": 0.01871188512025029,
+                "max_absolute_error": 0.8077392578125,
+                "mean_signed_error": -0.016803323384546105,
+                "pixels": 13016,
+                "rmse": 0.054647921184077
+              }
+            }
+          },
+          "reference_cpu_seconds": 4.481176958,
+          "reference_rays": 20185039,
+          "saturated_rays": 0
+        },
+        {
+          "camera": [
+            -8.449999809265137,
+            2.200000047683716,
+            0.0
+          ],
+          "covered_pixels": 75711,
+          "excluded_surface_mismatch": 24,
+          "frame": 2,
+          "matched_pixels": 75687,
+          "modes": {
+            "gtao": {
+              "all": {
+                "mae": 0.10621643205275899,
+                "max_absolute_error": 0.9923824071884155,
+                "mean_signed_error": 0.07246697407573857,
+                "pixels": 75687,
+                "rmse": 0.16846465964585572
+              },
+              "motion": {
+                "overlap_pixels": 70801,
+                "reprojected_error_delta_rmse": 0.059975442256388935
+              },
+              "occluded": {
+                "mae": 0.13346124088722028,
+                "max_absolute_error": 0.9923824071884155,
+                "mean_signed_error": 0.09349197400723618,
+                "pixels": 59285,
+                "rmse": 0.18958895070368265
+              },
+              "open": {
+                "mae": 0.005547880386086976,
+                "max_absolute_error": 0.9024040699005127,
+                "mean_signed_error": -0.004221654309365845,
+                "pixels": 13043,
+                "rmse": 0.030290986071787852
+              }
+            },
+            "gtao-hiz": {
+              "all": {
+                "mae": 0.10621643205275899,
+                "max_absolute_error": 0.9923824071884155,
+                "mean_signed_error": 0.07246697407573857,
+                "pixels": 75687,
+                "rmse": 0.16846465964585572
+              },
+              "motion": {
+                "overlap_pixels": 70801,
+                "reprojected_error_delta_rmse": 0.059975442256388935
+              },
+              "occluded": {
+                "mae": 0.13346124088722028,
+                "max_absolute_error": 0.9923824071884155,
+                "mean_signed_error": 0.09349197400723618,
+                "pixels": 59285,
+                "rmse": 0.18958895070368265
+              },
+              "open": {
+                "mae": 0.005547880386086976,
+                "max_absolute_error": 0.9024040699005127,
+                "mean_signed_error": -0.004221654309365845,
+                "pixels": 13043,
+                "rmse": 0.030290986071787852
+              }
+            },
+            "gtao-raw": {
+              "all": {
+                "mae": 0.11378448908110568,
+                "max_absolute_error": 0.9970260262489319,
+                "mean_signed_error": 0.07429775249089796,
+                "pixels": 75687,
+                "rmse": 0.1820778053210034
+              },
+              "motion": {
+                "overlap_pixels": 70801,
+                "reprojected_error_delta_rmse": 0.08289878592153756
+              },
+              "occluded": {
+                "mae": 0.14326530737029727,
+                "max_absolute_error": 0.9970260262489319,
+                "mean_signed_error": 0.09527803363816628,
+                "pixels": 59285,
+                "rmse": 0.2047091874560938
+              },
+              "open": {
+                "mae": 0.00453620656889512,
+                "max_absolute_error": 0.942840576171875,
+                "mean_signed_error": -0.0026140894652564566,
+                "pixels": 13043,
+                "rmse": 0.03541785029830651
+              }
+            },
+            "gtao-world": {
+              "all": {
+                "mae": 0.10621406219619643,
+                "max_absolute_error": 0.9923824071884155,
+                "mean_signed_error": 0.07248026629464951,
+                "pixels": 75687,
+                "rmse": 0.1684595008603669
+              },
+              "motion": {
+                "overlap_pixels": 70801,
+                "reprojected_error_delta_rmse": 0.05995062013753185
+              },
+              "occluded": {
+                "mae": 0.13346133354562406,
+                "max_absolute_error": 0.9923824071884155,
+                "mean_signed_error": 0.09350537640845581,
+                "pixels": 59285,
+                "rmse": 0.1895839601514514
+              },
+              "open": {
+                "mae": 0.005533660855622669,
+                "max_absolute_error": 0.9023430347442627,
+                "mean_signed_error": -0.004207348975266615,
+                "pixels": 13043,
+                "rmse": 0.030269498581977007
+              }
+            },
+            "legacy": {
+              "all": {
+                "mae": 0.1323730853145699,
+                "max_absolute_error": 0.9780603647232056,
+                "mean_signed_error": 0.05416446221913598,
+                "pixels": 75687,
+                "rmse": 0.19771222262460228
+              },
+              "motion": {
+                "overlap_pixels": 70801,
+                "reprojected_error_delta_rmse": 0.05797060986257002
+              },
+              "occluded": {
+                "mae": 0.1616297879816107,
+                "max_absolute_error": 0.9780603647232056,
+                "mean_signed_error": 0.07499185407959491,
+                "pixels": 59285,
+                "rmse": 0.22043844110079475
+              },
+              "open": {
+                "mae": 0.018651690593135418,
+                "max_absolute_error": 0.5172269344329834,
+                "mean_signed_error": -0.016679166952342443,
+                "pixels": 13043,
+                "rmse": 0.05447478537751937
+              }
+            }
+          },
+          "reference_cpu_seconds": 4.2069035,
+          "reference_rays": 20180555,
+          "saturated_rays": 0
+        },
+        {
+          "camera": [
+            -8.425000190734863,
+            2.200000047683716,
+            0.0
+          ],
+          "covered_pixels": 75711,
+          "excluded_surface_mismatch": 24,
+          "frame": 3,
+          "matched_pixels": 75687,
+          "modes": {
+            "gtao": {
+              "all": {
+                "mae": 0.1065380261304437,
+                "max_absolute_error": 0.9958033561706543,
+                "mean_signed_error": 0.07172561678333798,
+                "pixels": 75687,
+                "rmse": 0.16870580281816916
+              },
+              "motion": {
+                "overlap_pixels": 70746,
+                "reprojected_error_delta_rmse": 0.06138552876422735
+              },
+              "occluded": {
+                "mae": 0.13396899381209493,
+                "max_absolute_error": 0.9958033561706543,
+                "mean_signed_error": 0.09263306700660862,
+                "pixels": 59233,
+                "rmse": 0.1899295336270842
+              },
+              "open": {
+                "mae": 0.005519534124350921,
+                "max_absolute_error": 0.9005968570709229,
+                "mean_signed_error": -0.004179509445180579,
+                "pixels": 13166,
+                "rmse": 0.028850806832707805
+              }
+            },
+            "gtao-hiz": {
+              "all": {
+                "mae": 0.1065380261304437,
+                "max_absolute_error": 0.9958033561706543,
+                "mean_signed_error": 0.07172561678333798,
+                "pixels": 75687,
+                "rmse": 0.16870580281816916
+              },
+              "motion": {
+                "overlap_pixels": 70746,
+                "reprojected_error_delta_rmse": 0.06138552876422735
+              },
+              "occluded": {
+                "mae": 0.13396899381209493,
+                "max_absolute_error": 0.9958033561706543,
+                "mean_signed_error": 0.09263306700660862,
+                "pixels": 59233,
+                "rmse": 0.1899295336270842
+              },
+              "open": {
+                "mae": 0.005519534124350921,
+                "max_absolute_error": 0.9005968570709229,
+                "mean_signed_error": -0.004179509445180579,
+                "pixels": 13166,
+                "rmse": 0.028850806832707805
+              }
+            },
+            "gtao-raw": {
+              "all": {
+                "mae": 0.11386608357024315,
+                "max_absolute_error": 0.9972699880599976,
+                "mean_signed_error": 0.07348137507693157,
+                "pixels": 75687,
+                "rmse": 0.1821062223349007
+              },
+              "motion": {
+                "overlap_pixels": 70746,
+                "reprojected_error_delta_rmse": 0.0828568135209797
+              },
+              "occluded": {
+                "mae": 0.14353860392311485,
+                "max_absolute_error": 0.9972699880599976,
+                "mean_signed_error": 0.09429620226067036,
+                "pixels": 59233,
+                "rmse": 0.20490589285128374
+              },
+              "open": {
+                "mae": 0.004315162128759665,
+                "max_absolute_error": 0.9859848022460938,
+                "mean_signed_error": -0.002406943112398994,
+                "pixels": 13166,
+                "rmse": 0.033118986747435464
+              }
+            },
+            "gtao-world": {
+              "all": {
+                "mae": 0.10653989524724321,
+                "max_absolute_error": 0.9958033561706543,
+                "mean_signed_error": 0.07171509398324236,
+                "pixels": 75687,
+                "rmse": 0.1687033758534732
+              },
+              "motion": {
+                "overlap_pixels": 70746,
+                "reprojected_error_delta_rmse": 0.06138996603504258
+              },
+              "occluded": {
+                "mae": 0.13396789124597613,
+                "max_absolute_error": 0.9958033561706543,
+                "mean_signed_error": 0.09262265779948811,
+                "pixels": 59233,
+                "rmse": 0.18992650149035104
+              },
+              "open": {
+                "mae": 0.005535141993995932,
+                "max_absolute_error": 0.9002916812896729,
+                "mean_signed_error": -0.004192930133114936,
+                "pixels": 13166,
+                "rmse": 0.028856412514533105
+              }
+            },
+            "legacy": {
+              "all": {
+                "mae": 0.1326024172715159,
+                "max_absolute_error": 0.9858044981956482,
+                "mean_signed_error": 0.054642737174016166,
+                "pixels": 75687,
+                "rmse": 0.1979291848360706
+              },
+              "motion": {
+                "overlap_pixels": 70746,
+                "reprojected_error_delta_rmse": 0.05801086965860066
+              },
+              "occluded": {
+                "mae": 0.16223048308485216,
+                "max_absolute_error": 0.9858044981956482,
+                "mean_signed_error": 0.07550983741161738,
+                "pixels": 59233,
+                "rmse": 0.22095020965441767
+              },
+              "open": {
+                "mae": 0.018976112756072867,
+                "max_absolute_error": 0.5956729054450989,
+                "mean_signed_error": -0.017037576180758962,
+                "pixels": 13166,
+                "rmse": 0.054911590481940414
+              }
+            }
+          },
+          "reference_cpu_seconds": 4.138235667,
+          "reference_rays": 20175843,
+          "saturated_rays": 0
+        }
+      ],
+      "memory": {
+        "allocated_depth_pyramid_bytes": 3686268,
+        "filtered_ao_bytes": 1382400,
+        "nominal_point_query_bytes_per_pixel": {
+          "filter_disabled_max": 8,
+          "filter_enabled_max": 390,
+          "gtao_hiz_raw_max": 286,
+          "gtao_raw_max": 158
+        },
+        "normal_bytes": 5529600,
+        "note": "nominal point-query bound plus scalar AO stores; hierarchy adds conditional reads, preprocess reads world positions; caches/branches reduce traffic; not measured DRAM bandwidth",
+        "position_bytes": 11059200,
+        "raw_ao_bytes": 1382400
+      },
+      "timing": {
+        "encoders_per_submission": 8,
+        "gtao": {
+          "fast_reconstruction": true,
+          "filter": {
+            "max_ms": 1.006078120553866,
+            "mean_ms": 0.9425328789802734,
+            "median_ms": 0.9406406315974891,
+            "min_ms": 0.9007812477648258,
+            "p95_ms": 0.9919062431436032,
+            "p95_to_median": 1.054500741116243,
+            "samples_ms": [
+              0.9179687476716936,
+              0.9445937466807663,
+              0.9445520990993828,
+              0.9525521018076688,
+              0.9007812477648258,
+              0.9291093738283962,
+              1.006078120553866,
+              0.9406718891113997,
+              0.9049531363416463,
+              0.9406093740835786,
+              0.968937500147149,
+              0.970963534200564,
+              0.9283749968744814,
+              0.9047187340911478,
+              0.9871822840068489,
+              0.9384791774209589
+            ],
+            "unstable_samples": false
+          },
+          "preprocess": {
+            "max_ms": 0.18199998885393143,
+            "mean_ms": 0.14678580555482768,
+            "median_ms": 0.14090625336393714,
+            "min_ms": 0.13680208940058947,
+            "p95_ms": 0.16578124632360414,
+            "p95_to_median": 1.1765357630751778,
+            "samples_ms": [
+              0.13832811964675784,
+              0.13826560461893678,
+              0.14129688497632742,
+              0.16037499881349504,
+              0.15225520473904908,
+              0.15800000983290374,
+              0.14051562175154686,
+              0.13894273433834314,
+              0.1378073066007346,
+              0.13861979823559523,
+              0.13680208940058947,
+              0.14001561794430017,
+              0.18199998885393143,
+              0.14521353296004236,
+              0.1479478960391134,
+              0.15218748012557626
+            ],
+            "unstable_samples": false
+          },
+          "raw": {
+            "max_ms": 1.5928593929857016,
+            "mean_ms": 1.5112363271327922,
+            "median_ms": 1.4920859393896535,
+            "min_ms": 1.4546406164299697,
+            "p95_ms": 1.5884179665590636,
+            "p95_to_median": 1.064561983077741,
+            "samples_ms": [
+              1.4546406164299697,
+              1.5812395722605288,
+              1.494875003118068,
+              1.4747499953955412,
+              1.5328541630879045,
+              1.5078437572810799,
+              1.5869374910835177,
+              1.484265609178692,
+              1.4552500215359032,
+              1.5693437599111348,
+              1.5214062586892396,
+              1.470807270379737,
+              1.4842083328403533,
+              1.479203114286065,
+              1.5928593929857016,
+              1.489296875661239
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "gtao-hiz": {
+          "fast_reconstruction": true,
+          "filter": {
+            "max_ms": 1.0129218571819365,
+            "mean_ms": 0.9430341833649436,
+            "median_ms": 0.9387604222865775,
+            "min_ms": 0.8994635427370667,
+            "p95_ms": 0.9865312385954894,
+            "p95_to_median": 1.0508871221824143,
+            "samples_ms": [
+              0.935505231609568,
+              0.9777343657333404,
+              0.9051093948073685,
+              1.0129218571819365,
+              0.942015612963587,
+              0.975875009316951,
+              0.8994635427370667,
+              0.9710781450849026,
+              0.9080312738660723,
+              0.9339739626739174,
+              0.9105729113798589,
+              0.9516666759736836,
+              0.9252604213543236,
+              0.956463540205732,
+              0.9107812365982682,
+              0.9720937523525208
+            ],
+            "unstable_samples": false
+          },
+          "preprocess": {
+            "max_ms": 0.6160468910820782,
+            "mean_ms": 0.4392408882267773,
+            "median_ms": 0.4197604284854606,
+            "min_ms": 0.3883906174451113,
+            "p95_ms": 0.5298437536112033,
+            "p95_to_median": 1.2622527462222555,
+            "samples_ms": [
+              0.44353125849738717,
+              0.4946562694385648,
+              0.3883906174451113,
+              0.4040728963445872,
+              0.42936980025842786,
+              0.45765104005113244,
+              0.42092709918506444,
+              0.40932290721684694,
+              0.4115260380785912,
+              0.501109374454245,
+              0.4185937577858567,
+              0.39845312130637467,
+              0.4337812424637377,
+              0.6160468910820782,
+              0.39790626033209264,
+              0.40251563768833876
+            ],
+            "unstable_samples": false
+          },
+          "raw": {
+            "max_ms": 1.9293489458505064,
+            "mean_ms": 1.8864710273192031,
+            "median_ms": 1.8794400966726243,
+            "min_ms": 1.8574739515315741,
+            "p95_ms": 1.927231773152016,
+            "p95_to_median": 1.0254286777024724,
+            "samples_ms": [
+              1.8858645635191351,
+              1.8661562644410878,
+              1.926526048919186,
+              1.8590624968055636,
+              1.8612812564242631,
+              1.8730156298261136,
+              1.8574739515315741,
+              1.8631822895258665,
+              1.9034218566957861,
+              1.9293489458505064,
+              1.8969531229231507,
+              1.9073124858550727,
+              1.9003697962034494,
+              1.917109388159588,
+              1.8692708399612457,
+              1.8671875004656613
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "gtao-raw": {
+          "fast_reconstruction": true,
+          "filter": {
+            "max_ms": 0.07154687773436308,
+            "mean_ms": 0.04170670763414819,
+            "median_ms": 0.037898425944149494,
+            "min_ms": 0.03731250762939453,
+            "p95_ms": 0.05710156256100163,
+            "p95_to_median": 1.5067001105837903,
+            "samples_ms": [
+              0.05228645750321448,
+              0.05032811895944178,
+              0.03796874079853296,
+              0.037828111089766026,
+              0.03844269667752087,
+              0.039057311369106174,
+              0.03957812441512942,
+              0.037364603485912085,
+              0.037484394852072,
+              0.03759373794309795,
+              0.0381562567781657,
+              0.03731250762939453,
+              0.037343736039474607,
+              0.037526042433455586,
+              0.037489604437723756,
+              0.07154687773436308
+            ],
+            "unstable_samples": true
+          },
+          "preprocess": {
+            "max_ms": 0.17743228818289936,
+            "mean_ms": 0.14343261682370212,
+            "median_ms": 0.13856250734534115,
+            "min_ms": 0.13579166261479259,
+            "p95_ms": 0.17287371156271547,
+            "p95_to_median": 1.2476225703094421,
+            "samples_ms": [
+              0.14089062460698187,
+              0.13903123908676207,
+              0.13714583474211395,
+              0.13767185737378895,
+              0.14564060256816447,
+              0.14364582602865994,
+              0.17743228818289936,
+              0.17135418602265418,
+              0.13851563562639058,
+              0.13707813923247159,
+              0.13860937906429172,
+              0.13579166261479259,
+              0.1364218769595027,
+              0.13632813352160156,
+              0.13598956866189837,
+              0.14337501488626003
+            ],
+            "unstable_samples": false
+          },
+          "raw": {
+            "max_ms": 1.5827447932679206,
+            "mean_ms": 1.5076018862600904,
+            "median_ms": 1.5023698069853708,
+            "min_ms": 1.4480833197012544,
+            "p95_ms": 1.5601627674186602,
+            "p95_to_median": 1.0384678660104703,
+            "samples_ms": [
+              1.5827447932679206,
+              1.52674998389557,
+              1.488234382122755,
+              1.4857656206004322,
+              1.5394739457406104,
+              1.5392552013508976,
+              1.509890629677102,
+              1.4480833197012544,
+              1.5526354254689068,
+              1.506760425399989,
+              1.4979791885707527,
+              1.4825572725385427,
+              1.497374993050471,
+              1.5197968750726432,
+              1.4933020866010338,
+              1.4510260371025652
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "gtao-world": {
+          "fast_reconstruction": false,
+          "filter": {
+            "max_ms": 1.0007500241044909,
+            "mean_ms": 0.9313597020081943,
+            "median_ms": 0.9305755229433998,
+            "min_ms": 0.8774531306698918,
+            "p95_ms": 0.9948789156624116,
+            "p95_to_median": 1.0691006706426371,
+            "samples_ms": [
+              0.9752500045578927,
+              0.8955624944064766,
+              0.9481354209128767,
+              0.9071666863746941,
+              0.9368125174660236,
+              0.8961406128946692,
+              0.9929218795150518,
+              0.8912187477108091,
+              0.9243385284207761,
+              0.9525624918751419,
+              0.9459114517085254,
+              0.8961250132415444,
+              0.9019426943268627,
+              0.9594635339453816,
+              0.8774531306698918,
+              1.0007500241044909
+            ],
+            "unstable_samples": false
+          },
+          "preprocess": null,
+          "raw": {
+            "max_ms": 1.620437513338402,
+            "mean_ms": 1.5235794307955075,
+            "median_ms": 1.5235755272442475,
+            "min_ms": 1.4489322784356773,
+            "p95_ms": 1.587812505022157,
+            "p95_to_median": 1.0421619910724724,
+            "samples_ms": [
+              1.5649687557015568,
+              1.4934531354811043,
+              1.4681510510854423,
+              1.620437513338402,
+              1.5687343839090317,
+              1.541671867016703,
+              1.5167031378950924,
+              1.462182292016223,
+              1.5611718699801713,
+              1.4827395789325237,
+              1.4489322784356773,
+              1.5439323033206165,
+              1.5175520675256848,
+              1.5769375022500753,
+              1.5295989869628102,
+              1.4801041688770056
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "height": 720,
+        "legacy": {
+          "fast_reconstruction": false,
+          "filter": {
+            "max_ms": 0.21132812253199518,
+            "mean_ms": 0.17043978004949167,
+            "median_ms": 0.167760401382111,
+            "min_ms": 0.1439531333744526,
+            "p95_ms": 0.20760155894095078,
+            "p95_to_median": 1.2374884491846965,
+            "samples_ms": [
+              0.14403124805539846,
+              0.1454531156923622,
+              0.14404687681235373,
+              0.1439531333744526,
+              0.14692707918584347,
+              0.1665781019255519,
+              0.20635937107726932,
+              0.21132812253199518,
+              0.16560417134314775,
+              0.19201042596250772,
+              0.17137499526143074,
+              0.16894270083867013,
+              0.1657552202232182,
+              0.17225000192411244,
+              0.1995312632061541,
+              0.18289065337739885
+            ],
+            "unstable_samples": false
+          },
+          "preprocess": null,
+          "raw": {
+            "max_ms": 0.7960937509778887,
+            "mean_ms": 0.7299016906472389,
+            "median_ms": 0.7261354039655998,
+            "min_ms": 0.6951562536414713,
+            "p95_ms": 0.7813632764737122,
+            "p95_to_median": 1.0760572645356494,
+            "samples_ms": [
+              0.7163280970416963,
+              0.7012291753198951,
+              0.6972031260374933,
+              0.7521406514570117,
+              0.7300416473299265,
+              0.7222291606012732,
+              0.7649218896403909,
+              0.6971041730139405,
+              0.7764531183056533,
+              0.6972604023758322,
+              0.75468749855645,
+              0.7960937509778887,
+              0.6951562536414713,
+              0.7389374950435013,
+              0.699312484357506,
+              0.7393281266558915
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "sample_submissions_per_pass": 16,
+        "warmup_submissions_per_pass": 4,
+        "width": 960
+      },
+      "triangles": 262266
+    }
+  },
+  "definition": "cosine-weighted BVH visibility, XYZ distance smoothstep from 0.6R to R, geometric-normal bias, alpha cutoff, exact triangle normals; full geometry includes hidden surfaces",
+  "error_colors": "red: too little occlusion; blue: too much occlusion; magnitude scaled 4x; only matched pixels scored",
+  "height": 240,
+  "host_label": "Apple M4",
+  "motion_definition": "nearest-pixel reprojection of error relative to current ray reference; position-mismatch rejection; no AO/scene history; includes reference sampling uncertainty",
+  "motion_frames": 4,
+  "power": 1.5,
+  "radius": 1.0,
+  "rsm": false,
+  "samples_per_pixel": 256,
+  "seed": 1,
+  "slices": 4,
+  "steps_per_side": 4,
+  "taa": false,
+  "threads": 4,
+  "validation_environment": {
+    "MTL_DEBUG_LAYER": "0",
+    "MTL_SHADER_VALIDATION": "0"
+  },
+  "width": 320
+}

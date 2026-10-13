@@ -1,0 +1,430 @@
+{
+  "reference": "img/diagnostics/ddgi/metal/gt/sponza",
+  "capture": "img/diagnostics/aa/metal/sponza",
+  "reference_spp": 2048,
+  "exposure": 1.100000023841858,
+  "size": [
+    480,
+    270
+  ],
+  "surface_diagnostics": {
+    "frozen_probe_field_unchanged": true,
+    "legacy_taa_comparison": true,
+    "material_anisotropy_requested": 8,
+    "material_mips": true,
+    "motion_camera_delta": [
+      0,
+      0,
+      0.8
+    ],
+    "motion_frames": 64,
+    "motion_warmup": 16,
+    "raw_shadow_ablation": true,
+    "sky_specular_ablation_scale": 0,
+    "taa_frames": 64,
+    "taa_high_quality": true
+  },
+  "original_raw_max_absolute_difference": 0.63031005859375,
+  "original_raw_core_max_absolute_difference": 0.3177490234375,
+  "scope": "Same frozen probe field. TAA uses native jitter/reprojection, 64 frames. No exposure fit or image denoising. No-sky-specular and no-shadow are diagnostic ablations, not proposed final shading.",
+  "core_mask": "Original raw AOV-aligned eroded mask, reused unchanged. TAA has subpixel filtering so these end-to-end metrics also include reconstruction differences.",
+  "aligned_core": {
+    "raw": {
+      "pixels": 120872,
+      "linear_rgb_mae": 0.008052141004240457,
+      "linear_rgb_rmse": 0.016336841589081413,
+      "normalized_l1": 0.4183676486132348,
+      "relative_mean_rgb_bias": 0.31784120222129214,
+      "reference_mean_rgb": 0.019246567058736324
+    },
+    "taa": {
+      "pixels": 120872,
+      "linear_rgb_mae": 0.008069690252125658,
+      "linear_rgb_rmse": 0.015596905290552793,
+      "normalized_l1": 0.4192794604616358,
+      "relative_mean_rgb_bias": 0.31337121751511876,
+      "reference_mean_rgb": 0.019246567058736324
+    },
+    "taa_no_sky_specular": {
+      "pixels": 120872,
+      "linear_rgb_mae": 0.004898679322810232,
+      "linear_rgb_rmse": 0.011760906309109873,
+      "normalized_l1": 0.25452223806253504,
+      "relative_mean_rgb_bias": 0.01728573502877932,
+      "reference_mean_rgb": 0.019246567058736324
+    },
+    "raw_no_sky_specular": {
+      "pixels": 120872,
+      "linear_rgb_mae": 0.004841380605256738,
+      "linear_rgb_rmse": 0.012289479399682725,
+      "normalized_l1": 0.25154515038873687,
+      "relative_mean_rgb_bias": 0.02165031098424489,
+      "reference_mean_rgb": 0.019246567058736324
+    },
+    "raw_no_shadow": {
+      "pixels": 120872,
+      "linear_rgb_mae": 0.03089921764515425,
+      "linear_rgb_rmse": 0.08694910132308037,
+      "normalized_l1": 1.6054404689863173,
+      "relative_mean_rgb_bias": 1.5690934362925173,
+      "reference_mean_rgb": 0.019246567058736324
+    }
+  },
+  "regions": {
+    "left_arch": {
+      "rectangle": [
+        0.02,
+        0.02,
+        0.25,
+        0.32
+      ],
+      "raw": {
+        "pixels": 8568,
+        "linear_rgb_mae": 0.008491113601779997,
+        "linear_rgb_rmse": 0.012343530970734378,
+        "normalized_l1": 0.934895147254136,
+        "relative_mean_rgb_bias": 0.790189779882834,
+        "reference_mean_rgb": 0.009082423442585082
+      },
+      "taa": {
+        "pixels": 8568,
+        "linear_rgb_mae": 0.008388824660551264,
+        "linear_rgb_rmse": 0.012056485662916843,
+        "normalized_l1": 0.9236328512518237,
+        "relative_mean_rgb_bias": 0.7780319481283519,
+        "reference_mean_rgb": 0.009082423442585082
+      },
+      "taa_no_sky_specular": {
+        "pixels": 8568,
+        "linear_rgb_mae": 0.007478534836785951,
+        "linear_rgb_rmse": 0.011082081179989581,
+        "normalized_l1": 0.8234074180819492,
+        "relative_mean_rgb_bias": 0.6152825620291917,
+        "reference_mean_rgb": 0.009082423442585082
+      },
+      "raw_no_sky_specular": {
+        "pixels": 8568,
+        "linear_rgb_mae": 0.007542351397683311,
+        "linear_rgb_rmse": 0.011252002887239307,
+        "normalized_l1": 0.8304337983537763,
+        "relative_mean_rgb_bias": 0.6237649904665666,
+        "reference_mean_rgb": 0.009082423442585082
+      },
+      "raw_no_shadow": {
+        "pixels": 8568,
+        "linear_rgb_mae": 0.011935321584163196,
+        "linear_rgb_rmse": 0.021959627521015584,
+        "normalized_l1": 1.3141119944046682,
+        "relative_mean_rgb_bias": 1.2910048470789914,
+        "reference_mean_rgb": 0.009082423442585082
+      }
+    },
+    "back_wall": {
+      "rectangle": [
+        0.4,
+        0.25,
+        0.61,
+        0.66
+      ],
+      "raw": {
+        "pixels": 10411,
+        "linear_rgb_mae": 0.005924734145188762,
+        "linear_rgb_rmse": 0.012912320266328887,
+        "normalized_l1": 1.3406596835876503,
+        "relative_mean_rgb_bias": 1.2307687466797246,
+        "reference_mean_rgb": 0.004419267781167234
+      },
+      "taa": {
+        "pixels": 10411,
+        "linear_rgb_mae": 0.005814127002227276,
+        "linear_rgb_rmse": 0.010870468291600197,
+        "normalized_l1": 1.31563129688684,
+        "relative_mean_rgb_bias": 1.1922708922252487,
+        "reference_mean_rgb": 0.004419267781167234
+      },
+      "taa_no_sky_specular": {
+        "pixels": 10411,
+        "linear_rgb_mae": 0.0016224129246141046,
+        "linear_rgb_rmse": 0.003873253388850912,
+        "normalized_l1": 0.36712256531003573,
+        "relative_mean_rgb_bias": -0.02839363738542753,
+        "reference_mean_rgb": 0.004419267781167234
+      },
+      "raw_no_sky_specular": {
+        "pixels": 10411,
+        "linear_rgb_mae": 0.0015909208228883165,
+        "linear_rgb_rmse": 0.004005861490472776,
+        "normalized_l1": 0.35999647490655484,
+        "relative_mean_rgb_bias": 0.008954820310125941,
+        "reference_mean_rgb": 0.004419267781167234
+      },
+      "raw_no_shadow": {
+        "pixels": 10411,
+        "linear_rgb_mae": 0.01048225249653009,
+        "linear_rgb_rmse": 0.03623230862917166,
+        "normalized_l1": 2.3719432755807066,
+        "relative_mean_rgb_bias": 2.2742686629407114,
+        "reference_mean_rgb": 0.004419267781167234
+      }
+    },
+    "shadow_floor": {
+      "rectangle": [
+        0.53,
+        0.73,
+        0.86,
+        0.97
+      ],
+      "raw": {
+        "pixels": 9529,
+        "linear_rgb_mae": 0.010284011255344094,
+        "linear_rgb_rmse": 0.016559062093485427,
+        "normalized_l1": 2.1470990558911573,
+        "relative_mean_rgb_bias": 2.1266501061256586,
+        "reference_mean_rgb": 0.004789723709824695
+      },
+      "taa": {
+        "pixels": 9529,
+        "linear_rgb_mae": 0.01025360676569934,
+        "linear_rgb_rmse": 0.016421351845678406,
+        "normalized_l1": 2.140751197123774,
+        "relative_mean_rgb_bias": 2.1209605388184514,
+        "reference_mean_rgb": 0.004789723709824695
+      },
+      "taa_no_sky_specular": {
+        "pixels": 9529,
+        "linear_rgb_mae": 0.002492796013025102,
+        "linear_rgb_rmse": 0.0035676070885249157,
+        "normalized_l1": 0.5204467238709138,
+        "relative_mean_rgb_bias": -0.3915145197861991,
+        "reference_mean_rgb": 0.004789723709824695
+      },
+      "raw_no_sky_specular": {
+        "pixels": 9529,
+        "linear_rgb_mae": 0.002511530159989763,
+        "linear_rgb_rmse": 0.0036286056408951803,
+        "normalized_l1": 0.5243580448780595,
+        "relative_mean_rgb_bias": -0.388504735312239,
+        "reference_mean_rgb": 0.004789723709824695
+      },
+      "raw_no_shadow": {
+        "pixels": 9529,
+        "linear_rgb_mae": 0.13622998601599234,
+        "linear_rgb_rmse": 0.19542325070037966,
+        "normalized_l1": 28.442138684650434,
+        "relative_mean_rgb_bias": 28.437260361799424,
+        "reference_mean_rgb": 0.004789723709824695
+      }
+    },
+    "sun_floor": {
+      "rectangle": [
+        0.26,
+        0.72,
+        0.42,
+        0.97
+      ],
+      "raw": {
+        "pixels": 5150,
+        "linear_rgb_mae": 0.020788970564297644,
+        "linear_rgb_rmse": 0.033270512279691654,
+        "normalized_l1": 0.12080621344139612,
+        "relative_mean_rgb_bias": 0.024335717660459104,
+        "reference_mean_rgb": 0.17208527584868397
+      },
+      "taa": {
+        "pixels": 5150,
+        "linear_rgb_mae": 0.021664748854737754,
+        "linear_rgb_rmse": 0.03364052908557877,
+        "normalized_l1": 0.12589542450911229,
+        "relative_mean_rgb_bias": 0.022039159748358527,
+        "reference_mean_rgb": 0.17208527584868397
+      },
+      "taa_no_sky_specular": {
+        "pixels": 5150,
+        "linear_rgb_mae": 0.021462088017310033,
+        "linear_rgb_rmse": 0.034037227375615195,
+        "normalized_l1": 0.12471774770656048,
+        "relative_mean_rgb_bias": -0.0606664630329249,
+        "reference_mean_rgb": 0.17208527584868397
+      },
+      "raw_no_sky_specular": {
+        "pixels": 5150,
+        "linear_rgb_mae": 0.020530731116163825,
+        "linear_rgb_rmse": 0.03340108878306252,
+        "normalized_l1": 0.11930556530714848,
+        "relative_mean_rgb_bias": -0.058351735519939614,
+        "reference_mean_rgb": 0.17208527584868397
+      },
+      "raw_no_shadow": {
+        "pixels": 5150,
+        "linear_rgb_mae": 0.030800942069734823,
+        "linear_rgb_rmse": 0.07149857634208322,
+        "normalized_l1": 0.17898650490480283,
+        "relative_mean_rgb_bias": 0.1407885364209813,
+        "reference_mean_rgb": 0.17208527584868397
+      }
+    },
+    "red_curtain": {
+      "rectangle": [
+        0.02,
+        0.35,
+        0.19,
+        0.82
+      ],
+      "raw": {
+        "pixels": 10252,
+        "linear_rgb_mae": 0.004842050656877502,
+        "linear_rgb_rmse": 0.007889181833074533,
+        "normalized_l1": 0.2735403485805082,
+        "relative_mean_rgb_bias": 0.1639686946319163,
+        "reference_mean_rgb": 0.017701412906741227
+      },
+      "taa": {
+        "pixels": 10252,
+        "linear_rgb_mae": 0.004874279117389411,
+        "linear_rgb_rmse": 0.007910220137890672,
+        "normalized_l1": 0.27536102022303205,
+        "relative_mean_rgb_bias": 0.15889241314042585,
+        "reference_mean_rgb": 0.017701412906741227
+      },
+      "taa_no_sky_specular": {
+        "pixels": 10252,
+        "linear_rgb_mae": 0.00387191517640323,
+        "linear_rgb_rmse": 0.006541668404794357,
+        "normalized_l1": 0.21873480929472525,
+        "relative_mean_rgb_bias": 0.01418241356736907,
+        "reference_mean_rgb": 0.017701412906741227
+      },
+      "raw_no_sky_specular": {
+        "pixels": 10252,
+        "linear_rgb_mae": 0.003819707674552589,
+        "linear_rgb_rmse": 0.0064800459116479405,
+        "normalized_l1": 0.21578546835083035,
+        "relative_mean_rgb_bias": 0.019165710440365396,
+        "reference_mean_rgb": 0.017701412906741227
+      },
+      "raw_no_shadow": {
+        "pixels": 10252,
+        "linear_rgb_mae": 0.005714195700861499,
+        "linear_rgb_rmse": 0.009062296401932202,
+        "normalized_l1": 0.3228101469055819,
+        "relative_mean_rgb_bias": 0.30697066053995636,
+        "reference_mean_rgb": 0.017701412906741227
+      }
+    }
+  },
+  "arch_irradiance_points": [
+    {
+      "coverage": 0.9999998807907104,
+      "ddgi": [
+        0.03482887148857117,
+        0.02313355915248394,
+        0.012109240517020226
+      ],
+      "normal": [
+        -0.03926179185509682,
+        -0.9984585046768188,
+        -0.03923126310110092
+      ],
+      "pixel": [
+        30,
+        22
+      ],
+      "position": [
+        -5.607388019561768,
+        3.923877716064453,
+        -2.6296234130859375
+      ],
+      "pt_E_over_pi": [
+        0.0038256854750216007,
+        0.002283131703734398,
+        0.0011348060797899961
+      ],
+      "pt_standard_error": [
+        0.0007132074679248035,
+        0.0004800822935067117,
+        0.0002764464297797531
+      ],
+      "secondary_rays": 13144,
+      "rgb_energy_ratio": 9.673566481443535
+    },
+    {
+      "coverage": 0.9999999403953552,
+      "ddgi": [
+        0.03815070912241936,
+        0.024703973904252052,
+        0.012861251831054688
+      ],
+      "normal": [
+        -0.47330573201179504,
+        -0.8489219546318054,
+        -0.23518751561641693
+      ],
+      "pixel": [
+        90,
+        67
+      ],
+      "position": [
+        -4.89521598815918,
+        3.6192972660064697,
+        -2.2917332649230957
+      ],
+      "pt_E_over_pi": [
+        0.003318753791972995,
+        0.0018962249159812927,
+        0.0009229322313331068
+      ],
+      "pt_standard_error": [
+        0.0006076352437958121,
+        0.00035895933979190886,
+        0.0001838478638092056
+      ],
+      "secondary_rays": 12805,
+      "rgb_energy_ratio": 12.335782582488342
+    }
+  ],
+  "ddgi_surface_irradiance": {
+    "quantity": "Incident E/pi; excludes current-surface albedo, analytic primary sun, final sky specular, shadows and TAA.",
+    "queries": 47,
+    "cosine_samples_per_query": 2048,
+    "normalized_l1": 0.3725259736193164,
+    "relative_mean_bias": 0.22430809006423047,
+    "mean_reference_rgb": [
+      0.041426062123215895,
+      0.028919491589941244,
+      0.019913571642741483
+    ],
+    "mean_ddgi_rgb": [
+      0.052295997055207794,
+      0.03612423575225663,
+      0.022084744567883775
+    ],
+    "mean_pt_standard_error_rgb": [
+      0.0027125358811896693,
+      0.0020135898227268394,
+      0.0013839659133078927
+    ],
+    "rgb_energy_ratio_percentiles": {
+      "min": 0.43539336881596624,
+      "p25": 0.9372298854773555,
+      "median": 1.1701659436802014,
+      "p75": 1.5040199987191625,
+      "p90": 1.9298369486092817,
+      "max": 12.335782582488342
+    },
+    "coverage_range": [
+      0.9999998807907104,
+      1.0
+    ],
+    "method": "E/pi from cosine hemisphere path integration at aligned GBuffer surfaces. First-segment miss uses sky only, excluding analytic direct sun already handled by surface direct lighting. Secondary surface paths retain sun NEE and all BSDF lobes. Same shading normal; geometric epsilon offset; no fitted intensity or exposure.",
+    "scope": "47 fixed grid queries are not a scene-wide maximum or convergence proof. Ratios are unstable where PT energy is small."
+  },
+  "curtain_high_frequency_error": {
+    "metric": "Mean absolute four-neighbour Laplacian of (actual minus raw PT) in the eroded curtain mask. Includes texture/shading aliasing and residual PT noise.",
+    "pixels": 9686,
+    "raw": 0.007218428718915495,
+    "taa": 0.008424408764346789,
+    "taa_no_sky_specular": 0.00834007227360903,
+    "raw_no_sky_specular": 0.007115019965512539,
+    "raw_no_shadow": 0.006972003693679037
+  }
+}

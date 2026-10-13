@@ -1,0 +1,218 @@
+{
+  "scene": "sponza",
+  "reference_spp": 2048,
+  "reference_depth": 16,
+  "reference_execution": "GPU Metal native triangle ray query",
+  "reference_non_finite_samples": 0,
+  "exposure": 1.100000023841858,
+  "size": [
+    480,
+    270
+  ],
+  "reference": "Raw finite-spp PT; no denoising, guiding, radiance cache or fitted exposure.",
+  "core_mask": "Surface mask AND normalized normal dot > .98 AND mean absolute albedo difference < .05, then 3x3 erosion. Geometry/material AOVs only; sky/edges/material mismatch excluded.",
+  "core_fraction_of_surface": 0.9428025428025428,
+  "beauty_scope": "End-to-end comparison includes Raster direct shadow/BSDF/specular environment approximations. This is not a pure DDGI error.",
+  "beauty": {
+    "all_surfaces": {
+      "off": {
+        "pixels": 128205,
+        "linear_rgb_mae": 0.015878021478788824,
+        "linear_rgb_rmse": 0.02686759696012838,
+        "normalized_l1": 0.8402447816126244,
+        "relative_mean_rgb_bias": 0.6274963072008124,
+        "reference_mean_rgb": 0.018896899839491086
+      },
+      "ddgi": {
+        "pixels": 128205,
+        "linear_rgb_mae": 0.009936335378121946,
+        "linear_rgb_rmse": 0.02035767937041588,
+        "normalized_l1": 0.5258182803804046,
+        "relative_mean_rgb_bias": 0.3320680896071701,
+        "reference_mean_rgb": 0.018896899839491086
+      }
+    },
+    "aligned_core": {
+      "off": {
+        "pixels": 120872,
+        "linear_rgb_mae": 0.015485619480535852,
+        "linear_rgb_rmse": 0.02609604794043064,
+        "normalized_l1": 0.8045912516906064,
+        "relative_mean_rgb_bias": 0.5949731284735441,
+        "reference_mean_rgb": 0.019246567058736324
+      },
+      "ddgi": {
+        "pixels": 120872,
+        "linear_rgb_mae": 0.00956941746584047,
+        "linear_rgb_rmse": 0.01955106986023629,
+        "normalized_l1": 0.49720126382209856,
+        "relative_mean_rgb_bias": 0.30684640585399925,
+        "reference_mean_rgb": 0.019246567058736324
+      }
+    }
+  },
+  "regions": {
+    "left_arch": {
+      "normalized_rectangle": [
+        0.02,
+        0.02,
+        0.25,
+        0.32
+      ],
+      "off": {
+        "pixels": 8568,
+        "linear_rgb_mae": 0.011160418037610633,
+        "linear_rgb_rmse": 0.015780437777169417,
+        "normalized_l1": 1.2287929656838485,
+        "relative_mean_rgb_bias": 0.8816153812264086,
+        "reference_mean_rgb": 0.009082423442585082
+      },
+      "ddgi": {
+        "pixels": 8568,
+        "linear_rgb_mae": 0.008229027525647836,
+        "linear_rgb_rmse": 0.01259038129454342,
+        "normalized_l1": 0.9060387436974257,
+        "relative_mean_rgb_bias": 0.726257317566171,
+        "reference_mean_rgb": 0.009082423442585082
+      }
+    },
+    "back_wall": {
+      "normalized_rectangle": [
+        0.4,
+        0.25,
+        0.61,
+        0.66
+      ],
+      "off": {
+        "pixels": 10411,
+        "linear_rgb_mae": 0.017350354176415336,
+        "linear_rgb_rmse": 0.023429918201989103,
+        "normalized_l1": 3.9260698911150147,
+        "relative_mean_rgb_bias": 3.839384366091791,
+        "reference_mean_rgb": 0.004419267781167234
+      },
+      "ddgi": {
+        "pixels": 10411,
+        "linear_rgb_mae": 0.006095962630602421,
+        "linear_rgb_rmse": 0.013611873136428422,
+        "normalized_l1": 1.3794055785848602,
+        "relative_mean_rgb_bias": 1.2118127133812249,
+        "reference_mean_rgb": 0.004419267781167234
+      }
+    },
+    "shadow_floor": {
+      "normalized_rectangle": [
+        0.53,
+        0.73,
+        0.86,
+        0.97
+      ],
+      "off": {
+        "pixels": 9529,
+        "linear_rgb_mae": 0.02448788415162976,
+        "linear_rgb_rmse": 0.03336350423083199,
+        "normalized_l1": 5.112588039556466,
+        "relative_mean_rgb_bias": 5.104600897462993,
+        "reference_mean_rgb": 0.004789723709824695
+      },
+      "ddgi": {
+        "pixels": 9529,
+        "linear_rgb_mae": 0.010332129383886212,
+        "linear_rgb_rmse": 0.016589427316418874,
+        "normalized_l1": 2.157145173675241,
+        "relative_mean_rgb_bias": 2.1214311785845226,
+        "reference_mean_rgb": 0.004789723709824695
+      }
+    },
+    "sun_floor": {
+      "normalized_rectangle": [
+        0.26,
+        0.72,
+        0.42,
+        0.97
+      ],
+      "off": {
+        "pixels": 5150,
+        "linear_rgb_mae": 0.04024199931476187,
+        "linear_rgb_rmse": 0.054387383002331105,
+        "normalized_l1": 0.23384917225659096,
+        "relative_mean_rgb_bias": 0.09623775069463483,
+        "reference_mean_rgb": 0.17208527584868397
+      },
+      "ddgi": {
+        "pixels": 5150,
+        "linear_rgb_mae": 0.030398618904670285,
+        "linear_rgb_rmse": 0.045174755301357374,
+        "normalized_l1": 0.1766485758572398,
+        "relative_mean_rgb_bias": 0.021800437264185138,
+        "reference_mean_rgb": 0.17208527584868397
+      }
+    },
+    "red_curtain": {
+      "normalized_rectangle": [
+        0.02,
+        0.35,
+        0.19,
+        0.82
+      ],
+      "off": {
+        "pixels": 10252,
+        "linear_rgb_mae": 0.008678956333806574,
+        "linear_rgb_rmse": 0.014906250037275168,
+        "normalized_l1": 0.49029737792859285,
+        "relative_mean_rgb_bias": -0.035344306484517016,
+        "reference_mean_rgb": 0.017701412906741227
+      },
+      "ddgi": {
+        "pixels": 10252,
+        "linear_rgb_mae": 0.009384057069580194,
+        "linear_rgb_rmse": 0.01723906730810422,
+        "normalized_l1": 0.5301303980094416,
+        "relative_mean_rgb_bias": 0.1404047497485885,
+        "reference_mean_rgb": 0.017701412906741227
+      }
+    }
+  },
+  "ddgi_surface_irradiance": {
+    "queries": 47,
+    "cosine_samples_per_query": 2048,
+    "quantity": "E/pi, incident sky + secondary surface radiance; excludes analytic primary direct sun and all Raster shadow/beauty composition.",
+    "normalized_l1": 0.3475851125155952,
+    "mean_reference": [
+      0.041476623130407425,
+      0.02892929956594363,
+      0.019905548774330144
+    ],
+    "mean_ddgi": [
+      0.05095851595731492,
+      0.03533550247827426,
+      0.02161143731543834
+    ],
+    "relative_mean_bias": 0.19481450134557984,
+    "mean_pt_standard_error": [
+      0.002709217073564279,
+      0.0020126945331712513,
+      0.0013856551281122016
+    ],
+    "coverage_range": [
+      0.9999998807907104,
+      1.0
+    ],
+    "method": "E/pi from cosine hemisphere path integration at aligned GBuffer surfaces. First-segment miss uses sky only, excluding analytic direct sun already handled by surface direct lighting. Secondary surface paths retain sun NEE and all BSDF lobes. Same shading normal; geometric epsilon offset; no fitted intensity or exposure."
+  },
+  "pt_sampling_check": {
+    "primary_seed": 1,
+    "primary_spp": 2048,
+    "secondary_seed": 2,
+    "secondary_spp": 1024,
+    "raw_reference_difference_core": {
+      "pixels": 120872,
+      "linear_rgb_mae": 0.0006888138690374561,
+      "linear_rgb_rmse": 0.0014119993067682629,
+      "normalized_l1": 0.035788921054614384,
+      "relative_mean_rgb_bias": 0.00022048327508018112,
+      "reference_mean_rgb": 0.019246567058736324
+    },
+    "note": "Independent Monte Carlo image difference estimates residual sampling noise; it is not an error bar or proof of convergence."
+  }
+}

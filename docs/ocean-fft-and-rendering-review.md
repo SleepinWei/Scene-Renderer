@@ -147,3 +147,6 @@ MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 ./build/Scene-Renderer --render-galler
 主要代码：[`Ocean.cpp`](../src/component/Ocean.cpp)、[`ocean/`](../src/shader/ocean/)、[`MetalOceanTests.cpp`](../src/metal/MetalOceanTests.cpp)、[`MetalWaterOpticsTests.cpp`](../src/metal/MetalWaterOpticsTests.cpp)。
 
 算法参考：[Jerry Tessendorf：Simulating Ocean Surface](https://jerrytessendorf.blogspot.com/2011/10/simulating-ocean-surface-jerry.html)、[GPU Gems：Effective Water Simulation](https://developer.nvidia.com/gpugems/gpugems/part-i-natural-effects/chapter-1-effective-water-simulation-physical-models)、[GPU Gems 2：Generic Refraction Simulation](https://developer.nvidia.com/gpugems/gpugems2/part-ii-shading-lighting-and-shadows/chapter-19-generic-refraction-simulation)、[GPU Gems：Real-Time Approximations to Subsurface Scattering](https://developer.nvidia.com/gpugems/gpugems/part-iii-materials/chapter-16-real-time-approximations-subsurface-scattering)。本实现使用上述方向的实时近似，不是逐章完整复刻。
+
+
+2026-10-10：新增 [JONSWAP/TMA 风浪、独立涌浪与 PT 海况捕获](ocean-sea-state-and-pt.md)。新预设沿用 FFT，增加 Hs/Tp 标定、均匀有限水深色散和相机加密 PT 网格；本文原 Phillips/旧组件说明继续适用于原有预设。

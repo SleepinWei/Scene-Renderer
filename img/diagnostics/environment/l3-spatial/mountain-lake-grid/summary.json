@@ -1,0 +1,15 @@
+{
+  "tick": 3600,
+  "seconds": 60.0,
+  "rain_mm_per_hour": 50.0,
+  "land_area_m2": 54149309.768549256,
+  "storage_min_mm": 0.26058040721964204,
+  "storage_max_mm": 2.0,
+  "storage_mean_mm": 0.7422300958096335,
+  "stored_m3": 40191.24737753583,
+  "balance_residual_m3": -7.282826551881287e-09,
+  "internal_transfer_m3": 42753.277491241206,
+  "external_outflow_m3": 4391.684331910006,
+  "unconsumed_direct_lake_rain_m3": 8208.90852620873,
+  "scope": "16x16 horizontal land cells; artistic thin-film runoff; fixed lake level"
+}

@@ -7,6 +7,7 @@
 #include"component/Model.h"
 #include<glfw/glfw3.h>
 #include "component/Mesh_Filter.h"
+#include "rhi/MemorySafety.h"
 
 #define PI 3.1415926
 
@@ -15,6 +16,7 @@ Mesh::Mesh() {
 }
 
 Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices){
+	rhi::memorySafety().check(rhi::MemorySafety::bytes(vertices.size(),sizeof(Vertex))+rhi::MemorySafety::bytes(indices.size(),sizeof(unsigned)),"CPU mesh copy");
 	setGeometry(vertices,indices);
 	VAO = 0, VBO = 0, EBO = 0;
 	this->material = nullptr;  // 需要为 0，用于在导入时判断是否需要 candidate_mat 

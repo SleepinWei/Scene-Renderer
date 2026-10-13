@@ -121,4 +121,4 @@ GPU 时间为整帧原生命令缓冲，含呈现复制；32 帧中的前四帧�
 
 关键代码：`cloud-volume.comp`（建模）、`cloud-distance-init.comp`／`cloud-distance-step.comp`（距离场）、`cloud-volume-light.comp`（太阳缓存）、`cloud-voxel-march.comp`（间接步进和细节）、`GpuClouds.cpp`（缓存与调度）、`CloudValidation.cpp`（GPU 验证）。
 
-尚未接入地面云阴影、海面云反射、天气变化对 IBL／RSM 的调制和离线 PT 云；透明几何与云体仍按整个 pass 顺序合成。有限体素分辨率与预算会限制近处细节；目前没有生产级云资产、流体演化、多体积流式 LOD 或完整气象系统。上述限制独立于已经实现并验证的可穿越体素表示和加速积分。
+[L4 天气光照](weather-lighting.md) 已接入地面云影，并提供固定云全景与独立太阳透射场的近似 P1 PT 捕获。海面云反射、天气变化对 RT IBL 的调制和 PT 空间云介质尚未接入；透明几何与云体仍按整个 pass 顺序合成。有限体素分辨率与预算会限制近处细节；目前没有生产级云资产、流体演化、多体积流式 LOD 或完整气象系统。上述限制独立于已经实现并验证的可穿越体素表示和加速积分。

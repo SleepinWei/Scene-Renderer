@@ -13,7 +13,7 @@
 ```sh
 brew install glfw assimp yaml-cpp glslang spirv-cross
 cmake -S . -B build -DSCENERENDERER_RHI_BACKEND=Metal -DSCENERENDERER_LEGACY_METAL=OFF -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j 8
+cmake --build build -j2
 ./build/Scene-Renderer --demo
 
 # 单独查看自然场景
@@ -28,7 +28,7 @@ Vulkan 主后端需要 Vulkan SDK、GLFW 3.4、Assimp、yaml-cpp、glslangValida
 
 ```sh
 cmake -S . -B build/vulkan -DSCENERENDERER_RHI_BACKEND=Vulkan -DCMAKE_BUILD_TYPE=Release
-cmake --build build/vulkan -j 8
+cmake --build build/vulkan -j2
 ./build/vulkan/Scene-Renderer --demo
 ctest --test-dir build/vulkan --output-on-failure
 ```
@@ -37,13 +37,15 @@ macOS 上也可以在 Metal 构建中同时编译 Vulkan，再通过启动参数
 
 ```sh
 cmake -S . -B build -DSCENERENDERER_RHI_BACKEND=Metal -DSCENERENDERER_VULKAN_PROTOTYPE=ON
-cmake --build build -j 8
+cmake --build build -j2
 ./build/Scene-Renderer --demo --backend Vulkan
 ```
 
-原生编辑器默认主逻辑／渲染双线程，逻辑使用 60 Hz 固定步长，支持暂停及速度控制；普通帧队列满时跳过快照，主线程继续处理输入和模拟。`--single-thread` 可切换同步对照。`--asset-root DIR` 指定模型及场景资源根目录；JSON 内资源优先相对该文档解析。`--auto-quality` 显式启用配额压力下的效果品质降级。`--forward` 使用完整场景的前向光照；`--frames N` 有界运行，`--time 8` 固定海洋/草时间，`--size 800x450` 与 `--resize 640x360` 用于窗口回归，`--frames-in-flight 1` 可对照默认的 3 个在途提交。`--screenshot path.ppm` 保存包括 UI 的最后一帧。`--render-gallery directory core` 保存无 UI 的经典场景 PNG。本机 Metal 回归启用 API／Shader Validation；Vulkan／MoltenVK 通过 GPU 数值测试验证。本机没有 Khronos validation layer，不能把这些结果视为 Vulkan layer 验证；对 MoltenVK 开启 MetalTools 的已知阻塞组合由 CTest 单独关闭。
+原生编辑器默认主逻辑／渲染双线程，逻辑使用 60 Hz 固定步长，支持暂停及速度控制；普通帧队列满时跳过快照，主线程继续处理输入和模拟。`--single-thread` 可切换同步对照。`--asset-root DIR` 指定模型及场景资源根目录；JSON 内资源优先相对该文档解析。`--auto-quality` 显式启用配额压力下的效果品质降级。`--forward` 使用完整场景的前向光照；`--frames N` 有界运行，`--time 8` 固定海洋/草时间，`--size 800x450` 与 `--resize 640x360` 用于窗口回归，默认最多 1 个在途提交，`--frames-in-flight 2` 或 `3` 可作显式吞吐对照。`--frames N --screenshot path.ppm` 保存最后一帧，截图帧自动隐藏 UI；支持原生独立渲染线程与 `--single-thread` 路径。`--render-gallery directory core` 保存无 UI 的经典场景 PNG。本机 Metal 回归启用 API／Shader Validation；Vulkan／MoltenVK 通过 GPU 数值测试验证。本机没有 Khronos validation layer，不能把这些结果视为 Vulkan layer 验证；对 MoltenVK 开启 MetalTools 的已知阻塞组合由 CTest 单独关闭。
 
 ### 示例资源
+
+原生双线程编辑器可以用 `--classic mountain-lake --environment` 开启环境时钟、太阳与共享风控制，**Environment** 面板支持暂停／单步、太阳／风事件和 CPU 检查点保存恢复。`--environment-ticks 120 --environment-sun 45 20` 从 0 秒预推进到 2 秒后暂停；`--environment-save FILE` 在退出时保存，`--environment-load FILE` 恢复同场景 CPU 状态。该功能不支持同时使用 `--time`、`--single-thread` 或 OpenGL。`--environment-wind 12 4` 设置 XZ 风速目标（每轴 ±100 m/s）：云／草按 1 秒响应，波谱按 8 秒平滑过渡。`--environment-cloud-coverage 1` 以 6 秒曲线调整云量，`--environment-clouds` 开启已有云组件；动态云量不逐帧重建体素缓存。schema 3 检查点覆盖时钟／太阳、风位移／相位／波谱进度、云量过渡及待处理事件，并兼容旧 schema 1／2；降雨和 GPU 近岸水体历史仍待后续；操作与验收见 [山湖环境交付规格](mountain-lake-environment-spec.md)。
 
 `--demo` 自动生成材质、天空、海洋、地形和草；仓库未包含历史 `asset/` 资源包，配置场景缺失时也会回退到此演示。Cornell 风格场景、Bunny 和 Helmet 可直接运行，Sponza 与 San Miguel 需单独下载；高清海洋和透明浅水场景由程序生成，可直接运行。
 
@@ -61,14 +63,18 @@ python3 tools/fetch_gi_assets.py
 | --- | --- |
 | `--demo` | 自动生成的功能演示，无需历史资产包 |
 | `--classic <name>` | 选择 `cornell`、`bunny`、`dragon`、`buddha`、`armadillo`、`helmet`、`sponza`、`san-miguel`、`sibenik`、`sky`、`clouds`、`clouds-sunset`、`clouds-storm`、`cloud-volume`、`cloud-inside`、`cloud-vortex`、`shadow-test`、`ocean`、`ocean-clear`、`coastal-beach`、`coastal-water`、`coastal-underwater`、`coastal-seabed`、`underwater-dive`、`terrain`、`mountain-lake`、`mountain-lake-ground` 或 `mountain-lake-beach` |
+| `--pt-viewport` | 原生线程编辑器启动后捕获渐进 GPU PT；也可按 `R` 或使用 Path tracing viewport 面板，支持暂停／续采／重新捕获／取消、运动时 Raster 与停下后自动重启 PT；GPU 场景按帧分块准备，支持 OIDN 预览开关与线性检查点导出，详见 [GPU 视口](path-tracing-gpu.md#渐进-gpu-视口2026-10-07) |
 | `--post-process-self-test` | 原生后处理 GPU 验证；编辑器 Post processing 面板提供独立开关，[说明与对照](post-processing.md) |
 | `--frames <N>` | 窗口渲染 N 帧后退出 |
+| `--screenshot <path.ppm>` | 配合 `--frames N` 保存最后一帧，自动隐藏 UI |
 | `--render-gallery <目录> core` | 离屏生成三个随仓库提供的基础示例 |
 | `--render-gallery <目录> gi` | 生成两个 GI 场景、RSM 开关对照及纯间接光／太阳／天空贡献图 |
 | `--render-gallery <目录> benchmarks` | 生成 Dragon、Buddha、Armadillo 与 Sibenik，含教堂 RSM 对照 |
 | `--render-gallery <目录> <场景名>` | 仅生成指定场景 |
 | `--render-gallery <目录>` | 默认生成三个基础示例 |
-| `--gpu-resource-budget-mib <N>` | 原生编辑器的 RHI buffer／texture 逻辑负载配额；默认 0 不限额；双线程编辑器超限保留成功画面并重试，无法恢复的冷启动报错；不含 driver heap 等隐式开销 |
+| `--memory-budget-mib <N>` | 进程分配安全预算，默认物理内存 20% 与 3 GiB 中较小值；覆盖导入、构建、快照和 GPU 分配前检查；0 为自动保护，[详细范围](memory-safety.md) |
+| `--gpu-resource-budget-mib <N>` | GPU 安全预算，默认进程预算的一半；覆盖 RHI 资源及 Metal 原生分配、staging、AS 临时数据；0 为自动保护，超限保留已有成功画面或冷启动报错 |
+| `--memory-info` | 输出实际内存预算、进程占用与系统压力状态后退出；编辑器默认最多 1 帧在途 |
 | `--auto-quality` | 显式允许配额失败时最多降低三个效果品质等级；默认关闭，关闭后恢复请求规格 |
 | `--asset-root <DIR>` | 指定模型／纹理／JSON 资源根目录；JSON 子资源优先相对文档解析 |
 | `--single-thread` | 原生编辑器同步对照；默认 Metal／Vulkan 使用独立渲染线程 |
@@ -78,7 +84,9 @@ python3 tools/fetch_gi_assets.py
 | `--pt-denoise` / `--pt-denoise-device` / `--pt-denoise-input` | OIDN 最终图降噪、设备选择与已有 PFM 离线处理 |
 | `--pt-bdpt` / `--pt-no-glass` | CPU BDPT 面积光参考与 `caustics` 无玻璃对照 |
 | `--path-trace-gpu <场景名>` | Metal/Vulkan GPU 路径追踪，共用 `--pt-*` 输出参数 |
+| `--pt-scene-file <JSON>` | 读取离线 PT 场景包；内置别名 `blender-classroom`／`blender-barcelona`，需先运行 Blender 准备脚本 |
 | `--pt-sampler sobol/pcg` / `--pt-fixed` | CPU 采样器对照与完整固定 spp；GPU 使用 Sobol |
+| `--pt-checkpoint-samples N` | 固定 spp 的 CPU／GPU PT checkpoint 间隔（默认 256，首轮 4／16）；自适应检查保持 32 |
 | `--pt-environment <HDR>` / `--pt-no-sky` | 复用环境贴图及太阳 sidecar，或跳过实时天空烘焙 |
 | `--pt-sun-radius <DEG>` | 调整烘焙天空的太阳角半径，0 < DEG < 5.73；保持辐照度，扩大太阳用于软光预览 |
 | `--pt-sss-roughness <R>` / `--pt-water-roughness <R>` | 玉龙／捕获水面的介电粗糙度，范围 [0,1]，默认分别 0.22／0；小于 0.02 使用平滑 delta 边界 |
@@ -154,7 +162,7 @@ GPU 验证覆盖上传/异步读回、延迟释放、MRT、前向/延迟 PBR、S
 
 ```sh
 cmake -S . -B build/opengl -DSCENERENDERER_RHI_BACKEND=OpenGL -DCMAKE_BUILD_TYPE=Release
-cmake --build build/opengl -j 8
+cmake --build build/opengl -j2
 ```
 
 依赖包括 GLFW、Assimp、yaml-cpp，以及随仓库提供的 GLM、ImGui、stb、tinygltf 和 glad 等。Metal 额外需要 Xcode Metal Toolchain、glslang、SPIRV-Cross；OpenGL 构建需要平台 OpenGL 库。

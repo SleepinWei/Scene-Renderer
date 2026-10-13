@@ -1,0 +1,1593 @@
+{
+  "backend": "Vulkan",
+  "bias": 0.02500000037252903,
+  "camera_step_world_x": 0.025,
+  "cases": {
+    "contact": {
+      "frames": [
+        {
+          "camera": [
+            2.5,
+            1.7000000476837158,
+            3.5
+          ],
+          "covered_pixels": 1738,
+          "excluded_surface_mismatch": 0,
+          "frame": 0,
+          "matched_pixels": 1738,
+          "modes": {
+            "gtao": {
+              "all": {
+                "mae": 0.03198625581173957,
+                "max_absolute_error": 0.473781943321228,
+                "mean_signed_error": 0.026320644400336525,
+                "pixels": 1738,
+                "rmse": 0.07836390305321587
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.1328040589963583,
+                "max_absolute_error": 0.473781943321228,
+                "mean_signed_error": 0.11976068763804615,
+                "pixels": 399,
+                "rmse": 0.16248139143511567
+              },
+              "open": {
+                "mae": 0.001713607576764512,
+                "max_absolute_error": 0.17626953125,
+                "mean_signed_error": -0.0015901875896002845,
+                "pixels": 1311,
+                "rmse": 0.009810287446994798
+              }
+            },
+            "gtao-hiz": {
+              "all": {
+                "mae": 0.03198625581173957,
+                "max_absolute_error": 0.473781943321228,
+                "mean_signed_error": 0.026320644400336525,
+                "pixels": 1738,
+                "rmse": 0.07836390305321587
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.1328040589963583,
+                "max_absolute_error": 0.473781943321228,
+                "mean_signed_error": 0.11976068763804615,
+                "pixels": 399,
+                "rmse": 0.16248139143511567
+              },
+              "open": {
+                "mae": 0.001713607576764512,
+                "max_absolute_error": 0.17626953125,
+                "mean_signed_error": -0.0015901875896002845,
+                "pixels": 1311,
+                "rmse": 0.009810287446994798
+              }
+            },
+            "gtao-raw": {
+              "all": {
+                "mae": 0.03631092352477536,
+                "max_absolute_error": 0.529934287071228,
+                "mean_signed_error": 0.027691371798926858,
+                "pixels": 1738,
+                "rmse": 0.09169697731979636
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.15463464630576304,
+                "max_absolute_error": 0.529934287071228,
+                "mean_signed_error": 0.12152045815809627,
+                "pixels": 399,
+                "rmse": 0.19067158671102316
+              },
+              "open": {
+                "mae": 0.0007108465848671035,
+                "max_absolute_error": 0.28564453125,
+                "mean_signed_error": -0.0004266554576399488,
+                "pixels": 1311,
+                "rmse": 0.00853453627844023
+              }
+            },
+            "gtao-world": {
+              "all": {
+                "mae": 0.03198372731274648,
+                "max_absolute_error": 0.473781943321228,
+                "mean_signed_error": 0.026321487233334225,
+                "pixels": 1738,
+                "rmse": 0.07836128428937998
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.13279426889610768,
+                "max_absolute_error": 0.473781943321228,
+                "mean_signed_error": 0.11975334506285817,
+                "pixels": 399,
+                "rmse": 0.16247518299968322
+              },
+              "open": {
+                "mae": 0.0017124902283663427,
+                "max_absolute_error": 0.17626953125,
+                "mean_signed_error": -0.0015883253422700023,
+                "pixels": 1311,
+                "rmse": 0.009812912462536533
+              }
+            },
+            "legacy": {
+              "all": {
+                "mae": 0.08011087175068564,
+                "max_absolute_error": 0.90069580078125,
+                "mean_signed_error": -0.046741563136613276,
+                "pixels": 1738,
+                "rmse": 0.15138134175427395
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.16115504488311613,
+                "max_absolute_error": 0.695122241973877,
+                "mean_signed_error": -0.016529439535356107,
+                "pixels": 399,
+                "rmse": 0.21286792850090736
+              },
+              "open": {
+                "mae": 0.05442946285441302,
+                "max_absolute_error": 0.90069580078125,
+                "mean_signed_error": -0.054354032653602,
+                "pixels": 1311,
+                "rmse": 0.12440127751316897
+              }
+            }
+          },
+          "reference_cpu_seconds": 0.009036291,
+          "reference_rays": 113244,
+          "saturated_rays": 0
+        },
+        {
+          "camera": [
+            2.5250000953674316,
+            1.7000000476837158,
+            3.5
+          ],
+          "covered_pixels": 1739,
+          "excluded_surface_mismatch": 0,
+          "frame": 1,
+          "matched_pixels": 1739,
+          "modes": {
+            "gtao": {
+              "all": {
+                "mae": 0.03262085231506256,
+                "max_absolute_error": 0.528816282749176,
+                "mean_signed_error": 0.026087090141681365,
+                "pixels": 1739,
+                "rmse": 0.08086701078980023
+              },
+              "motion": {
+                "overlap_pixels": 1720,
+                "reprojected_error_delta_rmse": 0.012561521520397707
+              },
+              "occluded": {
+                "mae": 0.13644661613615694,
+                "max_absolute_error": 0.528816282749176,
+                "mean_signed_error": 0.11942287618927751,
+                "pixels": 397,
+                "rmse": 0.16820343493865259
+              },
+              "open": {
+                "mae": 0.0016736605652215729,
+                "max_absolute_error": 0.1875,
+                "mean_signed_error": -0.0015731848384801976,
+                "pixels": 1313,
+                "rmse": 0.009550906516501352
+              }
+            },
+            "gtao-hiz": {
+              "all": {
+                "mae": 0.03262085231506256,
+                "max_absolute_error": 0.528816282749176,
+                "mean_signed_error": 0.026087090141681365,
+                "pixels": 1739,
+                "rmse": 0.08086701078980023
+              },
+              "motion": {
+                "overlap_pixels": 1720,
+                "reprojected_error_delta_rmse": 0.012561521520397707
+              },
+              "occluded": {
+                "mae": 0.13644661613615694,
+                "max_absolute_error": 0.528816282749176,
+                "mean_signed_error": 0.11942287618927751,
+                "pixels": 397,
+                "rmse": 0.16820343493865259
+              },
+              "open": {
+                "mae": 0.0016736605652215729,
+                "max_absolute_error": 0.1875,
+                "mean_signed_error": -0.0015731848384801976,
+                "pixels": 1313,
+                "rmse": 0.009550906516501352
+              }
+            },
+            "gtao-raw": {
+              "all": {
+                "mae": 0.03706964548803596,
+                "max_absolute_error": 0.569831907749176,
+                "mean_signed_error": 0.02721457338456521,
+                "pixels": 1739,
+                "rmse": 0.09479262543523183
+              },
+              "motion": {
+                "overlap_pixels": 1720,
+                "reprojected_error_delta_rmse": 0.017577981056859315
+              },
+              "occluded": {
+                "mae": 0.15894771740778868,
+                "max_absolute_error": 0.569831907749176,
+                "mean_signed_error": 0.12009011190243872,
+                "pixels": 397,
+                "rmse": 0.19773534026650558
+              },
+              "open": {
+                "mae": 0.000716549516722889,
+                "max_absolute_error": 0.28564453125,
+                "mean_signed_error": -0.0004623728858907079,
+                "pixels": 1313,
+                "rmse": 0.008586178045914767
+              }
+            },
+            "gtao-world": {
+              "all": {
+                "mae": 0.03260704809869412,
+                "max_absolute_error": 0.528328001499176,
+                "mean_signed_error": 0.026085124662239157,
+                "pixels": 1739,
+                "rmse": 0.08085351267157519
+              },
+              "motion": {
+                "overlap_pixels": 1720,
+                "reprojected_error_delta_rmse": 0.012563419572080965
+              },
+              "occluded": {
+                "mae": 0.13641955772935593,
+                "max_absolute_error": 0.528328001499176,
+                "mean_signed_error": 0.11938351850665786,
+                "pixels": 397,
+                "rmse": 0.16817701106130467
+              },
+              "open": {
+                "mae": 0.0016643027721791439,
+                "max_absolute_error": 0.1875,
+                "mean_signed_error": -0.0015638877849767703,
+                "pixels": 1313,
+                "rmse": 0.009540723285624674
+              }
+            },
+            "legacy": {
+              "all": {
+                "mae": 0.08079640749818365,
+                "max_absolute_error": 0.90069580078125,
+                "mean_signed_error": -0.046728237340887636,
+                "pixels": 1739,
+                "rmse": 0.15181548426845282
+              },
+              "motion": {
+                "overlap_pixels": 1720,
+                "reprojected_error_delta_rmse": 0.024977775163737483
+              },
+              "occluded": {
+                "mae": 0.16187806746521285,
+                "max_absolute_error": 0.727435290813446,
+                "mean_signed_error": -0.013412531211934703,
+                "pixels": 397,
+                "rmse": 0.21193566642736308
+              },
+              "open": {
+                "mae": 0.055324118553184864,
+                "max_absolute_error": 0.90069580078125,
+                "mean_signed_error": -0.0552428899061925,
+                "pixels": 1313,
+                "rmse": 0.12655953397967723
+              }
+            }
+          },
+          "reference_cpu_seconds": 0.010028875,
+          "reference_rays": 113361,
+          "saturated_rays": 0
+        }
+      ],
+      "memory": {
+        "allocated_depth_pyramid_bytes": 409552,
+        "filtered_ao_bytes": 153600,
+        "nominal_point_query_bytes_per_pixel": {
+          "filter_disabled_max": 8,
+          "filter_enabled_max": 390,
+          "gtao_hiz_raw_max": 286,
+          "gtao_raw_max": 158
+        },
+        "normal_bytes": 614400,
+        "note": "nominal point-query bound plus scalar AO stores; hierarchy adds conditional reads, preprocess reads world positions; caches/branches reduce traffic; not measured DRAM bandwidth",
+        "position_bytes": 1228800,
+        "raw_ao_bytes": 153600
+      },
+      "timing": {
+        "encoders_per_submission": 8,
+        "gtao": {
+          "fast_reconstruction": true,
+          "filter": {
+            "max_ms": 0.379515625,
+            "mean_ms": 0.27584720833333337,
+            "median_ms": 0.2414635,
+            "min_ms": 0.2065625,
+            "p95_ms": 0.3657104125,
+            "p95_to_median": 1.5145577385401936,
+            "samples_ms": [
+              0.2414635,
+              0.379515625,
+              0.2065625
+            ],
+            "unstable_samples": true
+          },
+          "preprocess": {
+            "max_ms": 0.02645825,
+            "mean_ms": 0.025996500000000002,
+            "median_ms": 0.025953125,
+            "min_ms": 0.025578125,
+            "p95_ms": 0.0264077375,
+            "p95_to_median": 1.0175166767007826,
+            "samples_ms": [
+              0.025578125,
+              0.025953125,
+              0.02645825
+            ],
+            "unstable_samples": false
+          },
+          "raw": {
+            "max_ms": 0.44056775,
+            "mean_ms": 0.3811076666666666,
+            "median_ms": 0.353776,
+            "min_ms": 0.34897925,
+            "p95_ms": 0.431888575,
+            "p95_to_median": 1.220796704694496,
+            "samples_ms": [
+              0.44056775,
+              0.353776,
+              0.34897925
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "gtao-hiz": {
+          "fast_reconstruction": true,
+          "filter": {
+            "max_ms": 0.237635375,
+            "mean_ms": 0.20689233333333334,
+            "median_ms": 0.20190625,
+            "min_ms": 0.181135375,
+            "p95_ms": 0.2340624625,
+            "p95_to_median": 1.1592630862095652,
+            "samples_ms": [
+              0.181135375,
+              0.20190625,
+              0.237635375
+            ],
+            "unstable_samples": false
+          },
+          "preprocess": {
+            "max_ms": 0.419854125,
+            "mean_ms": 0.387328125,
+            "median_ms": 0.394265625,
+            "min_ms": 0.347864625,
+            "p95_ms": 0.417295275,
+            "p95_to_median": 1.0584115087385566,
+            "samples_ms": [
+              0.419854125,
+              0.394265625,
+              0.347864625
+            ],
+            "unstable_samples": false
+          },
+          "raw": {
+            "max_ms": 0.6079895,
+            "mean_ms": 0.4742916666666666,
+            "median_ms": 0.411849,
+            "min_ms": 0.4030365,
+            "p95_ms": 0.5883754499999999,
+            "p95_to_median": 1.428619348353401,
+            "samples_ms": [
+              0.4030365,
+              0.6079895,
+              0.411849
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "gtao-raw": {
+          "fast_reconstruction": true,
+          "filter": {
+            "max_ms": 0.026552125,
+            "mean_ms": 0.026293416666666666,
+            "median_ms": 0.026375,
+            "min_ms": 0.025953125,
+            "p95_ms": 0.0265344125,
+            "p95_to_median": 1.0060440758293838,
+            "samples_ms": [
+              0.025953125,
+              0.026375,
+              0.026552125
+            ],
+            "unstable_samples": false
+          },
+          "preprocess": {
+            "max_ms": 0.027072875,
+            "mean_ms": 0.026817708333333332,
+            "median_ms": 0.026796875,
+            "min_ms": 0.026583375,
+            "p95_ms": 0.027045275,
+            "p95_to_median": 1.0092697376093294,
+            "samples_ms": [
+              0.027072875,
+              0.026796875,
+              0.026583375
+            ],
+            "unstable_samples": false
+          },
+          "raw": {
+            "max_ms": 0.4674635,
+            "mean_ms": 0.383592,
+            "median_ms": 0.341796875,
+            "min_ms": 0.341515625,
+            "p95_ms": 0.4548968375,
+            "p95_to_median": 1.330898176,
+            "samples_ms": [
+              0.341796875,
+              0.4674635,
+              0.341515625
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "gtao-world": {
+          "fast_reconstruction": false,
+          "filter": {
+            "max_ms": 0.213192625,
+            "mean_ms": 0.19559891666666665,
+            "median_ms": 0.190651,
+            "min_ms": 0.182953125,
+            "p95_ms": 0.2109384625,
+            "p95_to_median": 1.1064115189534804,
+            "samples_ms": [
+              0.182953125,
+              0.190651,
+              0.213192625
+            ],
+            "unstable_samples": false
+          },
+          "preprocess": null,
+          "raw": {
+            "max_ms": 0.469005125,
+            "mean_ms": 0.36915970833333334,
+            "median_ms": 0.32140625,
+            "min_ms": 0.31706775,
+            "p95_ms": 0.4542452375,
+            "p95_to_median": 1.4133055517744288,
+            "samples_ms": [
+              0.469005125,
+              0.32140625,
+              0.31706775
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "height": 240,
+        "legacy": {
+          "fast_reconstruction": false,
+          "filter": {
+            "max_ms": 0.026395875,
+            "mean_ms": 0.02560591666666667,
+            "median_ms": 0.0255625,
+            "min_ms": 0.024859375,
+            "p95_ms": 0.0263125375,
+            "p95_to_median": 1.0293413202933985,
+            "samples_ms": [
+              0.026395875,
+              0.024859375,
+              0.0255625
+            ],
+            "unstable_samples": false
+          },
+          "preprocess": null,
+          "raw": {
+            "max_ms": 0.219875,
+            "mean_ms": 0.17922566666666664,
+            "median_ms": 0.160104125,
+            "min_ms": 0.157697875,
+            "p95_ms": 0.21389791249999998,
+            "p95_to_median": 1.3359925142465878,
+            "samples_ms": [
+              0.219875,
+              0.160104125,
+              0.157697875
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "sample_submissions_per_pass": 3,
+        "warmup_submissions_per_pass": 1,
+        "width": 320
+      },
+      "triangles": 8
+    },
+    "cornell": {
+      "frames": [
+        {
+          "camera": [
+            0.0,
+            2.799999952316284,
+            9.5
+          ],
+          "covered_pixels": 2304,
+          "excluded_surface_mismatch": 3,
+          "frame": 0,
+          "matched_pixels": 2301,
+          "modes": {
+            "gtao": {
+              "all": {
+                "mae": 0.07797911458821569,
+                "max_absolute_error": 0.6538452506065369,
+                "mean_signed_error": 0.060436920179900065,
+                "pixels": 2301,
+                "rmse": 0.1518273154498869
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.1733457902834026,
+                "max_absolute_error": 0.6538452506065369,
+                "mean_signed_error": 0.1658496067261874,
+                "pixels": 937,
+                "rmse": 0.21869428943811495
+              },
+              "open": {
+                "mae": 0.012343709720284516,
+                "max_absolute_error": 0.6513671875,
+                "mean_signed_error": -0.012172667001556373,
+                "pixels": 1318,
+                "rmse": 0.07804702798287523
+              }
+            },
+            "gtao-hiz": {
+              "all": {
+                "mae": 0.07797911458821569,
+                "max_absolute_error": 0.6538452506065369,
+                "mean_signed_error": 0.060436920179900065,
+                "pixels": 2301,
+                "rmse": 0.1518273154498869
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.1733457902834026,
+                "max_absolute_error": 0.6538452506065369,
+                "mean_signed_error": 0.1658496067261874,
+                "pixels": 937,
+                "rmse": 0.21869428943811495
+              },
+              "open": {
+                "mae": 0.012343709720284516,
+                "max_absolute_error": 0.6513671875,
+                "mean_signed_error": -0.012172667001556373,
+                "pixels": 1318,
+                "rmse": 0.07804702798287523
+              }
+            },
+            "gtao-raw": {
+              "all": {
+                "mae": 0.08705845883181695,
+                "max_absolute_error": 0.8914794921875,
+                "mean_signed_error": 0.061384410741069116,
+                "pixels": 2301,
+                "rmse": 0.17388344840555894
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.18877827256059188,
+                "max_absolute_error": 0.8608074188232422,
+                "mean_signed_error": 0.17380704079519085,
+                "pixels": 937,
+                "rmse": 0.23332034089288697
+              },
+              "open": {
+                "mae": 0.016773431950527187,
+                "max_absolute_error": 0.8914794921875,
+                "mean_signed_error": -0.016224002847179477,
+                "pixels": 1318,
+                "rmse": 0.11676399091073109
+              }
+            },
+            "gtao-world": {
+              "all": {
+                "mae": 0.07797105083875892,
+                "max_absolute_error": 0.6538452506065369,
+                "mean_signed_error": 0.06043607136416777,
+                "pixels": 2301,
+                "rmse": 0.1518224920483579
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.17333510750258618,
+                "max_absolute_error": 0.6538452506065369,
+                "mean_signed_error": 0.16583840283411164,
+                "pixels": 937,
+                "rmse": 0.21868584829357243
+              },
+              "open": {
+                "mae": 0.012336485528801207,
+                "max_absolute_error": 0.6513671875,
+                "mean_signed_error": -0.01216692469550554,
+                "pixels": 1318,
+                "rmse": 0.07804738428236903
+              }
+            },
+            "legacy": {
+              "all": {
+                "mae": 0.1210046046353174,
+                "max_absolute_error": 0.7911376953125,
+                "mean_signed_error": -0.04921574871833301,
+                "pixels": 2301,
+                "rmse": 0.16285559775573438
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.12570469324718545,
+                "max_absolute_error": 0.6241741180419922,
+                "mean_signed_error": 0.04998546864205262,
+                "pixels": 937,
+                "rmse": 0.16182140313964835
+              },
+              "open": {
+                "mae": 0.11763199973902319,
+                "max_absolute_error": 0.7911376953125,
+                "mean_signed_error": -0.1174868378273815,
+                "pixels": 1318,
+                "rmse": 0.1630197619418998
+              }
+            }
+          },
+          "reference_cpu_seconds": 0.017793,
+          "reference_rays": 149931,
+          "saturated_rays": 0
+        },
+        {
+          "camera": [
+            0.02500000037252903,
+            2.799999952316284,
+            9.5
+          ],
+          "covered_pixels": 2304,
+          "excluded_surface_mismatch": 0,
+          "frame": 1,
+          "matched_pixels": 2304,
+          "modes": {
+            "gtao": {
+              "all": {
+                "mae": 0.07208458358784103,
+                "max_absolute_error": 0.6241238713264465,
+                "mean_signed_error": 0.06824995237143917,
+                "pixels": 2304,
+                "rmse": 0.13759910755880395
+              },
+              "motion": {
+                "overlap_pixels": 2290,
+                "reprojected_error_delta_rmse": 0.07244083536928728
+              },
+              "occluded": {
+                "mae": 0.16831383775442074,
+                "max_absolute_error": 0.6241238713264465,
+                "mean_signed_error": 0.162624163658191,
+                "pixels": 975,
+                "rmse": 0.21148885111615923
+              },
+              "open": {
+                "mae": 0.0013071976954665083,
+                "max_absolute_error": 0.04638671875,
+                "mean_signed_error": -0.0011814468770733723,
+                "pixels": 1289,
+                "rmse": 0.0028950478957590936
+              }
+            },
+            "gtao-hiz": {
+              "all": {
+                "mae": 0.07208458358784103,
+                "max_absolute_error": 0.6241238713264465,
+                "mean_signed_error": 0.06824995237143917,
+                "pixels": 2304,
+                "rmse": 0.13759910755880395
+              },
+              "motion": {
+                "overlap_pixels": 2290,
+                "reprojected_error_delta_rmse": 0.07244083536928728
+              },
+              "occluded": {
+                "mae": 0.16831383775442074,
+                "max_absolute_error": 0.6241238713264465,
+                "mean_signed_error": 0.162624163658191,
+                "pixels": 975,
+                "rmse": 0.21148885111615923
+              },
+              "open": {
+                "mae": 0.0013071976954665083,
+                "max_absolute_error": 0.04638671875,
+                "mean_signed_error": -0.0011814468770733723,
+                "pixels": 1289,
+                "rmse": 0.0028950478957590936
+              }
+            },
+            "gtao-raw": {
+              "all": {
+                "mae": 0.08036232291487977,
+                "max_absolute_error": 0.6717545986175537,
+                "mean_signed_error": 0.0693080539543492,
+                "pixels": 2304,
+                "rmse": 0.14821018959653195
+              },
+              "motion": {
+                "overlap_pixels": 2290,
+                "reprojected_error_delta_rmse": 0.08212827778735347
+              },
+              "occluded": {
+                "mae": 0.18870969397899431,
+                "max_absolute_error": 0.6717545986175537,
+                "mean_signed_error": 0.1630672474243702,
+                "pixels": 975,
+                "rmse": 0.22778837262777069
+              },
+              "open": {
+                "mae": 0.0004745984928287953,
+                "max_absolute_error": 0.09619140625,
+                "mean_signed_error": 0.00011179764387309782,
+                "pixels": 1289,
+                "rmse": 0.0030357516561664547
+              }
+            },
+            "gtao-world": {
+              "all": {
+                "mae": 0.0720757885913675,
+                "max_absolute_error": 0.6241238713264465,
+                "mean_signed_error": 0.06824899869712277,
+                "pixels": 2304,
+                "rmse": 0.13759361881358886
+              },
+              "motion": {
+                "overlap_pixels": 2290,
+                "reprojected_error_delta_rmse": 0.07244777053889574
+              },
+              "occluded": {
+                "mae": 0.16830206892429253,
+                "max_absolute_error": 0.6241238713264465,
+                "mean_signed_error": 0.16261089242421664,
+                "pixels": 975,
+                "rmse": 0.2114805188370565
+              },
+              "open": {
+                "mae": 0.0013000003768086341,
+                "max_absolute_error": 0.04638671875,
+                "mean_signed_error": -0.0011734919459251954,
+                "pixels": 1289,
+                "rmse": 0.0028880422244385562
+              }
+            },
+            "legacy": {
+              "all": {
+                "mae": 0.11382911087841624,
+                "max_absolute_error": 0.667236328125,
+                "mean_signed_error": -0.04283315776329902,
+                "pixels": 2304,
+                "rmse": 0.14695121290271906
+              },
+              "motion": {
+                "overlap_pixels": 2290,
+                "reprojected_error_delta_rmse": 0.06712702102120156
+              },
+              "occluded": {
+                "mae": 0.12616755968485124,
+                "max_absolute_error": 0.5794694423675537,
+                "mean_signed_error": 0.04098234934684558,
+                "pixels": 975,
+                "rmse": 0.16282071729137493
+              },
+              "open": {
+                "mae": 0.10539179883140108,
+                "max_absolute_error": 0.667236328125,
+                "mean_signed_error": -0.10525600049179408,
+                "pixels": 1289,
+                "rmse": 0.1346284129174186
+              }
+            }
+          },
+          "reference_cpu_seconds": 0.017175458,
+          "reference_rays": 150524,
+          "saturated_rays": 0
+        }
+      ],
+      "memory": {
+        "allocated_depth_pyramid_bytes": 409552,
+        "filtered_ao_bytes": 153600,
+        "nominal_point_query_bytes_per_pixel": {
+          "filter_disabled_max": 8,
+          "filter_enabled_max": 390,
+          "gtao_hiz_raw_max": 286,
+          "gtao_raw_max": 158
+        },
+        "normal_bytes": 614400,
+        "note": "nominal point-query bound plus scalar AO stores; hierarchy adds conditional reads, preprocess reads world positions; caches/branches reduce traffic; not measured DRAM bandwidth",
+        "position_bytes": 1228800,
+        "raw_ao_bytes": 153600
+      },
+      "timing": {
+        "encoders_per_submission": 8,
+        "gtao": {
+          "fast_reconstruction": true,
+          "filter": {
+            "max_ms": 0.213390625,
+            "mean_ms": 0.210576375,
+            "median_ms": 0.2092135,
+            "min_ms": 0.209125,
+            "p95_ms": 0.2129729125,
+            "p95_to_median": 1.0179692634557522,
+            "samples_ms": [
+              0.213390625,
+              0.2092135,
+              0.209125
+            ],
+            "unstable_samples": false
+          },
+          "preprocess": {
+            "max_ms": 0.026208375,
+            "mean_ms": 0.02591495833333333,
+            "median_ms": 0.02603125,
+            "min_ms": 0.02550525,
+            "p95_ms": 0.0261906625,
+            "p95_to_median": 1.0061238895558224,
+            "samples_ms": [
+              0.02550525,
+              0.02603125,
+              0.026208375
+            ],
+            "unstable_samples": false
+          },
+          "raw": {
+            "max_ms": 0.507364625,
+            "mean_ms": 0.40353820833333337,
+            "median_ms": 0.3516615,
+            "min_ms": 0.3515885,
+            "p95_ms": 0.4917943125,
+            "p95_to_median": 1.3984877858395075,
+            "samples_ms": [
+              0.3515885,
+              0.3516615,
+              0.507364625
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "gtao-hiz": {
+          "fast_reconstruction": true,
+          "filter": {
+            "max_ms": 0.209802125,
+            "mean_ms": 0.20954170833333333,
+            "median_ms": 0.2095105,
+            "min_ms": 0.2093125,
+            "p95_ms": 0.2097729625,
+            "p95_to_median": 1.0012527415093755,
+            "samples_ms": [
+              0.209802125,
+              0.2093125,
+              0.2095105
+            ],
+            "unstable_samples": false
+          },
+          "preprocess": {
+            "max_ms": 0.378005125,
+            "mean_ms": 0.36241491666666664,
+            "median_ms": 0.362,
+            "min_ms": 0.347239625,
+            "p95_ms": 0.3764046125,
+            "p95_to_median": 1.039791747237569,
+            "samples_ms": [
+              0.362,
+              0.347239625,
+              0.378005125
+            ],
+            "unstable_samples": false
+          },
+          "raw": {
+            "max_ms": 0.471572875,
+            "mean_ms": 0.45896004166666665,
+            "median_ms": 0.4645625,
+            "min_ms": 0.44074475,
+            "p95_ms": 0.4708718375,
+            "p95_to_median": 1.0135812457957756,
+            "samples_ms": [
+              0.4645625,
+              0.44074475,
+              0.471572875
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "gtao-raw": {
+          "fast_reconstruction": true,
+          "filter": {
+            "max_ms": 0.026666625,
+            "mean_ms": 0.026147541666666666,
+            "median_ms": 0.02594275,
+            "min_ms": 0.02583325,
+            "p95_ms": 0.0265942375,
+            "p95_to_median": 1.0251125073479102,
+            "samples_ms": [
+              0.02583325,
+              0.026666625,
+              0.02594275
+            ],
+            "unstable_samples": false
+          },
+          "preprocess": {
+            "max_ms": 0.02596875,
+            "mean_ms": 0.02572745833333333,
+            "median_ms": 0.025828125,
+            "min_ms": 0.0253855,
+            "p95_ms": 0.0259546875,
+            "p95_to_median": 1.0049001814882033,
+            "samples_ms": [
+              0.0253855,
+              0.025828125,
+              0.02596875
+            ],
+            "unstable_samples": false
+          },
+          "raw": {
+            "max_ms": 0.533515625,
+            "mean_ms": 0.4275885416666667,
+            "median_ms": 0.398208375,
+            "min_ms": 0.351041625,
+            "p95_ms": 0.5199849000000001,
+            "p95_to_median": 1.3058110593480112,
+            "samples_ms": [
+              0.533515625,
+              0.398208375,
+              0.351041625
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "gtao-world": {
+          "fast_reconstruction": false,
+          "filter": {
+            "max_ms": 0.36178125,
+            "mean_ms": 0.24492533333333333,
+            "median_ms": 0.186822875,
+            "min_ms": 0.186171875,
+            "p95_ms": 0.3442854125,
+            "p95_to_median": 1.8428439905980465,
+            "samples_ms": [
+              0.36178125,
+              0.186822875,
+              0.186171875
+            ],
+            "unstable_samples": true
+          },
+          "preprocess": null,
+          "raw": {
+            "max_ms": 0.368291625,
+            "mean_ms": 0.33845658333333334,
+            "median_ms": 0.323609375,
+            "min_ms": 0.32346875,
+            "p95_ms": 0.3638234,
+            "p95_to_median": 1.1242671816908891,
+            "samples_ms": [
+              0.368291625,
+              0.32346875,
+              0.323609375
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "height": 240,
+        "legacy": {
+          "fast_reconstruction": false,
+          "filter": {
+            "max_ms": 0.026119875,
+            "mean_ms": 0.025441000000000002,
+            "median_ms": 0.025609375,
+            "min_ms": 0.02459375,
+            "p95_ms": 0.026068825,
+            "p95_to_median": 1.0179406955460646,
+            "samples_ms": [
+              0.025609375,
+              0.02459375,
+              0.026119875
+            ],
+            "unstable_samples": false
+          },
+          "preprocess": null,
+          "raw": {
+            "max_ms": 0.164171875,
+            "mean_ms": 0.16130558333333334,
+            "median_ms": 0.161546875,
+            "min_ms": 0.158198,
+            "p95_ms": 0.163909375,
+            "p95_to_median": 1.0146242383209207,
+            "samples_ms": [
+              0.161546875,
+              0.164171875,
+              0.158198
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "sample_submissions_per_pass": 3,
+        "warmup_submissions_per_pass": 1,
+        "width": 320
+      },
+      "triangles": 36
+    },
+    "sponza": {
+      "frames": [
+        {
+          "camera": [
+            -8.5,
+            2.200000047683716,
+            0.0
+          ],
+          "covered_pixels": 3028,
+          "excluded_surface_mismatch": 3,
+          "frame": 0,
+          "matched_pixels": 3025,
+          "modes": {
+            "gtao": {
+              "all": {
+                "mae": 0.1343585520366992,
+                "max_absolute_error": 0.9939874410629272,
+                "mean_signed_error": 0.09035341528575283,
+                "pixels": 3025,
+                "rmse": 0.21797437088350086
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.1596211278857741,
+                "max_absolute_error": 0.9939874410629272,
+                "mean_signed_error": 0.12379629912168932,
+                "pixels": 2396,
+                "rmse": 0.23776302028105556
+              },
+              "open": {
+                "mae": 0.039827546895686634,
+                "max_absolute_error": 0.741455078125,
+                "mean_signed_error": -0.039676914285332536,
+                "pixels": 577,
+                "rmse": 0.11934212617765463
+              }
+            },
+            "gtao-hiz": {
+              "all": {
+                "mae": 0.1343585520366992,
+                "max_absolute_error": 0.9939874410629272,
+                "mean_signed_error": 0.09035341528575283,
+                "pixels": 3025,
+                "rmse": 0.21797437088350086
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.1596211278857741,
+                "max_absolute_error": 0.9939874410629272,
+                "mean_signed_error": 0.12379629912168932,
+                "pixels": 2396,
+                "rmse": 0.23776302028105556
+              },
+              "open": {
+                "mae": 0.039827546895686634,
+                "max_absolute_error": 0.741455078125,
+                "mean_signed_error": -0.039676914285332536,
+                "pixels": 577,
+                "rmse": 0.11934212617765463
+              }
+            },
+            "gtao-raw": {
+              "all": {
+                "mae": 0.1397465897031313,
+                "max_absolute_error": 0.9944757223129272,
+                "mean_signed_error": 0.09599531343714758,
+                "pixels": 3025,
+                "rmse": 0.22391444016133685
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.170134760480598,
+                "max_absolute_error": 0.9944757223129272,
+                "mean_signed_error": 0.1268804977672837,
+                "pixels": 2396,
+                "rmse": 0.24567988439663266
+              },
+              "open": {
+                "mae": 0.024624852931685422,
+                "max_absolute_error": 0.7833251953125,
+                "mean_signed_error": -0.024080263370037904,
+                "pixels": 577,
+                "rmse": 0.11030345543905497
+              }
+            },
+            "gtao-world": {
+              "all": {
+                "mae": 0.13435636071380505,
+                "max_absolute_error": 0.9939874410629272,
+                "mean_signed_error": 0.09038639444703898,
+                "pixels": 3025,
+                "rmse": 0.21798765768420922
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.15963696182483125,
+                "max_absolute_error": 0.9939874410629272,
+                "mean_signed_error": 0.12381918730528307,
+                "pixels": 2396,
+                "rmse": 0.23777837359658405
+              },
+              "open": {
+                "mae": 0.03977738767604068,
+                "max_absolute_error": 0.7412109375,
+                "mean_signed_error": -0.039631217253270144,
+                "pixels": 577,
+                "rmse": 0.11934466512321674
+              }
+            },
+            "legacy": {
+              "all": {
+                "mae": 0.1529173341516621,
+                "max_absolute_error": 0.8563101291656494,
+                "mean_signed_error": 0.01550927191233832,
+                "pixels": 3025,
+                "rmse": 0.2108373718503091
+              },
+              "motion": null,
+              "occluded": {
+                "mae": 0.1648051995777825,
+                "max_absolute_error": 0.8563101291656494,
+                "mean_signed_error": 0.047584799766689785,
+                "pixels": 2396,
+                "rmse": 0.22474173875144082
+              },
+              "open": {
+                "mae": 0.10875417857690742,
+                "max_absolute_error": 0.6691445708274841,
+                "mean_signed_error": -0.1084814122272736,
+                "pixels": 577,
+                "rmse": 0.14664579209468176
+              }
+            }
+          },
+          "reference_cpu_seconds": 0.076850875,
+          "reference_rays": 204048,
+          "saturated_rays": 0
+        },
+        {
+          "camera": [
+            -8.475000381469727,
+            2.200000047683716,
+            0.0
+          ],
+          "covered_pixels": 3028,
+          "excluded_surface_mismatch": 4,
+          "frame": 1,
+          "matched_pixels": 3024,
+          "modes": {
+            "gtao": {
+              "all": {
+                "mae": 0.13441339592947057,
+                "max_absolute_error": 0.9939874410629272,
+                "mean_signed_error": 0.08944200147337542,
+                "pixels": 3024,
+                "rmse": 0.21814047619336266
+              },
+              "motion": {
+                "overlap_pixels": 2946,
+                "reprojected_error_delta_rmse": 0.08218847754971301
+              },
+              "occluded": {
+                "mae": 0.158533113950954,
+                "max_absolute_error": 0.9939874410629272,
+                "mean_signed_error": 0.12238275160990565,
+                "pixels": 2407,
+                "rmse": 0.23719689219430218
+              },
+              "open": {
+                "mae": 0.04215072025179239,
+                "max_absolute_error": 0.727783203125,
+                "mean_signed_error": -0.041833721530375054,
+                "pixels": 573,
+                "rmse": 0.1214483930531853
+              }
+            },
+            "gtao-hiz": {
+              "all": {
+                "mae": 0.13441339592947057,
+                "max_absolute_error": 0.9939874410629272,
+                "mean_signed_error": 0.08944200147337542,
+                "pixels": 3024,
+                "rmse": 0.21814047619336266
+              },
+              "motion": {
+                "overlap_pixels": 2946,
+                "reprojected_error_delta_rmse": 0.08218847754971301
+              },
+              "occluded": {
+                "mae": 0.158533113950954,
+                "max_absolute_error": 0.9939874410629272,
+                "mean_signed_error": 0.12238275160990565,
+                "pixels": 2407,
+                "rmse": 0.23719689219430218
+              },
+              "open": {
+                "mae": 0.04215072025179239,
+                "max_absolute_error": 0.727783203125,
+                "mean_signed_error": -0.041833721530375054,
+                "pixels": 573,
+                "rmse": 0.1214483930531853
+              }
+            },
+            "gtao-raw": {
+              "all": {
+                "mae": 0.14102236328525813,
+                "max_absolute_error": 0.9944757223129272,
+                "mean_signed_error": 0.09546672541921633,
+                "pixels": 3024,
+                "rmse": 0.22516029148077624
+              },
+              "motion": {
+                "overlap_pixels": 2946,
+                "reprojected_error_delta_rmse": 0.08788575666558246
+              },
+              "occluded": {
+                "mae": 0.17048365243187846,
+                "max_absolute_error": 0.9944757223129272,
+                "mean_signed_error": 0.12600145551117192,
+                "pixels": 2407,
+                "rmse": 0.24586317541391853
+              },
+              "open": {
+                "mae": 0.026828547838886788,
+                "max_absolute_error": 0.779541015625,
+                "mean_signed_error": -0.02608047313923195,
+                "pixels": 573,
+                "rmse": 0.11659492661794013
+              }
+            },
+            "gtao-world": {
+              "all": {
+                "mae": 0.134418498631074,
+                "max_absolute_error": 0.9939874410629272,
+                "mean_signed_error": 0.08946725113622883,
+                "pixels": 3024,
+                "rmse": 0.218141207953811
+              },
+              "motion": {
+                "overlap_pixels": 2946,
+                "reprojected_error_delta_rmse": 0.08218730754985965
+              },
+              "occluded": {
+                "mae": 0.15854979364343041,
+                "max_absolute_error": 0.9939874410629272,
+                "mean_signed_error": 0.12240453357883742,
+                "pixels": 2407,
+                "rmse": 0.23720269762780577
+              },
+              "open": {
+                "mae": 0.04210843548932833,
+                "max_absolute_error": 0.727783203125,
+                "mean_signed_error": -0.04179111409145708,
+                "pixels": 573,
+                "rmse": 0.1214076720748035
+              }
+            },
+            "legacy": {
+              "all": {
+                "mae": 0.15366841032214107,
+                "max_absolute_error": 0.9013276100158691,
+                "mean_signed_error": 0.015300806863085619,
+                "pixels": 3024,
+                "rmse": 0.21144533965411794
+              },
+              "motion": {
+                "overlap_pixels": 2946,
+                "reprojected_error_delta_rmse": 0.07899633839642044
+              },
+              "occluded": {
+                "mae": 0.16489549731509934,
+                "max_absolute_error": 0.9013276100158691,
+                "mean_signed_error": 0.047225335641525375,
+                "pixels": 2407,
+                "rmse": 0.22434357853342216
+              },
+              "open": {
+                "mae": 0.10938320900549231,
+                "max_absolute_error": 0.6554074883460999,
+                "mean_signed_error": -0.10909425068068046,
+                "pixels": 573,
+                "rmse": 0.14867469917042284
+              }
+            }
+          },
+          "reference_cpu_seconds": 0.06733725,
+          "reference_rays": 204360,
+          "saturated_rays": 0
+        }
+      ],
+      "memory": {
+        "allocated_depth_pyramid_bytes": 409552,
+        "filtered_ao_bytes": 153600,
+        "nominal_point_query_bytes_per_pixel": {
+          "filter_disabled_max": 8,
+          "filter_enabled_max": 390,
+          "gtao_hiz_raw_max": 286,
+          "gtao_raw_max": 158
+        },
+        "normal_bytes": 614400,
+        "note": "nominal point-query bound plus scalar AO stores; hierarchy adds conditional reads, preprocess reads world positions; caches/branches reduce traffic; not measured DRAM bandwidth",
+        "position_bytes": 1228800,
+        "raw_ao_bytes": 153600
+      },
+      "timing": {
+        "encoders_per_submission": 8,
+        "gtao": {
+          "fast_reconstruction": true,
+          "filter": {
+            "max_ms": 0.211125,
+            "mean_ms": 0.211012125,
+            "median_ms": 0.210984375,
+            "min_ms": 0.210927,
+            "p95_ms": 0.2111109375,
+            "p95_to_median": 1.0005998666962899,
+            "samples_ms": [
+              0.211125,
+              0.210927,
+              0.210984375
+            ],
+            "unstable_samples": false
+          },
+          "preprocess": {
+            "max_ms": 0.02583325,
+            "mean_ms": 0.024944375,
+            "median_ms": 0.0252135,
+            "min_ms": 0.023786375,
+            "p95_ms": 0.025771275,
+            "p95_to_median": 1.0221220774585045,
+            "samples_ms": [
+              0.0252135,
+              0.023786375,
+              0.02583325
+            ],
+            "unstable_samples": false
+          },
+          "raw": {
+            "max_ms": 0.398182375,
+            "mean_ms": 0.3623264583333334,
+            "median_ms": 0.355427125,
+            "min_ms": 0.333369875,
+            "p95_ms": 0.39390685,
+            "p95_to_median": 1.1082633324623155,
+            "samples_ms": [
+              0.333369875,
+              0.398182375,
+              0.355427125
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "gtao-hiz": {
+          "fast_reconstruction": true,
+          "filter": {
+            "max_ms": 0.21065625,
+            "mean_ms": 0.21055212499999998,
+            "median_ms": 0.210583375,
+            "min_ms": 0.21041675,
+            "p95_ms": 0.21064896249999998,
+            "p95_to_median": 1.0003114562106339,
+            "samples_ms": [
+              0.21041675,
+              0.210583375,
+              0.21065625
+            ],
+            "unstable_samples": false
+          },
+          "preprocess": {
+            "max_ms": 0.46263025,
+            "mean_ms": 0.39127608333333336,
+            "median_ms": 0.362125,
+            "min_ms": 0.349073,
+            "p95_ms": 0.452579725,
+            "p95_to_median": 1.2497886779426994,
+            "samples_ms": [
+              0.349073,
+              0.362125,
+              0.46263025
+            ],
+            "unstable_samples": false
+          },
+          "raw": {
+            "max_ms": 0.4909375,
+            "mean_ms": 0.44705208333333335,
+            "median_ms": 0.425364625,
+            "min_ms": 0.424854125,
+            "p95_ms": 0.4843802125,
+            "p95_to_median": 1.1387411741162068,
+            "samples_ms": [
+              0.425364625,
+              0.424854125,
+              0.4909375
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "gtao-raw": {
+          "fast_reconstruction": true,
+          "filter": {
+            "max_ms": 0.026375,
+            "mean_ms": 0.025312499999999998,
+            "median_ms": 0.025520875,
+            "min_ms": 0.024041625,
+            "p95_ms": 0.0262895875,
+            "p95_to_median": 1.0301209304148076,
+            "samples_ms": [
+              0.024041625,
+              0.025520875,
+              0.026375
+            ],
+            "unstable_samples": false
+          },
+          "preprocess": {
+            "max_ms": 0.037026125,
+            "mean_ms": 0.031980916666666664,
+            "median_ms": 0.035203125,
+            "min_ms": 0.0237135,
+            "p95_ms": 0.036843825,
+            "p95_to_median": 1.0466066577896136,
+            "samples_ms": [
+              0.035203125,
+              0.0237135,
+              0.037026125
+            ],
+            "unstable_samples": false
+          },
+          "raw": {
+            "max_ms": 0.4067135,
+            "mean_ms": 0.3722586666666667,
+            "median_ms": 0.355046875,
+            "min_ms": 0.355015625,
+            "p95_ms": 0.4015468375,
+            "p95_to_median": 1.1309685164810985,
+            "samples_ms": [
+              0.4067135,
+              0.355046875,
+              0.355015625
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "gtao-world": {
+          "fast_reconstruction": false,
+          "filter": {
+            "max_ms": 0.222135375,
+            "mean_ms": 0.20080033333333333,
+            "median_ms": 0.190401,
+            "min_ms": 0.189864625,
+            "p95_ms": 0.21896193749999998,
+            "p95_to_median": 1.150004136007689,
+            "samples_ms": [
+              0.222135375,
+              0.190401,
+              0.189864625
+            ],
+            "unstable_samples": false
+          },
+          "preprocess": null,
+          "raw": {
+            "max_ms": 0.34195825,
+            "mean_ms": 0.3387343333333333,
+            "median_ms": 0.337927125,
+            "min_ms": 0.336317625,
+            "p95_ms": 0.3415551375,
+            "p95_to_median": 1.0107360795615328,
+            "samples_ms": [
+              0.34195825,
+              0.337927125,
+              0.336317625
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "height": 240,
+        "legacy": {
+          "fast_reconstruction": false,
+          "filter": {
+            "max_ms": 0.026328125,
+            "mean_ms": 0.0255,
+            "median_ms": 0.026140625,
+            "min_ms": 0.02403125,
+            "p95_ms": 0.026309375,
+            "p95_to_median": 1.0064554692169754,
+            "samples_ms": [
+              0.026328125,
+              0.02403125,
+              0.026140625
+            ],
+            "unstable_samples": false
+          },
+          "preprocess": null,
+          "raw": {
+            "max_ms": 0.17129175,
+            "mean_ms": 0.16546008333333334,
+            "median_ms": 0.162760375,
+            "min_ms": 0.162328125,
+            "p95_ms": 0.1704386125,
+            "p95_to_median": 1.0471751032768264,
+            "samples_ms": [
+              0.17129175,
+              0.162328125,
+              0.162760375
+            ],
+            "unstable_samples": false
+          },
+          "scope": "isolated native submission with repeated identical AO encoders; GPU duration divided by repetitions, includes attachment/command-buffer overhead, warm-cache replay, excludes scene/presentation/readback",
+          "supported": true
+        },
+        "sample_submissions_per_pass": 3,
+        "warmup_submissions_per_pass": 1,
+        "width": 320
+      },
+      "triangles": 262266
+    }
+  },
+  "definition": "cosine-weighted BVH visibility, XYZ distance smoothstep from 0.6R to R, geometric-normal bias, alpha cutoff, exact triangle normals; full geometry includes hidden surfaces",
+  "error_colors": "red: too little occlusion; blue: too much occlusion; magnitude scaled 4x; only matched pixels scored",
+  "height": 48,
+  "host_label": "Apple M4 MoltenVK smoke",
+  "motion_definition": "nearest-pixel reprojection of error relative to current ray reference; position-mismatch rejection; no AO/scene history; includes reference sampling uncertainty",
+  "motion_frames": 2,
+  "power": 1.5,
+  "radius": 1.0,
+  "rsm": false,
+  "samples_per_pixel": 64,
+  "seed": 1,
+  "slices": 4,
+  "steps_per_side": 4,
+  "taa": false,
+  "threads": 4,
+  "validation_environment": {
+    "MTL_DEBUG_LAYER": "0",
+    "MTL_SHADER_VALIDATION": "0"
+  },
+  "width": 64
+}

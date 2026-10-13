@@ -1,0 +1,85 @@
+{
+  "date": "2026-10-08",
+  "scope": "M1-R shared anisotropic GGX reflection in native Raster / PT",
+  "reports": {
+    "metal": {
+      "absolute_tolerance": 0.004,
+      "backend": "Metal",
+      "compared_linear_hdr_channels": 1728,
+      "coverage": [
+        "PT PBR / GGX-add",
+        "metal / dielectric reflection",
+        "isotropic / signed anisotropic axes / rotation",
+        "UV / explicit corner frames",
+        "normal map",
+        "mirror / nonuniform transform",
+        "instance frames",
+        "material scalar cache invalidation",
+        "bounded asynchronous tangent upload",
+        "Forward / Deferred / Scene deferred / Scene forward"
+      ],
+      "max_relative_error_floor_0_02": 0.0011701512737731035,
+      "preview_lighting": "directional light + constant ambient; Raster tone mapped",
+      "preview_size": [
+        480,
+        160
+      ],
+      "relative_tolerance": 0.012
+    },
+    "vulkan": {
+      "absolute_tolerance": 0.004,
+      "backend": "Vulkan",
+      "compared_linear_hdr_channels": 1728,
+      "coverage": [
+        "PT PBR / GGX-add",
+        "metal / dielectric reflection",
+        "isotropic / signed anisotropic axes / rotation",
+        "UV / explicit corner frames",
+        "normal map",
+        "mirror / nonuniform transform",
+        "instance frames",
+        "material scalar cache invalidation",
+        "bounded asynchronous tangent upload",
+        "Forward / Deferred / Scene deferred / Scene forward"
+      ],
+      "max_relative_error_floor_0_02": 0.0011701512737731035,
+      "preview_lighting": "directional light + constant ambient; Raster tone mapped",
+      "preview_size": [
+        480,
+        160
+      ],
+      "relative_tolerance": 0.012
+    }
+  },
+  "raster_png_byte_identical": true,
+  "preview_sha256": {
+    "metal": "4974991eb29babe5f1389ba05237e47b2b5da48991c064edcdf2fd72880f8aca",
+    "vulkan": "4974991eb29babe5f1389ba05237e47b2b5da48991c064edcdf2fd72880f8aca"
+  },
+  "checks": {
+    "cpu_ctest": {
+      "passed": 6,
+      "seconds": 3.13
+    },
+    "metal_pt_native": {
+      "passed": true,
+      "seconds": 31.89
+    },
+    "metal_rhi_gpu": {
+      "passed": true,
+      "seconds": 37.26
+    },
+    "vulkan_pt_native": {
+      "passed": true,
+      "seconds": 38.5
+    },
+    "vulkan_rhi_validation": {
+      "passed": true
+    }
+  },
+  "notes": [
+    "Vulkan first complete PT regression timed out at 150.04 s; warmed rerun passed with unchanged 150 s limit. Timings are regression durations, not rendering speed measurements.",
+    "Raster environment uses eight-tap anisotropic sky footprint; auxiliary water captures retain derivative tangent frames.",
+    "Deferred effects buffers are half precision; controlled GGX-add normal-map validation does not establish equivalence for every PT bump-shadowing configuration."
+  ]
+}

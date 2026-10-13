@@ -1,5 +1,8 @@
 #include<glad/glad.h>
 #include "rhi/Device.h"
+#include "rhi/MemorySafety.h"
+#include <fstream>
+#include <array>
 #include "engine/AssetPath.h"
 #include <cstdlib>
 #include <cstring>
@@ -9,6 +12,24 @@
 #include<assert.h>
 #include<stb/stb_image.h>
 // #define STB_IMAGE_IMPLEMENTATION
+
+namespace {
+rhi::MemorySafety::Reservation decodedTextureScratch(const std::string& path){
+    int width=0,height=0,channels=0;
+    if(!stbi_info(path.c_str(),&width,&height,&channels)){
+        std::ifstream input(path,std::ios::binary);std::array<unsigned char,20> header{};
+        if(input.read(reinterpret_cast<char*>(header.data()),header.size())&&std::memcmp(header.data(),"DDS ",4)==0){
+            auto word=[&](size_t at){return uint32_t(header[at])|uint32_t(header[at+1])<<8|uint32_t(header[at+2])<<16|uint32_t(header[at+3])<<24;};
+            const auto w=word(16),h=word(12);
+            if(w>16384||h>16384)throw rhi::ResourceBudgetExceeded("DDS exceeds bounded decode dimensions: "+path);
+            width=int(w);height=int(h);
+        }
+    }
+    if(width<=0||height<=0)return {};
+    if(width>16384||height>16384)throw rhi::ResourceBudgetExceeded("Texture exceeds bounded decode dimensions: "+path);
+    return rhi::memorySafety().reserve(rhi::MemorySafety::bytes(size_t(width)*height,32),"texture decode scratch");
+}
+}
 
 Texture::Texture() {
 	width = height = channels = 0;format=internalformat=0;
@@ -39,6 +60,7 @@ Texture::~Texture() {
 //}
 std::shared_ptr<Texture> Texture::loadFromFileAsync(const std::string& input,int desired_channels) {
     engine::CancellationScope::check();const auto filename=engine::AssetPath::resolve(input);
+    auto scratch=decodedTextureScratch(filename);
 	std::shared_ptr<Texture> tex = std::make_shared<Texture>(); 
 	tex->name = filename;
 
@@ -92,6 +114,7 @@ std::shared_ptr<Texture> Texture::loadFromFileAsync(const std::string& input,int
 std::shared_ptr<Texture> Texture::loadFromFile(const std::string& input,int desired_channels) {
     const auto file_path=engine::AssetPath::resolve(input);
     if(rhi::usesNativeRenderer())return loadFromFileAsync(file_path,desired_channels);
+    auto scratch=decodedTextureScratch(file_path);
 	std::shared_ptr<Texture> tex = std::make_shared<Texture>(); 
 
 	//int index = file_path.find_last_of("/");

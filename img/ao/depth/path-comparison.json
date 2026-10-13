@@ -1,0 +1,59 @@
+{
+  "contact": {
+    "linear_vs_world": {
+      "pixels": 43516,
+      "rmse": 0.0001918944929339185,
+      "mae": 7.556039014385513e-05,
+      "mean_signed_error": 7.1139422855961026e-06,
+      "max_absolute_error": 0.00048828125
+    },
+    "scalar_world_vs_rgba_baseline": {
+      "pixels": 43516,
+      "rmse": 0.00018893805411429273,
+      "mae": 7.311427118760916e-05,
+      "mean_signed_error": -1.828978852605938e-06,
+      "max_absolute_error": 0.00048828125
+    },
+    "hierarchy_exact_frame0": true,
+    "hierarchy_frame_metrics_equal": true,
+    "linear_pixels_difference_over_005": 0
+  },
+  "cornell": {
+    "linear_vs_world": {
+      "pixels": 58063,
+      "rmse": 0.00028597058967309684,
+      "mae": 7.830092690267468e-05,
+      "mean_signed_error": 4.877514510101097e-07,
+      "max_absolute_error": 0.02587890625
+    },
+    "scalar_world_vs_rgba_baseline": {
+      "pixels": 58063,
+      "rmse": 0.0001582197161926814,
+      "mae": 5.0406589609562025e-05,
+      "mean_signed_error": -2.270567099529821e-06,
+      "max_absolute_error": 0.0029296875
+    },
+    "hierarchy_exact_frame0": true,
+    "hierarchy_frame_metrics_equal": true,
+    "linear_pixels_difference_over_005": 13
+  },
+  "sponza": {
+    "linear_vs_world": {
+      "pixels": 75672,
+      "rmse": 0.000338124933224338,
+      "mae": 7.809270324937914e-05,
+      "mean_signed_error": -1.3048361932920067e-06,
+      "max_absolute_error": 0.0394287109375
+    },
+    "scalar_world_vs_rgba_baseline": {
+      "pixels": 75672,
+      "rmse": 0.00011626053665739076,
+      "mae": 2.7730255981922807e-05,
+      "mean_signed_error": 1.4080786026989839e-06,
+      "max_absolute_error": 0.0009765625
+    },
+    "hierarchy_exact_frame0": true,
+    "hierarchy_frame_metrics_equal": true,
+    "linear_pixels_difference_over_005": 28
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "image_size": [
+    960,
+    540
+  ],
+  "roi": [
+    80,
+    300,
+    880,
+    500
+  ],
+  "old_horizontal_luminance_gradient_rms_8bit": 6.434436674298161,
+  "new_horizontal_luminance_gradient_rms_8bit": 1.3860726808626567,
+  "metal_moltenvk_mean_absolute_rgb_8bit": [
+    0.10373842592592593,
+    0.07451581790123457,
+    0.08709104938271604
+  ],
+  "scope": "Display-space horizontal gradient measures stripe contrast in this fixed underwater ROI, not an aliasing-error or physical accuracy metric. Both wave-off; sand and low-frequency bed geometry changed. Vulkan is MoltenVK on the same Apple M4."
+}

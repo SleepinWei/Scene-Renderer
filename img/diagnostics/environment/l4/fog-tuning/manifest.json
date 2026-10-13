@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-09",
+  "backend": "Metal",
+  "size": [
+    960,
+    540
+  ],
+  "time_seconds": 8,
+  "cloud_coverage": 0.85,
+  "rain_mm_per_hour": 50,
+  "rain_streaks": false,
+  "rsm": false,
+  "previous_defaults": {
+    "dry_extinction_per_m": 1e-05,
+    "rain_extinction_per_m": 0.00012,
+    "height_m": 120
+  },
+  "defaults": {
+    "dry_extinction_per_m": 6e-05,
+    "rain_extinction_per_m": 0.0003,
+    "height_m": 180
+  },
+  "command": "MTL_DEBUG_LAYER=0 MTL_SHADER_VALIDATION=0 ./build/Scene-Renderer --render-gallery build/environment/l4/fog-tuning-metal weather-gallery --backend Metal",
+  "executable_sha256": "f47ea7589d8eaaeeea644fba721b7f9f64e955f465cf7e57b8a2d77ae8ba51c8",
+  "settings_header_sha256": "e8836480eeb875161d6d19db239ef66ecc121435a45e5050b10435431f8173d5",
+  "scope": "Defaults tuning; actual above-water mountain-lake and beach static render checks. Earlier L4 artifacts/manifest retain the original defaults and build.",
+  "artifact_sha256": {
+    "comparison.png": "aa702a1d9b5ef3d5f5b9a17c4ccb8b214df55d4787c3b424929c32c1799c21d8",
+    "gallery.log": "f681361c94b44b37bab43c0654bbcc4aef59288b003f91b1b3f9473ed04fca02",
+    "mountain-lake-beach-weather-combined.png": "d99663221049d8ae5506f95429701acfbc1e19e43844668a30054a6ab2819cc0",
+    "mountain-lake-weather-combined.png": "0705eba11545fb1360c23d4e232527dd975ec891e16fabb737c7fbb8aa6f98ef"
+  }
+}

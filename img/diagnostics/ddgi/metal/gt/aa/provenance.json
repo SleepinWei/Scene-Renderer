@@ -1,0 +1,26 @@
+{
+  "reference_prefix": "../sponza",
+  "reference_spp": 2048,
+  "smoke_output": "build/path-tracing/ddgi-aa-smoke",
+  "smoke_not_used_as_reference": true,
+  "raw_sha256_before_compression": {
+    "sponza-raster-ddgi-no-shadow.pfm": "f5692a6b43e039018ea61884a53dba2b34284a7e51a27a8257bf56025867a36f",
+    "sponza-raster-ddgi-taa.pfm": "dc99950f5aab68716e85eb2ab585b264c82bcae622fda1ec086f3b82536ae356",
+    "sponza-raster-ddgi-albedo.pfm": "bbc2bc59443ac90492566db10671e0f007d57abff0e79e3a11ef9eb8982f442a",
+    "sponza-raster-ddgi-taa-no-sky-specular.pfm": "82e61f47b6c0535942023fee8261518487a8f296fa327cb311fb7a81e30b15a1",
+    "sponza-raster-ddgi-no-sky-specular.pfm": "53458ec12062235e4920b3d0ac8c03eeda227f1a309b759012758e5de9cd131c",
+    "sponza-surface-mask.pfm": "957b45fca77f08481a7f71429bf97673a8a2285a779df5f923d7d187fca856d7",
+    "sponza-raster-off.pfm": "1bd71fa39eb59df5b4b4c3488b4dc4250bba4d5deb38b207b957ae6786374818",
+    "sponza-raster-ddgi-normal.pfm": "306428edaec25adeb8bb3cfb78237c803138dc35e467632b6423177f9af682a3",
+    "sponza-raster-ddgi.pfm": "ba8b7b67f256503b9da6a60252d10c39cb11fce51831af6e91610fb9842ff416"
+  },
+  "environment_identical_to_reference": false,
+  "environment_decoded_difference": {
+    "different_pixels": 1,
+    "pixels": 131072,
+    "normalized_l1": 3.24582082088498e-08,
+    "max_absolute_rgb_difference": 0.00048828125,
+    "mean_absolute_rgb_difference": 1.241763432820638e-09
+  },
+  "sun_parameters_identical": true
+}

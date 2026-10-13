@@ -2,6 +2,8 @@
 #include "engine/RuntimeTrace.h"
 #include "PT/SceneIdentity.h"
 #include "engine/QualityPolicy.h"
+#include "rhi/MemorySafety.h"
+#include <set>
 #include "renderer/rhi/SceneAdapter.h"
 #include "rhi/ShaderAssets.h"
 #include <chrono>
@@ -217,6 +219,10 @@ void RenderRuntime::run(std::unique_ptr<render::GuiRenderer> gui) {
                         auto request=ptRequest;ptBuilding=request;
                         ptPrepared=std::async(std::launch::async,[request,previous=ptScene,cache=ptGeometryCache,lodCache=ptLodCache,frozen=std::move(frozen),sky=std::move(sky)]() mutable {
                             if(request->cancelled.load())return PreparedPt{};
+                            uint64_t scratchBytes=0;std::set<uint64_t> uniqueMeshes;
+                            for(const auto& draw:frozen.draws)if(draw.mesh&&uniqueMeshes.insert(draw.mesh->id).second)
+                                scratchBytes+=rhi::MemorySafety::bytes(draw.mesh->vertices.size(),128)+rhi::MemorySafety::bytes(draw.mesh->indices.size()/3,192);
+                            auto scratch=rhi::memorySafety().reserve(scratchBytes,"PT scene CPU preparation");
                             const auto start=std::chrono::steady_clock::now();
                             if(request->options.worldLod.enabled)frozen=pt::buildLowLodWorld(frozen,request->options.worldLod,nullptr,lodCache);
                             auto scene=std::make_shared<pt::CpuScene>(frozen,std::vector<pt::DielectricMaterial>{},cache,previous.get());
@@ -368,6 +374,7 @@ void RenderRuntime::run(std::unique_ptr<render::GuiRenderer> gui) {
                         bool rendering = false;
                         std::unique_ptr<PublishedImage> replacement;
                         try {
+                            rhi::memorySafety().check(0,"render frame admission");
                             if (!published || published->width != width || published->height != height)
                                 replacement = std::make_unique<PublishedImage>(device_, width, height);
                             rhi::TextureHandle output;

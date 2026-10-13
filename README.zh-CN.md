@@ -2,341 +2,162 @@
 
 [English](README.md) · **简体中文**
 
-一个用于学习和实验的 **C++17 图形渲染器**，起源于同济大学计算机图形学课程项目。通过经典测试场景与自然环境，展示实时光照、材质、GPU 计算和 CPU／GPU 路径追踪。
+一个用于学习和实验的 **C++17 图形渲染器**，起源于同济大学计算机图形学课程项目。统一 **RHI** 支持原生 **Metal／Vulkan**，提供交互式编辑器、实时效果和 CPU／GPU 路径追踪。
 
-实时渲染采用统一 **RHI**，支持原生 **Metal／Vulkan**；编辑器提供相机漫游和效果参数调整。主要功能包括 PBR、CSM／PCSS、RSM、GTAO／SSAO、大气与体积云、FFT 海洋、高度／材质 Virtual Texture、植被和 TSAA。
+![Sponza 中庭：原生 Metal，RSM 关闭](img/metal/sponza-direct.png)
 
-[构建与运行](docs/getting-started.md) · [完整图集与参数](docs/rendering-gallery.md) · [系统设计](docs/system-design.md) · [技术文档与修改记录](docs/README.md)
+[快速运行](#快速运行) · [项目能力](#项目能力) · [实时渲染](#实时渲染) · [Cluster 与动态 LOD](#cluster-与动态-lod) · [路径追踪](#路径追踪) · [开发状态](#开发状态) · [文档](#文档)
 
-![原生 Metal 渲染的 Sponza 中庭](img/metal/sponza.png)
+## 快速运行
 
-## 场景与效果
-
-以下图片除标明 Blender Cycles 参考的对照外，均由本项目实际渲染。实时效果使用原生 Metal；路径追踪图标明积分方式与降噪。复现命令、采样配置、开关对照和中间产物见[完整图集](docs/rendering-gallery.md)。
-
-### 经典场景与 PBR
-
-Sponza、San Miguel 与 Sibenik 用于观察建筑材质、阴影和太阳／天空 RSM 间接光照；Stanford 扫描模型及 Damaged Helmet 展示金属、非金属与纹理材质。
-
-| San Miguel 庭院 | Sibenik Cathedral |
-| --- | --- |
-| ![Metal San Miguel](img/metal/san-miguel.png) | ![Metal Sibenik Cathedral](img/metal/sibenik.png) |
-
-| Stanford Bunny：三种材质 | Damaged Helmet：PBR 纹理 |
-| --- | --- |
-| ![Metal Stanford Bunny](img/metal/bunny.png) | ![Metal Damaged Helmet](img/metal/helmet.png) |
-
-### 环境遮蔽 AO
-
-地平线积分 AO 配合几何法线重建与边缘保留滤波，减少柱脚和拱廊附近的采样条带。以下 Sponza 对照关闭 RSM 与 TSAA，保持相同光照和曝光，单独展示 AO 的效果。[算法说明与更多对照](docs/ambient-occlusion.md)。
-
-| 原 24 点 SSAO：AO 缓冲 | 地平线 AO + 边缘保留滤波：AO 缓冲 |
-| --- | --- |
-| ![Sponza 原 SSAO 可见性](img/ao/sponza-ao-legacy-visibility.png) | ![Sponza 地平线积分与滤波后的 AO](img/ao/sponza-ao-gtao-visibility.png) |
-
-| AO 关闭：最终画面 | AO 开启：最终画面 |
-| --- | --- |
-| ![Sponza 关闭 AO](img/ao/sponza-ao-off.png) | ![Sponza 开启地平线 AO](img/ao/sponza-ao-gtao.png) |
-
-### 天空与太阳
-
-大气散射与解析太阳盘共享光照参数，驱动场景、间接光照和海面。远景云层支持天气分布与风速变化。
-
-| 白天天空 | 地平线日落 | 日落云层 |
-| --- | --- | --- |
-| ![Metal 白天天空](img/metal/sky-day.png) | ![Metal 日落太阳](img/metal/sky-sunset.png) | ![Metal 日落体积云](img/metal/clouds-sunset.png) |
-
-### 可穿越三维体素云
-
-128³ XYZ 密度场结合保守距离场、GPU 间接步进和太阳光照缓存，支持靠近及进入云体。下图采用 1080p 全分辨率，关闭云时域累积；风暴预设包含内部体积闪光。
-
-| 三维云体 | 风暴形态与内部闪光 |
-| --- | --- |
-| ![Metal 三维体素云](img/metal/cloud-volume.png) | ![Metal 三维风暴云](img/metal/cloud-vortex.png) |
-
-### FFT 海洋与透明水体
-
-主波与短波 FFT 叠加，表现浪峰、细小波纹与泡沫；折射、RGB 吸收和近似单次散射表现浅水透射与透亮浪尖。
-
-| 大浪海面 | 浅水折射与散射 |
-| --- | --- |
-| ![Metal FFT 海洋](img/metal/ocean.png) | ![Metal 透明水体](img/metal/ocean-clear.png) |
-
-实时水面已加入近景密集网格、独立水下颜色／位置层，以及沿水中路径的单次散射积分。[前后对比、验证与 GPU 耗时](docs/water-realtime-upgrade.md)。
-
-海岸预设新增可开关的 DDA 折射与地形回退、局部多次散射、浅水波、持久泡沫和湿沙；旧预设保持新增效果关闭。[开关、对照、动画与限制](docs/water-coastal-features.md)。 [第一轮性能报告：分阶段耗时、提交间隙与边界修复](docs/water-coastal-performance.md)。
-
-![Metal 近岸浅水波与泡沫](img/metal/coastal-beach.png)
-
-水下视角加入沿距离的吸收／散射、水出空气折射及全反射。用 `--classic coastal-underwater` 打开，Ocean 面板可切换水下视角、雾和 **Short wave ripples**。水下预设加入 0.5–2 米 FFT 短波，使近处折射与 Snell 窗口边界随波面起伏。[图像、光学路径与验证](docs/water-underwater-rendering.md)。
-
-| 水下观察海面 | 俯视水底 |
-| --- | --- |
-| ![Metal 水下海面](img/diagnostics/water/ripple-demo/coastal-underwater.png) | ![Metal 水下水底](img/diagnostics/water/seabed-demo/coastal-underwater-seabed.png) |
-
-海床示例加入 25 cm 沙纹、细微法线与穿过实时 FFT 波面的太阳焦散。用 `--classic coastal-seabed` 打开，在 Ocean 面板切换 **FFT seabed caustics** 并调整 **Caustic strength**。[海床对照、实现与 GPU 耗时](docs/water-seabed-caustics.md)。
-
-### 海底潜水、太阳光束与水面折射
-
-`underwater-dive` 预设从水下 6 米开始，沿礁石与海草之间的沙质通道观察。距离吸收与单次散射形成蓝绿色能见度；漂浮颗粒、覆盖地形和水下模型的 16／48／128 米级联焦散，以及随波面聚焦的太阳光束，表现海底潜水的空间与动态光照。预设使用 32 步带阴影的体积光积分。
-
-| 海底潜水：太阳光束与海床焦散 | 抬头观察：折射天空、太阳与浮标 |
-| --- | --- |
-| ![Metal 海底潜水与太阳光束](img/diagnostics/water/air-refraction/underwater-dive.png) | ![水下折射的天空、太阳与浮标](img/diagnostics/water/air-refraction/underwater-dive-snell-window.png) |
+macOS 需要 Xcode（含 Metal Toolchain）、CMake、Python 3.9+ 及以下依赖。从仓库根目录执行：
 
 ```sh
-./build/Scene-Renderer --classic underwater-dive --size 1280x720
-```
-
-按住鼠标右键转头，**W/A/S/D** 移动，**Q/E** 垂直移动。将 **Camera → View pitch** 设为约 **68°** 可观察天空窗口；接近水平的水下视角会出现全反射，窗口边界随波面法线移动。
-
-Ocean 面板可独立切换 **Underwater distance fog**、**Underwater sun shafts**、**FFT seabed caustics** 和 **Wide air refraction**，并调整光束对比度、颗粒密度与体积步数。宽空气视图补充原相机视野外的水上物体；潜水预设将散射增益设为 1，保留天空与物体的对比。Metal／Vulkan 水体验证通过。宽视图仍是屏幕空间近似，当前预设优先展示画质，尚未达到 60 fps 目标。
-
-[潜水场景与操作](docs/water-underwater-diving.md) · [焦散覆盖范围](docs/water-caustic-cascades.md) · [太阳光束实现](docs/water-sun-shafts.md) · [折射对照、验证与性能](docs/water-air-refraction.md)
-
-### 大地形、湖泊与植被
-
-Mountain Lake 展示 8×8 km 山湖地形：高度与材质 VT 分页、LOD、FFT 湖面、随距离变化的草地密度，以及湿沙和沙滩 PBR 材质。
-
-![Metal Mountain Lake 山湖场景](img/metal/mountain-lake.png)
-
-| 湖岸草地 | 沙滩与湿沙 |
-| --- | --- |
-| ![Metal 湖岸植被](img/metal/mountain-lake-ground.png) | ![Metal 湖岸沙滩](img/metal/mountain-lake-beach.png) |
-
-本次开发版实景加强大气空中透视，并减弱固定颜色的近地雾与地面云影：地面云影强度 **30%**，aerial 光学距离缩放 **2**，山体阴影范围 **8 公里**。山体／云对太阳的遮挡参与空气散射，并修正天空中的局部太阳贡献。下图视线与太阳方向夹角为 **90.0°**，太阳高度约 **20°**；侧光表现为较宽的空气阴影带和柔和光束。**Metal、960×540、固定模拟时间、RSM 关闭。** [控制项、验证、捕获来源与限制](docs/mountain-lake-side-light.md)。
-
-![山湖 90° 太阳侧光与较弱近地雾](img/diagnostics/environment/aerial-side/mountain-lake-side-combined.png)
-
-<details>
-<summary>空气太阳遮蔽：关闭／开启／开启并叠加较弱近地雾</summary>
-
-![相同 90° 视角下的空气太阳遮蔽对照](img/diagnostics/environment/aerial-side/comparison.png)
-
-三组保持相机、太阳和曝光不变。中间加入空气太阳遮蔽，右侧进一步加入减弱后的高度雾。窄光束、视锥外山体遮挡和运动序列仍需后续完善；此图不代表已达到 60 fps。
-
-</details>
-
-### 程序树木与森林：修复后的渲染
-
-阔叶树、针叶树和灌木采用种子分枝几何，树皮与叶片独立材质，并接入 alpha-tested 级联阴影。下图为 **Metal 实时渲染，960×720、固定时刻 8 s、16 帧 TAA**，已在 **2026-10-12** 修复叶片缝隙中的太阳圆盘伪影与叶片材质标记漏传后重新生成。同机位、同曝光下，单树树冠区域接近纯白的像素从 **854 降至 0**；Metal、Vulkan 回归通过。[实现、修复前后对照、验证与限制](docs/procedural-trees.md)。
-
-| 修复后的单树 | 修复后的森林 |
-| --- | --- |
-| ![修复后的 Metal 单树渲染](img/nature/tree-single.png) | ![修复后的 Metal 森林渲染](img/nature/tree-forest.png) |
-
-### Virtual Texture 与软阴影
-
-高度／材质 VT 使用物理页缓存、页表、祖先回退与 GPU 深度反馈；五级 CSM 分配近远阴影精度，PCSS 估计随遮挡物距离变化的半影。
-
-| VT 实际 GPU 物理缓存 | CSM 阴影与级联分区 |
-| --- | --- |
-| ![VT 高度与材质物理图集](img/diagnostics/vt-cache.png) | ![CSM 级联与过渡带](img/diagnostics/csm-cascades.png) |
-
-![PCF、默认太阳 PCSS 与放大光源 PCSS 对照](img/diagnostics/pcss-comparison.png)
-
-PCSS 对照依次为 PCF、默认太阳和放大光源；第三列用于展示更宽的半影。[页表、阴影图集与完整诊断](docs/render-diagnostics-gallery.md)。
-
-### 后处理
-
-统一的原生 HDR 到显示模块支持可选 Bloom、景深、相机运动模糊、调色、FXAA、锐化、暗角、色差与颗粒。**Post processing** 面板提供独立参数、指数／ACES fitted／Reinhard／线性四种色调映射和轻量电影预设；新增效果默认关闭。[操作、管线、对照与限制](docs/post-processing.md)。
-
-| 默认显示 | ACES 与组合后处理 |
-| --- | --- |
-| ![Cornell 默认显示](img/diagnostics/post-processing/cornell-post-off.png) | ![Cornell 组合后处理](img/diagnostics/post-processing/cornell-post-combined.png) |
-
-| HDR Bloom | 景深：前方箱体清晰 |
-| --- | --- |
-| ![Cornell HDR Bloom](img/diagnostics/post-processing/cornell-bloom.png) | ![Cornell 景深](img/diagnostics/post-processing/cornell-dof.png) |
-
-```sh
+brew install glfw assimp yaml-cpp glslang spirv-cross
+cmake -S . -B build -DSCENERENDERER_RHI_BACKEND=Metal -DCMAKE_BUILD_TYPE=Release
+cmake --build build --target Scene-Renderer -j2
+./build/Scene-Renderer --memory-info
 ./build/Scene-Renderer --classic cornell --size 1280x720
 ```
 
-展开 **Post processing**，独立启用效果，或选择 **Soft cinematic preset**。Metal／Vulkan 验证通过；景深使用不透明深度，运动模糊目前支持相机运动。
+Cornell、天空、海洋和潜水场景由程序生成，无需下载大型资源。Sponza／San Miguel 先执行 `python3 tools/fetch_gi_assets.py`；其他下载与 Vulkan／MoltenVK 构建见[构建与运行](docs/getting-started.md)。岩洞生成器和可视化工具需要 NumPy、Pillow。
 
-### 路径追踪、焦散与次表面散射
+按住鼠标右键转头，**W/A/S/D** 移动，**Q/E** 上下移动，**Shift** 加速；编辑器面板可调整光照、水体、cluster LOD 与后处理。
 
-CPU／Metal／Vulkan 路径追踪支持多次反弹、纹理材质、折射和均匀介质随机游走；CPU BDPT 用于平滑玻璃焦散。程序化地形、植被与 FFT 水面可冻结为离线场景。
+**默认保持内存准入保护：**进程预算取物理内存 20% 与 3 GiB 中较小值，GPU 默认占一半，编辑器最多一帧在途。16 GiB 机器对应 **进程 3 GiB／GPU 1.5 GiB**。系统压力下拒绝新增重资源工作，保留已经发布的编辑器画面。通过 `--memory-budget-mib`、`--gpu-resource-budget-mib` 和 `--memory-info` 配置或查看；这是协作式分配保护，具体范围见[内存保护](docs/memory-safety.md)。
 
-绒毛与布料样例采用实时夕阳云天空捕获与 5° 低角度有限太阳照明。Stanford Bunny 使用 **72,000 根更细的短绒毛**；奶油色毛衣包含 **1,280 个真实正面纱线单元与 23,360 根细绒毛**，另有布料纱线近景。**Metal PT，768×768、1024 spp、12 次反弹，OIDN 展示图。** [照明、材质调整、未降噪图与验收](docs/path-tracing-grooms-sunlight.md#夕阳展示)。Bunny 数据来自 [Stanford University Computer Graphics Laboratory](https://graphics.stanford.edu/data/3Dscanrep/)。
+## 项目能力
 
-| 夕阳下的 Bunny 绒毛 | 夕阳下的针织毛衣 | 布料纱线近景 |
-| --- | --- | --- |
-| ![夕阳 Bunny 绒毛](img/path-tracing/bunny-fur-sunset.png) | ![夕阳针织毛衣](img/path-tracing/knit-sweater-sunset.png) | ![夕阳布料纱线](img/path-tracing/knit-yarn-sunset.png) |
-
-[YarnSim 纱线级针织样例](docs/path-tracing-knitted-yarn.md) 导入公开的松弛纱线控制点，连接周期 spline span，并增加 CPU／Metal／Vulkan 共用的**各向异性介质纱线反光**。毛衣正面包含 **280 个蜂窝周期单元**；独立样片包含**三股几何绕线和真实针目孔隙**。**Metal PT，768×768、1024 spp、12 次反弹、OIDN 展示，夕阳照明。** 袖子与服装接缝仍为程序化原型。数据来自 [Leaf 等，2018](https://graphics.stanford.edu/projects/yarnsim/)，原始资产未重新分发。
-
-| 毛衣正面蜂窝针织 | 三股纱线针织近景 |
+| 方向 | 实现与说明 |
 | --- | --- |
-| ![夕阳蜂窝针织毛衣](img/path-tracing/knitted-sweater-sunset.png) | ![夕阳三股纱线蜂窝针织](img/path-tracing/knitted-honeycomb-sunset.png) |
+| 材质与光照 | PBR、CSM／PCSS、GTAO／SSAO、材质过滤与改进 TAA；[DDGI 漫反射 GI](docs/ddgi.md)与可选 PT 探针参考。 |
+| 几何与可见性 | 物体／三角形剔除、分层 meshlet、GPU 屏幕误差 LOD、间接绘制与两阶段 cluster Hi-Z。[几何管线](docs/hierarchical-cluster-geometry.md)。 |
+| 自然环境 | 大气散射、体积云、高度／材质 Virtual Texture、地形 LOD、程序植被与共享天气。[环境交付规格](docs/mountain-lake-environment-spec.md)。 |
+| 水体 | FFT 风浪与涌浪、反射／折射、吸收／散射、近岸波浪、泡沫、海床焦散与水下太阳光束。[水体渲染](docs/ocean-fft-and-rendering-review.md)。 |
+| 后处理 | HDR Bloom、景深、相机运动模糊、色调映射／调色、FXAA、锐化、暗角、色差与颗粒。[控制与范围](docs/post-processing.md)。 |
+| 路径追踪 | CPU／Metal／Vulkan 积分器、纹理材质、介电／体积输运、毛发／布料、共享 BLAS／TLAS、photon mapping 和 OIDN。[GPU PT](docs/path-tracing-gpu.md)。 |
+| 运行时 | 不可变世界快照、独立渲染线程、有界准备任务、资源预算与 RenderGraph pass 剔除。[系统设计](docs/system-design.md)。 |
 
-这组头发展示采用圆形纤维散射与实时大气捕获的晴空照明。低角度天空和太阳一起旋转、增强到 10 倍源强度，并采用更窄的发丝高光，呈现暖色太阳反射；每套保留 **50,000 根发丝，Metal PT，512×512、1024 spp、12 次反弹，OIDN 展示图**。头部为中性漫反射材质。毛发来源：[Cem Yuksel](https://www.cemyuksel.com/research/hairmodels/)；头模由 **Murat Afshar** 提供。[照明、材质参数、原始图与验收](docs/path-tracing-hair-sunlight.md)。
+## 实时渲染
 
-| 强日光中的直发 | 强日光中的波浪发 |
-|---|---|
-| ![强日光直发](img/path-tracing/yuksel-straight-sunlit.png) | ![强日光波浪发](img/path-tracing/yuksel-wavy-sunlit.png) |
+以下精选图片由本项目的原生 Metal 渲染器输出。[详细功能展示](docs/rendering-showcase.zh-CN.md)保留全部对照与中间结果；[完整图集](docs/rendering-gallery.md)记录采样配置和复现步骤。
 
-下面展示上文建筑与自然环境场景的路径追踪结果，除标明未降噪的 photon mapping 样例外，使用 Open Image Denoise（OIDN）降噪。Sponza 与 San Miguel 使用 Metal PT，分辨率为 320×240、64 spp、16 次反弹；地形、山湖与海洋使用 640×480 Metal PT，将程序化动画冻结在 8 秒时刻。采样配置与未降噪原图见[路径追踪图集](docs/rendering-gallery.md#路径追踪)。
+### 建筑与漫反射 GI
 
-| Sponza：Metal PT＋OIDN，64 spp | San Miguel：Metal PT＋OIDN，64 spp |
+| San Miguel：RSM 关闭 | Sponza：DDGI 开启 |
 | --- | --- |
-| ![路径追踪 Sponza 中庭](img/path-tracing/oidn-sponza.png) | ![路径追踪 San Miguel 庭院](img/path-tracing/oidn-san-miguel.png) |
+| ![原生 Metal 渲染的 San Miguel 庭院](img/metal/san-miguel-direct.png) | ![原生 DDGI 渲染的 Sponza](img/diagnostics/ddgi/metal/sponza-on.png) |
 
-| Stanford Dragon：CPU BDPT 玻璃焦散＋OIDN | Jade Dragon：Metal PT 次表面散射＋OIDN |
+DDGI 通过辐照度探针提供局部天空可见性与漫反射染色。编辑器使用六面光栅捕获，可选离线探针参考复用 PT；当前为实时 GI 第一阶段，漏光、光照响应和材质求值与 PT 仍有差距。[探针布局与 GPU 可视化](docs/ddgi.md#原理与-sponza-探针布局) · [TAA 对照](docs/realtime-anti-aliasing.md)。RSM 默认关闭，保留为历史演示。
+
+### 大气、地形与水体
+
+| Mountain Lake：空气透视与山影 | 可穿越三维体积云 |
 | --- | --- |
-| ![Stanford 透明龙与焦散](img/path-tracing/dragon-glass.png) | ![半抛光玉龙](img/path-tracing/jade-polished-boundary.png) |
+| ![山湖大气侧光](img/diagnostics/environment/aerial-side/mountain-lake-side-combined.png) | ![原生 Metal 三维体素云](img/metal/cloud-volume.png) |
 
-| 晴天泳池池底：Metal photon mapping＋OIDN | 水上泳池视角：Metal photon mapping＋OIDN |
+地形分页、FFT 湖面和植被共享太阳、风与天气控制。[Mountain Lake](docs/mountain-lake.md) · [大气空中透视](docs/atmospheric-aerial-perspective.md) · [程序树木](docs/procedural-trees.md)。
+
+| 海底潜水：太阳光束与焦散 | 抬头观察：折射天空、太阳与浮标 |
 | --- | --- |
-| ![晴天泳池池底焦散](img/path-tracing/pool-sunlit-underwater.png) | ![晴天泳池水上焦散](img/path-tracing/pool-sunlit.png) |
+| ![海底潜水太阳光束](img/diagnostics/water/air-refraction/underwater-dive.png) | ![折射天空与水上浮标](img/diagnostics/water/air-refraction/underwater-dive-snell-window.png) |
 
-短涟漪与 0.266° 太阳角半径在浅蓝瓷砖上形成清晰亮纹；400 万发射路径、64 spp、半径 0.025，水体使用冻结的解析涟漪网格。[近景原图](img/path-tracing/pool-sunlit-underwater-raw.png) · [平水面对照](img/path-tracing/pool-sunlit-flat.png) · [复现与验收](docs/path-tracing-photon-mapping.md#晴天泳池更明显的网状亮纹)。
+使用 `--classic underwater-dive` 漫游海底。Ocean 面板可独立控制雾、光束、焦散和水出空气折射。[潜水场景与操作](docs/water-underwater-diving.md) · [折射与性能](docs/water-air-refraction.md) · [近岸波浪与泡沫](docs/water-coastal-features.md)。
 
-| 池底：Metal photon mapping，100 万条光路＋32 spp，未降噪 | 水体折射焦散贡献，未降噪 |
+### 后处理
+
+| 默认显示 | ACES 与组合后处理 |
 | --- | --- |
-| ![池底光子映射焦散](img/path-tracing/pool-photon.png) | ![水体折射焦散 AOV](img/path-tracing/pool-photon-caustics.png) |
+| ![Cornell 默认显示](img/diagnostics/post-processing/cornell-post-off.png) | ![Cornell 原生组合后处理](img/diagnostics/post-processing/cornell-post-combined.png) |
 
-池底使用固定解析波形；固定半径 photon map 为有偏估计，CPU／Metal／Vulkan 共用相同光子数据。[复现、验收与通用 PT 优化](docs/path-tracing-photon-mapping.md)。
+**Post processing** 面板提供独立开关与柔和电影预设。额外效果默认关闭；景深使用不透明深度，运动模糊目前覆盖相机运动。[管线与各效果对照](docs/post-processing.md)。
 
-| 地形与草丛：Metal PT＋OIDN，128 spp | Mountain Lake：Metal PT＋OIDN，128 spp |
-| --- | --- |
-| ![路径追踪地形与草丛](img/path-tracing/pt-terrain.png) | ![路径追踪山湖与倒影](img/path-tracing/pt-mountain-lake.png) |
+## Cluster 与动态 LOD
 
-| 湖岸沙滩：Metal PT＋OIDN，1024 spp | 浅水折射：Metal PT＋OIDN，4096 spp |
-| --- | --- |
-| ![路径追踪湖岸沙滩与湿沙](img/path-tracing/pt-mountain-lake-beach.png) | ![路径追踪 FFT 浅水](img/path-tracing/pt-ocean-clear.png) |
+高密度石灰岩洞包含 **9 个共享网格／288 万唯一三角形**，实例化为 **76 次绘制／2,484 万逻辑三角形**。裂纹和矿物起伏直接位移真实顶点；程序资产包约 **84.8 MB**，检查 **10 GB 磁盘上限**。
 
-沙滩保留世界坐标纹理细节；水下太阳路径使用 BSDF／相位混合采样，保持原太阳与曝光。[沙滩原图](img/path-tracing/pt-mountain-lake-beach-raw.png) · [浅水原图](img/path-tracing/pt-ocean-clear-raw.png) · [修复与验证](docs/path-tracing-procedural.md#水下太阳路径采样)。
+![岩洞：已捕获的 PBR、真实 GPU cluster 与父 LOD 层级](img/diagnostics/cluster-cave/dynamic-lod.gif)
 
-### 海况与实时／PT 外观对齐
+动画使用**内存准入保护接入前**的原生捕获。PBR、唯一 cluster ID 与父层级展示已记录的相机位置，条形图统计提交三角形。在固定 4 px 下，旧捕获相对各自视角的 0 px 参考减少 **近景 25.57% 至更远景 54.64%**，物体／遮挡剔除关闭。播放速度和三角形减少量不代表渲染帧率。[局部分块边界与三角形线框](img/diagnostics/cluster-cave/detail.png)。
 
-最近几轮开发构建覆盖可标定的 JONSWAP/TMA 风浪、独立涌浪、共享水面光学参数，以及 glint 和反射修正。实时与 PT 共用 FFT 波形和细波配置，相机加密 PT 网格将水面覆盖扩至 2 km。
-
-| 更新 | 结果与验收 |
-| --- | --- |
-| [海况与共享水面参数](docs/ocean-sea-state-and-pt.md) | 可标定浪高／周期、独立涌浪、IOR 1.333、精确 Fresnel 与有限太阳反射。[共享水面对照](docs/ocean-physical-surface.md)。 |
-| [Glint 空间滤波与 TAA](docs/ocean-glint-antialiasing.md) | 子像素太阳积分、斜率矩 mip、线性 HDR 水面历史；近景单帧对光栅 SSAA 的误差下降，远景和 TAA 仍有偏差。 |
-| [原始浮点 FFT 法线与重建](docs/ocean-float-normals-and-glints.md) | CPU／GPU PT 保留独立主波／细波周期；tent glint 重建和冻结水面直接累积。Tent 使边缘更柔和，但增加成本及相对原始 PT 的像素 L1。 |
-| [远景太阳与天空反射积分](docs/ocean-reflection-integration.md) | 准确反射 Jacobian 的斜率空间积分、像素内 Fresnel 与天空辐射乘积积分；水体／反射／太阳／泡沫／边界可加分量。Metal／Vulkan 水体回归通过。 |
-
-![风浪与独立涌浪：Metal 原生 RT＋OIDN，512×320，256 spp](img/path-tracing/ocean-sea-state.png)
-
-| 当前实时 TAA | 同快照 Metal 原生 RT＋OIDN，512 spp |
-| --- | --- |
-| ![当前实时海面](img/path-tracing/ocean-reflection-after-raster-taa.png) | ![同快照路径追踪海面](img/path-tracing/ocean-reflection-pt-denoised.png) |
-
-共用快照、相机、海况、时刻、640×360 分辨率和导出器；数值比较使用 OIDN 前的原始 PT。最新新旧模型消融使用同一二进制与编译 shader，两组原始 PT 图逐位一致。这些是开发构建结果，捕获命令、源码／构建哈希和验收日志保存在阶段记录中。
-
-| 最新 TAA 对原始 512 spp PT 的比较 | 前一反射模型 | 当前反射模型 |
-| --- | ---: | ---: |
-| 全水域相对 RGB L1 | 129.66% | 113.49% |
-| 远景相对 RGB L1 | 171.88% | 134.01% |
-| 两侧海水相对 RGB L1 | 54.73% | 43.56% |
-
-近景 glint 基本未变；海面自身反射、远景非高斯斜率、粗糙天空反射与水体输运仍有差异。一组同步 20 帧捕获中，单帧约增加 3 ms，不能当作稳定 FPS 基准。[完整图像、分量统计、成本与限制](docs/ocean-reflection-integration.md) · [最新验收记录](img/path-tracing/ocean-reflection-validation.json) · [原始 PT](img/path-tracing/ocean-reflection-pt.png)。
+最新实现提供 **11 个相机视角**，包含两个洞内大厅和同视角 **0／2／4／8 px** 对比。参考／LOD 图复用一个渲染器；诊断每批最多 **65,536 个三角形**，默认预算下预留 **24 MiB 临时内存**，大规模成员表逐行写入 JSONL。独立的 `cluster-cave-small` 保留高密度源模型。**构建与四项内存／RHI 测试通过；新 GPU 回放、内存峰值及新增视角仍待运行验证。**[步骤与验收范围](docs/cluster-cave.md) · [实现检查记录](img/diagnostics/cluster-cave/implementation-validation.json)。
 
 <details>
-<summary>此前的 glint 重建及最新天空反射分量</summary>
+<summary>独立小规格岩洞：系统内存压力正常后生成和捕获</summary>
 
-| 此前的 box 重建 | 此前的 tent 重建 |
-| --- | --- |
-| ![Box glint 历史捕获](img/path-tracing/ocean-alignment-box-raster-taa.png) | ![Tent glint 历史捕获](img/path-tracing/ocean-alignment-tent-raster-taa.png) |
+```sh
+python3 tools/prepare_cluster_cave.py --level 6
+./build/Scene-Renderer --memory-info
+./build/Scene-Renderer --cluster-scene-flow cluster-cave-small build/cluster-cave-bounded-small --backend Metal
+python3 tools/visualize_cluster_scene_compact.py build/cluster-cave-bounded-small img/diagnostics/cluster-cave-bounded-small
+```
 
-这两组浮点法线历史捕获使用相同 PT 输入。Tent 将 glint 区域的相邻亮度梯度降低约 12.5%，但增加原始 PT 像素 L1，成本约增加 5–8 ms。梯度下降不能独立证明消除了 aliasing。[重建消融](docs/ocean-float-normals-and-glints.md)。
-
-| 中心法线天空反射 | 像素积分天空反射 |
-| --- | --- |
-| ![旧天空反射贡献](img/path-tracing/ocean-reflection-before-reflection.png) | ![新天空反射贡献](img/path-tracing/ocean-reflection-after-reflection.png) |
-
-天空反射图是带实际混合权重的可加辐射分量。此前的 8 位法线 PT 与光栅 SSAA 参考保留在各阶段记录中，不跨参考变化比较误差。[初始对照与波谱缓存基准](docs/ocean-realtime-pt-comparison.md)。
+小规格生成与受保护捕获待验收；保留现有进程／GPU 预算和系统压力检查。
 
 </details>
 
-![路径追踪 FFT 大浪海洋：Metal PT＋OIDN，256 spp](img/path-tracing/pt-ocean.png)
+其他场景的数据对应各自记录的相机与构建配置：
 
-### Blender 测试场景
+| 场景 | 几何规模 | 验收依据 |
+| --- | --- | --- |
+| Coastal Cliff | 943 万逻辑三角形，十个共享原始 LOD0 实例 | 已记录的父构建改动使同视角 4 px 减量从 3.24% 提升至 36.56%。[画质与计时](docs/cluster-parent-lod-optimization.md)。 |
+| Bistro 外景 | 283 万源三角形、132 个材质网格 | 街区分块与相机路线 LOD；记录的减量较小，为 2.95–5.04%。[动画、连通性与测量](docs/rendering-showcase.zh-CN.md#bistro完整街区的-cluster-分块与-lod-演示)。 |
+| Sponza 与 Stanford 扫描模型 | 建筑与高密度扫描表面 | [Meshlet 利用率](docs/cluster-partition-and-hierarchy.md)、[两阶段 Hi-Z](docs/cluster-two-stage-hiz.md)及[动态 LOD](docs/cluster-hiz-optimization-and-lod.md)。 |
 
-Blender 官方 Classroom 与 Barcelona Pavilion 经离线导入后，由本项目 Metal PT 渲染并使用 OIDN 降噪。[资源、材质转换与验证](docs/blender-path-tracing.md)。
+这是参考 Nanite 思路的**几何原型**。分页流送、可见性缓冲着色和混合光栅仍未实现；UE Nanite 的峡谷图作为[独立参考引擎结果](docs/cluster-cliff-nanite-test.md)标注。
 
-| Classroom | Barcelona Pavilion |
+## 路径追踪
+
+建筑与自然场景也提供路径追踪结果，由本项目的 CPU／Metal／Vulkan 积分器渲染。下方图片均使用 **OIDN**，表头标明积分方式。[原始图、采样与复现](docs/rendering-gallery.md#路径追踪)。
+
+| Sponza：Metal PT，64 spp | San Miguel：Metal PT，64 spp |
 | --- | --- |
-| ![Classroom Metal PT＋OIDN](img/path-tracing/blender-classroom-materials.png) | ![Barcelona Pavilion 池水 Metal PT＋OIDN](img/path-tracing/blender-barcelona-water.png) |
+| ![路径追踪 Sponza 中庭](img/path-tracing/oidn-sponza.png) | ![路径追踪 San Miguel 庭院](img/path-tracing/oidn-san-miguel.png) |
 
-Barcelona 已接入顶层 Bump／Normal Map 图集、介电材质的粗糙度纹理和封闭池水的反射／折射／吸收；修复隐藏粒子发射器遮住水面及 UV 方向。池水为明确的艺术配置（IOR 1.333、深度 0.5 世界单位），可切换源参数。[原始预览](img/path-tracing/blender-barcelona-water-raw.png) · [复现与限制](docs/blender-path-tracing.md#barcelona-材质与池水) · [验收记录](img/path-tracing/blender-water-validation.json)。
-
-CPU／Metal／Vulkan 使用 **共享几何 BLAS/TLAS**。新版 Barcelona 保留全部 **20,622 个植被粒子**，约 **5,497 万个实例三角形**。revision 5 接入 Blender corner MikkTSpace 切线，并分别烘焙薄叶的漫反射与透射；CPU 几何／加速数据约 **54.4 MiB**。以下为 640×360、256 spp 的 Metal PT＋OIDN 预览。[原始图](img/path-tracing/blender-barcelona-thin-raw.png) · [材质验收与复现](docs/blender-path-tracing.md#薄玻璃太阳反射链)。
-
-![Barcelona 完整植被与薄叶透射：Metal PT＋OIDN](img/path-tracing/blender-barcelona-thin.png)
-
-Blender Cycles 原场景 GT：1024 spp、原材质与完整植被，无降噪、强度截断或 glossy 模糊。旧引擎预览使用缩减粒子预算；上方完整植被图的池水与材质配置仍与源场景不同；[对照与线性参考](docs/blender-path-tracing.md#blender-cycles-gt)。
-
-![Barcelona 原场景 GT：Blender Cycles 1024 spp](img/path-tracing/blender-barcelona-cycles-gt.png)
-
-新增独立的 **同参数 Cycles 对照**：双方使用相同冻结几何、512 个粒子、相机、贴图、灯光、GGX 闭包、薄玻璃和封闭池水。320×180、4096 spp、深度 24，无降噪的 Metal／Cycles 总 RGB 能量差 **0.067%**，逐像素仍有反射采样噪声。这项受控基线尚不覆盖原始 Blender shader 图与法线图。[测量、独立种子噪声与复现](docs/blender-path-tracing.md#同参数-cycles-线性对照)。
-
-分离闭包法线并增加 bump shadowing 后，小场景 Metal／Cycles 原始 RGB 相对 L1：Lambert／薄叶从 **0.838% 降至 0.290%**，GGX／薄叶从 **2.662% 降至 0.582%**（192×96、4096 spp）。太阳提议将完整 Barcelona 的 160×90、512 spp、seed 1 对照从 **4.67% → 3.53% → 2.98%**（水体、再到薄玻璃反射）；薄玻璃异常像素从 **29.06 降至 0.0656**（Cycles **0.0462**），RGB RMSE **0.156 → 0.049**。seed 2 的 L1 从 **3.07% 略升至 3.19%**，池水／薄叶稀有路径与原分层材质仍需改进。统计缓存的独立单线程 trace 微基准提升约 **1.58 倍**。[最新验收与限制](img/path-tracing/blender-thin-validation.json)。
-
-![完整 Barcelona 法线图对照：Metal 原图、Cycles 原图、线性绝对误差](img/path-tracing/blender-barcelona-thin-matched.png)
-
-### 分层 Cluster 几何
-
-在实时设置中开启 **Hierarchical cluster geometry**，调整 **Cluster LOD error (pixels)**，可另行开启 **Cluster Hi-Z occlusion**。Cluster 几何和遮挡默认关闭；构建在有界 CPU worker 上执行，GPU 选择 group cut 并批处理 indexed indirect 绘制。
-
-Cluster 构建现在将精确位置拓扑与原始属性地址分离，用 Morton 顺序和有界空间补齐提高利用率；父表示至少减少 12.5% 的子三角形才保留。UV／切线接缝继续保护，并限制累计法线偏差。[构建方法、原生对照、逐帧计时及限制](docs/cluster-partition-and-hierarchy.md)。
-
-**分块算法的思想。** Attribute BFS 将三角形当作图节点，按完整属性顶点地址建立共享边邻接，再用广度优先遍历填满最多 128 个三角形的块。UV／法线／切线接缝可能让几何连续的表面在图中断开，留下小块。Position topology 为精确相同的位置额外建立几何编号，用它寻找邻居，同时保留所有原始属性地址。Morton 空间排序选择局部种子；候选优先复用已有属性顶点，其次控制包围盒大小，邻居耗尽时在有限范围内补齐附近碎片。分块提高装满程度，本身不减少源三角形。
-
-**2 px／4 px 的含义。** **Cluster LOD error (pixels)** 是允许的几何位置偏差投影到实际渲染视口后的误差估计。透视相机下近似为 `位置误差 × 实例缩放上界 × 像素焦距 / 源覆盖包围盒最近深度`，分母至少取近裁剪距离。例如父级估计误差为 3.2 px，2 px 预算会保留更详细的子级，4 px 则可接受这个父级。
-
-| 像素预算 | 通常的 LOD 行为 |
+| 地形与草：Metal PT，128 spp | Mountain Lake：Metal PT，128 spp |
 | --- | --- |
-| 0 px | 保留详细叶块，拒绝位置误差非零的父级 |
-| 2 px | 近似更严格，通常绘制更多三角形 |
-| 4 px | 允许更大的几何近似，通常绘制更少三角形 |
+| ![路径追踪地形与草](img/path-tracing/pt-terrain.png) | ![路径追踪山湖](img/path-tracing/pt-mountain-lake.png) |
 
-这里衡量几何位置，不能当作最终 RGB 误差或 meshlet 宽度：高光、阴影和法线贴图可能放大小幅形状变化。同一相机下，视口宽高都加倍，同一偏差占据的像素数大约加倍，因此固定 px 预算会倾向于选择更详细的 LOD。调大预算只能选择已经建好的父级。当前父构建最多合并八个连通子组，用 endpoint QEM 简化并保守继承逐顶点误差，继续保护原始边界与属性接缝。[父构建、质量取舍与实际 GPU cut](docs/cluster-parent-lod-optimization.md)。
+| 湖岸沙滩：Metal PT，1024 spp | 浅水折射：Metal PT，4096 spp |
+| --- | --- |
+| ![路径追踪沙滩与湿沙](img/path-tracing/pt-mountain-lake-beach.png) | ![路径追踪 FFT 浅水](img/path-tracing/pt-ocean-clear.png) |
 
-下面的 Sponza／Stanford 数据使用上一版配对父组与 0.05 法线上限；当前 Coastal Cliff 父构建参数与结果单独列在后面。
+程序地形、植被和 FFT 水面冻结在记录的模拟时刻。沙滩纹理按世界尺度采样；浅水太阳路径使用 BSDF／phase 混合提议。[捕获细节与修复](docs/path-tracing-procedural.md) · [实时／PT 海洋对齐](docs/ocean-reflection-integration.md)。
 
-| 场景 | 叶块利用率：优化前→后 | 层级内存：优化前→后 |
-| --- | ---: | ---: |
-| Sponza | 22.9%→91.0% | 16.66→3.39 MiB |
-| Stanford Dragon | 63.9%→95.7% | 42.64→17.34 MiB |
-| Happy Buddha | 62.8%→96.2% | 53.42→21.96 MiB |
+| 玻璃 Dragon：CPU BDPT | 玉石 Dragon：Metal PT，次表面散射 |
+| --- | --- |
+| ![CPU BDPT 玻璃龙焦散](img/path-tracing/dragon-glass.png) | ![Metal PT 玉石次表面散射](img/path-tracing/jade-polished-boundary.png) |
 
-固定 4 px、每模式 72 样本，逐帧配对的 cluster／geometry GPU 窗口分别降低 **3.4%、2.6%、3.4%**；这是部分 GPU 耗时。新切面保留更多三角形，与独立 CPU cut 一致；Hi-Z 的深度、HDR、显示图及六张 G-buffer 与同 cut 一致。Dragon 相对完整几何仍有 **21.2%** HDR LOD 误差，Sponza 的 0 px 有六个显示像素不同。Sponza 开启 Hi-Z 仍慢于自身无遮挡路径，因此遮挡保持默认关闭。
+[Photon mapping 与泳池焦散](docs/path-tracing-photon-mapping.md)、[CPU SPPM](docs/path-tracing-sppm.md)、[各向异性 GGX](docs/path-tracing-materials.md)及[毛发／针织布料](docs/path-tracing-grooms-sunlight.md)有独立对照。当前毛发样例使用静态三角薄带，PBRT 原生曲线图片是独立参考。
 
-![Sponza：分块优化前后、实际 GPU LOD 与源画面对照](img/diagnostics/cluster-partition/sponza/comparison.png)
+| Blender Classroom：本项目 Metal PT + OIDN | Barcelona Pavilion：本项目 Metal PT + OIDN |
+| --- | --- |
+| ![本项目路径追踪的 Classroom](img/path-tracing/blender-classroom-materials.png) | ![完整植被与薄叶透射的 Barcelona](img/path-tracing/blender-barcelona-thin.png) |
 
-![Dragon：实际分块与 PBR 细节优化前后](img/diagnostics/cluster-partition/dragon/detail.png)
+Blender 资产通过离线导出共享实例几何。Cycles 参考图与同输入误差测量单独标注；材质转换和外观对齐尚未完整实现。[资源、转换与 Cycles 对照](docs/blender-path-tracing.md)。
 
-### Coastal Cliff 父层级 LOD 与 UE Nanite
+## 开发状态
 
-CC0 **Coastal Cliff 峡谷**使用十个共享原始 LOD0 实例（**943 万逻辑三角形**）。连通父组和逐顶点保守误差继承将同视角 4 px 的 LOD 减量从 **3.24% 提升到 36.56%**，提交三角形 **885 万 → 580 万**。Apple M4／Metal、960×540 下，几何 GPU 窗口 **8.31 → 6.22 ms**，两阶段 Hi-Z **6.86 → 5.31 ms**，配对加速分别为 **24.58%／22.21%**。
+| 方向 | 当前范围与待完成工作 |
+| --- | --- |
+| 岩洞捕获 | 新的有界实现已构建并通过内存／RHI 检查；受保护 GPU 正确性、内存测量、新视角和小规格生成待验收。 |
+| 漫反射 GI | 第一阶段 DDGI 可选开启；漏光控制、探针响应及与 PT 的着色一致性仍需改进。 |
+| Cluster 遮挡 | 收益取决于场景复杂度；Sponza 尚未确认稳定加速。通用默认值关闭遮挡，具体场景预设可开启。 |
+| 水体与天气 | 光学捕获和散射仍有近似，高开销预设需要继续优化；现有捕获不证明达到 60 fps。 |
+| 参考一致性 | 光栅／PT 材质、水体输运与 Blender 闭包仍存在已记录差异；原生毛发曲线与动力学待开发。 |
 
-法线上限由 0.05 调至 0.15，源图 HDR 相对 RMSE **0.578% → 1.181%**。静态 CPU cut／Hi-Z 输出完全一致；移动反向视角有两个深度竞争像素，由独立绘制顺序重放核验。唯一层级内存 **13.32 → 19.95 MiB**，构建 **2.88 → 8.19 秒**，0 px 扫描慢 3.76%。计时不包含阴影、光照和后处理。[消融、原生图像检查、原始计时与限制](docs/cluster-parent-lod-optimization.md)。
-
-![Coastal Cliff：父构建前后、实际 GPU LOD 与源图比较](img/diagnostics/cluster-parents/cliff/benchmark/comparison.png)
-
-![Coastal Cliff：相机远近变化与实际 GPU LOD](img/diagnostics/cluster-parents/cliff/benchmark/optimized/flow/dynamic-lod.gif)
-
-同一布局已在 Metal 上运行 **UE 5.8 Nanite**，验证了实际分块／三角形视图，以及每实例完整 943,284 三角形的 fallback。UE 图像用于几何对照，未做跨引擎光照和 GPU 性能比较。[素材准备与 UE 验证](docs/cluster-cliff-nanite-test.md)。
-
-![UE Nanite 在 Coastal Cliff 峡谷中的实际分块](img/diagnostics/cluster-cliff/unreal/nanite-clusters.png)
-
-## 系统概览
-
-主逻辑管理世界、输入和编辑器，通过不可变场景快照向独立渲染线程发布数据。渲染线程准备 GPU 资源并调度各效果，RHI 统一资源、管线、命令与呈现；Metal／Vulkan 复用共享 GLSL 生成的着色器。详细流程、资源管理和平台边界见[系统设计](docs/system-design.md)。
+图片和测量对应链接报告中的具体配置。主线程负责世界、输入与编辑器，通过不可变快照交给独立渲染线程；资源准备有界执行，底层共用 RHI。[运行时与平台范围](docs/system-design.md)。
 
 ## 文档
 
 | 入口 | 内容 |
 | --- | --- |
-| [构建与运行](docs/getting-started.md) | 依赖、后端选择、场景下载、启动指令、操作与截图复现 |
-| [完整效果图集](docs/rendering-gallery.md) | 各效果的配置、对照图、中间产物、测量与算法边界 |
-| [系统设计](docs/system-design.md) | 逻辑／渲染分离、每帧流程、RHI、着色器构建与模块划分 |
-| [技术文档索引](docs/README.md) | 实现说明、修改记录、验证结果与后续计划 |
-| [资源归属与许可](samples/README.md) | 模型、纹理的来源、作者和使用条件 |
+| [构建与运行](docs/getting-started.md) | 依赖、Metal／Vulkan 选择、资源下载、操作与捕获命令 |
+| [详细功能展示](docs/rendering-showcase.zh-CN.md) | 原 README 的全部图片、算法讲解、对照与性能记录 |
+| [完整图集与参数](docs/rendering-gallery.md) | 采样、效果设置、中间缓冲和复现步骤 |
+| [岩洞 cluster／LOD](docs/cluster-cave.md) | 场景规格、有界捕获和待完成验收 |
+| [内存保护](docs/memory-safety.md) | 预算、压力行为、原生分配检查和协作式限制 |
+| [技术文档](docs/README.md) | 系统设计、实现报告、测试与后续计划 |
+| [资源归属与许可](samples/README.md) | 模型／纹理来源、作者及使用条件 |
 
-本项目用于学习与实验；截图、数据和功能范围对应各文档记录的配置。[课程成员与历史效果](docs/archive/historical-gallery.md)。
+详细技术文档主要为中文。[课程成员与历史效果](docs/archive/historical-gallery.md)。

@@ -1,6 +1,8 @@
 # Path Tracing 外观与加速迭代计划
 
-沿用现有 CPU、Metal、Vulkan PT 和冻结场景。保留软件 BVH、固定采样与原始线性 PFM 作为对照，不用降噪图证明输运正确。按以下顺序推进；每阶段以代码、数值测试、实际渲染和说明文档验收。
+沿用现有 CPU、Metal、Vulkan PT 和冻结场景。保留软件 BVH、固定采样与原始线性 PFM 作为对照，不用降噪图证明输运正确。每阶段以代码、数值测试、实际渲染和说明文档验收。
+
+2026-10-07 当前执行顺序见 [独立 PT 与实时整合路线](path-tracing-improvement-plan.md#当前路线独立-path-tracer-与实时整合2026-10-07)：先渐进 GPU 视口、资源增量更新与通用加速，再接 Hybrid 通道，继续推进 photon／SPPM 收敛。本文保留各专题的历史状态；2026-10-08 用户调整核心目标为丰富材质外观，恢复 [各向异性／coat／sheen 材质路线](path-tracing-materials.md)，不要求 OpenUSD。P2 未完成验收仍保留，ReSTIR 不在本轮计划内。
 
 ## 1. 粗糙介电边界与玉石外观
 
@@ -44,7 +46,7 @@ revision 5 进一步接入 Blender corner MikkTSpace 法线帧与薄叶 Lambert 
 - [ ] 玉石内部的 σa／σs 使用物体空间三维场，支持色根、云絮和杂质。
 - [ ] 局部 majorant、delta tracking 与透射率估计，验证常量场退化和异质场解析／数值参考。
 - [ ] 扩展分层材质、微表面过滤；光谱／色散作为后续独立阶段。
-- [ ] 再评估 ReSTIR GI／PT 的空间／时间复用；透明、镜面链、介质和重投影失效需要专门处理。
+- [ ] 长期研究储备：ReSTIR GI／PT 的空间／时间复用；不纳入当前实施路线，透明、镜面链、介质和重投影失效需要专门处理。
 
 参考：[粗糙介电 BSDF](https://pbr-book.org/4ed/Reflection_Models/Dielectric_BSDF)、[GPU Wavefront](https://www.pbr-book.org/4ed/Wavefront_Rendering_on_GPUs/Mapping_Path_Tracing_to_the_GPU)、[VCM](https://www.iliyan.com/publications/ImplementingVCM/)、[SMS](https://rgl.epfl.ch/publications/Zeltner2020Specular)、[非均匀介质](https://www.pbr-book.org/4ed/Volume_Scattering/Media)。
 

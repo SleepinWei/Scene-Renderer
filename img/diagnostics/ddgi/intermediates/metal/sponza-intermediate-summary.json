@@ -1,0 +1,77 @@
+{
+  "scene": "sponza",
+  "size": [
+    640,
+    360
+  ],
+  "exposure": 1.100000023841858,
+  "probe_captures": [
+    {
+      "index": 423,
+      "position": [
+        -1.0,
+        3.0,
+        -3.0
+      ],
+      "capture_frame": 853,
+      "active": true,
+      "visits": 6.0,
+      "backface_solid_angle_fraction": 0.006666204892098904,
+      "raw_front_samples": 859,
+      "raw_back_samples": 5,
+      "raw_miss_samples": 0
+    },
+    {
+      "index": 663,
+      "position": [
+        -1.0,
+        1.0,
+        1.0
+      ],
+      "capture_frame": 883,
+      "active": true,
+      "visits": 6.0,
+      "backface_solid_angle_fraction": 0.0018374333158135414,
+      "raw_front_samples": 853,
+      "raw_back_samples": 2,
+      "raw_miss_samples": 9
+    },
+    {
+      "index": 295,
+      "position": [
+        -1.0,
+        3.0,
+        -5.0
+      ],
+      "capture_frame": 837,
+      "active": false,
+      "visits": 6.0,
+      "backface_solid_angle_fraction": 0.8933625817298889,
+      "raw_front_samples": 79,
+      "raw_back_samples": 785,
+      "raw_miss_samples": 0
+    }
+  ],
+  "surface_query_pixels": 227914,
+  "query_max_rgb": 0.36873579025268555,
+  "coverage_range_valid": [
+    0.9999998211860657,
+    1.0
+  ],
+  "raw_sha256": {
+    "probe-field": "9d04383b27f94ec7b2b335418d207b8db4c086cdd0457e933e8c93cfd3c723a8",
+    "surface-query": "d00ffb91faf9ed8805d36979900d457ef0144f01846df7e7b5bc592f6ecccafe",
+    "surface-position": "12dc531086c5ac7be246f98d854d80f1c83a589eb49030c079b9b702b05b3f2f",
+    "surface-normal": "c03382fb3d8b8577260b139c7a97c6fea7702bbfdd8b39c4d217b5416ab22795",
+    "surface-albedo": "90b50f4f985f1707162583cc16f00e809d987ffc6094a3b59fd870af34f9ca3d",
+    "surface-emissive-ao": "71c0b76a60160653da62149978d5d888794dfd430f60e2e9709f5ae5612a6c4f",
+    "probe-capture-423": "c9d7052e26805b193d5a802a49368e2cc6377906a32a31687ef8e3984ca64141",
+    "probe-capture-663": "ab88849b44904e73605394bf836b3f9522d66f868c52e0b18b8d9dc7883e3740",
+    "probe-capture-295": "da1c0952268a8dbb4a9229a499baffbda04995be34aa689e316537139c51571e"
+  },
+  "field_frozen_unchanged": true,
+  "raw_capture_scope": "RGB is raster outgoing radiance; alpha is signed radial distance. Misses have RGBA=0; sky is added by integration, not stored in scratch RGB. Backface radiance is rejected by integration.",
+  "cache_scope": "Capture panels are sampled during the final sweep; cache and surface queries are from the final frame. The cache includes temporal history, not just the displayed capture.",
+  "surface_scope": "Dense GPU ddgiQuery; bias compensated to match composition. Positive material-weighted DDGI term derived on CPU from native readbacks; final beauty remains native GPU. AO/RSM/TAA are off.",
+  "distance_display": "Shared logarithmic colour scale. Mean distance in 0..45 m; sigma=sqrt(max(m2-m1^2,0)) in 0..22.5 m. Misses in scratch distance are dark gray, not zero-range hits."
+}

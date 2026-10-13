@@ -1,0 +1,98 @@
+{
+  "mountain-lake-air-fog": {
+    "cloud_shadow_bakes": 1,
+    "cloud_shadows": false,
+    "coverage": 0.85,
+    "fog": true,
+    "frames": 16,
+    "gpu_ms_samples": [
+      37.789792,
+      38.118959,
+      36.698583,
+      37.010167,
+      36.050333,
+      36.0285,
+      38.634542,
+      38.778125,
+      37.133583,
+      38.490083,
+      36.547542,
+      37.040917
+    ],
+    "rain_mm_per_hour": 50,
+    "scope": "fixed-time main render submission; excludes separately submitted atmosphere/shadow/FFT, presentation and CPU collection",
+    "time_seconds": 8.0
+  },
+  "mountain-lake-cloud-shadows": {
+    "cloud_shadow_bakes": 1,
+    "cloud_shadows": true,
+    "coverage": 0.85,
+    "fog": false,
+    "frames": 16,
+    "gpu_ms_samples": [
+      38.463708,
+      38.418791,
+      37.418708,
+      37.875833,
+      38.9495,
+      36.877375,
+      37.637459,
+      38.181041,
+      40.008584,
+      38.413625,
+      36.708417,
+      39.209042
+    ],
+    "rain_mm_per_hour": 50,
+    "scope": "fixed-time main render submission; excludes separately submitted atmosphere/shadow/FFT, presentation and CPU collection",
+    "time_seconds": 8.0
+  },
+  "mountain-lake-weather-combined": {
+    "cloud_shadow_bakes": 2,
+    "cloud_shadows": true,
+    "coverage": 0.85,
+    "fog": true,
+    "frames": 16,
+    "gpu_ms_samples": [
+      36.291666,
+      38.095166999999996,
+      38.848042,
+      40.677875,
+      37.990208,
+      36.401667,
+      37.467459,
+      37.557167,
+      37.066208,
+      38.242375,
+      37.558958,
+      38.050416
+    ],
+    "rain_mm_per_hour": 50,
+    "scope": "fixed-time main render submission; excludes separately submitted atmosphere/shadow/FFT, presentation and CPU collection",
+    "time_seconds": 8.0
+  },
+  "mountain-lake-weather-off": {
+    "cloud_shadow_bakes": 0,
+    "cloud_shadows": false,
+    "coverage": 0.85,
+    "fog": false,
+    "frames": 16,
+    "gpu_ms_samples": [
+      36.545375,
+      37.070417,
+      38.04775,
+      38.612,
+      38.4715,
+      37.8775,
+      38.226125,
+      37.470042,
+      37.649292,
+      37.620209,
+      40.68475,
+      37.957459
+    ],
+    "rain_mm_per_hour": 50,
+    "scope": "fixed-time main render submission; excludes separately submitted atmosphere/shadow/FFT, presentation and CPU collection",
+    "time_seconds": 8.0
+  }
+}

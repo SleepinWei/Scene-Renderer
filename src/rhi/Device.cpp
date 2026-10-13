@@ -1,5 +1,6 @@
 #include <chrono>
 #include "rhi/Device.h"
+#include "rhi/MemorySafety.h"
 #include <atomic>
 #include <stdexcept>
 #include <limits>
@@ -26,6 +27,7 @@ Device::Device(BufferLimits limits) : identity_(nextHandle.fetch_add(1)),limits_
     if (!limits.maxBufferSize || !limits.maxUniformBufferSize ||
         !limits.uniformOffsetAlignment || !limits.maxUniformBindings)
         throw std::invalid_argument("RHI: invalid buffer limits");
+    memory_.budgetBytes=size_t(memorySafety().stats().gpuBudgetBytes);
 }
 void Device::requireOpen() const {
     checkThread();
@@ -37,7 +39,10 @@ ResourceMemoryStats Device::resourceMemory() const {checkThread();return memory_
 void Device::setResourceBudget(size_t bytes) {
     requireOpen();
     if(handlingPressure_)throw std::logic_error("RHI: pressure handler cannot change budget");
-    if(bytes && bytes<memory_.usedBytes())throw std::invalid_argument("RHI: resource budget below current allocation");
+    const auto safetyLimit=memorySafety().stats().gpuBudgetBytes;
+    if(!bytes)bytes=size_t(safetyLimit);
+    if(bytes>safetyLimit)throw std::invalid_argument("RHI: resource budget exceeds memory safety limit");
+    if(bytes<memory_.usedBytes())throw std::invalid_argument("RHI: resource budget below current allocation");
     memory_.budgetBytes=bytes;
 }
 void Device::setResourcePressureHandler(std::function<void(size_t)> handler) {
@@ -59,6 +64,7 @@ void Device::checkResourceAllocation(size_t bytes,const std::string& label) {
     if(bytes>limit-memory_.usedBytes())
         throw ResourceBudgetExceeded("RHI resource budget exceeded for '"+label+"': requested "+std::to_string(bytes)+
             " bytes; available "+std::to_string(limit-memory_.usedBytes())+" tracked bytes");
+    memorySafety().check(bytes,label);
 }
 void Device::accountResourceAllocation(size_t bytes,bool texture) noexcept {
     (texture?memory_.textureBytes:memory_.bufferBytes)+=bytes;

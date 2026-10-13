@@ -1,0 +1,20 @@
+{
+  "source_baseline": "214f71048c2a1efa3a5c184c9ced4e93da8abba7",
+  "note": "Committed baseline plus this AO benchmark patch, excluding concurrent uncommitted PT changes. File hashes describe the isolated tested source.",
+  "source_sha256": {
+    "include/renderer/rhi/AoReference.h": "a43ae0a8f80b2bd23b803eed7ea21c03716bb0b22ec5758e8f3c2311f3118330",
+    "include/renderer/rhi/ForwardPbrRenderer.h": "4855ea68502e1e0cc15d9b3bd9176a53c20f40ee811c590e6bd4dde9a255330e",
+    "src/renderer/rhi/AoReference.cpp": "1d442b4d4a72e87219f1a413634e4c11bbbde21899a7f5381ad2094cbf35ec9c",
+    "src/renderer/rhi/AoBenchmark.cpp": "c29f4b1a8d0c6d8a87aef6b84e6bd0fded2846e84e2d409b6ec970206ddefcd9",
+    "src/renderer/rhi/ForwardPbrRenderer.cpp": "b56fc0ad4e5d6db585ff995b98cb6fca3c2fdad377b9f0d1e1a2bd0ad28a0cda",
+    "src/renderer/rhi/SceneEffectsValidation.cpp": "f05c09444b60e41412762f298d713acf25784675a04c09624519707f8b7cfcf6",
+    "src/main.cpp": "04616b98d37962ceffa09ae56b5c3768f87fb064dd88e398eecd2ad32ca08603",
+    "CMakeLists.txt": "c9481b16bf3c941a268c84d61bae18ea17d8721770fb129b780993873bc0d22c",
+    "src/PT/CpuPathTracer.cpp": "a6744d7ae0fe4d236d6f26247af4c2a52b42e287be7fd83c06f5d5f1854a400f",
+    "include/PT/CpuPathTracer.h": "7601f66e99ed89b6ecb59a8f81f91eaeb441e66814119b5cad23dd57743a801b",
+    "src/rhi/shaders/ssao.frag": "accba3665668c7c23d6ca6eee7cb2b83d0f725ed36c25f7d91f0098ba8435c5f",
+    "src/rhi/shaders/ao-filter.frag": "30325a2dbe08fe69e52a1e3d9f0b1dca128ae9215ddefa062bb152f40a03d9c8",
+    "src/rhi/MetalDevice.mm": "f6f3e44be19303fd780d9f563aba0ec2ad190d68f8fe1c2574fa35d4a5f118b4",
+    "src/rhi/VulkanDevice.cpp": "f4203fd6b6278249b9703327eabe11492567c19b329ded9129dbf43af9051545"
+  }
+}

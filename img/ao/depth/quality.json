@@ -1,0 +1,282 @@
+{
+  "baseline_spp": 256,
+  "refined_spp": 1024,
+  "baseline_seed": 1,
+  "refined_seed": 2,
+  "note": "Reference difference is a sampling convergence diagnostic, not a confidence interval; score frame 0 on the common match mask.",
+  "cases": {
+    "contact": {
+      "reference_difference": {
+        "pixels": 43516,
+        "rmse": 0.002182610049601172,
+        "mae": 0.0008056506563174241,
+        "mean_signed_error": 8.984197929990524e-06,
+        "max_absolute_error": 0.03273177146911621
+      },
+      "modes": {
+        "gtao": {
+          "against_baseline": {
+            "pixels": 43516,
+            "rmse": 0.09167969458014763,
+            "mae": 0.03619695699056596,
+            "mean_signed_error": 0.02833573914456865,
+            "max_absolute_error": 0.6888846457004547
+          },
+          "against_refined": {
+            "pixels": 43516,
+            "rmse": 0.09167229393865325,
+            "mae": 0.0361939575661822,
+            "mean_signed_error": 0.02834472334249864,
+            "max_absolute_error": 0.6895045042037964
+          }
+        },
+        "gtao-hiz": {
+          "against_baseline": {
+            "pixels": 43516,
+            "rmse": 0.09167969458014763,
+            "mae": 0.03619695699056596,
+            "mean_signed_error": 0.02833573914456865,
+            "max_absolute_error": 0.6888846457004547
+          },
+          "against_refined": {
+            "pixels": 43516,
+            "rmse": 0.09167229393865325,
+            "mae": 0.0361939575661822,
+            "mean_signed_error": 0.02834472334249864,
+            "max_absolute_error": 0.6895045042037964
+          }
+        },
+        "gtao-raw": {
+          "against_baseline": {
+            "pixels": 43516,
+            "rmse": 0.09546866386078251,
+            "mae": 0.03708271851901984,
+            "mean_signed_error": 0.028777690003879017,
+            "max_absolute_error": 0.7436678409576416
+          },
+          "against_refined": {
+            "pixels": 43516,
+            "rmse": 0.09546042713429799,
+            "mae": 0.03708252693280839,
+            "mean_signed_error": 0.02878667420180901,
+            "max_absolute_error": 0.7461422681808472
+          }
+        },
+        "gtao-world": {
+          "against_baseline": {
+            "pixels": 43516,
+            "rmse": 0.0916797629740421,
+            "mae": 0.036201850263985196,
+            "mean_signed_error": 0.028328625202283055,
+            "max_absolute_error": 0.6888846457004547
+          },
+          "against_refined": {
+            "pixels": 43516,
+            "rmse": 0.09167238466008396,
+            "mae": 0.03619905748346435,
+            "mean_signed_error": 0.028337609400213043,
+            "max_absolute_error": 0.6895045042037964
+          }
+        },
+        "legacy": {
+          "against_baseline": {
+            "pixels": 43516,
+            "rmse": 0.11960403557670225,
+            "mae": 0.04760003765929062,
+            "mean_signed_error": 0.0010981274242567243,
+            "max_absolute_error": 0.954986572265625
+          },
+          "against_refined": {
+            "pixels": 43516,
+            "rmse": 0.11959583486570563,
+            "mae": 0.0475979544173045,
+            "mean_signed_error": 0.0011071116221867147,
+            "max_absolute_error": 0.954986572265625
+          }
+        }
+      }
+    },
+    "cornell": {
+      "reference_difference": {
+        "pixels": 58063,
+        "rmse": 0.003457606790795832,
+        "mae": 0.0016234179292822254,
+        "mean_signed_error": 1.5793855030176167e-05,
+        "max_absolute_error": 0.03700023889541626
+      },
+      "modes": {
+        "gtao": {
+          "against_baseline": {
+            "pixels": 58063,
+            "rmse": 0.13371883133408694,
+            "mae": 0.07285852894830365,
+            "mean_signed_error": 0.06409998239113252,
+            "max_absolute_error": 0.73193359375
+          },
+          "against_refined": {
+            "pixels": 58063,
+            "rmse": 0.13369684611172272,
+            "mae": 0.07286532412289715,
+            "mean_signed_error": 0.06411577624616269,
+            "max_absolute_error": 0.73193359375
+          }
+        },
+        "gtao-hiz": {
+          "against_baseline": {
+            "pixels": 58063,
+            "rmse": 0.13371883133408694,
+            "mae": 0.07285852894830365,
+            "mean_signed_error": 0.06409998239113252,
+            "max_absolute_error": 0.73193359375
+          },
+          "against_refined": {
+            "pixels": 58063,
+            "rmse": 0.13369684611172272,
+            "mae": 0.07286532412289715,
+            "mean_signed_error": 0.06411577624616269,
+            "max_absolute_error": 0.73193359375
+          }
+        },
+        "gtao-raw": {
+          "against_baseline": {
+            "pixels": 58063,
+            "rmse": 0.1441409127362173,
+            "mae": 0.0760552393532012,
+            "mean_signed_error": 0.06475754598147565,
+            "max_absolute_error": 0.89837646484375
+          },
+          "against_refined": {
+            "pixels": 58063,
+            "rmse": 0.1441139139044659,
+            "mae": 0.07604814923041807,
+            "mean_signed_error": 0.06477333983650584,
+            "max_absolute_error": 0.8983018398284912
+          }
+        },
+        "gtao-world": {
+          "against_baseline": {
+            "pixels": 58063,
+            "rmse": 0.1337211764914263,
+            "mae": 0.07285667243038214,
+            "mean_signed_error": 0.06409949463968151,
+            "max_absolute_error": 0.73193359375
+          },
+          "against_refined": {
+            "pixels": 58063,
+            "rmse": 0.1336991646587859,
+            "mae": 0.07286331853331046,
+            "mean_signed_error": 0.06411528849471168,
+            "max_absolute_error": 0.73193359375
+          }
+        },
+        "legacy": {
+          "against_baseline": {
+            "pixels": 58063,
+            "rmse": 0.13584329356234262,
+            "mae": 0.07884078660570433,
+            "mean_signed_error": 0.045891318805216144,
+            "max_absolute_error": 0.825927734375
+          },
+          "against_refined": {
+            "pixels": 58063,
+            "rmse": 0.13583050132416066,
+            "mae": 0.07884068904099109,
+            "mean_signed_error": 0.045907112660246316,
+            "max_absolute_error": 0.825927734375
+          }
+        }
+      }
+    },
+    "sponza": {
+      "reference_difference": {
+        "pixels": 75672,
+        "rmse": 0.008388450483457939,
+        "mae": 0.005863815958406952,
+        "mean_signed_error": 1.2757084563261833e-05,
+        "max_absolute_error": 0.06930500268936157
+      },
+      "modes": {
+        "gtao": {
+          "against_baseline": {
+            "pixels": 75672,
+            "rmse": 0.16800487929390842,
+            "mae": 0.10610230776855287,
+            "mean_signed_error": 0.07272118726667826,
+            "max_absolute_error": 0.9929979890584946
+          },
+          "against_refined": {
+            "pixels": 75672,
+            "rmse": 0.1678937287793253,
+            "mae": 0.10595075929806787,
+            "mean_signed_error": 0.07273394435124152,
+            "max_absolute_error": 0.992198659107089
+          }
+        },
+        "gtao-hiz": {
+          "against_baseline": {
+            "pixels": 75672,
+            "rmse": 0.16800487929390842,
+            "mae": 0.10610230776855287,
+            "mean_signed_error": 0.07272118726667826,
+            "max_absolute_error": 0.9929979890584946
+          },
+          "against_refined": {
+            "pixels": 75672,
+            "rmse": 0.1678937287793253,
+            "mae": 0.10595075929806787,
+            "mean_signed_error": 0.07273394435124152,
+            "max_absolute_error": 0.992198659107089
+          }
+        },
+        "gtao-raw": {
+          "against_baseline": {
+            "pixels": 75672,
+            "rmse": 0.18122159053187167,
+            "mae": 0.11334506971878366,
+            "mean_signed_error": 0.07449971732620925,
+            "max_absolute_error": 0.9954393953084946
+          },
+          "against_refined": {
+            "pixels": 75672,
+            "rmse": 0.18111527983466108,
+            "mae": 0.11319330446448377,
+            "mean_signed_error": 0.07451247441077251,
+            "max_absolute_error": 0.9948680191300809
+          }
+        },
+        "gtao-world": {
+          "against_baseline": {
+            "pixels": 75672,
+            "rmse": 0.1680083344297221,
+            "mae": 0.10610530875119815,
+            "mean_signed_error": 0.07272249210287154,
+            "max_absolute_error": 0.9929979890584946
+          },
+          "against_refined": {
+            "pixels": 75672,
+            "rmse": 0.16789707816054497,
+            "mae": 0.10595373907975879,
+            "mean_signed_error": 0.0727352491874348,
+            "max_absolute_error": 0.992198659107089
+          }
+        },
+        "legacy": {
+          "against_baseline": {
+            "pixels": 75672,
+            "rmse": 0.19926187378774182,
+            "mae": 0.13381087349570772,
+            "mean_signed_error": 0.054069799019809336,
+            "max_absolute_error": 0.9702268876135349
+          },
+          "against_refined": {
+            "pixels": 75672,
+            "rmse": 0.19917574918864447,
+            "mae": 0.13369592926758936,
+            "mean_signed_error": 0.0540825561043726,
+            "max_absolute_error": 0.9706676937639713
+          }
+        }
+      }
+    }
+  }
+}

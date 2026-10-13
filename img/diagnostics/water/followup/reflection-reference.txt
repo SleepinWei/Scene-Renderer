@@ -1,0 +1,1 @@
+Interior pixels 52777, mismatch 0, mean max-channel error 6.19797e-05

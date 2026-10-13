@@ -1,0 +1,100 @@
+{
+  "backend": "Metal",
+  "batches": [
+    {
+      "full_detail_triangles": 2231880,
+      "instances": 26570,
+      "lod": 0,
+      "triangles": 2231880,
+      "type": 0
+    },
+    {
+      "full_detail_triangles": 387072,
+      "instances": 4608,
+      "lod": 0,
+      "triangles": 387072,
+      "type": 1
+    },
+    {
+      "full_detail_triangles": 184800,
+      "instances": 1540,
+      "lod": 0,
+      "triangles": 184800,
+      "type": 2
+    },
+    {
+      "full_detail_triangles": 202020,
+      "instances": 1295,
+      "lod": 0,
+      "triangles": 202020,
+      "type": 3
+    },
+    {
+      "full_detail_triangles": 160608,
+      "instances": 956,
+      "lod": 0,
+      "triangles": 160608,
+      "type": 4
+    },
+    {
+      "full_detail_triangles": 41104,
+      "instances": 56,
+      "lod": 0,
+      "triangles": 41104,
+      "type": 5
+    },
+    {
+      "full_detail_triangles": 87906,
+      "instances": 23,
+      "lod": 0,
+      "triangles": 87906,
+      "type": 6
+    },
+    {
+      "full_detail_triangles": 173958,
+      "instances": 237,
+      "lod": 0,
+      "triangles": 173958,
+      "type": 7
+    }
+  ],
+  "frames": 16,
+  "full_detail_triangles": 3469348,
+  "gpu_ms_samples": [
+    166.42700000375044,
+    161.4742500023567,
+    162.25483333255397,
+    159.3302916662651,
+    153.09624999645166,
+    157.03091666364344,
+    152.84424999845214,
+    151.87025000341237,
+    161.47458332852693,
+    156.40395833179355,
+    149.96983333548997,
+    153.03887500340352
+  ],
+  "height": 540,
+  "instances": 35285,
+  "measurement": "Synchronized collection plus completed rendering, fixed simulation time, first four frames excluded; excludes depth feedback and presentation. GPU duration is last completed buffer and backend batching may include preparation passes. Triangle reduction is not an FPS claim.",
+  "species_lod": false,
+  "synchronized_frame_ms_samples": [
+    171.003417,
+    165.753834,
+    166.972334,
+    168.971958,
+    159.240167,
+    160.040667,
+    155.586584,
+    154.848084,
+    166.790167,
+    162.398542,
+    153.101875,
+    158.164583
+  ],
+  "time_seconds": 8.0,
+  "triangles": 3469348,
+  "warmup": 4,
+  "wave_particles": 5104,
+  "width": 960
+}

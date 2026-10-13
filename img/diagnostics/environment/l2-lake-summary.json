@@ -1,0 +1,201 @@
+{
+  "scope": "Single paused 720p Mountain Lake sample, cloud disabled, 60 frames / 20 warmup. GPU surface completion intervals are throughput, not display latency. No before/after performance claim or joint cloud/grass/lake budget acceptance.",
+  "runs": [
+    {
+      "source": "build/environment/l2-lake-gpu-trace.json",
+      "cpu_clock": "steady_clock; completion acknowledgement includes owner-thread polling",
+      "gpu_clock": "independent native timestamp origin; do not align to CPU without calibration",
+      "rendered_frames": 60,
+      "water_surface_frames": 60,
+      "warmup_frames": 20,
+      "steady_cpu_wall_ms": 3248.562,
+      "steady_cpu_frame_period_ms": 81.21405,
+      "cpu_scopes": {
+        "ao-depth": {
+          "samples": 40,
+          "p50_ms": 4.2000000000000004e-05,
+          "p95_ms": 0.000416
+        },
+        "ao-filter": {
+          "samples": 40,
+          "p50_ms": 0.00025,
+          "p95_ms": 0.000541
+        },
+        "ao-raw": {
+          "samples": 40,
+          "p50_ms": 0.000521,
+          "p95_ms": 0.000875
+        },
+        "atmosphere": {
+          "samples": 40,
+          "p50_ms": 0.0008335,
+          "p95_ms": 0.001292
+        },
+        "back": {
+          "samples": 40,
+          "p50_ms": 0.000292,
+          "p95_ms": 0.00075
+        },
+        "engine/snapshot": {
+          "samples": 1199,
+          "p50_ms": 0.008041,
+          "p95_ms": 0.02125
+        },
+        "engine/tick": {
+          "samples": 1199,
+          "p50_ms": 2.31421,
+          "p95_ms": 3.17396
+        },
+        "engine/ui": {
+          "samples": 1199,
+          "p50_ms": 0.015083000000000001,
+          "p95_ms": 0.041792
+        },
+        "frame/input-to-completion-ack": {
+          "samples": 40,
+          "p50_ms": 451.49850000000004,
+          "p95_ms": 469.266
+        },
+        "frame/input-to-consume": {
+          "samples": 40,
+          "p50_ms": 151.663,
+          "p95_ms": 170.458
+        },
+        "geometry": {
+          "samples": 40,
+          "p50_ms": 0.0041665,
+          "p95_ms": 0.005959
+        },
+        "graph/compile": {
+          "samples": 40,
+          "p50_ms": 0.0558545,
+          "p95_ms": 0.062416
+        },
+        "light": {
+          "samples": 40,
+          "p50_ms": 0.0004375,
+          "p95_ms": 0.000625
+        },
+        "motion": {
+          "samples": 40,
+          "p50_ms": 0.0110835,
+          "p95_ms": 0.01875
+        },
+        "ocean-copy": {
+          "samples": 40,
+          "p50_ms": 8.3e-05,
+          "p95_ms": 0.000166
+        },
+        "ocean-simulation": {
+          "samples": 40,
+          "p50_ms": 0.203313,
+          "p95_ms": 0.323875
+        },
+        "post-process": {
+          "samples": 40,
+          "p50_ms": 0.0055,
+          "p95_ms": 0.007625
+        },
+        "render/acquire-and-flight-wait": {
+          "samples": 40,
+          "p50_ms": 72.0222,
+          "p95_ms": 94.9648
+        },
+        "render/feedback": {
+          "samples": 40,
+          "p50_ms": 0.0022294999999999997,
+          "p95_ms": 0.081458
+        },
+        "render/frame": {
+          "samples": 40,
+          "p50_ms": 74.25075,
+          "p95_ms": 97.4738
+        },
+        "render/present-and-flight-wait": {
+          "samples": 40,
+          "p50_ms": 0.0122915,
+          "p95_ms": 0.03725
+        },
+        "render/queue-pop": {
+          "samples": 40,
+          "p50_ms": 0.000583,
+          "p95_ms": 0.001375
+        },
+        "render/record": {
+          "samples": 40,
+          "p50_ms": 0.872104,
+          "p95_ms": 1.1330799999999999
+        },
+        "render/resolve": {
+          "samples": 40,
+          "p50_ms": 0.509854,
+          "p95_ms": 1.13758
+        },
+        "shadows-rsm": {
+          "samples": 40,
+          "p50_ms": 0.1402915,
+          "p95_ms": 0.17725
+        },
+        "temporal": {
+          "samples": 40,
+          "p50_ms": 0.0054375,
+          "p95_ms": 0.0085
+        },
+        "water-capture/4": {
+          "samples": 40,
+          "p50_ms": 0.0558335,
+          "p95_ms": 0.080375
+        },
+        "water-eye/4": {
+          "samples": 40,
+          "p50_ms": 0.00725,
+          "p95_ms": 0.01825
+        },
+        "water-surface/4": {
+          "samples": 40,
+          "p50_ms": 0.014104,
+          "p95_ms": 0.02325
+        },
+        "water-volume/4": {
+          "samples": 40,
+          "p50_ms": 0.00033350000000000003,
+          "p95_ms": 0.0010409999999999998
+        }
+      },
+      "frame_start_retirement_and_flight_wait": {
+        "samples": 40,
+        "p50_ms": 72.0024,
+        "p95_ms": 94.845
+      },
+      "frame_start_native_acquire": {
+        "samples": 40,
+        "p50_ms": 0.0185625,
+        "p95_ms": 0.051792
+      },
+      "native_submissions_between_surfaces": {
+        "samples": 39,
+        "counts": {
+          "1": 39
+        },
+        "mean": 1
+      },
+      "gpu_surface_completion_period": {
+        "samples": 39,
+        "p50_ms": 75.07220999999996,
+        "p95_ms": 98.18062000000012
+      },
+      "native_submission_duration": {
+        "samples": 39,
+        "p50_ms": 89.4745,
+        "p95_ms": 119.719
+      },
+      "between_native_submission_gaps": {
+        "samples": 38,
+        "p50_ms": 0.0,
+        "p95_ms": 0.0
+      }
+    }
+  ],
+  "source_executable_sha256": "eefa1bad8dd2a923e26b06119371e62912f7b235e56137426ad33730cc236f74",
+  "steady_state_confirmed": false
+}

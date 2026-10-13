@@ -1,4 +1,6 @@
 #include "engine/AssetPath.h"
+#include "rhi/MemorySafety.h"
+#include <filesystem>
 #include <assimp/ProgressHandler.hpp>
 #include "component/Model.h"
 #include "component/Mesh_Filter.h"
@@ -43,8 +45,14 @@ std::shared_ptr<Mesh> AssimpLoader::combineMesh(const std::vector<std::shared_pt
 vector<shared_ptr<Mesh>> AssimpLoader::loadModel(const std::string &input, bool flipUV)
 {
     const auto path=engine::AssetPath::resolve(input);
+    std::error_code fileError;const auto fileBytes=std::filesystem::file_size(path,fileError);
+    auto importScratch=rhi::memorySafety().reserve(fileError?0:rhi::MemorySafety::bytes(size_t(fileBytes),8),"Assimp model import");
 	std::vector<std::shared_ptr<Mesh>> meshes;
-    class Progress:public Assimp::ProgressHandler {bool Update(float)override{return !engine::CancellationScope::cancelled();}};
+    class Progress:public Assimp::ProgressHandler {bool Update(float)override{
+        if(engine::CancellationScope::cancelled())return false;
+        // Never throw across Assimp's callback boundary; abort the import.
+        try{rhi::memorySafety().check(0,"Assimp import continuation");return true;}catch(const rhi::ResourceBudgetExceeded&){return false;}
+    }};
     engine::CancellationScope::check();
 	Assimp::Importer importer;importer.SetProgressHandler(new Progress());
 	unsigned int pFlags = aiProcess_JoinIdenticalVertices | aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace;

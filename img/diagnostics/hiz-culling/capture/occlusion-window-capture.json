@@ -1,0 +1,1117 @@
+{
+  "backend": "Metal",
+  "candidate_objects": 69,
+  "culled_objects": 52,
+  "depth_convention": "standard 0..1, farthest-depth max reduction, clear 1",
+  "display_equal": true,
+  "hdr_max_error": 0.0,
+  "height": 720,
+  "main_triangles_after": 240,
+  "main_triangles_before": 864,
+  "mips": [
+    {
+      "file": "occlusion-window-mip-0.f32",
+      "height": 720,
+      "level": 0,
+      "width": 960
+    },
+    {
+      "file": "occlusion-window-mip-1.f32",
+      "height": 360,
+      "level": 1,
+      "width": 480
+    },
+    {
+      "file": "occlusion-window-mip-2.f32",
+      "height": 180,
+      "level": 2,
+      "width": 240
+    },
+    {
+      "file": "occlusion-window-mip-3.f32",
+      "height": 90,
+      "level": 3,
+      "width": 120
+    },
+    {
+      "file": "occlusion-window-mip-4.f32",
+      "height": 45,
+      "level": 4,
+      "width": 60
+    },
+    {
+      "file": "occlusion-window-mip-5.f32",
+      "height": 22,
+      "level": 5,
+      "width": 30
+    },
+    {
+      "file": "occlusion-window-mip-6.f32",
+      "height": 11,
+      "level": 6,
+      "width": 15
+    },
+    {
+      "file": "occlusion-window-mip-7.f32",
+      "height": 5,
+      "level": 7,
+      "width": 7
+    },
+    {
+      "file": "occlusion-window-mip-8.f32",
+      "height": 2,
+      "level": 8,
+      "width": 3
+    },
+    {
+      "file": "occlusion-window-mip-9.f32",
+      "height": 1,
+      "level": 9,
+      "width": 1
+    }
+  ],
+  "nonzero_draws_after": 17,
+  "nonzero_draws_before": 69,
+  "objects": [
+    {
+      "id": 1,
+      "input_triangles": 48,
+      "nearest_depth": 0.9895334243774414,
+      "occluder": true,
+      "output_triangles": 48,
+      "packet": 0,
+      "rectangle": [
+        78.55628967285156,
+        181.28549194335938,
+        881.4437255859375,
+        503.5270080566406
+      ],
+      "testable": false
+    },
+    {
+      "id": 2,
+      "input_triangles": 12,
+      "nearest_depth": 0.0,
+      "occluder": false,
+      "output_triangles": 12,
+      "packet": 1,
+      "rectangle": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "testable": false
+    },
+    {
+      "id": 3,
+      "input_triangles": 12,
+      "nearest_depth": 0.9915454387664795,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 2,
+      "rectangle": [
+        233.32839965820312,
+        435.0173645019531,
+        274.6959533691406,
+        473.6141662597656
+      ],
+      "testable": true
+    },
+    {
+      "id": 4,
+      "input_triangles": 12,
+      "nearest_depth": 0.9915454387664795,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 3,
+      "rectangle": [
+        299.1366271972656,
+        435.0173645019531,
+        337.85894775390625,
+        473.6141662597656
+      ],
+      "testable": true
+    },
+    {
+      "id": 5,
+      "input_triangles": 12,
+      "nearest_depth": 0.9915454387664795,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 4,
+      "rectangle": [
+        364.9448547363281,
+        435.0173645019531,
+        401.02191162109375,
+        473.6141662597656
+      ],
+      "testable": true
+    },
+    {
+      "id": 6,
+      "input_triangles": 12,
+      "nearest_depth": 0.9915454387664795,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 5,
+      "rectangle": [
+        430.7530822753906,
+        435.0173645019531,
+        464.18487548828125,
+        473.6141662597656
+      ],
+      "testable": true
+    },
+    {
+      "id": 7,
+      "input_triangles": 12,
+      "nearest_depth": 0.9915454387664795,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 6,
+      "rectangle": [
+        495.81512451171875,
+        435.0173645019531,
+        529.2469482421875,
+        473.6141662597656
+      ],
+      "testable": true
+    },
+    {
+      "id": 8,
+      "input_triangles": 12,
+      "nearest_depth": 0.9915454387664795,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 7,
+      "rectangle": [
+        558.9780883789062,
+        435.0173645019531,
+        595.05517578125,
+        473.6141662597656
+      ],
+      "testable": true
+    },
+    {
+      "id": 9,
+      "input_triangles": 12,
+      "nearest_depth": 0.9915454387664795,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 8,
+      "rectangle": [
+        622.1410522460938,
+        435.0173645019531,
+        660.8633422851562,
+        473.6141662597656
+      ],
+      "testable": true
+    },
+    {
+      "id": 10,
+      "input_triangles": 12,
+      "nearest_depth": 0.9915454387664795,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 9,
+      "rectangle": [
+        685.3040161132812,
+        435.0173645019531,
+        726.6715698242188,
+        473.6141662597656
+      ],
+      "testable": true
+    },
+    {
+      "id": 11,
+      "input_triangles": 12,
+      "nearest_depth": 0.9914830327033997,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 10,
+      "rectangle": [
+        231.93646240234375,
+        404.63800048828125,
+        273.56427001953125,
+        442.4655456542969
+      ],
+      "testable": true
+    },
+    {
+      "id": 12,
+      "input_triangles": 12,
+      "nearest_depth": 0.9914830327033997,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 11,
+      "rectangle": [
+        298.11907958984375,
+        404.63800048828125,
+        337.0720520019531,
+        442.4655456542969
+      ],
+      "testable": true
+    },
+    {
+      "id": 13,
+      "input_triangles": 12,
+      "nearest_depth": 0.9914830327033997,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 12,
+      "rectangle": [
+        364.3016662597656,
+        404.63800048828125,
+        400.579833984375,
+        442.4655456542969
+      ],
+      "testable": true
+    },
+    {
+      "id": 14,
+      "input_triangles": 12,
+      "nearest_depth": 0.9914830327033997,
+      "occluder": false,
+      "output_triangles": 12,
+      "packet": 13,
+      "rectangle": [
+        430.4842834472656,
+        404.63800048828125,
+        464.0876159667969,
+        442.4655456542969
+      ],
+      "testable": true
+    },
+    {
+      "id": 15,
+      "input_triangles": 12,
+      "nearest_depth": 0.9914830327033997,
+      "occluder": false,
+      "output_triangles": 12,
+      "packet": 14,
+      "rectangle": [
+        495.9123840332031,
+        404.63800048828125,
+        529.5157470703125,
+        442.4655456542969
+      ],
+      "testable": true
+    },
+    {
+      "id": 16,
+      "input_triangles": 12,
+      "nearest_depth": 0.9914830327033997,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 15,
+      "rectangle": [
+        559.420166015625,
+        404.63800048828125,
+        595.6983032226562,
+        442.4655456542969
+      ],
+      "testable": true
+    },
+    {
+      "id": 17,
+      "input_triangles": 12,
+      "nearest_depth": 0.9914830327033997,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 16,
+      "rectangle": [
+        622.9279174804688,
+        404.63800048828125,
+        661.8809204101562,
+        442.4655456542969
+      ],
+      "testable": true
+    },
+    {
+      "id": 18,
+      "input_triangles": 12,
+      "nearest_depth": 0.9914830327033997,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 17,
+      "rectangle": [
+        686.4357299804688,
+        404.63800048828125,
+        728.0635375976562,
+        442.4655456542969
+      ],
+      "testable": true
+    },
+    {
+      "id": 19,
+      "input_triangles": 12,
+      "nearest_depth": 0.9914199709892273,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 18,
+      "rectangle": [
+        230.52857971191406,
+        373.9234924316406,
+        272.4201354980469,
+        410.9623107910156
+      ],
+      "testable": true
+    },
+    {
+      "id": 20,
+      "input_triangles": 12,
+      "nearest_depth": 0.9914199709892273,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 19,
+      "rectangle": [
+        297.0898742675781,
+        373.9234924316406,
+        336.27655029296875,
+        410.9623107910156
+      ],
+      "testable": true
+    },
+    {
+      "id": 21,
+      "input_triangles": 12,
+      "nearest_depth": 0.9914199709892273,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 20,
+      "rectangle": [
+        363.6511535644531,
+        373.9234924316406,
+        400.1329040527344,
+        410.9623107910156
+      ],
+      "testable": true
+    },
+    {
+      "id": 22,
+      "input_triangles": 12,
+      "nearest_depth": 0.9914199709892273,
+      "occluder": false,
+      "output_triangles": 12,
+      "packet": 21,
+      "rectangle": [
+        430.21240234375,
+        373.9234924316406,
+        463.9892883300781,
+        410.9623107910156
+      ],
+      "testable": true
+    },
+    {
+      "id": 23,
+      "input_triangles": 12,
+      "nearest_depth": 0.9914199709892273,
+      "occluder": false,
+      "output_triangles": 12,
+      "packet": 22,
+      "rectangle": [
+        496.0107116699219,
+        373.9234924316406,
+        529.78759765625,
+        410.9623107910156
+      ],
+      "testable": true
+    },
+    {
+      "id": 24,
+      "input_triangles": 12,
+      "nearest_depth": 0.9914199709892273,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 23,
+      "rectangle": [
+        559.8670654296875,
+        373.9234924316406,
+        596.348876953125,
+        410.9623107910156
+      ],
+      "testable": true
+    },
+    {
+      "id": 25,
+      "input_triangles": 12,
+      "nearest_depth": 0.9914199709892273,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 24,
+      "rectangle": [
+        623.7234497070312,
+        373.9234924316406,
+        662.91015625,
+        410.9623107910156
+      ],
+      "testable": true
+    },
+    {
+      "id": 26,
+      "input_triangles": 12,
+      "nearest_depth": 0.9914199709892273,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 25,
+      "rectangle": [
+        687.579833984375,
+        373.9234924316406,
+        729.471435546875,
+        410.9623107910156
+      ],
+      "testable": true
+    },
+    {
+      "id": 27,
+      "input_triangles": 12,
+      "nearest_depth": 0.9913561344146729,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 26,
+      "rectangle": [
+        229.10450744628906,
+        342.8681640625,
+        271.2633972167969,
+        379.0983581542969
+      ],
+      "testable": true
+    },
+    {
+      "id": 28,
+      "input_triangles": 12,
+      "nearest_depth": 0.9913561344146729,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 27,
+      "rectangle": [
+        296.048828125,
+        342.8681640625,
+        335.47222900390625,
+        379.0983581542969
+      ],
+      "testable": true
+    },
+    {
+      "id": 29,
+      "input_triangles": 12,
+      "nearest_depth": 0.9913561344146729,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 28,
+      "rectangle": [
+        362.9931335449219,
+        342.8681640625,
+        399.6810607910156,
+        379.0983581542969
+      ],
+      "testable": true
+    },
+    {
+      "id": 30,
+      "input_triangles": 12,
+      "nearest_depth": 0.9913561344146729,
+      "occluder": false,
+      "output_triangles": 12,
+      "packet": 29,
+      "rectangle": [
+        429.9374084472656,
+        342.8681640625,
+        463.889892578125,
+        379.0983581542969
+      ],
+      "testable": true
+    },
+    {
+      "id": 31,
+      "input_triangles": 12,
+      "nearest_depth": 0.9913561344146729,
+      "occluder": false,
+      "output_triangles": 12,
+      "packet": 30,
+      "rectangle": [
+        496.110107421875,
+        342.8681640625,
+        530.0625610351562,
+        379.0983581542969
+      ],
+      "testable": true
+    },
+    {
+      "id": 32,
+      "input_triangles": 12,
+      "nearest_depth": 0.9913561344146729,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 31,
+      "rectangle": [
+        560.3189697265625,
+        342.8681640625,
+        597.0068969726562,
+        379.0983581542969
+      ],
+      "testable": true
+    },
+    {
+      "id": 33,
+      "input_triangles": 12,
+      "nearest_depth": 0.9913561344146729,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 32,
+      "rectangle": [
+        624.5277709960938,
+        342.8681640625,
+        663.951171875,
+        379.0983581542969
+      ],
+      "testable": true
+    },
+    {
+      "id": 34,
+      "input_triangles": 12,
+      "nearest_depth": 0.9913561344146729,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 33,
+      "rectangle": [
+        688.736572265625,
+        342.8681640625,
+        730.8955078125,
+        379.0983581542969
+      ],
+      "testable": true
+    },
+    {
+      "id": 35,
+      "input_triangles": 12,
+      "nearest_depth": 0.9912915825843811,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 34,
+      "rectangle": [
+        227.66395568847656,
+        311.46636962890625,
+        270.09381103515625,
+        346.8675231933594
+      ],
+      "testable": true
+    },
+    {
+      "id": 36,
+      "input_triangles": 12,
+      "nearest_depth": 0.9912915825843811,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 35,
+      "rectangle": [
+        294.9957275390625,
+        311.46636962890625,
+        334.65899658203125,
+        346.8675231933594
+      ],
+      "testable": true
+    },
+    {
+      "id": 37,
+      "input_triangles": 12,
+      "nearest_depth": 0.9912915825843811,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 36,
+      "rectangle": [
+        362.3274841308594,
+        311.46636962890625,
+        399.22418212890625,
+        346.8675231933594
+      ],
+      "testable": true
+    },
+    {
+      "id": 38,
+      "input_triangles": 12,
+      "nearest_depth": 0.9912915825843811,
+      "occluder": false,
+      "output_triangles": 12,
+      "packet": 37,
+      "rectangle": [
+        429.65924072265625,
+        311.46636962890625,
+        463.78936767578125,
+        346.8675231933594
+      ],
+      "testable": true
+    },
+    {
+      "id": 39,
+      "input_triangles": 12,
+      "nearest_depth": 0.9912915825843811,
+      "occluder": false,
+      "output_triangles": 12,
+      "packet": 38,
+      "rectangle": [
+        496.21063232421875,
+        311.46636962890625,
+        530.3407592773438,
+        346.8675231933594
+      ],
+      "testable": true
+    },
+    {
+      "id": 40,
+      "input_triangles": 12,
+      "nearest_depth": 0.9912915825843811,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 39,
+      "rectangle": [
+        560.7758178710938,
+        311.46636962890625,
+        597.6725463867188,
+        346.8675231933594
+      ],
+      "testable": true
+    },
+    {
+      "id": 41,
+      "input_triangles": 12,
+      "nearest_depth": 0.9912915825843811,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 40,
+      "rectangle": [
+        625.3410034179688,
+        311.46636962890625,
+        665.0042724609375,
+        346.8675231933594
+      ],
+      "testable": true
+    },
+    {
+      "id": 42,
+      "input_triangles": 12,
+      "nearest_depth": 0.9912915825843811,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 41,
+      "rectangle": [
+        689.9061889648438,
+        311.46636962890625,
+        732.3360595703125,
+        346.8675231933594
+      ],
+      "testable": true
+    },
+    {
+      "id": 43,
+      "input_triangles": 12,
+      "nearest_depth": 0.991226315498352,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 42,
+      "rectangle": [
+        226.2066192626953,
+        279.7122802734375,
+        268.9111633300781,
+        314.26348876953125
+      ],
+      "testable": true
+    },
+    {
+      "id": 44,
+      "input_triangles": 12,
+      "nearest_depth": 0.991226315498352,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 43,
+      "rectangle": [
+        293.93035888671875,
+        279.7122802734375,
+        333.8367004394531,
+        314.26348876953125
+      ],
+      "testable": true
+    },
+    {
+      "id": 45,
+      "input_triangles": 12,
+      "nearest_depth": 0.991226315498352,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 44,
+      "rectangle": [
+        361.6540832519531,
+        279.7122802734375,
+        398.76220703125,
+        314.26348876953125
+      ],
+      "testable": true
+    },
+    {
+      "id": 46,
+      "input_triangles": 12,
+      "nearest_depth": 0.991226315498352,
+      "occluder": false,
+      "output_triangles": 12,
+      "packet": 45,
+      "rectangle": [
+        429.3778381347656,
+        279.7122802734375,
+        463.687744140625,
+        314.26348876953125
+      ],
+      "testable": true
+    },
+    {
+      "id": 47,
+      "input_triangles": 12,
+      "nearest_depth": 0.991226315498352,
+      "occluder": false,
+      "output_triangles": 12,
+      "packet": 46,
+      "rectangle": [
+        496.312255859375,
+        279.7122802734375,
+        530.6221923828125,
+        314.26348876953125
+      ],
+      "testable": true
+    },
+    {
+      "id": 48,
+      "input_triangles": 12,
+      "nearest_depth": 0.991226315498352,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 47,
+      "rectangle": [
+        561.23779296875,
+        279.7122802734375,
+        598.3458862304688,
+        314.26348876953125
+      ],
+      "testable": true
+    },
+    {
+      "id": 49,
+      "input_triangles": 12,
+      "nearest_depth": 0.991226315498352,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 48,
+      "rectangle": [
+        626.163330078125,
+        279.7122802734375,
+        666.0696411132812,
+        314.26348876953125
+      ],
+      "testable": true
+    },
+    {
+      "id": 50,
+      "input_triangles": 12,
+      "nearest_depth": 0.991226315498352,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 49,
+      "rectangle": [
+        691.0888061523438,
+        279.7122802734375,
+        733.7933959960938,
+        314.26348876953125
+      ],
+      "testable": true
+    },
+    {
+      "id": 51,
+      "input_triangles": 12,
+      "nearest_depth": 0.9911602139472961,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 50,
+      "rectangle": [
+        224.73220825195312,
+        247.4381561279297,
+        267.7152404785156,
+        281.2795715332031
+      ],
+      "testable": true
+    },
+    {
+      "id": 52,
+      "input_triangles": 12,
+      "nearest_depth": 0.9911602139472961,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 51,
+      "rectangle": [
+        292.8525085449219,
+        247.4381561279297,
+        333.0051574707031,
+        281.2795715332031
+      ],
+      "testable": true
+    },
+    {
+      "id": 53,
+      "input_triangles": 12,
+      "nearest_depth": 0.9911602139472961,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 52,
+      "rectangle": [
+        360.9728088378906,
+        247.4381561279297,
+        398.2950744628906,
+        281.2795715332031
+      ],
+      "testable": true
+    },
+    {
+      "id": 54,
+      "input_triangles": 12,
+      "nearest_depth": 0.9911602139472961,
+      "occluder": false,
+      "output_triangles": 12,
+      "packet": 53,
+      "rectangle": [
+        429.0931091308594,
+        247.4381561279297,
+        463.5849609375,
+        281.2795715332031
+      ],
+      "testable": true
+    },
+    {
+      "id": 55,
+      "input_triangles": 12,
+      "nearest_depth": 0.9911602139472961,
+      "occluder": false,
+      "output_triangles": 12,
+      "packet": 54,
+      "rectangle": [
+        496.4150390625,
+        247.4381561279297,
+        530.9068603515625,
+        281.2795715332031
+      ],
+      "testable": true
+    },
+    {
+      "id": 56,
+      "input_triangles": 12,
+      "nearest_depth": 0.9911602139472961,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 55,
+      "rectangle": [
+        561.7049560546875,
+        247.4381561279297,
+        599.0271606445312,
+        281.2795715332031
+      ],
+      "testable": true
+    },
+    {
+      "id": 57,
+      "input_triangles": 12,
+      "nearest_depth": 0.9911602139472961,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 56,
+      "rectangle": [
+        626.9948120117188,
+        247.4381561279297,
+        667.1474609375,
+        281.2795715332031
+      ],
+      "testable": true
+    },
+    {
+      "id": 58,
+      "input_triangles": 12,
+      "nearest_depth": 0.9911602139472961,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 57,
+      "rectangle": [
+        692.2847290039062,
+        247.4381561279297,
+        735.2677612304688,
+        281.2795715332031
+      ],
+      "testable": true
+    },
+    {
+      "id": 59,
+      "input_triangles": 12,
+      "nearest_depth": 0.9910933971405029,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 58,
+      "rectangle": [
+        223.24044799804688,
+        213.7158203125,
+        266.5058288574219,
+        248.20066833496094
+      ],
+      "testable": true
+    },
+    {
+      "id": 60,
+      "input_triangles": 12,
+      "nearest_depth": 0.9910933971405029,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 59,
+      "rectangle": [
+        291.7619934082031,
+        213.7158203125,
+        332.16424560546875,
+        248.20066833496094
+      ],
+      "testable": true
+    },
+    {
+      "id": 61,
+      "input_triangles": 12,
+      "nearest_depth": 0.9910933971405029,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 60,
+      "rectangle": [
+        360.28350830078125,
+        213.7158203125,
+        397.8226318359375,
+        248.20066833496094
+      ],
+      "testable": true
+    },
+    {
+      "id": 62,
+      "input_triangles": 12,
+      "nearest_depth": 0.9910933971405029,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 61,
+      "rectangle": [
+        428.8050537109375,
+        213.7158203125,
+        463.48101806640625,
+        248.20066833496094
+      ],
+      "testable": true
+    },
+    {
+      "id": 63,
+      "input_triangles": 12,
+      "nearest_depth": 0.9910933971405029,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 62,
+      "rectangle": [
+        496.51898193359375,
+        213.7158203125,
+        531.1949462890625,
+        248.20066833496094
+      ],
+      "testable": true
+    },
+    {
+      "id": 64,
+      "input_triangles": 12,
+      "nearest_depth": 0.9910933971405029,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 63,
+      "rectangle": [
+        562.1773681640625,
+        213.7158203125,
+        599.7164916992188,
+        248.20066833496094
+      ],
+      "testable": true
+    },
+    {
+      "id": 65,
+      "input_triangles": 12,
+      "nearest_depth": 0.9910933971405029,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 64,
+      "rectangle": [
+        627.8357543945312,
+        213.7158203125,
+        668.238037109375,
+        248.20066833496094
+      ],
+      "testable": true
+    },
+    {
+      "id": 66,
+      "input_triangles": 12,
+      "nearest_depth": 0.9910933971405029,
+      "occluder": false,
+      "output_triangles": 0,
+      "packet": 65,
+      "rectangle": [
+        693.494140625,
+        213.7158203125,
+        736.7595825195312,
+        248.20066833496094
+      ],
+      "testable": true
+    },
+    {
+      "id": 67,
+      "input_triangles": 12,
+      "nearest_depth": 0.9866203665733337,
+      "occluder": false,
+      "output_triangles": 12,
+      "packet": 66,
+      "rectangle": [
+        101.37757110595703,
+        454.759033203125,
+        232.1990509033203,
+        571.5885620117188
+      ],
+      "testable": true
+    },
+    {
+      "id": 68,
+      "input_triangles": 12,
+      "nearest_depth": 0.9875587224960327,
+      "occluder": false,
+      "output_triangles": 12,
+      "packet": 67,
+      "rectangle": [
+        622.8877563476562,
+        443.9845275878906,
+        732.8272094726562,
+        553.2247314453125
+      ],
+      "testable": true
+    },
+    {
+      "id": 69,
+      "input_triangles": 12,
+      "nearest_depth": 0.9846597909927368,
+      "occluder": false,
+      "output_triangles": 12,
+      "packet": 68,
+      "rectangle": [
+        329.6421203613281,
+        476.8385925292969,
+        443.8555908203125,
+        609.8439331054688
+      ],
+      "testable": true
+    }
+  ],
+  "prepass_triangles": 48,
+  "scene": "occlusion-window",
+  "source": "actual GPU depth mip readbacks and indexed indirect arguments",
+  "width": 960,
+  "depth_archive": "occlusion-window-depth.npz"
+}

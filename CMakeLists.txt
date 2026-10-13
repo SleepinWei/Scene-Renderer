@@ -305,13 +305,18 @@ if(BUILD_TESTING)
     target_link_libraries(engine-render-graph-tests PRIVATE Threads::Threads)
     add_test(NAME engine-render-graph COMMAND engine-render-graph-tests)
     set_tests_properties(engine-render-graph PROPERTIES TIMEOUT 20)
-    add_executable(rhi-image-decoder-tests tests/rhi/ImageDecoderTests.cpp src/renderer/rhi/DdsDecoder.cpp)
+    add_executable(rhi-image-decoder-tests tests/rhi/ImageDecoderTests.cpp src/renderer/rhi/DdsDecoder.cpp src/rhi/MemorySafety.cpp)
     target_include_directories(rhi-image-decoder-tests PRIVATE include external)
     add_test(NAME rhi-image-decoder COMMAND rhi-image-decoder-tests)
-    add_executable(rhi-contract-tests tests/rhi/DeviceTests.cpp src/rhi/Device.cpp src/rhi/Validation.cpp)
+    add_executable(rhi-contract-tests tests/rhi/DeviceTests.cpp src/rhi/Device.cpp src/rhi/MemorySafety.cpp src/rhi/Validation.cpp)
     target_include_directories(rhi-contract-tests PRIVATE "${PROJECT_SOURCE_DIR}/include")
     add_test(NAME rhi-contract COMMAND rhi-contract-tests)
-    add_executable(rhi-graphics-contract-tests tests/rhi/GraphicsTests.cpp src/rhi/Device.cpp src/rhi/GraphicsDevice.cpp)
+    add_executable(memory-safety-tests tests/rhi/MemorySafetyTests.cpp src/rhi/MemorySafety.cpp)
+    target_include_directories(memory-safety-tests PRIVATE include)
+    target_link_libraries(memory-safety-tests PRIVATE Threads::Threads)
+    add_test(NAME memory-safety COMMAND memory-safety-tests)
+    set_tests_properties(memory-safety PROPERTIES TIMEOUT 20)
+    add_executable(rhi-graphics-contract-tests tests/rhi/GraphicsTests.cpp src/rhi/Device.cpp src/rhi/MemorySafety.cpp src/rhi/GraphicsDevice.cpp)
     target_include_directories(rhi-graphics-contract-tests PRIVATE include)
     add_test(NAME rhi-graphics-contract COMMAND rhi-graphics-contract-tests)
     add_test(NAME rhi-forward-scene COMMAND ${PROJECT_NAME} --rhi-forward --hidden --frames 3 --screenshot "${CMAKE_BINARY_DIR}/rhi/forward-scene.ppm")
@@ -331,7 +336,7 @@ if(BUILD_TESTING)
     endif()
     if(NOT SCENERENDERER_METAL AND NOT SCENERENDERER_DEFAULT_VULKAN)
         add_executable(rhi-opengl-state-tests tests/rhi/OpenGLStateValidation.cpp
-            src/rhi/Device.cpp src/rhi/GraphicsDevice.cpp src/rhi/ShaderAssets.cpp
+            src/rhi/Device.cpp src/rhi/MemorySafety.cpp src/rhi/GraphicsDevice.cpp src/rhi/ShaderAssets.cpp
             src/rhi/GraphicsValidation.cpp src/rhi/ComputeValidation.cpp src/rhi/OpenGLDevice.cpp ${GLAD_SRC})
         target_include_directories(rhi-opengl-state-tests PRIVATE include external)
         target_compile_definitions(rhi-opengl-state-tests PRIVATE GLFW_INCLUDE_NONE SR_RHI_SHADER_DIR="${RHI_SHADER_DIR}")
@@ -354,7 +359,7 @@ if(SCENERENDERER_VULKAN_PROTOTYPE)
     target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
     target_compile_definitions(${PROJECT_NAME} PRIVATE SCENERENDERER_HAS_VULKAN)
     add_executable(rhi-vulkan-validation tests/rhi/VulkanValidation.cpp src/engine/JobSystem.cpp
-        src/rhi/Device.cpp src/rhi/GraphicsDevice.cpp src/rhi/ShaderAssets.cpp
+        src/rhi/Device.cpp src/rhi/MemorySafety.cpp src/rhi/GraphicsDevice.cpp src/rhi/ShaderAssets.cpp
         src/rhi/Validation.cpp src/rhi/FrameValidation.cpp src/rhi/GraphicsValidation.cpp src/rhi/ComputeValidation.cpp src/rhi/VulkanDevice.cpp
         src/renderer/rhi/GpuMesh.cpp src/renderer/rhi/GpuMaterial.cpp src/renderer/rhi/GpuImageCache.cpp src/renderer/rhi/ImageMipChain.cpp src/renderer/rhi/ImageDecoder.cpp src/renderer/rhi/DdsDecoder.cpp
         src/renderer/rhi/ForwardPbrRenderer.cpp src/renderer/rhi/ForwardValidation.cpp
@@ -412,7 +417,7 @@ add_executable(pt-package-render EXCLUDE_FROM_ALL tools/render_pt_package.cpp
     src/PT/ScenePackage.cpp src/PT/CpuPathTracer.cpp src/PT/Sampler.cpp
     src/PT/BidirectionalPathTracer.cpp src/PT/PhotonMap.cpp src/PT/ProceduralGeometry.cpp
     src/PT/GpuPathTracer.cpp src/PT/ValidationScenes.cpp src/PT/Denoiser.cpp
-    src/rhi/Device.cpp src/rhi/GraphicsDevice.cpp src/rhi/ShaderAssets.cpp)
+    src/rhi/Device.cpp src/rhi/MemorySafety.cpp src/rhi/GraphicsDevice.cpp src/rhi/ShaderAssets.cpp)
 target_include_directories(pt-package-render PRIVATE include external)
 target_link_libraries(pt-package-render PRIVATE Threads::Threads)
 configure_pt_denoiser(pt-package-render)

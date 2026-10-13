@@ -458,6 +458,76 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
             addMeshes(target, "Stanford Bunny " + std::to_string(i), imported("samples/assets/bunny/bun_zipper.ply", 3, true),
                       pbr(colors[i], i==1?.23f:.55f, i==1?1.f:0.f), {float(i-1)*3.1f,0,0}, glm::vec3(1), {0,15,0});
         floor(target); atmosphere(target); sun(target, {2.5f,2.4f,2.3f}, {-.5f,-1,-.4f}); point(target, {32,40,50}, {5,6,5});
+    } else if (name == "bistro") {
+        const std::string manifest="samples/assets/benchmarks/bistro/runtime/scene.json";
+        std::ifstream input(manifest);
+        if(!input)throw std::runtime_error("Run python3 tools/prepare_bistro_scene.py first");
+        nlohmann::json layout;input>>layout;
+        SceneImportOptions options;options.convertedTextureDirectory=layout.at("textures").get<std::string>();
+        options.packedOrmSpecular=true;options.uvTangents=true;
+        // Bistro's R channel is an unused zero placeholder. Falcor does not
+        // consume it as AO: https://github.com/NVIDIAGameWorks/Falcor/blob/master/docs/usage/scene-formats.md
+        options.packedOcclusion=false;
+        const float height=layout.at("height").get<float>();
+        auto importedScene=importOBJScene(layout.at("model").get<std::string>(),height,options);
+        if(importedScene.triangles!=layout.at("source_triangles").get<size_t>())throw std::runtime_error("Bistro source triangle count changed");
+        auto object=std::make_shared<GameObject>();object->name="Bistro complete exterior";
+        object->addComponent(std::make_shared<Transform>());
+        auto filter=std::make_shared<MeshFilter>();for(const auto& mesh:importedScene.meshes)filter->addMesh(mesh);
+        object->addComponent(filter);auto renderer=std::make_shared<MeshRenderer>();renderer->setShader(ShaderType::PBR);
+        object->addComponent(renderer);object->setDeferred(true);target->addObject(object);
+        // Transform the recorded source-space camera using the same normalization as the mesh.
+        auto vector=[](const auto& a){return glm::vec3(a.at(0).template get<float>(),a.at(1).template get<float>(),a.at(2).template get<float>());};
+        const auto eye=(vector(layout.at("camera").at("source_position"))-importedScene.sourceOrigin)*importedScene.sourceScale;
+        const auto aim=(vector(layout.at("camera").at("source_target"))-importedScene.sourceOrigin)*importedScene.sourceScale;
+        const auto direction=glm::normalize(aim-eye);
+        target->setCamera(std::make_shared<Camera>(eye,glm::vec3(0,1,0),glm::degrees(std::atan2(direction.z,direction.x)),glm::degrees(std::asin(direction.y))));
+        target->mainCamera()->setZoom(layout.at("camera").at("fov").get<float>());
+        target->mainCamera()->setExposure(layout.at("camera").at("exposure").get<float>());
+        atmosphere(target);sun(target,{3.8f,3.6f,3.2f},{-.45f,-1,-.35f});
+        manager->setting.clusters.enabled=true;manager->setting.clusters.pixelError=2;manager->setting.clusters.occlusion=false;
+    } else if (name == "cluster-cave" || name == "cluster-cave-small") {
+        const std::filesystem::path folder=name=="cluster-cave"?"samples/assets/benchmarks/procedural-cave":"samples/assets/benchmarks/procedural-cave-small";
+        std::ifstream input(folder/"scene.json");
+        if(!input)throw std::runtime_error("Run python3 tools/prepare_cluster_cave.py first");
+        nlohmann::json layout;input>>layout;
+        if(layout.at("version").get<int>()!=1)throw std::runtime_error("Unsupported procedural cave package");
+        uint64_t packageBytes=0;
+        for(const auto& entry:std::filesystem::recursive_directory_iterator(folder))
+            if(entry.is_regular_file())packageBytes+=entry.file_size();
+        if(packageBytes>=10000000000ull)throw std::runtime_error("Procedural cave package exceeds the 10 GB limit");
+        auto material=pbr(glm::vec3(1),.86f);
+        material->addTexture(Texture::loadFromFileAsync((folder/"limestone-albedo.png").string(),4),"material.albedo");
+        material->addTexture(Texture::loadFromFileAsync((folder/"limestone-roughness.png").string(),4),"material.roughness");
+        std::vector<std::vector<std::shared_ptr<Mesh>>> prototypes;
+        AssimpLoader loader;uint64_t uniqueTriangles=0;
+        for(const auto& description:layout.at("meshes")){
+            auto meshes=loader.loadModel(description.at("model").get<std::string>(),false);
+            size_t count=0;for(const auto& mesh:meshes)count+=mesh->getIndices().size()/3;
+            if(count!=description.at("triangles").get<size_t>())throw std::runtime_error("Procedural cave source geometry changed");
+            for(const auto& mesh:meshes)mesh->setMaterial(material);
+            uniqueTriangles+=count;prototypes.push_back(std::move(meshes));
+        }
+        auto vector=[](const auto& a){return glm::vec3(a.at(0).template get<float>(),a.at(1).template get<float>(),a.at(2).template get<float>());};
+        uint64_t logicalTriangles=0;size_t instance=0;
+        for(const auto& item:layout.at("instances")){
+            const auto index=item.at("mesh").get<size_t>();
+            addMeshes(target,item.at("name").get<std::string>()+" "+std::to_string(instance++),prototypes.at(index),material,
+                vector(item.at("position")),vector(item.at("scale")),vector(item.at("rotation")));
+            logicalTriangles+=layout.at("meshes").at(index).at("triangles").get<uint64_t>();
+        }
+        if(uniqueTriangles!=layout.at("unique_triangles").get<uint64_t>()||logicalTriangles!=layout.at("logical_triangles").get<uint64_t>())throw std::runtime_error("Procedural cave instance count differs from manifest");
+        const auto eye=vector(layout.at("camera").at("position")),aim=vector(layout.at("camera").at("target")),direction=glm::normalize(aim-eye);
+        target->setCamera(std::make_shared<Camera>(eye,glm::vec3(0,1,0),glm::degrees(std::atan2(direction.z,direction.x)),glm::degrees(std::asin(direction.y))));
+        target->mainCamera()->setZoom(layout.at("camera").at("fov").get<float>());
+        target->mainCamera()->setExposure(layout.at("camera").at("exposure").get<float>());
+        target->mainCamera()->setMovementSpeed(7);target->mainCamera()->setClipPlanes(.1f,250);
+        atmosphere(target);sun(target,{4.4f,3.8f,2.9f},{-.45f,-1,-.38f});
+        point(target,{15,22,32},{0,6,-13});point(target,{24,19,12},{0,7,-37});
+        manager->setting.clusters.enabled=true;manager->setting.clusters.pixelError=4;manager->setting.clusters.occlusion=true;
+        manager->setting.shadowSettings.distance=180;manager->setting.shadowSettings.depthBias=.0005f;
+        manager->setting.weather.fog=false;manager->setting.weather.aerialPerspective=false;
+        std::cout<<"Procedural grotto: "<<instance<<" shared instances, "<<uniqueTriangles<<" unique / "<<logicalTriangles<<" logical triangles, "<<packageBytes<<" package bytes (10 GB cap)\n";
     } else if (name == "cluster-cliff") {
         std::ifstream input("samples/cluster-cliff-scene.json");
         if(!input)throw std::runtime_error("Missing cliff layout manifest");
@@ -563,6 +633,6 @@ std::shared_ptr<RenderScene> render::makeClassicScene(const std::string& name) {
             target->mainCamera()->setExposure(1.8f);
             point(target,{8,7,6},{4,5,0});
         }
-    } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose tree-single, tree-bare, tree-edge, tree-forest, underwater-dive, coastal-seabed, terrain, mountain-lake, coastal-beach, coastal-water, coastal-underwater, sky, cloud-volume, cloud-inside, cloud-vortex, clouds, clouds-sunset, clouds-storm, shadow-test, bunny, dragon, buddha, armadillo, helmet, cornell, sponza, san-miguel, sibenik, ocean, ocean-sea-state or ocean-clear");
+    } else throw std::runtime_error("Unknown classic scene '" + name + "'; choose tree-single, tree-bare, tree-edge, tree-forest, underwater-dive, coastal-seabed, terrain, mountain-lake, coastal-beach, coastal-water, coastal-underwater, sky, cloud-volume, cloud-inside, cloud-vortex, clouds, clouds-sunset, clouds-storm, shadow-test, bunny, dragon, buddha, armadillo, helmet, cornell, sponza, san-miguel, sibenik, bistro, cluster-cliff, cluster-cave, cluster-cave-small, ocean, ocean-sea-state or ocean-clear");
     return target;
 }

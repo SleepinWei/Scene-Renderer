@@ -1,0 +1,21 @@
+{
+  "comparisons": 22,
+  "dense_scene": {
+    "display_equal": true,
+    "main_triangles_after": 2,
+    "main_triangles_before": 524290,
+    "nonzero_main_draws_after": 1,
+    "nonzero_main_draws_before": 65,
+    "prepass_triangles": 2
+  },
+  "display_equal": true,
+  "extra_bytes": 116756,
+  "hdr_max_error": 0.0,
+  "main_triangles_after": 6,
+  "main_triangles_before": 8,
+  "objects": 4,
+  "occluders": 1,
+  "prepass_triangles": 2,
+  "pyramid_levels": 8,
+  "timing_scope": "129x97 dense occluded static meshes; geometry plus selected-occluder depth, full HiZ pyramid and tests; excludes CPU/readback; not full-frame FPS"
+}

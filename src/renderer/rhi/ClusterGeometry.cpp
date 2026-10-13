@@ -1,4 +1,5 @@
 #include "renderer/rhi/ClusterGeometry.h"
+#include "rhi/MemorySafety.h"
 #include "renderer/rhi/SceneSnapshot.h"
 #include <algorithm>
 #include <array>
@@ -162,6 +163,11 @@ std::shared_ptr<const ClusterHierarchy> buildClusterHierarchy(const MeshPayload&
        !std::isfinite(settings.minParentReduction)||settings.minParentReduction<0||settings.minParentReduction>=1||
        settings.parentGroupSize<2||settings.parentGroupSize>16||
        mesh.indices.size()%3||mesh.indices.size()>UINT32_MAX||mesh.vertices.size()>UINT32_MAX)throw std::invalid_argument("Invalid cluster build input");
+    // Maps, edge sets and QEM candidates can be much larger than the final
+    // index hierarchy. Reserve conservative scratch across concurrent workers.
+    const auto vertexScratch=rhi::MemorySafety::bytes(mesh.vertices.size(),512);
+    const auto triangleScratch=rhi::MemorySafety::bytes(mesh.indices.size()/3,192);
+    auto scratch=rhi::memorySafety().reserve(vertexScratch+triangleScratch+settings.byteBudget,"cluster hierarchy construction");
     auto started=std::chrono::steady_clock::now();auto result=std::make_shared<ClusterHierarchy>();
     // Weld only bit-identical attributes; retain original vertex addresses.
     std::map<std::array<uint32_t,12>,uint32_t> canonical;std::vector<uint32_t> remap(mesh.vertices.size());
@@ -205,6 +211,7 @@ std::shared_ptr<const ClusterHierarchy> buildClusterHierarchy(const MeshPayload&
     std::vector<Work> layer;for(auto& group:leaves)layer.push_back({group,add(group,0,0,UINT32_MAX,UINT32_MAX,0),0,0});
     result->leafClusters=uint32_t(result->clusters.size());
     for(uint32_t level=1;layer.size()>1&&level<settings.maxLevels;++level){
+        rhi::memorySafety().check(0,"cluster hierarchy continuation");
         std::map<Edge,std::vector<uint32_t>> shared;
         for(uint32_t i=0;i<layer.size();++i){std::set<Edge> edges;for(auto f:layer[i].faces)for(int k=0;k<3;++k)edges.insert(settings.spatialPartition?partitionContext.geometricEdge(f[k],f[(k+1)%3]):edge(f[k],f[(k+1)%3]));for(auto e:edges)shared[e].push_back(i);}
         std::vector<std::map<uint32_t,uint32_t>> neighbors(layer.size());

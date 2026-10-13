@@ -1,0 +1,18 @@
+{
+  "scene": "occlusion-window",
+  "backend": "Metal",
+  "display_equal": true,
+  "hdr_max_error": 0.0,
+  "validated_mip_transitions": 9,
+  "culled_objects": 52,
+  "depth_colour_range": [
+    0.989539384841919,
+    0.9902719259262085
+  ],
+  "overview": "hiz-overview.png",
+  "pyramid": "hiz-pyramid.png",
+  "vulkan_display_equal": true,
+  "vulkan_hdr_max_error": 0.0,
+  "vulkan_mip_transitions_exact": 9,
+  "backend_counts_equal": true
+}
